@@ -25,13 +25,13 @@
 
 void button_init_device(void)
 {
-    GPIOA_DIR |= 0xC;
+    //GPIOA_DIR |= 0xC;
 }
 
 int button_read_device(void)
 {
     int btn = BUTTON_NONE;
-
+#if 0
     if (!button_hold())
     {
         GPIOA |= 0x4;
@@ -55,10 +55,11 @@ int button_read_device(void)
         if (GPIOA & 0x80) btn |= BUTTON_SELECT;
         if (GPIOA & 0x100) btn |= BUTTON_POWER;
     }
+#endif
     return btn;
 }
 
 bool button_hold(void)
 {
-    return (GPIOA & 0x2);
+    return 0; //(GPIOA & 0x2);
 }

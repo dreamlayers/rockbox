@@ -35,8 +35,10 @@ void irq(void)
 
     if (irq & TIMER0_IRQ_MASK)
         TIMER();
+#if 0 // WARNING FIXME NO ADC FIXME
     else if (irq & ADC_IRQ_MASK)
         ADC();
+#endif
 #ifdef HAVE_USBSTACK
     else if (irq & USBD_IRQ_MASK)
         USB_DEVICE();
@@ -70,76 +72,9 @@ void system_exception_wait(void)
    investigate what the GPIO pins do.
 */
 
-#ifdef LOGIK_DAX
+#if defined(RC3000A)
 static void gpio_init(void)
 {
-    /* Do what the original firmware does */
-    GPIOD_FUNC = 0;
-    GPIOD_DIR = 0x3f0;
-    GPIOD = 0xe0;
-
-    GPIOE_FUNC = 0;
-    GPIOE_DIR = 0xe0;
-    GPIOE = 0;
-
-    GPIOA_FUNC = 0;
-    GPIOA_DIR = 0xffff1000;   /* 0 - 0xf000 */
-    GPIOA = 0x1080;
-
-    GPIOB_FUNC = 0x16a3;
-    GPIOB_DIR = 0x6ffff;
-    GPIOB = 0;
-
-    GPIOC_FUNC = 1;
-    GPIOC_DIR = 0x03ffffff;  /* mvn r2, 0xfc000000 */
-    GPIOC = 0;
-}
-#elif defined(IAUDIO_7)
-static void gpio_init(void)
-{
-    /* Do what the original firmware does */
-    GPIOA_FUNC = 0;
-    GPIOB_FUNC = 0x1623;
-    GPIOC_FUNC = 1;
-    GPIOD_FUNC = 0;
-    GPIOE_FUNC = 0;
-    GPIOA = 0x30;
-    GPIOB = 0x00c00;
-    GPIOC = 0;
-    GPIOD = 0x180;
-    GPIOE = 0x80;
-    GPIOA_DIR = 0x84b0;
-    GPIOB_DIR = 0x80c00;
-    GPIOC_DIR = 0x2000000;
-    GPIOD_DIR = 0x3e3;
-    GPIOE_DIR = 0x88;
-}
-#elif defined(SANSA_M200)
-static void gpio_init(void)
-{
-    /* TODO - Implement for M200 */
-}
-#elif defined(SANSA_C100)
-static void gpio_init(void)
-{
-    /* Do what the original firmware does */
-    GPIOA_FUNC = 0;
-    GPIOB_FUNC = 0x16A3;
-    GPIOC_FUNC = 1;
-    GPIOD_FUNC |= 2;
-    GPIOE_FUNC = 0;
-
-    GPIOA_DIR = 0xFFFF0E00;
-    GPIOB_DIR = 0x6FFFF;
-    GPIOC_DIR = 0x03FFFFFF;
-    GPIOD_DIR = 0x3F7;
-    GPIOE_DIR = 0x9B;
-
-    GPIOA = 0x80;
-    GPIOB = 0;
-    GPIOC = 0;
-    GPIOD |= 0xC0;
-    GPIOE = 0x9B;
 }
 #endif
 
@@ -147,6 +82,7 @@ static void gpio_init(void)
    set up the clocks in the same way as the original firmware for now. */
 static void clock_init(void)
 {
+ #if 0
     unsigned int i;
 
     /* STP = 0x1, PW = 0x04 , HLD = 0x0 */
@@ -195,6 +131,7 @@ static void clock_init(void)
     TC32MCNT = 0;
     TC32LDV = 0;
     TC32EN = (1<<24) | 11;
+#endif
 }
 
 static void cpu_init(void)
@@ -273,7 +210,7 @@ http://infocenter.arm.com/help/topic/com.arm.doc.ddi0201d/DDI0201D_arm946es_r1p1
 #elif defined(IAUDIO_7) || defined(SANSA_M200)
         "mov     r0, #0xa7              \n\t"
 #else
-    #error NOT DEFINED FOR THIS TARGET!
+    //#error NOT DEFINED FOR THIS TARGET! FIXME!!!! FIXME FIXME
 #endif
         "mcr     p15, 0, r0, c2, c0, 0  \n\t"
         "mcr     p15, 0, r0, c2, c0, 1  \n\t"

@@ -21,20 +21,24 @@
 #ifndef BACKLIGHT_TARGET_H
 #define BACKLIGHT_TARGET_H
 
-#include "tcc77x.h"
+#include "tcc76x.h"
 
-#define _backlight_init() true
+static inline void _backlight_init(void)
+{
+    /* Set GPIO pin as output */
+    GIOCON_D |= 0x8000;
+}
 
 static inline void _backlight_on(void)
 {
     /* Enable backlight */
-    GPIOE |= 0x2;
+    GDATA_D |= 0x8000;
 }
 
 static inline void _backlight_off(void)
 {
     /* Disable backlight */
-    GPIOE &= ~0x2;
+    GDATA_D &= ~0x8000;
 }
 
 #endif

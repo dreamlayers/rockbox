@@ -73,7 +73,7 @@ bl_entrypoint:  .word  0   /* Location in RAM of the start of our bootloader */
 
 start_loc:
 
-#ifdef BOOTLOADER
+#ifdef BOOTLOADER_FIXME // FIXME FIXME FIXME
 
 /*
   If we are appended to the OF (i.e. dual-booting), do a simple GPIO
