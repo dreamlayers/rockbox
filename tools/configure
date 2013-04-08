@@ -3871,7 +3871,7 @@ fi
 
    257|rc3000a)
     target_id=257
-    modelname="rc3000a"
+    modelname="rcarc3000a"
     target="RC3000A"
     memory=2
     arm940tcc
@@ -3879,7 +3879,7 @@ fi
     boottool="$rootdir/tools/scramble -tcc=crc"
     bootoutput="player.rom"
     bmp2rb_mono="$rootdir/tools/bmp2rb -f 0"
-    bmp2rb_native="$rootdir/tools/bmp2rb -f 4"
+    bmp2rb_native="$rootdir/tools/bmp2rb -f 0"
     output="rockbox.rc3000"
     appextra="recorder:gui:radio"
     plugins="yes"

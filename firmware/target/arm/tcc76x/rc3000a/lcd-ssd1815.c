@@ -90,6 +90,25 @@ static int xoffset; /* needed for flip */
 
 /*** hardware configuration ***/
 
+//FIXME
+#include "tcc76x.h"
+
+#define LCD_COMMAND_PORT (*(volatile unsigned char *)0x50080000)
+#define LCD_DATA_PORT (*(volatile unsigned char *)0x50080001)
+
+void lcd_write_command(int c) {
+    LCD_COMMAND_PORT=c;
+    asm("nop; nop; nop;");
+}
+
+void lcd_write_data(const unsigned char *c, int n) {
+    int i;
+    for (i = 0; i < n; i++) {
+        LCD_DATA_PORT = c[i];
+        asm("nop; nop; nop;");
+    }
+}
+
 int lcd_default_contrast(void)
 {
     return 44; //return (HW_MASK & LCD_CONTRAST_BIAS) ? 31 : 49;
@@ -155,6 +174,7 @@ void lcd_init_device(void)
     lcd_clear_display();
     lcd_update();
 #endif
+    CSCFG1 = 0x0f540059;
     lcd_write_command(LCD_SET_DISPLAY_OFF);
     lcd_write_command(LCD_SET_LCD_BIAS);
     lcd_write_command(LCD_SET_SEGMENT_REMAP);

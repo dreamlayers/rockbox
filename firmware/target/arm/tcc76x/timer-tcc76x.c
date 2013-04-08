@@ -63,7 +63,7 @@ void TIMER(void)
         TIREQ |= TI0 | TF0;
     }
 
-    if (TC32IRQ & (1<<3))    /* end of TC32 prescale */
+    if (TC32IRQ & (1<<3))    /* end of TC32 prescale */ // FIXME what is this?
     {
         /* dispatch timer */
     }

@@ -138,7 +138,7 @@ void* main(void)
     
     lcd_init();
 
-    adc_init();
+    //adc_init(); FIXME FIXME FIXME
     button_init();
     backlight_init();
 

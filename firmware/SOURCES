@@ -673,6 +673,8 @@ target/arm/pnx0101/crt0-pnx0101.S
 target/arm/tms320dm320/crt0.S
 #elif CONFIG_CPU==S3C2440
 target/arm/s3c2440/crt0.S
+#elif defined(CPU_TCC76X)
+target/arm/tcc76x/crt0.S
 #elif defined(CPU_TCC77X)
 target/arm/tcc77x/crt0.S
 #elif defined(CPU_TCC780X)
@@ -838,6 +840,23 @@ target/sh/archos/ata-as-archos.S
 target/sh/archos/uart-archos.c
 # endif
 #endif
+
+#ifdef CPU_TCC76X
+/* target/arm/usb-tcc.c */
+target/arm/tcc76x/kernel-tcc76x.c
+target/arm/tcc76x/system-tcc76x.c
+target/arm/tcc76x/timer-tcc76x.c
+# ifndef IAUDIO7
+target/arm/tcc76x/powermgmt-tcc76x.c
+# endif /* !IAUDIO7 */
+# ifndef BOOTLOADER
+#  ifndef SANSA_C100
+target/arm/wmcodec-telechips.c
+#  endif /* !C100 */
+target/arm/pcm-telechips.c
+target/arm/tcc76x/debug-tcc76x.c
+# endif /* !BOOTLOADER */
+#endif /* CPU_TCC76X */
 
 #ifdef CPU_TCC77X
 target/arm/usb-tcc.c
@@ -1813,11 +1832,11 @@ target/arm/rk27xx/ihifi/powermgmt-ihifi960.c
 
 #ifdef RC3000A
 drivers/nand_id.c
-target/arm/tcc77x/c100/lcd-ssd1815.c
-target/arm/tcc77x/c100/button-rc3000a.c
-target/arm/tcc77x/c100/power-rc3000a.c
+target/arm/tcc76x/rc3000a/lcd-ssd1815.c
+target/arm/tcc76x/rc3000a/button-rc3000a.c
+target/arm/tcc76x/rc3000a/power-rc3000a.c
 #ifndef BOOTLOADER
-target/arm/tcc77x/c100/audio-rc3000a.c
+target/arm/tcc76x/rc3000a/audio-rc3000a.c
 #endif /* BOOTLOADER */
 #endif /* RC3000A */
 

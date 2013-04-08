@@ -23,9 +23,9 @@
 
 #define CACHEALIGN_BITS (5) // FIXME is this right?
 
-/* Generated from datasheet using this plus some manual attention:
- * sed "s/^\([^ ]*\) 0x\([^ ]*\) .* \(0x[0-9A-Fa-f]*\|Unknown\|-\) \(.*\)$/\/* \4 *\/\n#define \1 (*(volatile unsigned long *)0x80000A\2)/" new\ \ 3.txt  > foo
- */
+
+/* Generated from datasheet using this plus some manual attention: */
+// sed "s/^\([^ ]*\) 0x\([^ ]*\) .* \(0x[0-9A-Fa-f]*\|Unknown\|-\) \(.*\)$/\/* \4 *\/\n#define \1 (*(volatile unsigned long *)0x80000A\2)/" new\ \ 3.txt  > foo
 
 /* Address Allocations for Internal Peripherals (Base = 0x80000000) */
 
@@ -37,6 +37,19 @@
 
 /* Interrupt Enable Register */
 #define IEN (*(volatile unsigned long *)0x80000100)
+
+/* IRQ Controller */
+#define EXT0_IRQ_MASK    (1<<0)
+#define EXT1_IRQ_MASK    (1<<1)
+#define EXT2_IRQ_MASK    (1<<2)
+#define EXT3_IRQ_MASK    (1<<3)
+#define I2SR_IRQ_MASK    (1<<4)
+#define I2ST_IRQ_MASK    (1<<5)
+#define TIMER0_IRQ_MASK  (1<<6)
+#define USBD_IRQ_MASK    (1<<8)  /* USB 2.0 device */
+#define USBH_IRQ_MASK    (1<<10) /* USB 1.1 host */
+#define ADC_IRQ_MASK     (1<<16)
+
 /* Clear Interrupt Request Register */
 #define CREQ (*(volatile unsigned long *)0x80000104)
 /* Interrupt Request Flag Register */
@@ -114,6 +127,13 @@
 #define TREF5 (*(volatile unsigned long *)0x80000258)
 /* Timer/Counter n Interrupt Request Register */
 #define TIREQ (*(volatile unsigned short *)0x80000260)
+
+/* TIREQ flags */
+#define TF0 (1<<8) /* Timer 0 reference value reached */
+#define TF1 (1<<9) /* Timer 1 reference value reached */
+#define TI0 (1<<0) /* Timer 0 IRQ flag */
+#define TI1 (1<<1) /* Timer 1 IRQ flag */
+
 /* Watchdog Timer Configuration Register */
 #define TWDCFG (*(volatile unsigned short *)0x80000270)
 /* Watchdog Timer Clear Register */
@@ -130,6 +150,8 @@
 #define TC32PCNT (*(volatile unsigned long *)0x80000290)
 /* 32-bit Counter Current Value (main counter) */
 #define TC32MCNT (*(volatile unsigned long *)0x80000294)
+/* 32-bit Counter Interrupt Control Register */
+#define TC32IRQ (*(volatile unsigned long *)0x80000298)
 
 /*
  * 0x300 ~ 0x3FF GPIO
