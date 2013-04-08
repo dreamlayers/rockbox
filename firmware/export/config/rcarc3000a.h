@@ -26,11 +26,13 @@
 #define HAVE_TAGCACHE
 
 /* define this if you have a flash memory storage */
-#define HAVE_FLASH_STORAGE
+//#define HAVE_FLASH_STORAGE
 
 /* Only v1 */
-#define CONFIG_STORAGE STORAGE_NAND
-#define CONFIG_NAND NAND_TCC
+#define CONFIG_STORAGE_MULTI
+#define NUM_DRIVES 1
+#define CONFIG_STORAGE 0 //STORAGE_NAND
+//#define CONFIG_NAND NAND_TCC
 
 /* c100's with direct-to-NAND access are FAT16 */
 #define HAVE_FAT16SUPPORT
@@ -43,11 +45,13 @@
 #define LCD_PIXEL_ASPECT_WIDTH 4
 #define LCD_PIXEL_ASPECT_HEIGHT 5
 
+#define LCD_PIXELFORMAT VERTICAL_PACKING
+
 /* define this to indicate your device's keypad */
 #define CONFIG_KEYPAD SANSA_C100_PAD
 
 /* define this if you have a real-time clock */
-#define CONFIG_RTC RTC_TCC76X
+//#define CONFIG_RTC RTC_TCC77X
 
 /* define this if you have RTC RAM available for settings */
 //#define HAVE_RTC_RAM
@@ -77,7 +81,7 @@
 /* Define this for LCD backlight available */
 #define HAVE_BACKLIGHT
 
-#define CONFIG_I2C I2C_TCC77X
+//#define CONFIG_I2C I2C_TCC77X
 
 #define BATTERY_CAPACITY_DEFAULT 540 /* default battery capacity */
 #define BATTERY_CAPACITY_MIN 540 /* min. capacity selectable */
