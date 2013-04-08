@@ -74,6 +74,7 @@
 #define DSC25          25
 #define DM320         320
 #define IMX31L         31
+#define TCC760        760
 #define TCC770        770
 #define TCC771L       771
 #define TCC773L       773
@@ -581,6 +582,8 @@ Lyre prototype 1 */
 #include "config/ibassodx50.h"
 #elif defined(DX90)
 #include "config/ibassodx90.h"
+#elif defined(RC3000A)
+#include "config/rcarc3000a.h"
 #else
 /* no known platform */
 #endif
@@ -635,6 +638,11 @@ Lyre prototype 1 */
 /* define for all cpus from S5L870X family */
 #if (CONFIG_CPU == S5L8700) || (CONFIG_CPU == S5L8701) || (CONFIG_CPU == S5L8702)
 #define CPU_S5L870X
+#endif
+
+/* define for all cpus from TCC77X family */
+#if (CONFIG_CPU == TCC760)
+#define CPU_TCC76X
 #endif
 
 /* define for all cpus from TCC77X family */

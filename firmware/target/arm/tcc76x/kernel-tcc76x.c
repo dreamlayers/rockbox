@@ -27,8 +27,9 @@
 
 void tick_start(unsigned int interval_in_ms)
 {
-    /* configure Timer T-Clock to 2Mhz (clock source 4 (Xin) divided by 6) */
-    PCLKCFG4 = (1 << 31) | (4 << 28) | (5 << 16);
+    /* 2 Mhz, from 12Mhz / (5+1) */
+    DIVMODE |= (1 << 7);
+    TCLKmode = (0 << 14) | 5;
 
     /* disable Timer0 */
     TCFG0 &= ~1;
@@ -44,4 +45,4 @@ void tick_start(unsigned int interval_in_ms)
 }
 
 /* NB: Since we are using a single timer IRQ, tick tasks are dispatched as
-       part of the central timer IRQ processing in timer-tcc77x.c */
+       part of the central timer IRQ processing in timer-tcc76x.c */
