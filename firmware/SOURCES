@@ -1708,6 +1708,16 @@ target/arm/rk27xx/ma/pca9555-ma.c
 target/arm/rk27xx/ma/audio-ma.c
 #endif
 
+#ifdef RC3000A
+drivers/nand_id.c
+target/arm/tcc77x/c100/lcd-ssd1815.c
+target/arm/tcc77x/c100/button-rc3000a.c
+target/arm/tcc77x/c100/power-rc3000a.c
+#ifndef BOOTLOADER
+target/arm/tcc77x/c100/audio-rc3000a.c
+#endif /* BOOTLOADER */
+#endif /* RC3000A */
+
 #if (CONFIG_PLATFORM & PLATFORM_ANDROID)
 target/hosted/kernel-unix.c
 target/hosted/filesystem-unix.c
