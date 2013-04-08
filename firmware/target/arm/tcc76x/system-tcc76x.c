@@ -241,8 +241,8 @@ void system_init(void)
     /* Set master enable bit */
     IEN = 0x80000000;
 
-    cpu_init();
-    clock_init();
+    //cpu_init(); FIXME
+    //clock_init(); FIXME
     gpio_init();
 
     enable_irq();
