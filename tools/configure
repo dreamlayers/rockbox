@@ -1414,6 +1414,9 @@ cat <<EOF
  207) Android x86         230) 760               232) DX50
  208) Samsung YP-R1       231) 960               233) DX90
 
+ ==RCA==
+ 257) RC3000A
+
 
 EOF
 
@@ -3866,7 +3869,29 @@ fi
     t_model="dx90"
     ;;
 
-   *)
+   257|rc3000a)
+    target_id=257
+    modelname="rc3000a"
+    target="RC3000A"
+    memory=2
+    arm940tcc
+    tool="$rootdir/tools/scramble -add=c100"
+    boottool="$rootdir/tools/scramble -tcc=crc"
+    bootoutput="player.rom"
+    bmp2rb_mono="$rootdir/tools/bmp2rb -f 0"
+    bmp2rb_native="$rootdir/tools/bmp2rb -f 4"
+    output="rockbox.rc3000"
+    appextra="recorder:gui:radio"
+    plugins="yes"
+    swcodec="yes"
+    toolset=$tccbitmaptools
+    # architecture, manufacturer and model for the target-tree build
+    t_cpu="arm"
+    t_manufacturer="tcc76x"
+    t_model="rc3000a"
+    ;;
+
+    *)
     echo "Please select a supported target platform!"
     exit 7
     ;;
