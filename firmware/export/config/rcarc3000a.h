@@ -37,8 +37,8 @@
 /* c100's with direct-to-NAND access are FAT16 */
 #define HAVE_FAT16SUPPORT
 
-/* LCD dimensions */ // FIXME verify this!
-#define LCD_WIDTH  112
+/* LCD dimensions */
+#define LCD_WIDTH  128
 #define LCD_HEIGHT 64
 #define LCD_DEPTH  1
 
@@ -120,7 +120,7 @@
 #define BOOTDIR "/.rockbox"
 
 #ifdef BOOTLOADER
-#define TCCBOOT
+//#define TCCBOOT FIXME not appending to OF, so no need for this
 #endif
 
 #define IRAM_LCDFRAMEBUFFER IBSS_ATTR /* put the lcd frame buffer in IRAM */
