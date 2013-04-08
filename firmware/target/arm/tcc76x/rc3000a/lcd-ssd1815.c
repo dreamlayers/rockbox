@@ -18,29 +18,13 @@
  * KIND, either express or implied.
  *
  ****************************************************************************/
-#if 0
+
 #include "config.h"
 
 #include "hwcompat.h"
 #include "kernel.h"
 #include "lcd.h"
 #include "system.h"
-#else
-#include "stdbool.h"
-
-/* LCD dimensions */
-#define LCD_WIDTH  112
-#define LCD_HEIGHT 64
-#define LCD_DEPTH  1
-
-#define LCD_PIXELFORMAT VERTICAL_PACKING
-
-#define LCD_FBHEIGHT ((LCD_HEIGHT+7)/8)
-
-// ???
-#define FBADDR(x, y) (lcd_framebuffer + ((x) * LCD_FBHEIGHT) + (y))
-unsigned char lcd_framebuffer[LCD_FBHEIGHT*LCD_WIDTH];
-#endif
 
 /*** definitions ***/
 
@@ -182,6 +166,9 @@ void lcd_init_device(void)
     lcd_write_command(LCD_SET_INTERNAL_REGULATOR_RESISTOR_RATIO + 5);
     lcd_set_contrast(lcd_default_contrast());
     lcd_write_command(LCD_CNTL_POWER);
+
+    lcd_clear_display();
+    lcd_update();
 
     lcd_write_command(LCD_SET_DISPLAY_ON);
     lcd_write_command(LCD_SET_ENTIRE_DISPLAY_OFF);
