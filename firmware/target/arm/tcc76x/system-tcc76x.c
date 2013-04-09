@@ -35,10 +35,8 @@ void irq(void)
 
     if (irq & TC_IRQ_MASK)
         TIMER();
-#if 0 // WARNING FIXME NO ADC FIXME
     else if (irq & ADC_IRQ_MASK)
         ADC();
-#endif
 #ifdef HAVE_USBSTACK
     else if (irq & USBD_IRQ_MASK)
         USB_DEVICE();
@@ -117,13 +115,15 @@ static void clock_init(void)
     /* Stop clocks for CIF, LCD, I2C, UART */
     HCLKSTOP = 0x60A0;
 
-    /* Set various clocks XTIN. OF uses orr, but this seems to be the intent. */
+    /* Set various clocks XTIN, assuming 32KHz, which is surprisingly slow.
+     * OF uses orr, but this seems to be the intent. */
     EACLKmode = 0x8000;
     EX1CLKmode = 0x8000;
     UTCLKmode = 0x8000;
     LCLKmode = 0x2000;
     GCLKmode = 0x2000;
     CIFCLKmode = 0x2000;
+
 
 
 
