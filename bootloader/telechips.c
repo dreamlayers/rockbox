@@ -88,7 +88,7 @@ void show_debug_screen(void)
             backlight_hw_on();
         }
 #endif
-       // printf("Btn: 0x%08x",button);
+        printf("Btn: 0x%08x",button);
 #if 0
         //printf("Tick: %d",current_tick);
         printf("GPIOA: 0x%08x",GDATA_A);
@@ -98,7 +98,7 @@ void show_debug_screen(void)
         //printf("GPIOE: 0x%08x",GPIOE);
 #endif
 
-#if 1
+#if 0
         int i;
         for (i = 0; i<4; i++)
         {

@@ -22,21 +22,19 @@
 #ifndef _BUTTON_TARGET_H_
 #define _BUTTON_TARGET_H_
 
-#define HAS_BUTTON_HOLD
-
 /* Main unit's buttons */
-#define BUTTON_POWER        0x00000001
-#define BUTTON_VOLUP        0x00000002
-#define BUTTON_VOLDOWN      0x00000004
-#define BUTTON_UP           0x00000008
-#define BUTTON_DOWN         0x00000010
-#define BUTTON_LEFT         0x00000020
-#define BUTTON_RIGHT        0x00000040
-#define BUTTON_SELECT       0x00000080
+#define BUTTON_POWER        0x00000001 /* Also PLAY/PAUSE */
+#define BUTTON_SOURCE       0x00000002
+#define BUTTON_MENU         0x00000004
+#define BUTTON_RECORD       0x00000008
+#define BUTTON_LEFT         0x00000010 /* also REWIND */
+#define BUTTON_UP           0x00000020 /* also VOLUME */
+#define BUTTON_DOWN         0x00000040
+#define BUTTON_RIGHT        0x00000080 /* also F.FWD */
 
-#define BUTTON_MAIN (BUTTON_POWER|BUTTON_VOLUP|BUTTON_VOLDOWN\
-                    |BUTTON_UP|BUTTON_DOWN|BUTTON_LEFT\
-                    |BUTTON_RIGHT|BUTTON_SELECT)
+#define BUTTON_MAIN (BUTTON_POWER|BUTTON_SOURCE|BUTTON_MENU\
+                     |BUTTON_RECORD|BUTTON_LEFT|BUTTON_UP\
+                     |BUTTON_DOWN|BUTTON_RIGHT)
 
 /* Software power-off */
 #define POWEROFF_BUTTON BUTTON_POWER
