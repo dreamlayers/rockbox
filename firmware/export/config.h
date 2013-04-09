@@ -149,6 +149,7 @@
 #define CREATIVE_ZENXFI2_PAD 54
 #define CREATIVE_ZENXFI3_PAD 55
 #define MA_PAD            56
+#define RCA_RC3000A_PAD 57
 
 /* CONFIG_REMOTE_KEYPAD */
 #define H100_REMOTE   1
