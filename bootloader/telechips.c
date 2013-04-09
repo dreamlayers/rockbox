@@ -89,7 +89,7 @@ void show_debug_screen(void)
         }
 #endif
        // printf("Btn: 0x%08x",button);
-#if 1
+#if 0
         //printf("Tick: %d",current_tick);
         printf("GPIOA: 0x%08x",GDATA_A);
         printf("GPIOB: 0x%08x",GDATA_B);
@@ -98,7 +98,7 @@ void show_debug_screen(void)
         //printf("GPIOE: 0x%08x",GPIOE);
 #endif
 
-#if 0
+#if 1
         int i;
         for (i = 0; i<4; i++)
         {
@@ -106,7 +106,7 @@ void show_debug_screen(void)
         }
 #endif
         count++;
-        //printf("Count: %d",count);
+        printf("Count: %d",count);
         lcd_update();
         sleep(HZ/10);
 
@@ -138,7 +138,7 @@ void* main(void)
     
     lcd_init();
 
-    //adc_init(); FIXME FIXME FIXME
+    adc_init();
     button_init();
     backlight_init();
 
