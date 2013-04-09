@@ -166,6 +166,7 @@
 #define SAMSUNG_YPR1_PAD  61
 #define SAMSUNG_YH920_PAD  62
 #define DX50_PAD           63
+#define RCA_RC3000A_PAD 64
 
 /* CONFIG_REMOTE_KEYPAD */
 #define H100_REMOTE   1
