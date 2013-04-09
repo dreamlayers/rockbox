@@ -26,19 +26,19 @@
 static inline void _backlight_init(void)
 {
     /* Set GPIO pin as output */
-    GIOCON_D |= 0x8000;
+    GPIOD_DIR |= 0x8000;
 }
 
 static inline void _backlight_on(void)
 {
     /* Enable backlight */
-    GDATA_D |= 0x8000;
+    GPIOD |= 0x8000;
 }
 
 static inline void _backlight_off(void)
 {
     /* Disable backlight */
-    GDATA_D &= ~0x8000;
+    GPIOD &= ~0x8000;
 }
 
 #endif

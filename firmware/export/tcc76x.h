@@ -174,29 +174,29 @@
  */
 
 /* GPIO_A Data Register */
-#define GDATA_A (*(volatile unsigned long *)0x80000300)
+#define GPIOA (*(volatile unsigned long *)0x80000300)
 /* GPIO_A Direction Control Register */
-#define GIOCON_A (*(volatile unsigned long *)0x80000304)
+#define GPIOA_DIR (*(volatile unsigned long *)0x80000304)
 /* GPIO_A Function Select Register 1 */
 #define GSEL_A (*(volatile unsigned long *)0x80000308)
 /* GPIO_A Function Select Register 2 */
 #define GTSEL_A (*(volatile unsigned long *)0x8000030C)
 /* GPIO_B Data Register */
-#define GDATA_B (*(volatile unsigned long *)0x80000310)
+#define GPIOB (*(volatile unsigned long *)0x80000310)
 /* GPIO_B Direction Control Register */
-#define GIOCON_B (*(volatile unsigned long *)0x80000314)
+#define GPIOB_DIR (*(volatile unsigned long *)0x80000314)
 /* GPIO_B Function Select Register 1 */
 #define GSEL_B (*(volatile unsigned long *)0x80000318)
 /* GPIO_B Function Select Register 2 */
 #define GTSEL_B (*(volatile unsigned long *)0x8000031C)
 /* GPIO_C Data Register */
-#define GDATA_C (*(volatile unsigned long *)0x80000320)
+#define GPIOC (*(volatile unsigned long *)0x80000320)
 /* GPIO_C Direction Control Register */
-#define GIOCON_C (*(volatile unsigned long *)0x80000324)
+#define GPIOC_DIR (*(volatile unsigned long *)0x80000324)
 /* GPIO_D Data Register */
-#define GDATA_D (*(volatile unsigned long *)0x80000330)
+#define GPIOD (*(volatile unsigned long *)0x80000330)
 /* GPIO_D Direction Control Register */
-#define GIOCON_D (*(volatile unsigned long *)0x80000334)
+#define GPIOD_DIR (*(volatile unsigned long *)0x80000334)
 
 /*
  * 0x400 ~ 0x4FF Clock Generator & Power Management
