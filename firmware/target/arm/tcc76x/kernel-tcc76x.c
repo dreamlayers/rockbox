@@ -41,7 +41,7 @@ void tick_start(unsigned int interval_in_ms)
     TCFG0 = (1<<8) | (0<<4) | (1<<3) | 1;
 
     /* Unmask timer IRQ */
-    IEN |= TIMER0_IRQ_MASK;
+    IEN |= TC_IRQ_MASK;
 }
 
 /* NB: Since we are using a single timer IRQ, tick tasks are dispatched as

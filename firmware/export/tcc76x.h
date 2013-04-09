@@ -37,18 +37,34 @@
 
 /* Interrupt Enable Register */
 #define IEN (*(volatile unsigned long *)0x80000100)
+/* Set bit to enable interrupt, clear bit to disable */
 
-/* IRQ Controller */
-#define EXT0_IRQ_MASK    (1<<0)
-#define EXT1_IRQ_MASK    (1<<1)
-#define EXT2_IRQ_MASK    (1<<2)
-#define EXT3_IRQ_MASK    (1<<3)
-#define I2SR_IRQ_MASK    (1<<4)
-#define I2ST_IRQ_MASK    (1<<5)
-#define TIMER0_IRQ_MASK  (1<<6)
-#define USBD_IRQ_MASK    (1<<8)  /* USB 2.0 device */
-#define USBH_IRQ_MASK    (1<<10) /* USB 1.1 host */
-#define ADC_IRQ_MASK     (1<<16)
+/* Bit 15 is master enable when RDYIRQEN bit of Miscellaneous
+ * Configuration Register is cleared and external bus ready
+ * inerrupt when that bit is cleared.
+ */
+#define MEN_IRQ_MASK (1<<15) /* Master Enable */
+#define ALL_IRQ_MASK 0x7FFFF
+
+#define CIF_IRQ_MASK (1<<18) /* Camera Interface interrupt control */
+#define I2C_IRQ_MASK (1<<17) /* I2C interrupt control */
+#define ADC_IRQ_MASK (1<<16) /* ADC interrupt control */
+#define RDY_IRQ_MASK (1<<15) /* External Bus READY interrupt control. This bit is effective only when */
+#define TC32_IRQ_MASK (1<<14) /* 32-bit Timer interrupt control */
+#define DMA_IRQ_MASK (1<<13) /* DMA interrupt control */
+#define LCD_IRQ_MASK (1<<12) /* LCD interrupt control */
+#define CDIF_IRQ_MASK (1<<11) /* CDIF interrupt control */
+#define UBH_IRQ_MASK (1<<10) /* USB Host interrupt control */
+#define GS_IRQ_MASK (1<<9) /* GSIO interrupt control */
+#define UB_IRQ_MASK (1<<8) /* USB interrupt control */
+#define UT_IRQ_MASK (1<<7) /* UART/IrDA interrupt control */
+#define TC_IRQ_MASK (1<<6) /* Timer/Counter interrupt control */
+#define I2T_IRQ_MASK (1<<5) /* I2S TX interrupt control */
+#define I2R_IRQ_MASK (1<<4) /* I2S RX interrupt control */
+#define E3_IRQ_MASK (1<<3) /* External interrupt request 3 control */
+#define E2_IRQ_MASK (1<<2) /* External interrupt request 2 control */
+#define E1_IRQ_MASK (1<<1) /* External interrupt request 1 control */
+#define E0_IRQ_MASK (1<<0) /* External interrupt request 0 control */
 
 /* Clear Interrupt Request Register */
 #define CREQ (*(volatile unsigned long *)0x80000104)

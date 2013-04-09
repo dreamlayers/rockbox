@@ -33,7 +33,7 @@ void irq(void)
     int irq = IREQ & 0x7fffffff;
     CREQ = irq;     /* Clears the corresponding IRQ status */
 
-    if (irq & TIMER0_IRQ_MASK)
+    if (irq & TC_IRQ_MASK)
         TIMER();
 #if 0 // WARNING FIXME NO ADC FIXME
     else if (irq & ADC_IRQ_MASK)
@@ -75,6 +75,38 @@ void system_exception_wait(void)
 #if defined(RC3000A)
 static void gpio_init(void)
 {
+    /* Set GPIO buffer drive strength */
+    CFGDRVXL = 0;
+    CFGDRVXH = 0;
+    CFGDRVAL = 0;
+    CFGDRVAH = 0;
+    CFGDRVBL = 0;
+    CFGDRVBH = 0;
+    CFGDRVCL = 0;
+    CFGDRVCH = 0;
+    CFGDRVDL = 0;
+    CFGDRVDH = 0;
+
+    /* Set GPIO pullups */
+    CFGPUD |=  0x80000000;
+
+    /* Set GPIO direction */
+    GIOCON_A = 0xFFFF0FFF;
+    GIOCON_B = 0x3DFFFFFF;
+    GIOCON_C = 0xFFFFFFFF;
+    GIOCON_D = 0x0035F3FF;
+
+    /* Set GPIO special function */
+    GSEL_A =  0;
+    GTSEL_A = 0;
+    GSEL_B =  0x33E000FB;
+    GTSEL_B = 0x33E000FB;
+
+    /* Initialize GPIO output data */
+    GDATA_A = 0x00001BFF;
+    GDATA_B = 0xFFFFFBFF;
+    GDATA_C = 0xFFFFFFFF;
+    GDATA_D = 0x000077FF;
 }
 #endif
 
@@ -82,6 +114,20 @@ static void gpio_init(void)
    set up the clocks in the same way as the original firmware for now. */
 static void clock_init(void)
 {
+    /* Stop clocks for CIF, LCD, I2C, UART */
+    HCLKSTOP = 0x60A0;
+
+    /* Set various clocks XTIN. OF uses orr, but this seems to be the intent. */
+    EACLKmode = 0x8000;
+    EX1CLKmode = 0x8000;
+    UTCLKmode = 0x8000;
+    LCLKmode = 0x2000;
+    GCLKmode = 0x2000;
+    CIFCLKmode = 0x2000;
+
+
+
+
  #if 0
     unsigned int i;
 
@@ -236,14 +282,17 @@ void system_init(void)
     IEN = 0;
 
     /* Set all interrupts as IRQ for now - some may need to be FIQ in future */
-    IRQSEL = 0xffffffff;
+    IRQSEL |= ALL_IRQ_MASK;
+
+    /* Clear all interrupts */
+    CREQ |= ALL_IRQ_MASK;
 
     /* Set master enable bit */
-    IEN = 0x80000000;
+    IEN = MEN_IRQ_MASK;
 
     //cpu_init(); FIXME
-    //clock_init(); FIXME
-    gpio_init();
+    clock_init();
+    //gpio_init(); FIXME makes things not work
 
     enable_irq();
 }
