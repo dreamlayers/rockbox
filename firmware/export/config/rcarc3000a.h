@@ -48,7 +48,7 @@
 #define LCD_PIXELFORMAT VERTICAL_PACKING
 
 /* define this to indicate your device's keypad */
-#define CONFIG_KEYPAD SANSA_C100_PAD
+#define CONFIG_KEYPAD RCA_RC3000A_PAD
 
 /* define this if you have a real-time clock */
 //#define CONFIG_RTC RTC_TCC77X
