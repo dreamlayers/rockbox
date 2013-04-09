@@ -292,7 +292,7 @@ void system_init(void)
 
     //cpu_init(); FIXME
     clock_init();
-    //gpio_init(); FIXME makes things not work
+    gpio_init();
 
     enable_irq();
 }
