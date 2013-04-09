@@ -158,7 +158,7 @@ void lcd_init_device(void)
     lcd_clear_display();
     lcd_update();
 #endif
-    GDATA_D |= 0x200000; /* This seems to enable LCD and backlight power */
+    GPIOD |= 0x200000; /* This seems to enable LCD and backlight power */
 
     CSCFG1 = 0x0f540059; /* Configure LCD chip select */
 

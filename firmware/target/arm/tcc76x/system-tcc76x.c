@@ -89,10 +89,10 @@ static void gpio_init(void)
     CFGPUD |=  0x80000000;
 
     /* Set GPIO direction */
-    GIOCON_A = 0xFFFF0FFF;
-    GIOCON_B = 0x3DFFFFFF;
-    GIOCON_C = 0xFFFFFFFF;
-    GIOCON_D = 0x0035F3FF;
+    GPIOA_DIR = 0xFFFF0FFF;
+    GPIOB_DIR = 0x3DFFFFFF;
+    GPIOC_DIR = 0xFFFFFFFF;
+    GPIOD_DIR = 0x0035F3FF;
 
     /* Set GPIO special function */
     GSEL_A =  0;
@@ -101,10 +101,10 @@ static void gpio_init(void)
     GTSEL_B = 0x33E000FB;
 
     /* Initialize GPIO output data */
-    GDATA_A = 0x00001BFF;
-    GDATA_B = 0xFFFFFBFF;
-    GDATA_C = 0xFFFFFFFF;
-    GDATA_D = 0x000077FF;
+    GPIOA = 0x00001BFF;
+    GPIOB = 0xFFFFFBFF;
+    GPIOC = 0xFFFFFFFF;
+    GPIOD = 0x000077FF;
 }
 #endif
 

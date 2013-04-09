@@ -34,7 +34,7 @@ int button_read_device(void)
     int btn = BUTTON_NONE;
     int btnadc = adc_read(0);
 
-    if ((GDATA_A & 0x8000) == 0) btn |= BUTTON_POWER;
+    if ((GPIOA & 0x8000) == 0) btn |= BUTTON_POWER;
 
     if (btnadc <= 0x82) btn |= BUTTON_UP; /* 0x5A */
     else if (btnadc <= 0xBE) btn |= BUTTON_DOWN; /* 0x9B */
