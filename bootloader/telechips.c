@@ -87,13 +87,15 @@ void show_debug_screen(void)
         }
 #endif
         printf("Btn: 0x%08x",button);
-#if 0
-        //printf("Tick: %d",current_tick);
-        printf("GPIOA: 0x%08x",GDATA_A);
-        printf("GPIOB: 0x%08x",GDATA_B);
-        printf("GPIOC: 0x%08x",GDATA_C);
-        printf("GPIOD: 0x%08x",GDATA_D);
-        //printf("GPIOE: 0x%08x",GPIOE);
+#if 1
+        printf("Tick: %d",current_tick);
+        printf("GPIOA: 0x%08x",GPIOA);
+        printf("GPIOB: 0x%08x",GPIOB);
+        printf("GPIOC: 0x%08x",GPIOC);
+        printf("GPIOD: 0x%08x",GPIOD);
+#ifndef CPU_TCC76X
+        printf("GPIOE: 0x%08x",GPIOE);
+#endif
 #endif
 
 #if 0
