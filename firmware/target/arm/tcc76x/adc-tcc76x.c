@@ -58,7 +58,7 @@ static void adc_tick(void)
 
     int i;
 
-    PCLKCFG6 |= (1<<15);   /* Enable ADC clock */
+    //PCLKCFG6 |= (1<<15);   /* Enable ADC clock */
 
     channel_group = 0;
 
@@ -82,7 +82,7 @@ void ADC(void)
         if (num) adcdata[(adc_status >> 16) & 0x7] = adc_status & 0x3ff;
     } while (num);
 
-
+#if 0
     if (channel_group == 0)
     {
         /* Start conversion of channels 4-7 */
@@ -93,8 +93,9 @@ void ADC(void)
     }
     else
     {
-        PCLKCFG6 &= ~(1<<15);   /* Disable ADC clock */
+        //PCLKCFG6 &= ~(1<<15);   /* Disable ADC clock */
     }
+#endif
 }
 
 unsigned short adc_read(int channel)
@@ -105,9 +106,11 @@ unsigned short adc_read(int channel)
 void adc_init(void)
 {
     /* Initialize ADC clocks */
-    PCLKCFG6 = (PCLKCFG6 & 0xffff0000) | 4004;
+    //PCLKCFG6 = (PCLKCFG6 & 0xffff0000) | 4004;
 
-    ADCCON = (1<<4);         /* Leave standby mode */
+    //ADCCON = (1<<4);         /* Leave standby mode */
+    CKCTRL &= ~0x2000;
+    ADCCON = 0xFF10;
 
     /* IRQ enable, auto power-down, single-mode */
     ADCCFG |= (1<<3) | (1<<1) | (1<<0);
