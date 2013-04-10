@@ -29,7 +29,7 @@
 //#define HAVE_FLASH_STORAGE
 
 /* Only v1 */
-#define CONFIG_STORAGE_MULTI
+//#define CONFIG_STORAGE_MULTI
 #define NUM_DRIVES 1
 #define CONFIG_STORAGE STORAGE_MMC
 //#define CONFIG_NAND NAND_TCC
@@ -47,8 +47,15 @@
 
 #define LCD_PIXELFORMAT VERTICAL_PACKING
 
+/* Display colours, for screenshots and sim (0xRRGGBB) */
+// FIXME taken from Archos, need to customize
+#define LCD_DARKCOLOR       0x000000
+#define LCD_BRIGHTCOLOR     0x5a915a
+#define LCD_BL_DARKCOLOR    0x000000
+#define LCD_BL_BRIGHTCOLOR  0x7ee57e
+
 /* define this to indicate your device's keypad */
-#define CONFIG_KEYPAD RCA_RC3000A_PAD
+#define CONFIG_KEYPAD MPIO_HD300_PAD // reasonably close match for RCA_RC3000A_PAD
 
 /* define this if you have a real-time clock */
 //#define CONFIG_RTC RTC_TCC77X
@@ -111,9 +118,9 @@
 
 /* The start address index for ROM builds */
 /* #define ROM_START 0x11010 for behind original Archos */
-#define ROM_START 0x7010 /* for behind BootBox */
+// #define ROM_START 0x7010 /* for behind BootBox */
 
-#define CONFIG_LCD LCD_S6B33B2
+#define CONFIG_LCD LCD_S6B33B2 // FIXME integrate LCD driver LCD_SSD1815
 
 #define BOOTFILE_EXT "c100"
 #define BOOTFILE "rockbox." BOOTFILE_EXT

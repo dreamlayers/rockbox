@@ -56,4 +56,9 @@ unsigned long tcc77x_cscfg_bw(int bw) {
         return (((MCFG >> 11) & 3) ^ 2) << 28;
 }
 
+// FIXME implement cache
+static inline void commit_dcache(void) {}
+static inline void commit_discard_dcache(void) {}
+static inline void commit_discard_idcache(void) {}
+
 #endif /* SYSTEM_TARGET_H */

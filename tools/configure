@@ -1415,7 +1415,7 @@ cat <<EOF
  208) Samsung YP-R1       231) 960               233) DX90
 
  ==RCA==
- 257) RC3000A
+ 247) RC3000A
 
 
 EOF
@@ -3869,8 +3869,8 @@ fi
     t_model="dx90"
     ;;
 
-   257|rc3000a)
-    target_id=257
+   247|rc3000a)
+    target_id=247
     modelname="rcarc3000a"
     target="RC3000A"
     memory=2

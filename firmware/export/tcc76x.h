@@ -29,7 +29,47 @@
 
 /* Address Allocations for Internal Peripherals (Base = 0x80000000) */
 
-/* 0x000 ~ 0x0FF DAI & CDIF */
+/*
+ * 0x000 ~ 0x0FF DAI & CDIF
+ */
+
+/* Digital Audio Input Registers, Left and Right */
+#define DADI_L0 (*(volatile unsigned long *)0x80000000)
+#define DADI_R0 (*(volatile unsigned long *)0x80000004)
+#define DADI_L1 (*(volatile unsigned long *)0x80000008)
+#define DADI_R1 (*(volatile unsigned long *)0x8000000C)
+#define DADI_L2 (*(volatile unsigned long *)0x80000010)
+#define DADI_R2 (*(volatile unsigned long *)0x80000014)
+#define DADI_L3 (*(volatile unsigned long *)0x80000018)
+#define DADI_R3 (*(volatile unsigned long *)0x8000001C)
+#define DADI_L(x)  (*(volatile unsigned long *)(0x80000000 + (x) * 8))
+#define DADI_R(x)  (*(volatile unsigned long *)(0x80000004 + (x) * 8))
+
+/* Digital Audio Output Registers, Left and Right */
+#define DADO_L0 (*(volatile unsigned long *)0x80000020)
+#define DADO_R0 (*(volatile unsigned long *)0x80000024)
+#define DADO_L1 (*(volatile unsigned long *)0x80000028)
+#define DADO_R1 (*(volatile unsigned long *)0x8000002C)
+#define DADO_L2 (*(volatile unsigned long *)0x80000030)
+#define DADO_R2 (*(volatile unsigned long *)0x80000034)
+#define DADO_L3 (*(volatile unsigned long *)0x80000038)
+#define DADO_R3 (*(volatile unsigned long *)0x8000003C)
+#define DADO_L(x)  (*(volatile unsigned long *)(0x80000020 + (x) * 8))
+#define DADO_R(x)  (*(volatile unsigned long *)(0x80000024 + (x) * 8))
+
+/* Digital Audio Mode Register */
+#define DAMR (*(volatile unsigned long *)0x80000040)
+/* Digital Audio Volume Control Register */
+#define DAVC (*(volatile unsigned long *)0x80000044)
+
+/* CD Digital Audio Input Registers */
+#define CDDI_0 (*(volatile unsigned long *)0x80000080)
+#define CDDI_1 (*(volatile unsigned long *)0x80000084)
+#define CDDI_2 (*(volatile unsigned long *)0x80000088)
+#define CDDI_3 (*(volatile unsigned long *)0x8000008C)
+
+/* CD Interface Control Register */
+#define CICR (*(volatile unsigned long *)0x80000090)
 
 /*
  * 0x100 ~ 0x1FF Interrupt Controller
@@ -65,6 +105,9 @@
 #define E2_IRQ_MASK (1<<2) /* External interrupt request 2 control */
 #define E1_IRQ_MASK (1<<1) /* External interrupt request 1 control */
 #define E0_IRQ_MASK (1<<0) /* External interrupt request 0 control */
+
+#define DAI_RX_IRQ_MASK  I2R_IRQ_MASK
+#define DAI_TX_IRQ_MASK  I2T_IRQ_MASK
 
 /* Clear Interrupt Request Register */
 #define CREQ (*(volatile unsigned long *)0x80000104)
