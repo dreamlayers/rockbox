@@ -202,7 +202,7 @@ unsigned char sd_read_byte(void) {
     for (mask = 0x80; mask > 0; mask >>= 1) {
         GPIOA &= ~SD_CLK;
         GPIOA |= SD_CLK;
-
+        //asm("nop; nop; nop; nop; nop;");
         if (GPIOA & SD_DO) {
             byte |= mask;
         }
@@ -461,6 +461,7 @@ int initialize_card(int card_no)
 
     GPIOA &= ~SD_CS; //mmc_spi_cs_low();
 
+#if 0
 	sd_write_byte(0x40);
 	for (i = 0; i < 4; i++) sd_write_byte(0x00);
 	sd_write_byte(0x95);
@@ -477,11 +478,10 @@ int initialize_card(int card_no)
 	//	return(1);
 	}
     return r;
-
+#endif
     if (card_no == 1)
         mmc_status = MMC_TOUCHED;
 
-    return send_cmd(CMD_GO_IDLE_STATE, 0, NULL);
     /* switch to SPI mode */
     if (send_cmd(CMD_GO_IDLE_STATE, 0, NULL) != 0x01)
         return -1;                /* error or no response */
@@ -519,7 +519,7 @@ int initialize_card(int card_no)
     card->numblocks = (card_extract_bits(card->csd, 73, 12) + 1)
                    << (card_extract_bits(card->csd, 49, 3) + 2 + blk_exp - 9);
     card->blocksize = BLOCK_SIZE;
-
+    printf("%d", card->numblocks);
     /* max transmission speed, clock divider */
     ts_exp = card_extract_bits(card->csd, 98, 3);
     ts_exp = (ts_exp > 3) ? 3 : ts_exp;

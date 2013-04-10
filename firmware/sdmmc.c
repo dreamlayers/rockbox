@@ -20,6 +20,7 @@
  ****************************************************************************/
 #include "config.h"
 #include "sdmmc.h"
+#include "system.h"
 
 /* helper function to extract n (<=32) bits from an arbitrary position.
    counting from MSB to LSB */
@@ -37,10 +38,10 @@ unsigned long card_extract_bits(
     long_index = start / 32;
     bit_index = start % 32;
     
-    result = p[long_index] << bit_index;
+    result = htobe32(p[long_index]) << bit_index;
 
     if (bit_index + size > 32)    /* crossing longword boundary */
-        result |= p[long_index+1] >> (32 - bit_index);
+        result |= htobe32(p[long_index+1]) >> (32 - bit_index);
         
     result >>= 32 - size;
 
