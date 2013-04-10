@@ -64,6 +64,8 @@ void show_debug_screen(void)
     bool do_power_off = false;
     
     //lcd_puts_scroll(0,0,"+++ this is a very very long line to test scrolling. ---");
+    printf ("ic: %d", initialize_card(0));
+    while (1);
     while (!do_power_off) {
         line = 1;
         button = button_get(false);
@@ -109,6 +111,7 @@ void show_debug_screen(void)
         printf("Count: %d",count);
         lcd_update();
         sleep(HZ/10);
+        GPIOA &= ~0x800;
 
     }
 
