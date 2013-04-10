@@ -31,7 +31,7 @@
 /* Only v1 */
 #define CONFIG_STORAGE_MULTI
 #define NUM_DRIVES 1
-#define CONFIG_STORAGE 0 //STORAGE_NAND
+#define CONFIG_STORAGE STORAGE_MMC
 //#define CONFIG_NAND NAND_TCC
 
 /* c100's with direct-to-NAND access are FAT16 */
