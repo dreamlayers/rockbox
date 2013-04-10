@@ -21,12 +21,10 @@
 #include <stdbool.h>
 #include "mmc.h"
 #include "ata_mmc.h"
-#include "sdmmc.h"
 #include "ata_idle_notify.h"
 #include "kernel.h"
 #include "thread.h"
 #include "led.h"
-#include "sh7034.h"
 #include "system.h"
 #include "debug.h"
 #include "panic.h"
@@ -38,6 +36,12 @@
 #include "bitswap.h"
 #include "disk.h" /* for mount/unmount */
 #include "storage.h"
+
+#undef CONFIG_STORAGE
+#define CONFIG_STORAGE STORAGE_MMC
+#include "sdmmc.h"
+#pragma GCC diagnostic ignored "-Wunused-variable"
+#pragma GCC diagnostic ignored "-Wunused-parameter"
 
 #define BLOCK_SIZE  512   /* fixed */
 
@@ -137,6 +141,7 @@ static long last_usb_activity;
 
 /* private function declarations */
 
+#if 0
 static int select_card(int card_no);
 static void deselect_card(void);
 static void setup_sci1(int bitrate_register);
@@ -149,15 +154,65 @@ static unsigned char poll_byte(long timeout);
 static unsigned char poll_busy(long timeout);
 static unsigned char send_cmd(int cmd, unsigned long parameter, void *data);
 static int receive_cxd(unsigned char *buf);
-static int initialize_card(int card_no);
+//static
+int initialize_card(int card_no);
 static int receive_block(unsigned char *inbuf, long timeout);
 static void send_block_prepare(void);
 static int send_block_send(unsigned char start_token, long timeout,
                            bool prepare_next);
 static void mmc_tick(void);
+#endif
+
+/* TCC76x implementation */
+
+/* GPIOA pins used for SD card in SPI mode */
+#define SD_DI 1 /* Serial data sent to card, GSIO0 Data Out */
+#define SD_CLK 2 /* Clock for communication with card, GSIO0 Clock */
+#define SD_CS 4 /* Chip select for card */
+#define SD_DO 8 /* Serial data received from card, GSIO0 Data In */
+
+void sd_gpio_init(void) {
+    GSEL_A &= ~0xF;
+    GTSEL_A &= ~0xF;
+    GPIOA_DIR = (GPIOA_DIR & ~SD_DO) | (SD_DI|SD_CLK|SD_CS);
+    GPIOA |= SD_DI | SD_CLK | SD_CS;
+
+#if 0
+    GCLKmode |= 0x120;
+#endif
+}
+
+static void sd_write_byte(unsigned char byte) {
+    unsigned char mask;
+
+    for (mask = 0x80; mask > 0; mask >>= 1) {
+        if (byte & mask) {
+            GPIOA |= SD_DI;
+        } else {
+            GPIOA &= ~SD_DI;
+        }
+        GPIOA &= ~SD_CLK;
+        GPIOA |= SD_CLK;
+    }
+}
+
+unsigned char sd_read_byte(void) {
+    unsigned char byte = 0, mask;
+    GPIOA |= SD_DI;
+    for (mask = 0x80; mask > 0; mask >>= 1) {
+        GPIOA &= ~SD_CLK;
+        GPIOA |= SD_CLK;
+
+        if (GPIOA & SD_DO) {
+            byte |= mask;
+        }
+    }
+    return byte;
+}
 
 /* implementation */
 
+#if 0
 void mmc_enable_int_flash_clock(bool on)
 {
     /* Internal flash clock is enabled by setting PA12 high with the new
@@ -167,7 +222,9 @@ void mmc_enable_int_flash_clock(bool on)
     else
         or_b(0x10, &PADRH);       /* set clock gate PA12 */
 }
+#endif
 
+#if 0
 static int select_card(int card_no)
 {
     mutex_lock(&mmc_mutex);
@@ -198,7 +255,9 @@ static int select_card(int card_no)
         return initialize_card(card_no);
     }
 }
+#endif
 
+#if 0
 static void deselect_card(void)
 {
     while (!(SSR1 & SCI_TEND));   /* wait for end of transfer */
@@ -208,32 +267,13 @@ static void deselect_card(void)
     mutex_unlock(&mmc_mutex);
     last_disk_activity = current_tick;
 }
-
-static void setup_sci1(int bitrate_register)
-{
-    while (!(SSR1 & SCI_TEND));   /* wait for end of transfer */
-
-    SCR1 = 0;                     /* disable serial port */
-    SMR1 = SYNC_MODE;             /* no prescale */
-    BRR1 = bitrate_register;
-    SSR1 = 0;
-
-    SCR1 = SCI_TE;                /* enable transmitter */
-    serial_mode = SER_POLL_WRITE;
-}
-
-static void set_sci1_poll_read(void)
-{
-    while (!(SSR1 & SCI_TEND));   /* wait for end of transfer */
-    SCR1 = 0;                     /* disable transmitter (& receiver) */
-    SCR1 = (SCI_TE|SCI_RE);       /* re-enable transmitter & receiver */
-    while (!(SSR1 & SCI_TEND));   /* wait for SCI init completion (!) */
-    serial_mode = SER_POLL_READ;
-    TDR1 = 0xFF;                  /* send do-nothing while reading */
-}
+#endif
 
 static void write_transfer(const unsigned char *buf, int len)
 {
+    int i;
+    for (i = 0; i < len; i++) sd_write_byte(buf[i]);
+#if 0
     const unsigned char *buf_end = buf + len;
     register unsigned char data;
 
@@ -253,11 +293,16 @@ static void write_transfer(const unsigned char *buf, int len)
         TDR1 = data;                             /* write byte */
         SSR1 = 0;                                /* start transmitting */
     }
+#endif
+//#warning write_transfer not implemented
 }
 
 /* don't call this with len == 0 */
 static void read_transfer(unsigned char *buf, int len)
 {
+    int i;
+    for (i = 0; i < len; i++) buf[i] = sd_read_byte();
+#if 0
     unsigned char *buf_end = buf + len - 1;
     register signed char data;
 
@@ -274,11 +319,20 @@ static void read_transfer(unsigned char *buf, int len)
     }
     while (!(SSR1 & SCI_RDRF));     /* wait for last byte */
     *buf = fliptable[(signed char)(RDR1)]; /* read & bitswap */
+#endif
+//#warning read_transfer not implemented
 }
 
 /* returns 0xFF on timeout, timeout is in bytes */
 static unsigned char poll_byte(long timeout)
 {
+    long i = 0;
+    unsigned char data = 0;       /* stop the compiler complaining */
+    do {
+        data = sd_read_byte();
+    } while ((data == 0xFF) && (++i < timeout));
+    return data;
+#if 0
     long i;
     unsigned char data = 0;       /* stop the compiler complaining */
 
@@ -293,9 +347,12 @@ static unsigned char poll_byte(long timeout)
     } while ((data == 0xFF) && (++i < timeout));
 
     return fliptable[(signed char)data];
+#endif
+//#warning poll_byte not implemented
 }
 
 /* returns 0 on timeout, timeout is in bytes */
+#if 0
 static unsigned char poll_busy(long timeout)
 {
     long i;
@@ -319,6 +376,7 @@ static unsigned char poll_busy(long timeout)
 
     return (dummy == 0xFF) ? data : 0;
 }
+#endif
 
 /* Send MMC command and get response. Returns R1 byte directly.
  * Returns further R2 or R3 bytes in *data (can be NULL for other commands) */
@@ -378,7 +436,8 @@ static int receive_cxd(unsigned char *buf)
 }
 
 
-static int initialize_card(int card_no)
+//static
+int initialize_card(int card_no)
 {
     int rc, i;
     int blk_exp, ts_exp, taac_exp;
@@ -393,9 +452,36 @@ static int initialize_card(int card_no)
         10000000, 100000000, 1000000000
     };
 
+    int r;
+
+    sd_gpio_init(); //FIXME;
+
+	GPIOA |= SD_CS; //mmc_spi_cs_high();
+	for (i = 0; i < 20; i++) sd_write_byte(0xff); //mmc_spi_io(0xff);
+
+    GPIOA &= ~SD_CS; //mmc_spi_cs_low();
+
+	sd_write_byte(0x40);
+	for (i = 0; i < 4; i++) sd_write_byte(0x00);
+	sd_write_byte(0x95);
+	for (i = 0; i < 8; i++)
+	{
+		r = sd_read_byte();
+		if (r == 0x01) break;
+	}
+	GPIOA |= SD_CS; //mmc_spi_cs_high();
+	sd_write_byte(0xFF); //mmc_spi_io(0xff);
+	if (r != 0x01)
+	{
+		//restore_flags(flags);
+	//	return(1);
+	}
+    return r;
+
     if (card_no == 1)
         mmc_status = MMC_TOUCHED;
 
+    return send_cmd(CMD_GO_IDLE_STATE, 0, NULL);
     /* switch to SPI mode */
     if (send_cmd(CMD_GO_IDLE_STATE, 0, NULL) != 0x01)
         return -1;                /* error or no response */
@@ -459,7 +545,7 @@ static int initialize_card(int card_no)
         card->read_timeout *= 4;
 
     /* switch to full speed */
-    setup_sci1(card->bitrate_register);
+//    setup_sci1(card->bitrate_register);
 
     /* always use 512 byte blocks */
     if (send_cmd(CMD_SET_BLOCKLEN, BLOCK_SIZE, NULL))
@@ -476,6 +562,7 @@ static int initialize_card(int card_no)
     return 0;
 }
 
+#if 0
 tCardInfo *mmc_card_info(int card_no)
 {
     tCardInfo *card = &card_info[card_no];
@@ -487,7 +574,9 @@ tCardInfo *mmc_card_info(int card_no)
     }
     return card;
 }
+#endif
 
+#if 0
 /* Receive one block with DMA and bitswap it (chasing bitswap). */
 static int receive_block(unsigned char *inbuf, long timeout)
 {
@@ -544,7 +633,9 @@ static int receive_block(unsigned char *inbuf, long timeout)
     last_disk_activity = current_tick;
     return 0;
 }
+#endif
 
+#if 0
 /* Prepare a block for sending by copying it to the next write buffer
  * and bitswapping it. */
 static void send_block_prepare(void)
@@ -559,7 +650,9 @@ static void send_block_prepare(void)
 
     send_block_addr += BLOCK_SIZE;
 }
+#endif
 
+#if 0
 /* Send one block with DMA from the current write buffer, possibly preparing
  * the next block within the next write buffer in the background. */
 static int send_block_send(unsigned char start_token, long timeout,
@@ -602,7 +695,9 @@ static int send_block_send(unsigned char start_token, long timeout,
 
     return rc;
 }
+#endif
 
+#if 0
 int mmc_read_sectors(IF_MD2(int drive,)
                      unsigned long start,
                      int incount,
@@ -688,7 +783,9 @@ int mmc_read_sectors(IF_MD2(int drive,)
 
     return rc;
 }
+#endif
 
+#if 0
 int mmc_write_sectors(IF_MD2(int drive,)
                       unsigned long start,
                       int count,
@@ -829,7 +926,9 @@ bool mmc_touched(void)
     }
     return mmc_status == MMC_TOUCHED;
 }
+#endif
 
+#if 0
 bool mmc_usb_active(int delayticks)
 {
     /* reading "inactive" is delayed by user-supplied monoflop value */
@@ -840,6 +939,7 @@ bool mmc_usb_active(int delayticks)
 static void mmc_tick(void)
 {
     bool current_status;
+
 
     if (new_mmc_circuit)
         /* USB bridge activity is 0 on idle, ~527 on active */
@@ -879,7 +979,9 @@ static void mmc_tick(void)
         }
     }
 }
+#endif
 
+#if 0
 void mmc_enable(bool on)
 {
     PBCR1 &= ~0x0CF0;      /* PB13, PB11 and PB10 become GPIO,
@@ -893,8 +995,11 @@ void mmc_enable(bool on)
     sleep(HZ/100);
     card_info[0].initialized = false;
     card_info[1].initialized = false;
+//#warning mmc_enable not implemented
 }
+#endif
 
+#if 0
 int mmc_init(void)
 {
     int rc = 0;
@@ -946,6 +1051,7 @@ int mmc_init(void)
     mutex_unlock(&mmc_mutex);
     return rc;
 }
+#endif
 
 long mmc_last_disk_activity(void)
 {
