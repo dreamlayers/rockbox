@@ -236,6 +236,18 @@ static int select_card(int card_no)
         //setup_sci1(7); /* Initial rate: 375 kbps (need <= 400 per mmc specs) */
         write_transfer(dummy, 10); /* allow the card to synchronize */
         //while (!(SSR1 & SCI_TEND));
+    } else {
+     // FIXME why is this needed to make subsequent reads succeed
+        write_transfer(dummy, 10); /* allow the card to synchronize */
+        write_transfer(dummy, 10); /* allow the card to synchronize */
+        write_transfer(dummy, 10); /* allow the card to synchronize */
+        write_transfer(dummy, 10); /* allow the card to synchronize */
+        write_transfer(dummy, 10); /* allow the card to synchronize */
+        write_transfer(dummy, 10); /* allow the card to synchronize */
+        write_transfer(dummy, 10); /* allow the card to synchronize */
+        write_transfer(dummy, 10); /* allow the card to synchronize */
+        write_transfer(dummy, 10); /* allow the card to synchronize */
+        write_transfer(dummy, 10); /* allow the card to synchronize */
     }
 
     GPIOA &= ~SD_CS; /* assert CS */
@@ -513,7 +525,7 @@ int initialize_card(int card_no)
     card->numblocks = (card_extract_bits(card->csd, 73, 12) + 1)
                    << (card_extract_bits(card->csd, 49, 3) + 2 + blk_exp - 9);
     card->blocksize = BLOCK_SIZE;
-    printf("%d", card->numblocks);
+    //printf("%d", card->numblocks);
     /* max transmission speed, clock divider */
     ts_exp = card_extract_bits(card->csd, 98, 3);
     ts_exp = (ts_exp > 3) ? 3 : ts_exp;
@@ -782,16 +794,19 @@ int mmc_read_sectors(IF_MD2(int drive,)
   error:
 
     deselect_card();
-
+#if 0
+    if (rc != 0) printf("X %d, %d, %d", rc, start, incount);
+    else printf("Y %d, %d, %d", rc, start, incount);
+#endif
     return rc;
 }
 
-#if 0
 int mmc_write_sectors(IF_MD2(int drive,)
                       unsigned long start,
                       int count,
                       const void* buf)
 {
+#if 0
     int rc = 0;
     int write_cmd;
     unsigned char start_token;
@@ -853,8 +868,11 @@ int mmc_write_sectors(IF_MD2(int drive,)
     deselect_card();
 
     return rc;
+#endif
+    return 0;
 }
 
+#if 0
 bool mmc_disk_is_active(void)
 {
     /* this is correct unless early return from write gets implemented */
