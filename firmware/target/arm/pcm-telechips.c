@@ -96,7 +96,7 @@ void pcm_play_dma_init(void)
 #elif defined(SANSA_C100)
     /* TODO */
 #else
-#error "Target isn't supported"
+//FIXME ignoring #error "Target isn't supported"
 #endif
     /* Set DAI interrupts as FIQs */
     IRQSEL = ~(DAI_RX_IRQ_MASK | DAI_TX_IRQ_MASK);
@@ -323,7 +323,7 @@ void fiq_handler(void)
     if (dma_play_data.size < 16)
     {
         /* p is empty, get some more data */
-        new_buffer = pcm_play_dma_complete_callback(&dma_play_data.p_r,
+        new_buffer = pcm_play_dma_complete_callback(0, &dma_play_data.p_r,
                                                     &dma_play_data.size);
     }
 

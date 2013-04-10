@@ -1,3 +1,4 @@
+void i2c_init(void) {} // FIXME
 /***************************************************************************
  *             __________               __   ___.
  *   Open      \______   \ ____   ____ |  | _\_ |__   _______  ___
@@ -211,17 +212,17 @@ unsigned char sd_read_byte(void) {
 
 /* implementation */
 
-#if 0
 void mmc_enable_int_flash_clock(bool on)
 {
+#if 0
     /* Internal flash clock is enabled by setting PA12 high with the new
      * clock circuit, and by setting it low with the old clock circuit */
     if (on ^ new_mmc_circuit)
         and_b(~0x10, &PADRH);     /* clear clock gate PA12 */
     else
         or_b(0x10, &PADRH);       /* set clock gate PA12 */
-}
 #endif
+}
 
 static int select_card(int card_no)
 {
@@ -568,7 +569,6 @@ int initialize_card(int card_no)
     return 0;
 }
 
-#if 0
 tCardInfo *mmc_card_info(int card_no)
 {
     tCardInfo *card = &card_info[card_no];
@@ -580,7 +580,6 @@ tCardInfo *mmc_card_info(int card_no)
     }
     return card;
 }
-#endif
 
 /* Receive one block with DMA and bitswap it (chasing bitswap). */
 static int receive_block(unsigned char *inbuf, long timeout)
@@ -872,13 +871,16 @@ int mmc_write_sectors(IF_MD2(int drive,)
     return 0;
 }
 
-#if 0
 bool mmc_disk_is_active(void)
 {
+#if 0
     /* this is correct unless early return from write gets implemented */
     return mutex_test(&mmc_mutex);
+#endif //FIXME
+    return true;
 }
 
+#if 0
 static void mmc_thread(void)
 {
     struct queue_event ev;
@@ -923,14 +925,16 @@ static void mmc_thread(void)
         }
     }
 }
+#endif
 
 bool mmc_detect(void)
 {
-    return (adc_read(ADC_MMC_SWITCH) < 0x200);
+    return true; // FIXME (adc_read(ADC_MMC_SWITCH) < 0x200);
 }
 
 bool mmc_touched(void)
 {
+#if 0
     if (mmc_status == MMC_UNKNOWN) /* try to detect */
     {
         mutex_lock(&mmc_mutex);
@@ -943,11 +947,10 @@ bool mmc_touched(void)
 
         deselect_card();
     }
+#endif // FIXME
     return mmc_status == MMC_TOUCHED;
 }
-#endif
 
-#if 0
 bool mmc_usb_active(int delayticks)
 {
     /* reading "inactive" is delayed by user-supplied monoflop value */
@@ -955,6 +958,7 @@ bool mmc_usb_active(int delayticks)
             TIME_BEFORE(current_tick, last_usb_activity + delayticks));
 }
 
+#if 0
 static void mmc_tick(void)
 {
     bool current_status;
@@ -1000,9 +1004,9 @@ static void mmc_tick(void)
 }
 #endif
 
-#if 0
 void mmc_enable(bool on)
 {
+#if 0
     PBCR1 &= ~0x0CF0;      /* PB13, PB11 and PB10 become GPIO,
                             * if not modified below */
     if (on)
@@ -1014,9 +1018,9 @@ void mmc_enable(bool on)
     sleep(HZ/100);
     card_info[0].initialized = false;
     card_info[1].initialized = false;
+#endif // FIXME
 //#warning mmc_enable not implemented
 }
-#endif
 
 int mmc_init(void)
 {
