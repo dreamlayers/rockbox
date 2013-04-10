@@ -66,7 +66,13 @@ void show_debug_screen(void)
     bool do_power_off = false;
     
     //lcd_puts_scroll(0,0,"+++ this is a very very long line to test scrolling. ---");
-    printf ("ic: %d", initialize_card(0));
+    unsigned char inbuf[512];
+    printf ("mmi: %d", mmc_init(0));
+    printf ("rds: %d", mmc_read_sectors(IF_MD2(0,)
+                     0,
+                     1,
+                     inbuf));
+    printf("%02x %02x", inbuf[512-2], inbuf[512-1]);
     while (1);
     while (!do_power_off) {
         line = 1;
