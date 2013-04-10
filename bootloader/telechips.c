@@ -66,13 +66,23 @@ void show_debug_screen(void)
     bool do_power_off = false;
     
     //lcd_puts_scroll(0,0,"+++ this is a very very long line to test scrolling. ---");
-    unsigned char inbuf[512];
-    printf ("mmi: %d", mmc_init(0));
-    printf ("rds: %d", mmc_read_sectors(IF_MD2(0,)
-                     0,
-                     1,
-                     inbuf));
-    printf("%02x %02x", inbuf[512-2], inbuf[512-1]);
+    printf ("si: %d", storage_init());
+    disk_init(IF_MV(0));
+    int num_partitions = disk_mount_all();
+    if (num_partitions<=0)
+    {
+        error(EDISK,num_partitions, true);
+    }
+    printf ("np: %d", num_partitions);
+    int i;  struct partinfo* pinfo;
+    /* Just list the first 2 partitions since we don't have any devices yet
+       that have more than that */
+    for(i=0; i<num_partitions; i++)
+    {
+        pinfo = disk_partinfo(i);
+        printf("Partition %d: 0x%02x %ld MB",
+                i, pinfo->type, pinfo->size / 2048);
+    }
     while (1);
     while (!do_power_off) {
         line = 1;
