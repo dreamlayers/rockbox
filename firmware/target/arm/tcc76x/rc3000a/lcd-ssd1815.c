@@ -218,6 +218,10 @@ void lcd_blit_grey_phase(unsigned char *values, unsigned char *phases,
     }
 }
 #endif
+void lcd_blit_grey_phase(unsigned char *values, unsigned char *phases,
+                         int x, int by, int width, int bheight, int stride)
+{ // FIXME
+}
 
 
 /* Update the display.
