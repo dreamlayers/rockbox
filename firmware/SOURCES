@@ -804,7 +804,7 @@ target/arm/tcc76x/powermgmt-tcc76x.c
 # endif /* !IAUDIO7 */
 # ifndef BOOTLOADER
 #  ifndef SANSA_C100
-target/arm/wmcodec-telechips.c
+/* FIXME target/arm/wmcodec-telechips.c */
 #  endif /* !C100 */
 target/arm/pcm-telechips.c
 target/arm/tcc76x/debug-tcc76x.c
@@ -1734,9 +1734,10 @@ target/arm/tcc76x/rc3000a/lcd-ssd1815.c
 target/arm/tcc76x/rc3000a/button-rc3000a.c
 target/arm/tcc76x/rc3000a/power-rc3000a.c
 target/arm/tcc76x/rc3000a/sd-rc3000a.c
+target/arm/tcc76x/rc3000a/usb-rc3000a.c
 sdmmc.c
 #ifndef BOOTLOADER
-target/arm/tcc76x/rc3000a/audio-rc3000a.c
+/* target/arm/tcc76x/rc3000a/audio-rc3000a.c FIXME */
 #endif /* BOOTLOADER */
 #endif /* RC3000A */
 

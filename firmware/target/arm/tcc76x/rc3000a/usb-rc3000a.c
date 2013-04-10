@@ -7,7 +7,7 @@
  *                     \/            \/     \/    \/            \/
  * $Id$
  *
- * Copyright (C) 2007 by Dave Chapman
+ * Copyright (C) 2007 by Jens Arnold
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -18,28 +18,30 @@
  * KIND, either express or implied.
  *
  ****************************************************************************/
-#ifndef BACKLIGHT_TARGET_H
-#define BACKLIGHT_TARGET_H
+#include "config.h"
+#include <stdbool.h>
+#include "adc.h"
+#include "ata_mmc.h"
+#include "cpu.h"
+#include "hwcompat.h"
+#include "system.h"
+#include "usb.h"
 
-#include "tcc76x.h"
-
-static inline bool _backlight_init(void)
+int usb_detect(void)
 {
-    /* Set GPIO pin as output */
-    GPIOD_DIR |= 0x8000;
-    return true;
+    return USB_EXTRACTED;
 }
 
-static inline void _backlight_on(void)
+void usb_enable(bool on)
 {
-    /* Enable backlight */
-    GPIOD |= 0x8000;
+    if (on)
+    {
+    }
+    else
+    {
+    }
 }
 
-static inline void _backlight_off(void)
+void usb_init_device(void)
 {
-    /* Disable backlight */
-    GPIOD &= ~0x8000;
 }
-
-#endif

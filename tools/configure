@@ -1331,7 +1331,7 @@ cat <<EOF
  204) Pandora             ==HiFi E.T.==          191) HM-801
  205) Samsung YP-R0       210) MA9
  206) Android MIPS
- 207) Android x86                                257) RC3000A
+ 207) Android x86                                247) RC3000A
 EOF
 
   buildfor=`input`;
@@ -3434,8 +3434,8 @@ fi
     t_model="ma"
     ;;
 
-   257|rc3000a)
-    target_id=257
+   247|rc3000a)
+    target_id=247
     modelname="rcarc3000a"
     target="RC3000A"
     memory=2

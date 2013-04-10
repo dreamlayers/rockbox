@@ -57,7 +57,7 @@ bool dbg_hw_info(void)
 #ifdef BUTTON_SELECT
         if (button == BUTTON_SELECT)
 #else
-        if (button == BUTTON_STOP)
+        if (button == BUTTON_PLAY)  // BUTTON_STOP fixme
 #endif
             done=true;
 
@@ -66,7 +66,9 @@ bool dbg_hw_info(void)
 
         lcd_putsf(0, line++, "GPIOA: 0x%08lx  GPIOB: 0x%08lx", GPIOA, GPIOB);
         lcd_putsf(0, line++, "GPIOC: 0x%08lx  GPIOD: 0x%08lx", GPIOC, GPIOD);
+#ifndef CPU_TCC76X
         lcd_putsf(0, line++, "GPIOE: 0x%08lx",                 GPIOE);
+#endif
 
         for (i = 0; i<4; i++)
             lcd_putsf(0, line++, "ADC%d: 0x%04x", i, adc_read(i));
