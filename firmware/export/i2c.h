@@ -26,8 +26,8 @@
 #ifdef HAVE_SOFTWARE_I2C
 #include "sw_i2c.h"
 #define i2c_init() sw_i2c_init()
-#define i2c_readmem(device,address,buf,count) sw_i2c_write(device,address,buf,count)
-#define i2c_writemem(device,address,buf,count) sw_i2c_read (device,address,buf,count)
+#define i2c_readmem(device,address,buf,count) sw_i2c_read (device,address,buf,count)
+#define i2c_writemem(device,address,buf,count) sw_i2c_write(device,address,buf,count)
 #else
 extern void i2c_init(void);
 extern void i2c_begin(void);
