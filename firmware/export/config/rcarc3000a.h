@@ -57,8 +57,13 @@
 /* define this to indicate your device's keypad */
 #define CONFIG_KEYPAD MPIO_HD300_PAD // reasonably close match for RCA_RC3000A_PAD
 
-/* define this if you have a real-time clock */
-//#define CONFIG_RTC RTC_TCC77X
+/* The RC3000A has a PCF8563 RTC,
+   but it's register compatible with the E8564. */
+#ifndef BOOTLOADER
+/* This file is not read for use with another CPU */
+#define CONFIG_RTC RTC_E8564
+#define HAVE_RTC_ALARM
+#endif
 
 /* define this if you have RTC RAM available for settings */
 //#define HAVE_RTC_RAM
@@ -77,8 +82,14 @@
 /* Define this if you do software codec */
 #define CONFIG_CODEC SWCODEC
 
+#if 0
+/* Define this if you have the CS42L55 audio codec */
+#define HAVE_CS42L55
+#else
+/* Temporary and WRONG */
 /* Define this if you have the TLV320 audio codec */
 #define HAVE_TLV320
+#endif
 
 /*#define CONFIG_TUNER TEA5767*/
 
@@ -88,7 +99,8 @@
 /* Define this for LCD backlight available */
 #define HAVE_BACKLIGHT
 
-//#define CONFIG_I2C I2C_TCC77X
+/* Software I2C is used */
+#define HAVE_SOFTWARE_I2C
 
 #define BATTERY_CAPACITY_DEFAULT 540 /* default battery capacity */
 #define BATTERY_CAPACITY_MIN 540 /* min. capacity selectable */
