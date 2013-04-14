@@ -5,9 +5,11 @@
  *   Jukebox    |    |   (  <_> )  \___|    < | \_\ (  <_> > <  <
  *   Firmware   |____|_  /\____/ \___  >__|_ \|___  /\____/__/\_ \
  *                     \/            \/     \/    \/            \/
- * $Id$
+ * $Id: wmcodec-s5l8700.c 22025 2009-07-25 00:49:13Z dave $
  *
- * Copyright (C) 2007 Dave Chapman
+ * S5L8702-specific code for Cirrus codecs
+ *
+ * Copyright (c) 2010 Michael Sparmann
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -18,30 +20,48 @@
  * KIND, either express or implied.
  *
  ****************************************************************************/
-#include "config.h"
-#include "cpu.h"
-#include <stdbool.h>
-#include "kernel.h"
+
 #include "system.h"
-#include "power.h"
+#include "audiohw.h"
+#include "i2c.h"
+#include "cscodec.h"
 
-void power_init(void)
+void audiohw_init(void)
 {
+#ifdef HAVE_CS42L55
+    audiohw_preinit();
+#endif
 }
 
-void ide_power_enable(bool on)
+unsigned char cscodec_read(int reg)
 {
+    unsigned char data;
+    i2c_readmem(0x94, reg, &data, 1);
+    return data;
 }
 
-bool ide_powered(void)
+void cscodec_write(int reg, unsigned char data)
 {
-    return true;
+    i2c_writemem(0x94, reg, &data, 1);
 }
 
-void power_off(void)
+void cscodec_power(bool state)
 {
+    (void)state; //TODO: Figure out which LDO this is
 }
 
-bool tuner_power(bool status) {
-    return true;
+void cscodec_reset(bool state)
+{
+#if 0
+    if (state) PDAT(3) &= ~8;
+    else PDAT(3) |= 8;
+#endif
+}
+
+void cscodec_clock(bool state)
+{
+#if 0
+    if (state) CLKCON3 &= ~0xffff;
+    else CLKCON3 |= 0x8000;
+#endif
 }

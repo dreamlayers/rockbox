@@ -7,7 +7,7 @@
  *                     \/            \/     \/    \/            \/
  * $Id$
  *
- * Copyright (C) 2002 by Linus Nielsen Feltzing
+ * Copyright (C) 2012 by Amaury Pouly
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -18,30 +18,22 @@
  * KIND, either express or implied.
  *
  ****************************************************************************/
-#ifndef I2C_H
-#define I2C_H
 
 #include "config.h"
+#include "system.h"
+#include "fmradio_i2c.h"
+#include "i2c.h"
 
-#ifdef HAVE_SOFTWARE_I2C
-#include "sw_i2c.h"
-#define i2c_init() sw_i2c_init()
-#define i2c_readmem(device,address,buf,count) sw_i2c_read(device,address,buf,count)
-#define i2c_writemem(device,address,buf,count) sw_i2c_write(device,address,buf,count)
-#else
-extern void i2c_init(void);
-extern void i2c_begin(void);
-extern void i2c_end(void);
-extern int i2c_write(int device, const unsigned char* buf, int count );
-extern int i2c_read(int device, unsigned char* buf, int count );
-extern int i2c_readmem(int device, int address, unsigned char* buf, int count );
-extern int i2c_writemem(int device, int address, const unsigned char* buf, int count );
-extern void i2c_outb(unsigned char byte);
-extern unsigned char i2c_inb(int ack);
-extern void i2c_start(void);
-extern void i2c_stop(void);
-extern void i2c_ack(int bit);
-extern int i2c_getack(void);
-#endif
+void fmradio_i2c_init(void)
+{
+}
 
-#endif
+int fmradio_i2c_write(unsigned char address, const unsigned char* buf, int count)
+{
+    return i2c_writemem(0xC0, address, (unsigned char *)buf, count); // FIXME const
+}
+
+int fmradio_i2c_read(unsigned char address, unsigned char* buf, int count)
+{
+    return i2c_readmem(0xC1, address, buf, count);
+}

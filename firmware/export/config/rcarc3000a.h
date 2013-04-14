@@ -87,7 +87,10 @@
 /* Define this if you have the CS42L55 audio codec */
 #define HAVE_CS42L55
 
-/*#define CONFIG_TUNER TEA5767*/
+/* Define this if you have the TEA5767 radio */
+#define CONFIG_TUNER TEA5767
+#define HAVE_FMRADIO_IN
+#define INPUT_SRC_CAPS (SRC_CAP_FMRADIO | SRC_CAP_LINEIN)
 
 /* TLV320 has no tone controls, so we use the software ones */
 #define HAVE_SW_TONE_CONTROLS
