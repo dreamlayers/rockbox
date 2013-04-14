@@ -7384,15 +7384,15 @@
   user: core
   <source>
     *: none
-    ipodvideo,ipod6g,mpiohd200,mpiohd300,gigabeatfx,mrobe100: "Bass Cutoff"
+    ipodvideo,ipod6g,mpiohd200,mpiohd300,gigabeatfx,mrobe100,rcarc3000a: "Bass Cutoff"
   </source>
   <dest>
     *: none
-    ipodvideo,ipod6g,mpiohd200,mpiohd300,gigabeatfx,mrobe100: "Отсечение баса"
+    ipodvideo,ipod6g,mpiohd200,mpiohd300,gigabeatfx,mrobe100,rcarc3000a: "Отсечение баса"
   </dest>
   <voice>
     *: none
-    ipodvideo,ipod6g,mpiohd200,mpiohd300,gigabeatfx,mrobe100: "Отсечение баса"
+    ipodvideo,ipod6g,mpiohd200,mpiohd300,gigabeatfx,mrobe100,rcarc3000a: "Отсечение баса"
   </voice>
 </phrase>
 <phrase>
@@ -10145,15 +10145,15 @@
   user: core
   <source>
     *: none
-    ipodvideo,ipod6g,mpiohd200,mpiohd300,gigabeatfx,mrobe100: "Treble Cutoff"
+    ipodvideo,ipod6g,mpiohd200,mpiohd300,gigabeatfx,mrobe100,rcarc3000a: "Treble Cutoff"
   </source>
   <dest>
     *: none
-    ipodvideo,ipod6g,mpiohd200,mpiohd300,gigabeatfx,mrobe100: "Подавление высоких частот"
+    ipodvideo,ipod6g,mpiohd200,mpiohd300,gigabeatfx,mrobe100,rcarc3000a: "Подавление высоких частот"
   </dest>
   <voice>
     *: none
-    ipodvideo,ipod6g,mpiohd200,mpiohd300,gigabeatfx,mrobe100: "Подавление высоких частот"
+    ipodvideo,ipod6g,mpiohd200,mpiohd300,gigabeatfx,mrobe100,rcarc3000a: "Подавление высоких частот"
   </voice>
 </phrase>
 <phrase>

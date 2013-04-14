@@ -8,7 +8,9 @@
 #define MODEL_NUMBER 30
 
 /* define hardware samples rate caps mask */
-#define HW_SAMPR_CAPS   (/*SAMPR_CAP_88 | */SAMPR_CAP_44/* | SAMPR_CAP_22 | SAMPR_CAP_11*/)
+#define HW_SAMPR_CAPS   (SAMPR_CAP_8 | SAMPR_CAP_11 | SAMPR_CAP_12 | \
+                         SAMPR_CAP_16 | SAMPR_CAP_22 | SAMPR_CAP_24 | \
+                         SAMPR_CAP_32 | SAMPR_CAP_44 | SAMPR_CAP_48)
 
 /* define this if you have a bitmap LCD display */
 #define HAVE_LCD_BITMAP
@@ -82,14 +84,8 @@
 /* Define this if you do software codec */
 #define CONFIG_CODEC SWCODEC
 
-#if 0
 /* Define this if you have the CS42L55 audio codec */
 #define HAVE_CS42L55
-#else
-/* Temporary and WRONG */
-/* Define this if you have the TLV320 audio codec */
-#define HAVE_TLV320
-#endif
 
 /*#define CONFIG_TUNER TEA5767*/
 

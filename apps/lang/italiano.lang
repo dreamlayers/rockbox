@@ -10421,15 +10421,15 @@ desc: deprecated
   user: core
   <source>
     *: none
-    ipodvideo,ipod6g,mpiohd200,mpiohd300,gigabeatfx,mrobe100: "Bass Cutoff"
+    ipodvideo,ipod6g,mpiohd200,mpiohd300,gigabeatfx,mrobe100,rcarc3000a: "Bass Cutoff"
   </source>
   <dest>
     *: none
-    ipodvideo,ipod6g,mpiohd200,mpiohd300,gigabeatfx,mrobe100: "Taglio Bassi"
+    ipodvideo,ipod6g,mpiohd200,mpiohd300,gigabeatfx,mrobe100,rcarc3000a: "Taglio Bassi"
   </dest>
   <voice>
     *: none
-    ipodvideo,ipod6g,mpiohd200,mpiohd300,gigabeatfx,mrobe100: "Taglio Bassi"
+    ipodvideo,ipod6g,mpiohd200,mpiohd300,gigabeatfx,mrobe100,rcarc3000a: "Taglio Bassi"
   </voice>
 </phrase>
 <phrase>
@@ -10438,15 +10438,15 @@ desc: deprecated
   user: core
   <source>
     *: none
-    ipodvideo,ipod6g,mpiohd200,mpiohd300,gigabeatfx,mrobe100: "Treble Cutoff"
+    ipodvideo,ipod6g,mpiohd200,mpiohd300,gigabeatfx,mrobe100,rcarc3000a: "Treble Cutoff"
   </source>
   <dest>
     *: none
-    ipodvideo,ipod6g,mpiohd200,mpiohd300,gigabeatfx,mrobe100: "Taglio Alti"
+    ipodvideo,ipod6g,mpiohd200,mpiohd300,gigabeatfx,mrobe100,rcarc3000a: "Taglio Alti"
   </dest>
   <voice>
     *: none
-    ipodvideo,ipod6g,mpiohd200,mpiohd300,gigabeatfx,mrobe100: "Taglio Alti"
+    ipodvideo,ipod6g,mpiohd200,mpiohd300,gigabeatfx,mrobe100,rcarc3000a: "Taglio Alti"
   </voice>
 </phrase>
 <phrase>

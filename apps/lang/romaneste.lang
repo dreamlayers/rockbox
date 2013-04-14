@@ -2655,15 +2655,15 @@
   user: core
   <source>
     *: none
-    ipodvideo,ipod6g,mpiohd200,mpiohd300,gigabeatfx,mrobe100: "Bass Cutoff"
+    ipodvideo,ipod6g,mpiohd200,mpiohd300,gigabeatfx,mrobe100,rcarc3000a: "Bass Cutoff"
   </source>
   <dest>
     *: none
-    ipodvideo,ipod6g,mpiohd200,mpiohd300,gigabeatfx,mrobe100: "Retezare basuri"
+    ipodvideo,ipod6g,mpiohd200,mpiohd300,gigabeatfx,mrobe100,rcarc3000a: "Retezare basuri"
   </dest>
   <voice>
     *: none
-    ipodvideo,ipod6g,mpiohd200,mpiohd300,gigabeatfx,mrobe100: "Retezare basuri"
+    ipodvideo,ipod6g,mpiohd200,mpiohd300,gigabeatfx,mrobe100,rcarc3000a: "Retezare basuri"
   </voice>
 </phrase>
 <phrase>
@@ -9509,15 +9509,15 @@
   user: core
   <source>
     *: none
-    ipodvideo,ipod6g,mpiohd200,mpiohd300,gigabeatfx,mrobe100: "Treble Cutoff"
+    ipodvideo,ipod6g,mpiohd200,mpiohd300,gigabeatfx,mrobe100,rcarc3000a: "Treble Cutoff"
   </source>
   <dest>
     *: none
-    ipodvideo,ipod6g,mpiohd200,mpiohd300,gigabeatfx,mrobe100: "Tăiere inalte"
+    ipodvideo,ipod6g,mpiohd200,mpiohd300,gigabeatfx,mrobe100,rcarc3000a: "Tăiere inalte"
   </dest>
   <voice>
     *: none
-    ipodvideo,ipod6g,mpiohd200,mpiohd300,gigabeatfx,mrobe100: "Tăiere inalte"
+    ipodvideo,ipod6g,mpiohd200,mpiohd300,gigabeatfx,mrobe100,rcarc3000a: "Tăiere inalte"
   </voice>
 </phrase>
 <phrase>
