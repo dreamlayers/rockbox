@@ -48,7 +48,7 @@
 
 #define DELAY  do { volatile int _x; for(_x=0;_x<22;_x++);} while(0)
 
-#else
+#elif defined(IRIVER_H100_SERIES)
 
 /* SCL is GPIO, 12 */
 #define SCL             ( 0x00001000 & GPIO_READ)
@@ -75,11 +75,15 @@
         );                            \
     })
 
+#else
+
+#include "i2c-target.h"
+
 #endif
 
 void sw_i2c_init(void)
 {
-#ifndef MROBE_100
+#ifdef IRIVER_H100_SERIES
     or_l(0x00001000, &GPIO_FUNCTION);
     or_l(0x00002000, &GPIO1_FUNCTION);
 #endif

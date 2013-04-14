@@ -21,6 +21,14 @@
 #ifndef I2C_H
 #define I2C_H
 
+#include "config.h"
+
+#ifdef HAVE_SOFTWARE_I2C
+#include "sw_i2c.h"
+#define i2c_init() sw_i2c_init()
+#define i2c_readmem(device,address,buf,count) sw_i2c_write(device,address,buf,count)
+#define i2c_writemem(device,address,buf,count) sw_i2c_read (device,address,buf,count)
+#else
 extern void i2c_init(void);
 extern void i2c_begin(void);
 extern void i2c_end(void);
@@ -34,5 +42,6 @@ extern void i2c_start(void);
 extern void i2c_stop(void);
 extern void i2c_ack(int bit);
 extern int i2c_getack(void);
+#endif
 
 #endif

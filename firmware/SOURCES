@@ -847,6 +847,9 @@ target/arm/tcc76x/kernel-tcc76x.c
 target/arm/tcc76x/system-tcc76x.c
 target/arm/tcc76x/timer-tcc76x.c
 target/arm/tcc76x/adc-tcc76x.c
+#ifdef HAVE_SOFTWARE_I2C
+drivers/generic_i2c.c
+#endif
 # ifndef IAUDIO7
 target/arm/tcc76x/powermgmt-tcc76x.c
 # endif /* !IAUDIO7 */
@@ -1839,6 +1842,7 @@ target/arm/tcc76x/rc3000a/power-rc3000a.c
 target/arm/tcc76x/rc3000a/sd-rc3000a.c
 target/arm/tcc76x/rc3000a/usb-rc3000a.c
 sdmmc.c
+drivers/sw_i2c.c
 #ifndef BOOTLOADER
 /* target/arm/tcc76x/rc3000a/audio-rc3000a.c FIXME */
 #endif /* BOOTLOADER */
