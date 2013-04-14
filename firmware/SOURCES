@@ -1862,6 +1862,9 @@ target/arm/tcc76x/rc3000a/button-rc3000a.c
 target/arm/tcc76x/rc3000a/power-rc3000a.c
 target/arm/tcc76x/rc3000a/sd-rc3000a.c
 target/arm/tcc76x/rc3000a/usb-rc3000a.c
+target/arm/tcc76x/rc3000a/cscodec-rc3000a.c
+target/arm/tcc76x/rc3000a/audio-rc3000a.c
+target/arm/tcc76x/rc3000a/fmradio-i2c-rc3000a.c
 sdmmc.c
 drivers/sw_i2c.c
 #ifndef BOOTLOADER
