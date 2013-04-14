@@ -53,6 +53,12 @@
 /* Timer register flags */
 #define RTC_TE     0x80
 
+// FIXME
+#ifdef RC3000A
+#define i2c_readbytes(chip,location,count,buf) i2c_readmem(((chip)<<1)+1,location,buf,count)
+#define pp_i2c_send(chip,location,byte) { unsigned char b=(byte); i2c_writemem(((chip)<<1),location,&b,1); }
+#endif
+
 bool rtc_lock_alarm_clear=true;
 
 void rtc_init(void)
