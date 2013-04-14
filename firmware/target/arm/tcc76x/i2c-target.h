@@ -39,6 +39,6 @@
 #define SDA_OUT_LO { CFGPUB |= SDA_BIT; GSEL_B &= ~SDA_BIT; GTSEL_B &= ~SDA_BIT; GPIOB_DIR |= SDA_BIT; GPIOB &= ~SDA_BIT; }
 
 //FIXME!!!
-#define DELAY { volatile int i; for (i=0;i<1000;i++); }
+#define DELAY { volatile int i; for (i=0;i<100;i++); }
 
 #endif /* I2C_TARGET_H */
