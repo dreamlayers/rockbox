@@ -10439,15 +10439,15 @@
   user: core
   <source>
     *: none
-    ipodvideo,ipod6g,mpiohd200,mpiohd300,gigabeatfx,mrobe100: "Bass Cutoff"
+    ipodvideo,ipod6g,mpiohd200,mpiohd300,gigabeatfx,mrobe100,rcarc3000a: "Bass Cutoff"
   </source>
   <dest>
     *: none
-    ipodvideo,ipod6g,mpiohd200,mpiohd300,gigabeatfx,mrobe100: "Ścięcie basów"
+    ipodvideo,ipod6g,mpiohd200,mpiohd300,gigabeatfx,mrobe100,rcarc3000a: "Ścięcie basów"
   </dest>
   <voice>
     *: none
-    ipodvideo,ipod6g,mpiohd200,mpiohd300,gigabeatfx,mrobe100: "Ścięcie basów"
+    ipodvideo,ipod6g,mpiohd200,mpiohd300,gigabeatfx,mrobe100,rcarc3000a: "Ścięcie basów"
   </voice>
 </phrase>
 <phrase>
@@ -10456,15 +10456,15 @@
   user: core
   <source>
     *: none
-    ipodvideo,ipod6g,mpiohd200,mpiohd300,gigabeatfx,mrobe100: "Treble Cutoff"
+    ipodvideo,ipod6g,mpiohd200,mpiohd300,gigabeatfx,mrobe100,rcarc3000a: "Treble Cutoff"
   </source>
   <dest>
     *: none
-    ipodvideo,ipod6g,mpiohd200,mpiohd300,gigabeatfx,mrobe100: "Ścięcie tonów niskich"
+    ipodvideo,ipod6g,mpiohd200,mpiohd300,gigabeatfx,mrobe100,rcarc3000a: "Ścięcie tonów niskich"
   </dest>
   <voice>
     *: none
-    ipodvideo,ipod6g,mpiohd200,mpiohd300,gigabeatfx,mrobe100: "Ścięcie tonów niskich"
+    ipodvideo,ipod6g,mpiohd200,mpiohd300,gigabeatfx,mrobe100,rcarc3000a: "Ścięcie tonów niskich"
   </voice>
 </phrase>
 <phrase>
