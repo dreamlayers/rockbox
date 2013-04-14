@@ -21,19 +21,24 @@
 #ifndef I2C_TARGET_H
 #define I2C_TARGET_H
 
-/* Definitions for the TCC77X I2C bus */
+/* Definitions for the RC3000A I2C bus */
 
-#define SDA_BIT (1<<10)
-#define SCL_BIT (1<<11)
+#define SDA_BIT 0x100
+#define SCL_BIT 0x200
 
 #define SCL    (GPIOB & SCL_BIT)
-#define SCL_HI GPIOB |= SCL_BIT
-#define SCL_LO GPIOB &= ~SCL_BIT
+#define SCL_HI GPIOB_DIR &= ~SCL_BIT;
+#define SCL_LO GPIOB_DIR |= SCL_BIT
+#define SCL_OUT_LO { CFGPUB |= SCL_BIT; GSEL_B &= ~SCL_BIT; GTSEL_B &= ~SCL_BIT; GPIOB_DIR |= SCL_BIT; GPIOB &= ~SCL_BIT; }
 
 #define SDA        (GPIOB & SDA_BIT)
-#define SDA_HI     GPIOB |= SDA_BIT
-#define SDA_LO     GPIOB &= ~SDA_BIT
-#define SDA_INPUT  GPIOB_DIR &= ~SDA_BIT
-#define SDA_OUTPUT GPIOB_DIR |= SDA_BIT
+#define SDA_HI     GPIOB_DIR &= ~SDA_BIT
+#define SDA_LO     GPIOB_DIR |= SDA_BIT
+//#define SDA_INPUT  GPIOB_DIR &= ~SDA_BIT
+//#define SDA_OUTPUT GPIOB_DIR |= SDA_BIT
+#define SDA_OUT_LO { CFGPUB |= SDA_BIT; GSEL_B &= ~SDA_BIT; GTSEL_B &= ~SDA_BIT; GPIOB_DIR |= SDA_BIT; GPIOB &= ~SDA_BIT; }
+
+//FIXME!!!
+#define DELAY { volatile int i; for (i=0;i<1000;i++); }
 
 #endif /* I2C_TARGET_H */

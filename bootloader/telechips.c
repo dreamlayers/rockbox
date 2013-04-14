@@ -47,6 +47,9 @@
 #include "loader_strerror.h"
 #include "version.h"
 
+// TEMP FIXME
+#include "i2c.h"
+
 /* Show the Rockbox logo - in show_logo.c */
 extern void show_logo(void);
 
@@ -64,26 +67,12 @@ void show_debug_screen(void)
     int power_count = 0;
     int count = 0;
     bool do_power_off = false;
+
+        unsigned char b;
+        int r;
     
     //lcd_puts_scroll(0,0,"+++ this is a very very long line to test scrolling. ---");
-    printf ("si: %d", storage_init());
-    disk_init(IF_MV(0));
-    int num_partitions = disk_mount_all();
-    if (num_partitions<=0)
-    {
-        error(EDISK,num_partitions, true);
-    }
-    printf ("np: %d", num_partitions);
-    int i;  struct partinfo* pinfo;
-    /* Just list the first 2 partitions since we don't have any devices yet
-       that have more than that */
-    for(i=0; i<num_partitions; i++)
-    {
-        pinfo = disk_partinfo(i);
-        printf("Partition %d: 0x%02x %ld MB",
-                i, pinfo->type, pinfo->size / 2048);
-    }
-    while (1);
+    sw_i2c_init();
     while (!do_power_off) {
         line = 1;
         button = button_get(false);
@@ -107,7 +96,10 @@ void show_debug_screen(void)
         }
 #endif
         printf("Btn: 0x%08x",button);
-#if 1
+        b=255;
+        r = sw_i2c_read (0xA2, 2, &b, 1);
+        printf("S: %d: %d", r, b);
+#if 0
         printf("Tick: %d",current_tick);
         printf("GPIOA: 0x%08x",GPIOA);
         printf("GPIOB: 0x%08x",GPIOB);
