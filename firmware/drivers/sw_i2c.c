@@ -305,3 +305,57 @@ int sw_i2c_read(unsigned char chip, unsigned char location, unsigned char* buf, 
     
     return 0;
 }
+
+int sw_i2c_writeblock(unsigned char chip, unsigned char* buf, int count)
+{
+    int i;
+
+    sw_i2c_start();
+    sw_i2c_outb((chip & 0xfe) | SW_I2C_WRITE);
+    if (!sw_i2c_getack())
+    {
+        sw_i2c_stop();
+        return -1;
+    }
+
+    for (i=0; i<count; i++)
+    {
+        sw_i2c_outb(buf[i]);
+        if (!sw_i2c_getack())
+        {
+            sw_i2c_stop();
+            return -3;
+        }
+    }
+
+    sw_i2c_stop();
+
+    return 0;
+}
+
+int sw_i2c_readblock(unsigned char chip, unsigned char* buf, int count)
+{
+    int i;
+
+    sw_i2c_start();
+    sw_i2c_outb((chip & 0xfe) | SW_I2C_READ);
+    if (!sw_i2c_getack())
+    {
+        sw_i2c_stop();
+        return -1;
+    }
+
+    for (i=0; i<count-1; i++)
+    {
+      buf[i] = sw_i2c_inb();
+      sw_i2c_ack();
+    }
+
+    /* 1byte min */
+    buf[i] = sw_i2c_inb();
+    sw_i2c_nack();
+
+    sw_i2c_stop();
+
+    return 0;
+}

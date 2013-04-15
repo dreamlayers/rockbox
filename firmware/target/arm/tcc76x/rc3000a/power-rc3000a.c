@@ -43,5 +43,10 @@ void power_off(void)
 }
 
 bool tuner_power(bool status) {
+    if (status) {
+        GPIOD |= 0x10000;
+    } else {
+        GPIOD &= ~0x10000;
+    }
     return true;
 }
