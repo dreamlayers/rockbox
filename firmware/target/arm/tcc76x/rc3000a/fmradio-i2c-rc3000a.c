@@ -30,10 +30,10 @@ void fmradio_i2c_init(void)
 
 int fmradio_i2c_write(unsigned char address, const unsigned char* buf, int count)
 {
-    return i2c_writemem(0xC0, address, (unsigned char *)buf, count); // FIXME const
+    return i2c_write(address, (unsigned char *)buf, count); // FIXME const
 }
 
 int fmradio_i2c_read(unsigned char address, unsigned char* buf, int count)
 {
-    return i2c_readmem(0xC1, address, buf, count);
+    return i2c_read(address, buf, count);
 }

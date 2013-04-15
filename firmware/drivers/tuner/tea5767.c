@@ -180,6 +180,8 @@ void tea5767_init(void)
 
 void tea5767_dbg_info(struct tea5767_dbg_info *info)
 {
-    fmradio_i2c_read(I2C_ADR, info->read_regs, 5);
+    int r;
+    r = fmradio_i2c_read(I2C_ADR, info->read_regs, 5);
+    info->read_regs[0] = r;
     memcpy(info->write_regs, write_bytes, 5);
 }
