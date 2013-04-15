@@ -28,5 +28,7 @@
 void sw_i2c_init(void);
 int sw_i2c_write(unsigned char chip, unsigned char location, unsigned char* buf, int count);
 int sw_i2c_read (unsigned char chip, unsigned char location, unsigned char* buf, int count);
+int sw_i2c_writeblock(unsigned char chip, unsigned char* buf, int count);
+int sw_i2c_readblock(unsigned char chip, unsigned char* buf, int count);
 
 #endif
