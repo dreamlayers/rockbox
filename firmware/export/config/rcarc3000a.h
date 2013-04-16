@@ -85,7 +85,7 @@
 #define CONFIG_CODEC SWCODEC
 
 /* Define this if you have the CS42L55 audio codec */
-#define HAVE_CS42L55
+#define HAVE_CS42L51
 
 /* Define this if you have the TEA5767 radio */
 #define CONFIG_TUNER TEA5767

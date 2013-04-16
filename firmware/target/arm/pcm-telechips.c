@@ -105,7 +105,7 @@ void pcm_play_dma_init(void)
     DIVMODE |= 8;
 
     /* Use PLL, DPHASE=16: 12000000 * 16 / (16+1) = 256.1 * 44100 */
-    DAICLKmode = 0x4010;
+    DCLKmode = 0x4010;
 #else
 #error "Target isn't supported"
 #endif
