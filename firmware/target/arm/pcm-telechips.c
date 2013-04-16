@@ -95,8 +95,19 @@ void pcm_play_dma_init(void)
     /* TODO */
 #elif defined(SANSA_C100)
     /* TODO */
+#elif defined(RC3000A)
+    /* FIXME clocking should be done elsewhere. */
+
+    /* Enable DAI clock */
+    CKCTRL |= 2;
+
+    /* Use clock divider mode to set DAI clock */
+    DIVMODE |= 8;
+
+    /* Use PLL, DPHASE=16: 12000000 * 16 / (16+1) = 256.1 * 44100 */
+    DAICLKmode = 0x4010;
 #else
-//FIXME ignoring #error "Target isn't supported"
+#error "Target isn't supported"
 #endif
     /* Set DAI interrupts as FIQs */
     IRQSEL = ~(DAI_RX_IRQ_MASK | DAI_TX_IRQ_MASK);
