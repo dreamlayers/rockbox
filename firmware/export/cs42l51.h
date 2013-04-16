@@ -18,6 +18,21 @@
 #ifndef _CS42L51_H
 #define _CS42L51_H
 
+// BEGIN FIXME
+
+/* volume/balance/treble/bass interdependency */
+#define VOLUME_MIN -580
+#define VOLUME_MAX  120
+
+#define AUDIOHW_CAPS (BASS_CAP | TREBLE_CAP | BASS_CUTOFF_CAP \
+                    | TREBLE_CUTOFF_CAP | PRESCALER_CAP)
+
+extern int tenthdb2master(int db);
+
+extern void audiohw_set_master_vol(int vol_l, int vol_r);
+
+// END FIXME
+
 #define CS42L51_CHIP_ID			0x1B
 #define CS42L51_CHIP_REV_A		0x00
 #define CS42L51_CHIP_REV_B		0x01
