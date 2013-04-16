@@ -395,6 +395,8 @@ drivers/audio/mas35xx.c
 drivers/audio/ak4537.c
 #elif defined(HAVE_UDA1341)
 drivers/audio/uda1341.c
+#elif defined(HAVE_CS42L51)
+drivers/audio/cs42l51.c
 #elif defined(HAVE_CS42L55)
 drivers/audio/cs42l55.c
 #elif defined (HAVE_RK27XX_CODEC)

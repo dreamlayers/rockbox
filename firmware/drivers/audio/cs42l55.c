@@ -65,7 +65,6 @@ void audiohw_preinit(void)
     bass = 0;
     treble = 0;
 
-#ifdef IPOD_6G
     /* Ask Cirrus or maybe Apple what the hell this means */
     cscodec_write(HIDDENCTL, HIDDENCTL_UNLOCK);
     cscodec_write(HIDDEN2E, HIDDEN2E_DEFAULT);
@@ -81,7 +80,6 @@ void audiohw_preinit(void)
     cscodec_write(HIDDEN3E, HIDDEN3E_DEFAULT);
     cscodec_write(HIDDEN3F, HIDDEN3F_DEFAULT);
     cscodec_write(HIDDENCTL, HIDDENCTL_LOCK);
-#endif
 
     cscodec_write(PWRCTL2, PWRCTL2_PDN_LINA_ALWAYS | PWRCTL2_PDN_LINB_ALWAYS
                          | PWRCTL2_PDN_HPA_NEVER | PWRCTL2_PDN_HPB_NEVER);
