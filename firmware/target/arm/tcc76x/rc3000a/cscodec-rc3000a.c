@@ -47,7 +47,13 @@ void cscodec_write(int reg, unsigned char data)
 
 void cscodec_power(bool state)
 {
-    (void)state; //TODO: Figure out which LDO this is
+    // FIXME: might be reset, not power
+    if (state) {
+        GPIOD |= 0x100000;
+        GPIOA |= 0x400; // FIXME this is something else
+    } else {
+        GPIOD &= ~0x100000;
+    }
 }
 
 void cscodec_reset(bool state)
