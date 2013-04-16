@@ -108,11 +108,63 @@ static void gpio_init(void)
 }
 #endif
 
+static void pll_init(void)
+{
+    /* Set ARM core to FastBus mode */
+    asm volatile (
+        "mrc     p15, 0, r0, c1, c0  \n\t"
+        "bic     r0, r0, #0xc0000000 \n\t"
+        "mcr     p15, 0, r0, c1, c0  \n\t"
+    );
+
+    /* Clear XTFCLK and XTHCLK: ensure XTIN not selected for FCLK and HCLK */
+    PWDCTL &= 0x30000;
+
+    /* Clear DIV1: use XIN, not PLL for DIVCLK0 and DIVCLK1 */
+    PLLMODE &= ~0x40000;
+
+    /* Disable PLL clock and peripherals using it */
+    CKCTRL |= 0x800;
+
+    /* Set PLLMODE based on argument */
+#define PLLMODE_VAL(p,m,s) ((p)|((m)<<8)|((s)<<16))
+    PLLMODE = PLLMODE_VAL(2, 14, 1);
+
+    /* Re-enable PLL clock */
+    CKCTRL &= ~0x800;
+
+    /* Wait for PLL lock */
+    while ((PLLMODE & 0x100000) == 0);
+
+    /* Zero out SCLKmode dividers for FCLK and HCLK. Not sure why. */
+    SCLKmode &= ~0x3FFF;
+
+    /* Use clock dividers for USB, ADC and DAI */
+    DIVMODE |= 0x128;
+
+    /* FIXME init CSCFG3 */
+
+    /* HCLK = PLL/2, HCLK = PLL*5/64 */
+    SCLKmode = 0x5020;
+
+    /* Use PLL output for DIVCLK0 and DIVCLK1. This switches CPU to PLL. */
+    PLLMODE |= 0x40000;
+
+    asm volatile (
+        "nop                         \n\t"
+        "nop                         \n\t"
+    /* Set ARM core to ASYNC mode */
+        "mrc     p15, 0, r0, c1, c0  \n\t"
+        "orr     r0, r0, #0xc0000000 \n\t"
+        "mcr     p15, 0, r0, c1, c0  \n\t"
+    );
+}
+
 /* Second function called in the original firmware's startup code - we just
    set up the clocks in the same way as the original firmware for now. */
 static void clock_init(void)
 {
-    /* Stop clocks for CIF, LCD, I2C, UART */
+    /* Stop clocks for unused modules: CIF, LCD, I2C, UART */
     HCLKSTOP = 0x60A0;
 
     /* Set various clocks XTIN, assuming 32KHz, which is surprisingly slow.
@@ -124,9 +176,7 @@ static void clock_init(void)
     GCLKmode = 0x2000;
     CIFCLKmode = 0x2000;
 
-
-
-
+    pll_init();
 
  #if 0
     unsigned int i;
