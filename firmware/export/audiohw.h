@@ -197,6 +197,8 @@ struct sound_settings_info
 #include "rk27xx_codec.h"
 #elif defined(HAVE_AIC3X)
 #include "aic3x.h"
+#elif defined(HAVE_CS42L51)
+#include "cs42l51.h"
 #elif defined(HAVE_CS42L55)
 #include "cs42l55.h"
 #elif defined(HAVE_IMX233_CODEC)

@@ -78,42 +78,7 @@ void audiohw_preinit(void)
     bass = 0;
     treble = 0;
 
-#ifdef IPOD_6G
-    /* Ask Cirrus or maybe Apple what the hell this means */
     cscodec_write(HIDDENCTL, HIDDENCTL_UNLOCK);
-    cscodec_write(HIDDEN2E, HIDDEN2E_DEFAULT);
-    cscodec_write(HIDDEN32, HIDDEN32_DEFAULT);
-    cscodec_write(HIDDEN33, HIDDEN33_DEFAULT);
-    cscodec_write(HIDDEN34, HIDDEN34_DEFAULT);
-    cscodec_write(HIDDEN35, HIDDEN35_DEFAULT);
-    cscodec_write(HIDDEN36, HIDDEN36_DEFAULT);
-    cscodec_write(HIDDEN37, HIDDEN37_DEFAULT);
-    cscodec_write(HIDDEN3A, HIDDEN3A_DEFAULT);
-    cscodec_write(HIDDEN3C, HIDDEN3C_DEFAULT);
-    cscodec_write(HIDDEN3D, HIDDEN3D_DEFAULT);
-    cscodec_write(HIDDEN3E, HIDDEN3E_DEFAULT);
-    cscodec_write(HIDDEN3F, HIDDEN3F_DEFAULT);
-    cscodec_write(HIDDENCTL, HIDDENCTL_LOCK);
-#endif
-
-    cscodec_write(PWRCTL2, PWRCTL2_PDN_LINA_ALWAYS | PWRCTL2_PDN_LINB_ALWAYS
-                         | PWRCTL2_PDN_HPA_NEVER | PWRCTL2_PDN_HPB_NEVER);
-    cscodec_write(CLKCTL1, CLKCTL1_MASTER | CLKCTL1_SCLKMCLK_BEFORE
-                         | CLKCTL1_MCLKDIV2);
-    cscodec_write(CLKCTL2, CLKCTL2_44100HZ);
-    cscodec_write(MISCCTL, MISCCTL_UNDOC4 | MISCCTL_ANLGZC | MISCCTL_DIGSFT);
-    cscodec_write(PWRCTL1, PWRCTL1_PDN_CHRG | PWRCTL1_PDN_ADCA
-                         | PWRCTL1_PDN_ADCB | PWRCTL1_PDN_CODEC);
-    cscodec_write(PLAYCTL, PLAYCTL_PDN_DSP
-                         | PLAYCTL_MSTAMUTE | PLAYCTL_MSTBMUTE);
-    cscodec_write(PGAACTL, 0);
-    cscodec_write(PGABCTL, 0);
-    cscodec_write(HPACTL, HPACTL_HPAMUTE);
-    cscodec_write(HPBCTL, HPBCTL_HPBMUTE);
-    cscodec_write(LINEACTL, LINEACTL_LINEAMUTE);
-    cscodec_write(LINEBCTL, LINEBCTL_LINEBMUTE);
-    cscodec_write(PWRCTL1, PWRCTL1_PDN_CHRG | PWRCTL1_PDN_ADCA
-                         | PWRCTL1_PDN_ADCB);
 }
 
 void audiohw_postinit(void)
