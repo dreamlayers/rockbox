@@ -21,7 +21,7 @@
 // BEGIN FIXME
 
 /* volume/balance/treble/bass interdependency */
-#define VOLUME_MIN -580
+#define VOLUME_MIN -1020
 #define VOLUME_MAX  120
 
 #define AUDIOHW_CAPS (BASS_CAP | TREBLE_CAP | BASS_CUTOFF_CAP \

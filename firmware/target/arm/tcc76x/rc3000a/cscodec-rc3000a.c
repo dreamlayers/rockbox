@@ -44,14 +44,17 @@ unsigned char cscodec_read(int reg)
 void cscodec_write(int reg, unsigned char data)
 {
     i2c_writemem(0x94, reg, &data, 1);
+    //sleep(1);
 }
 
 void cscodec_power(bool state)
 {
     // FIXME: might be reset, not power
     if (state) {
+
         GPIOD |= 0x100000;
-        GPIOA |= 0x400; // FIXME this is something else
+        //GPIOA |= 0x400; // FIXME this is something else
+        //GPIOD &= ~0x40000; // This messes with the CODEC and makes register writes unreliable!
     } else {
         GPIOD &= ~0x100000;
     }
