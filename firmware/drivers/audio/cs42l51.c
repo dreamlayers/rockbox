@@ -123,7 +123,7 @@ void audiohw_preinit(void)
 
 
     // FIXME sequence for selecting radio input
-#if 1
+#if 0
     cscodec_freeze(true);
 
     /* OF uses 18 for stereo and 24 for mono */
