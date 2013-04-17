@@ -106,6 +106,9 @@ void pcm_play_dma_init(void)
 
     /* Use PLL, DPHASE=16: 12000000 * 16 / (16+1) = 256.1 * 44100 */
     DCLKmode = 0x4010;
+
+    DAMR = 0x8800;
+
 #else
 #error "Target isn't supported"
 #endif
