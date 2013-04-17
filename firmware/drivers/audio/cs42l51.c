@@ -28,10 +28,10 @@
 #include "sound.h"
 #include "audiohw.h"
 #include "cscodec.h"
-#include "cs42l55.h"
+#include "cs42l51.h"
 
 const struct sound_settings_info audiohw_settings[] = {
-    [SOUND_VOLUME]        = {"dB", 0,  1, -60,  12, -25},
+    [SOUND_VOLUME]        = {"dB", 0,  1,-102,  12, -25},
     [SOUND_BASS]          = {"dB", 1, 15,-105, 120,   0},
     [SOUND_TREBLE]        = {"dB", 1, 15,-105, 120,   0},
     [SOUND_BALANCE]       = {"%",  0,  1,-100, 100,   0},
@@ -43,28 +43,43 @@ const struct sound_settings_info audiohw_settings[] = {
 
 static int bass, treble;
 
+static void cscodec_freeze(bool freeze)
+{
+    cscodec_write(CS42L51_DAC_CTL,
+                  /* Route data via Signal Processing Engine to DAC */
+                  /* FIXME is this needed when not using treble or bass */
+                  CS42L51_DAC_CTL_DATA_SEL(1) | \
+                  /* Make modifications take effect after unfreeze */
+                  (freeze ? CS42L51_DAC_CTL_FREEZE : 0) | \
+                  /* Change volume on zero crossings */
+                  CS42L51_DAC_CTL_DACSZ(1));
+}
+
+
 /* convert tenth of dB volume (-600..120) to master volume register value */
 int tenthdb2master(int db)
 {
-    /* -60dB to +12dB in 1dB steps */
-    /* 0001100 == +12dB (0xc) */
-    /* 0000000 == 0dB   (0x0) */
-    /* 1000100 == -60dB (0x44, this is actually -58dB) */
-
-    if (db < VOLUME_MIN) return HPACTL_HPAMUTE;
-    return (db / 10) & HPACTL_HPAVOL_MASK;
+    // FIXME if (db < VOLUME_MIN) return HPACTL_HPAMUTE;
+    return (db / 5);
 }
 
+#if 0
 static void cscodec_setbits(int reg, unsigned char off, unsigned char on)
 {
     unsigned char data = (cscodec_read(reg) & ~off) | on;
     cscodec_write(reg, data);
 }
+#endif
 
 static void audiohw_mute(bool mute)
 {
-    if (mute) cscodec_setbits(PLAYCTL, 0, PLAYCTL_MSTAMUTE | PLAYCTL_MSTBMUTE);
-    else cscodec_setbits(PLAYCTL, PLAYCTL_MSTAMUTE | PLAYCTL_MSTBMUTE, 0);
+    cscodec_write(CS42L51_DAC_OUT_CTL,
+                  /* Maximum headphone gain multiplier */
+                  CS42L51_DAC_OUT_CTL_HP_GAIN(7) | \
+                  /* Mute DAC */
+                  (mute ? (CS42L51_DAC_OUT_CTL_DACB_MUTE | \
+                           CS42L51_DAC_OUT_CTL_DACA_MUTE)
+                        : 0));
 }
 
 void audiohw_preinit(void)
@@ -78,57 +93,118 @@ void audiohw_preinit(void)
     bass = 0;
     treble = 0;
 
-    cscodec_write(HIDDENCTL, HIDDENCTL_UNLOCK);
+    cscodec_write(CS42L51_POWER_CTL1, CS42L51_POWER_CTL1_PDN);
+    cscodec_write(CS42L51_MIC_POWER_CTL,
+                  /* Single speed mode, for 4 to 50 kHz sample rates */
+                  CS42L51_MIC_POWER_CTL_SPEED(CS42L51_SSM_MODE) | \
+                  /* RC3000A has no microphone */
+                  CS42L51_MIC_POWER_CTL_PDN_MICB | \
+                  CS42L51_MIC_POWER_CTL_PDN_MICA | \
+                  CS42L51_MIC_POWER_CTL_PDN_BIAS | \
+                  /* MCLK is 256fs, but need 128fs */
+                  CS42L51_MIC_POWER_CTL_MCLK_DIV2);
+    cscodec_write(CS42L51_INTF_CTL,
+                  /* Use I2S */
+                  CS42L51_INTF_CTL_DAC_FORMAT(CS42L51_DAC_DIF_I2S) | \
+                  CS42L51_INTF_CTL_ADC_I2S);
+    cscodec_freeze(true);
+    cscodec_write(CS42L51_PCMA_VOL, 0);
+    cscodec_write(CS42L51_PCMB_VOL, 0);
+    cscodec_write(CS42L51_ADCA_VOL, 0);
+    cscodec_write(CS42L51_ADCB_VOL, 0);
+    cscodec_write(CS42L51_ADC_INPUT,
+                  /* Mute ADC */
+                  CS42L51_ADC_INPUT_ADCB_MUTE | CS42L51_ADC_INPUT_ADCA_MUTE);
+    audiohw_mute(true);
+    cscodec_freeze(false);
+    cscodec_write(CS42L51_POWER_CTL1,
+                  /* Remove overall powerdown, only powering down PGA */
+                  CS42L51_POWER_CTL1_PDN_PGAB | \
+                  CS42L51_POWER_CTL1_PDN_PGAA);
+
+    // FIXME sequence for selecting radio input
+
+    cscodec_freeze(true);
+
+    /* OF uses 18 for stereo and 24 for mono */
+    // FIXME why init PGA when PGA is PDN
+    cscodec_write(CS42L51_ALC_PGA_CTL, 18);
+    cscodec_write(CS42L51_ALC_PGB_CTL, 18);
+
+    /* ADC volume +3dB, not muted */
+    cscodec_write(CS42L51_ADCA_VOL,6);
+    cscodec_write(CS42L51_ADCB_VOL,6);
+
+    /* PCM volume 0dB, muted */
+    cscodec_write(CS42L51_PCMA_VOL, 1);// FIXME 0x80);
+    cscodec_write(CS42L51_PCMB_VOL, 1); //0x80);
+
+    /* Input AIN1 to ADC */
+    cscodec_write(CS42L51_ADC_INPUT,0);
+
+    cscodec_freeze(false);
+
+    /* FIXME WTF */
+    cscodec_write(CS42L51_POWER_CTL1,
+              /* Remove overall powerdown, only powering down PGA */
+              CS42L51_POWER_CTL1_PDN_PGAA | \
+              CS42L51_POWER_CTL1_PDN_PGAB);
+
+    /* FIXME HACK */
+    /* Enable DAI clock */
+    CKCTRL &= ~2;
+
+    /* Use clock divider mode to set DAI clock */
+    DIVMODE |= 8;
+
+    /* Use PLL, DPHASE=16: 12000000 * 16 / (16+1) = 256.1 * 44100 */
+    DCLKmode = 0x4010;
+
+    DAMR = 0x8800;
+
+
+    /* FIXME worse hack */
+    cscodec_write(CS42L51_INTF_CTL,
+    CS42L51_INTF_CTL_LOOPBACK | CS42L51_INTF_CTL_MASTER | \
+              /* Use I2S */
+              CS42L51_INTF_CTL_DAC_FORMAT(CS42L51_DAC_DIF_I2S) | \
+              CS42L51_INTF_CTL_ADC_I2S);
+
+              audiohw_mute(false);
+
 }
 
 void audiohw_postinit(void)
 {
+#if 0
     cscodec_write(HPACTL, 0);
     cscodec_write(HPBCTL, 0);
     cscodec_write(LINEACTL, 0);
     cscodec_write(LINEBCTL, 0);
     cscodec_write(CLSHCTL, CLSHCTL_ADPTPWR_SIGNAL);
     audiohw_mute(false);
+#endif
 }
 
 void audiohw_set_master_vol(int vol_l, int vol_r)
 {
-    /* -60dB to +12dB in 1dB steps */
-    /* 0001100 == +12dB (0xc) */
-    /* 0000000 == 0dB   (0x0) */
-    /* 1000100 == -60dB (0x44, this is actually -58dB) */
+    /* -102dB to +12dB in 0.5dB steps */
+    /* 00011000 == +12dB  (0x18) */
+    /* 00000000 == 0dB    (0x0)  */
+    /* 11111111 == 0.5dB  (0xFF) */
+    /* 00011001 == -102dB (0x19) */
+audiohw_mute(false);
+    cscodec_freeze(1);
 
-    cscodec_setbits(HPACTL, HPACTL_HPAVOL_MASK | HPACTL_HPAMUTE,
-                    vol_l << HPACTL_HPAVOL_SHIFT);
-    cscodec_setbits(HPBCTL, HPBCTL_HPBVOL_MASK | HPBCTL_HPBMUTE,
-                    vol_r << HPBCTL_HPBVOL_SHIFT);
-}
+    cscodec_write(CS42L51_AOUTA_VOL, vol_l & 0xFF);
+    cscodec_write(CS42L51_AOUTB_VOL, vol_r & 0xFF);
 
-void audiohw_set_lineout_vol(int vol_l, int vol_r)
-{
-    /* -60dB to +12dB in 1dB steps */
-    /* 0001100 == +12dB (0xc) */
-    /* 0000000 == 0dB   (0x0) */
-    /* 1000100 == -60dB (0x44, this is actually -58dB) */
-
-    cscodec_setbits(LINEACTL, LINEACTL_LINEAVOL_MASK | LINEACTL_LINEAMUTE,
-                    vol_l << LINEACTL_LINEAVOL_SHIFT);
-    cscodec_setbits(LINEBCTL, LINEBCTL_LINEBVOL_MASK | LINEBCTL_LINEBMUTE,
-                    vol_r << LINEBCTL_LINEBVOL_SHIFT);
-}
-
-void audiohw_enable_lineout(bool enable)
-{
-    if (enable)
-        cscodec_setbits(PWRCTL2, PWRCTL2_PDN_LINA_MASK | PWRCTL2_PDN_LINB_MASK,
-                        PWRCTL2_PDN_LINA_NEVER | PWRCTL2_PDN_LINB_NEVER);
-    else
-        cscodec_setbits(PWRCTL2, PWRCTL2_PDN_LINA_MASK | PWRCTL2_PDN_LINB_MASK,
-                        PWRCTL2_PDN_LINA_ALWAYS | PWRCTL2_PDN_LINB_ALWAYS);
+    cscodec_freeze(0);
 }
 
 static void handle_dsp_power(void)
 {
+#if 0
     if (bass || treble)
     {
         cscodec_setbits(PLAYCTL, PLAYCTL_PDN_DSP, 0);
@@ -139,56 +215,69 @@ static void handle_dsp_power(void)
         cscodec_setbits(BTCTL, BTCTL_TCEN, 0);
         cscodec_setbits(PLAYCTL, 0, PLAYCTL_PDN_DSP);
     }
+#endif
 }
 
 void audiohw_set_bass(int value)
 {
+#if 0
     bass = value;
     handle_dsp_power();
     if (value >= -105 && value <= 120)
         cscodec_setbits(TONECTL, TONECTL_BASS_MASK,
                         (8 - value / 15) << TONECTL_BASS_SHIFT);
+#endif
 }
 
 void audiohw_set_treble(int value)
 {
+#if 0
     treble = value;
     handle_dsp_power();
     if (value >= -105 && value <= 120)
         cscodec_setbits(TONECTL, TONECTL_TREB_MASK,
                         (8 - value / 15) << TONECTL_TREB_SHIFT);
+#endif
 }
 
 void audiohw_set_bass_cutoff(int value)
 {
+#if 0
     cscodec_setbits(BTCTL, BTCTL_BASSCF_MASK,
                     (value - 1) << BTCTL_BASSCF_SHIFT);
+#endif
 }
 
 void audiohw_set_treble_cutoff(int value)
 {
+#if 0
     cscodec_setbits(BTCTL, BTCTL_TREBCF_MASK,
                     (value - 1) << BTCTL_TREBCF_SHIFT);
+#endif
 }
 
 void audiohw_set_prescaler(int value)
 {
+#if 0
     cscodec_setbits(MSTAVOL, MSTAVOL_VOLUME_MASK,
                     (-value / 5) << MSTAVOL_VOLUME_SHIFT);
     cscodec_setbits(MSTBVOL, MSTBVOL_VOLUME_MASK,
                     (-value / 5) << MSTBVOL_VOLUME_SHIFT);
+#endif
 }
 
 /* Nice shutdown of CS42L55 codec */
 void audiohw_close(void)
 {
     audiohw_mute(true);
+#if 0
     cscodec_write(HPACTL, HPACTL_HPAMUTE);
     cscodec_write(HPBCTL, HPBCTL_HPBMUTE);
     cscodec_write(LINEACTL, LINEACTL_LINEAMUTE);
     cscodec_write(LINEBCTL, LINEBCTL_LINEBMUTE);
     cscodec_write(PWRCTL1, PWRCTL1_PDN_CHRG | PWRCTL1_PDN_ADCA
                          | PWRCTL1_PDN_ADCB | PWRCTL1_PDN_CODEC);
+#endif
     cscodec_reset(true);
     cscodec_clock(false);
     cscodec_power(false);
@@ -197,6 +286,7 @@ void audiohw_close(void)
 /* Note: Disable output before calling this function */
 void audiohw_set_frequency(int fsel)
 {
+#if 0
     if (fsel == HW_FREQ_8) cscodec_write(CLKCTL2, CLKCTL2_8000HZ);
     else if (fsel == HW_FREQ_11) cscodec_write(CLKCTL2, CLKCTL2_11025HZ);
     else if (fsel == HW_FREQ_12) cscodec_write(CLKCTL2, CLKCTL2_12000HZ);
@@ -206,6 +296,7 @@ void audiohw_set_frequency(int fsel)
     else if (fsel == HW_FREQ_32) cscodec_write(CLKCTL2, CLKCTL2_32000HZ);
     else if (fsel == HW_FREQ_44) cscodec_write(CLKCTL2, CLKCTL2_44100HZ);
     else if (fsel == HW_FREQ_48) cscodec_write(CLKCTL2, CLKCTL2_48000HZ);
+#endif
 }
 
 #ifdef HAVE_RECORDING
