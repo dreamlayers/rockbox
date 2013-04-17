@@ -254,7 +254,8 @@ const void * pcm_rec_dma_get_peak_buffer(void)
 }
 #endif
 
-#if defined(CPU_TCC77X) || defined(CPU_TCC780X)
+#if 0 // FIXME
+//#if defined(CPU_TCC76X) || defined(CPU_TCC77X) || defined(CPU_TCC780X)
 void fiq_handler(void) ICODE_ATTR __attribute__((naked));
 void fiq_handler(void)
 {
@@ -271,7 +272,7 @@ void fiq_handler(void)
 #if defined(CPU_TCC780X)
         "mov     r8, #0xc000         \n" /* DAI_TX_IRQ_MASK | DAI_RX_IRQ_MASK */
         "ldr     r9, =0xf3001004     \n" /* CREQ */
-#elif defined(CPU_TCC77X)
+#elif defined(CPU_TCC77X) || defined(CPU_TCC76X)
         "mov     r8, #0x0030         \n" /* DAI_TX_IRQ_MASK | DAI_RX_IRQ_MASK */
         "ldr     r9, =0x80000104     \n" /* CREQ */
 #endif
@@ -327,7 +328,7 @@ void fiq_handler(void)
     );
 }
 #else /* C version for reference */
-void fiq_handler(void) ICODE_ATTR;
+void fiq_handler(void) ICODE_ATTR __attribute__((interrupt ("FIQ")));
 void fiq_handler(void)
 {
     register bool new_buffer = false;
