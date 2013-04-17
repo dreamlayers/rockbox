@@ -97,9 +97,8 @@ void pcm_play_dma_init(void)
     /* TODO */
 #elif defined(RC3000A)
     /* FIXME clocking should be done elsewhere. */
-
     /* Enable DAI clock */
-    CKCTRL |= 2;
+    CKCTRL &= ~2;
 
     /* Use clock divider mode to set DAI clock */
     DIVMODE |= 8;
@@ -107,8 +106,7 @@ void pcm_play_dma_init(void)
     /* Use PLL, DPHASE=16: 12000000 * 16 / (16+1) = 256.1 * 44100 */
     DCLKmode = 0x4010;
 
-    DAMR = 0x8800;
-
+    DAMR = DAMR_EN | DAMR_SM | DAMR_BM | DAMR_FM | DAMR_BD_4 | DAMR_FD_64;
 #else
 #error "Target isn't supported"
 #endif
@@ -135,7 +133,7 @@ void pcm_dma_apply_settings(void)
 
 static void play_start_pcm(void)
 {
-    DAMR &= ~(1<<14);   /* disable tx */
+    DAMR &= ~DAMR_TE;   /* disable tx */
     dma_play_data.state = 1;
 
     if (dma_play_data.size >= 16)
@@ -151,12 +149,12 @@ static void play_start_pcm(void)
         dma_play_data.size -= 16;
     }
 
-    DAMR |= (1<<14);   /* enable tx */
+    DAMR |= DAMR_TE;   /* enable tx */
 }
 
 static void play_stop_pcm(void)
 {
-    DAMR &= ~(1<<14);   /* disable tx */
+    DAMR &= ~DAMR_TE;   /* disable tx */
     dma_play_data.state = 0;
 }
 

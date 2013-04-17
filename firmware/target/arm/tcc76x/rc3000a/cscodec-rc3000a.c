@@ -28,10 +28,7 @@
 
 void audiohw_init(void)
 {
-#ifdef HAVE_CS42L51
-    // FIXME is this needed?
     audiohw_preinit();
-#endif
 }
 
 unsigned char cscodec_read(int reg)

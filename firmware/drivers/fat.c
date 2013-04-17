@@ -38,6 +38,9 @@
 /*#define LOGF_ENABLE*/
 #include "logf.h"
 
+//FIXME danger
+#define panicf(...)
+
 #define BYTES2INT32(array, pos) \
     (((uint32_t)array[pos+0] <<  0) | \
      ((uint32_t)array[pos+1] <<  8) | \
