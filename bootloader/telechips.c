@@ -60,6 +60,8 @@ extern int line;
 
 #define MAX_LOAD_SIZE (8*1024*1024) /* Arbitrary, but plenty. */
 
+unsigned long data[] = { 0, 0x00001111, 0x00002222, 0x00003333 };
+
 /* The following function is just test/development code */
 void show_debug_screen(void)
 {
@@ -74,10 +76,9 @@ void show_debug_screen(void)
     //lcd_puts_scroll(0,0,"+++ this is a very very long line to test scrolling. ---");
 #include "cscodec.h"
     sw_i2c_init();
-    //GPIOD |= 0x100000;
-    GPIOD_DIR |= 0x100000;
-    //GPIOD |= 0x100000;
-    cscodec_power(true);
+    audiohw_preinit();
+    pcm_play_dma_init();
+            DAMR |= DAMR_TE;
     while (!do_power_off) {
         line = 1;
         button = button_get(false);
@@ -101,9 +102,28 @@ void show_debug_screen(void)
         }
 #endif
         printf("Btn: 0x%08x",button);
-        cscodec_write(2,1);
+#if 1
+
+        DADO_L(0) = data[0];
+        DADO_R(0) = data[0];
+        DADO_L(1) = data[1];
+        DADO_R(1) = data[1];
+        DADO_L(2) = data[2];
+        DADO_R(2) = data[2];
+        DADO_L(3) = data[3];
+        DADO_R(3) = data[3];
+#endif
+#if 0
+    cscodec_write(9,0x61);
+    cscodec_write(9,0x97);
+    cscodec_write(0x12,0x60);
+    cscodec_write(0x13,/*xx*/0x60);
+    cscodec_write(0x14,0xC0);
+    cscodec_write(9,0x41);
+#endif
+
         b=255;
-        r = i2c_readmem(0x94, 2, &b, 1);
+        r = i2c_readmem(0x94, 0x20, &b, 1);
         printf("S: %d: %d", r, b);
 #if 0
         printf("Tick: %d",current_tick);
