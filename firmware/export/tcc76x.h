@@ -59,6 +59,26 @@
 
 /* Digital Audio Mode Register */
 #define DAMR (*(volatile unsigned long *)0x80000040)
+#define DAMR_EN (1 << 15) /* DAI Master Enable */
+#define DAMR_TE (1 << 14) /* DAI Transmitter Enable */
+#define DAMR_RE (1 << 13) /* DAI Receiver Enable */
+#define DAMR_MD (1 << 12) /* DAI Bus Mode (0 = IIS, 1 = MSB justified) */
+#define DAMR_SM (1 << 11) /* DAI System Clock Master Select */
+#define DAMR_BM (1 << 10) /* DAI Bit Clock Master Select */
+#define DAMR_FM (1 << 9) /* DAI Frame Clock Master Select */
+#define DAMR_CC (1 << 8) /* CDIF Clock Select */
+#define DAMR_BD_4 (0 << 6) /* DAI Bit Clock Divider select */
+#define DAMR_BD_6 (1 << 6)
+#define DAMR_BD_8 (2 << 6)
+#define DAMR_BD_16 (3 << 6)
+#define DAMR_FD_32 (0 << 4) /* DAI Frame Clock Divider select */
+#define DAMR_FD_48 (1 << 4)
+#define DAMR_FD_64 (2 << 4)
+#define DAMR_BP (1 << 3) /* DAI Bit Clock Polarity (0 = positive edge) */
+#define DAMR_CM (1 << 2) /* CDIF Monitor Mode */
+#define DAMR_MM (1 << 1) /* DAI Monitor Mode */
+#define DAMR_LB (1 << 0) /* DAI Loop-back Mode */
+
 /* Digital Audio Volume Control Register */
 #define DAVC (*(volatile unsigned long *)0x80000044)
 

@@ -91,7 +91,7 @@ void audiohw_preinit(void)
 
     bass = 0;
     treble = 0;
-
+    // FIXME preserve reserved values
     cscodec_write(CS42L51_POWER_CTL1, CS42L51_POWER_CTL1_PDN);
     cscodec_write(CS42L51_MIC_POWER_CTL,
                   /* Single speed mode, for 4 to 50 kHz sample rates */
@@ -121,8 +121,9 @@ void audiohw_preinit(void)
                   CS42L51_POWER_CTL1_PDN_PGAB | \
                   CS42L51_POWER_CTL1_PDN_PGAA);
 
-    // FIXME sequence for selecting radio input
 
+    // FIXME sequence for selecting radio input
+#if 1
     cscodec_freeze(true);
 
     /* OF uses 18 for stereo and 24 for mono */
@@ -149,44 +150,17 @@ void audiohw_preinit(void)
               CS42L51_POWER_CTL1_PDN_PGAA | \
               CS42L51_POWER_CTL1_PDN_PGAB);
 
-    /* FIXME HACK */
-    /* Enable DAI clock */
-    CKCTRL &= ~2;
-
-    /* Use clock divider mode to set DAI clock */
-    DIVMODE |= 8;
-
-    /* Use PLL, DPHASE=16: 12000000 * 16 / (16+1) = 256.1 * 44100 */
-    DCLKmode = 0x4010;
-
-#define DAMR_EN (1 << 15) /* DAI Master Enable */
-#define DAMR_TE (1 << 14) /* DAI Transmitter Enable */
-#define DAMR_RE (1 << 13) /* DAI Receiver Enable */
-#define DAMR_MD (1 << 12) /* DAI Bus Mode (0 = IIS, 1 = MSB justified) */
-#define DAMR_SM (1 << 11) /* DAI System Clock Master Select */
-#define DAMR_BM (1 << 10) /* DAI Bit Clock Master Select */
-#define DAMR_FM (1 << 9) /* DAI Frame Clock Master Select */
-#define DAMR_CC (1 << 8) /* CDIF Clock Select */
-#define DAMR_BD_4 (0 << 6) /* DAI Bit Clock Divider select */
-#define DAMR_BD_6 (1 << 6)
-#define DAMR_BD_8 (2 << 6)
-#define DAMR_BD_16 (3 << 6)
-#define DAMR_FD_32 (0 << 4) /* DAI Frame Clock Divider select */
-#define DAMR_FD_48 (1 << 4)
-#define DAMR_FD_64 (2 << 4)
-#define DAMR_BP (1 << 3) /* DAI Bit Clock Polarity (0 = positive edge) */
-#define DAMR_CM (1 << 2) /* CDIF Monitor Mode */
-#define DAMR_MM (1 << 1) /* DAI Monitor Mode */
-#define DAMR_LB (1 << 0) /* DAI Loop-back Mode */
-    DAMR = DAMR_EN | DAMR_SM | DAMR_BM | DAMR_FM | DAMR_BD_4 | DAMR_FD_64;
-
     /* FIXME worse hack */
     cscodec_write(CS42L51_INTF_CTL,
     CS42L51_INTF_CTL_LOOPBACK /* not | CS42L51_INTF_CTL_MASTER */ | \
               /* Use I2S */
               CS42L51_INTF_CTL_DAC_FORMAT(CS42L51_DAC_DIF_I2S) | \
               CS42L51_INTF_CTL_ADC_I2S);
-
+#else
+    /* PCM volume 0dB, muted */
+    cscodec_write(CS42L51_PCMA_VOL, 0);// FIXME 0x80);
+    cscodec_write(CS42L51_PCMB_VOL, 0); //0x80);
+#endif
               audiohw_mute(false);
 
 }
@@ -210,12 +184,10 @@ void audiohw_set_master_vol(int vol_l, int vol_r)
     /* 00000000 == 0dB    (0x0)  */
     /* 11111111 == 0.5dB  (0xFF) */
     /* 00011001 == -102dB (0x19) */
-audiohw_mute(false);
-    cscodec_freeze(1);
 
+    cscodec_freeze(1);
     cscodec_write(CS42L51_AOUTA_VOL, vol_l & 0xFF);
     cscodec_write(CS42L51_AOUTB_VOL, vol_r & 0xFF);
-
     cscodec_freeze(0);
 }
 

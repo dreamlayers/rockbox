@@ -125,7 +125,7 @@ OUTPUT_FORMAT(elf32-littlemips)
 /* The bit of IRAM that is available is used in the core */
 #define IRAMSIZE 0
 
-#elif defined(CPU_TCC780X) || defined(CPU_TCC77X)
+#elif defined(CPU_TCC780X) || defined(CPU_TCC77X) || defined(CPU_TCC76X)
 #define DRAMORIG 0x20000000
 #if CONFIG_CPU==TCC7801
 #define IRAMORIG 0x1000c000
