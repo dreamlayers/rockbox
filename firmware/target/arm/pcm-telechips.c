@@ -138,14 +138,14 @@ static void play_start_pcm(void)
 
     if (dma_play_data.size >= 16)
     {
-        DADO_L(0) = *dma_play_data.p++;
-        DADO_R(0) = *dma_play_data.p++;
-        DADO_L(1) = *dma_play_data.p++;
-        DADO_R(1) = *dma_play_data.p++;
-        DADO_L(2) = *dma_play_data.p++;
-        DADO_R(2) = *dma_play_data.p++;
-        DADO_L(3) = *dma_play_data.p++;
-        DADO_R(3) = *dma_play_data.p++;
+        DADO_L(0) = *dma_play_data.p++ << 16;
+        DADO_R(0) = *dma_play_data.p++ << 16;
+        DADO_L(1) = *dma_play_data.p++ << 16;
+        DADO_R(1) = *dma_play_data.p++ << 16;
+        DADO_L(2) = *dma_play_data.p++ << 16;
+        DADO_R(2) = *dma_play_data.p++ << 16;
+        DADO_L(3) = *dma_play_data.p++ << 16;
+        DADO_R(3) = *dma_play_data.p++ << 16;
         dma_play_data.size -= 16;
     }
 
@@ -342,14 +342,15 @@ void fiq_handler(void)
 
     if (dma_play_data.size >= 16)
     {
-        DADO_L(0) = *dma_play_data.p++;
-        DADO_R(0) = *dma_play_data.p++;
-        DADO_L(1) = *dma_play_data.p++;
-        DADO_R(1) = *dma_play_data.p++;
-        DADO_L(2) = *dma_play_data.p++;
-        DADO_R(2) = *dma_play_data.p++;
-        DADO_L(3) = *dma_play_data.p++;
-        DADO_R(3) = *dma_play_data.p++;
+        /* TCC76x: data is justified to MSB */
+        DADO_L(0) = *dma_play_data.p++ << 16;
+        DADO_R(0) = *dma_play_data.p++ << 16;
+        DADO_L(1) = *dma_play_data.p++ << 16;
+        DADO_R(1) = *dma_play_data.p++ << 16;
+        DADO_L(2) = *dma_play_data.p++ << 16;
+        DADO_R(2) = *dma_play_data.p++ << 16;
+        DADO_L(3) = *dma_play_data.p++ << 16;
+        DADO_R(3) = *dma_play_data.p++ << 16;
 
         dma_play_data.size -= 16;
     }
