@@ -245,7 +245,7 @@ static int select_card(int card_no)
         DIVMODE &= ~DIVMODE_DVMGSIO;
         GCLKmode |= 0x120;
         CKCTRL &= ~CKCTRL_GCK;
-        /* 96/(2*127+2) = 0.375 */
+        /* 96/(2*127+2) = 0.375. OF uses 0xDD3C0008 for 600 kHz here. */
         GSCR0 = GSCR_EN | GSCR_MS | GSCR_WORD(7) | GSCR_DIV(127) | GSCR_FRM2(8);
         write_transfer(dummy, 10); /* allow the card to synchronize */
         //while (!(SSR1 & SCI_TEND));
@@ -565,6 +565,9 @@ int initialize_card(int card_no)
 
     /* switch to full speed */
 //    setup_sci1(card->bitrate_register);
+// FIXME 4 MHz for now
+        /* 96/(2*127+2) = 0.375. OF uses 0xDD3C0008 for 600 kHz here. */
+        GSCR0 = GSCR_EN | GSCR_MS | GSCR_WORD(7) | GSCR_DIV(11) | GSCR_FRM2(8);
 
     /* always use 512 byte blocks */
     if (send_cmd(CMD_SET_BLOCKLEN, BLOCK_SIZE, NULL))
