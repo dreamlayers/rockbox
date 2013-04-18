@@ -265,10 +265,32 @@
  * 0x400 ~ 0x4FF Clock Generator & Power Management
  */
 
-/* Clock Control Register */
+/* Clock Control Register:  set bits to disable clocks */
 #define CKCTRL (*(volatile unsigned long *)0x80000400)
+#define CKCTRL_PDN (1 << 25) /* All blocks */
+#define CKCTRL_IDLE (1 << 24) /* CPU */
+#define CKCTRL_CIF (1 << 14)
+#define CKCTRL_ADC (1 << 13)
+#define CKCTRL_XTIN (1 << 12)
+#define CKCTRL_PLL (1 << 11)
+#define CKCTRL_UBH (1 << 10) /* USB Host */
+#define CKCTRL_GCK (1 << 9) /* GSIO */
+#define CKCTRL_TCK (1 << 8) /* Timer */
+#define CKCTRL_LCK (1 << 7) /* LCD */
+#define CKCTRL_USB (1 << 6) /* USB */
+#define CKCTRL_UART (1 << 5)
+#define CKCTRL_EX1 (1 << 4) /* EXT1 */
+#define CKCTRL_EX2 (1 << 3) /* EXT2 (I2C) */
+#define CKCTRL_DAI (1 << 1)
+
 /* PLL Control Register */
 #define PLLMODE (*(volatile unsigned long *)0x80000404)
+#define PLLMODE_LOCK (1 << 20)
+#define PLLMODE_XTE (1 << 19) /* XTIN Enable in Power Down Mode */
+#define PLLMODE_DIV1 (1 << 18) /* Set to use PLL to clock CPU */
+/* Values defining PLL speed: fPLL = fXin * 8 * (M + 2) / ((P + 2) * 2**S ) */
+#define PLLMODE_VAL(p,m,s) ((p)|((m)<<8)|((s)<<16))
+
 /* System Clock Control Register */
 #define SCLKmode (*(volatile unsigned long *)0x80000408)
 /* DCLK (DAI/CODEC) Control Register */
