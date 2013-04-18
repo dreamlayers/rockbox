@@ -170,18 +170,19 @@ static int receive_block(unsigned char *inbuf, long timeout);
 #define SD_CS 4 /* Chip select for card */
 #define SD_DO 8 /* Serial data received from card, GSIO0 Data In */
 
+
 void sd_gpio_init(void) {
-    GSEL_A &= ~0xF;
-    GTSEL_A &= ~0xF;
+    /* DI, CLK and DO use GSIO, and CS is a GPIO output */
+    GSEL_A = (GSEL_A & ~SD_CS) | (SD_DI | SD_CLK | SD_DO);
+    GTSEL_A &= ~(SD_DI | SD_CLK | SD_CS | SD_DO);
     GPIOA_DIR = (GPIOA_DIR & ~SD_DO) | (SD_DI|SD_CLK|SD_CS);
     GPIOA |= SD_DI | SD_CLK | SD_CS;
-
-#if 0
-    GCLKmode |= 0x120;
-#endif
 }
 
 static void sd_write_byte(unsigned char byte) {
+    GSDO0 = byte;
+    while (GSGCR & GSGCR_Busy0);
+#if 0
     unsigned char mask;
 
     for (mask = 0x80; mask > 0; mask >>= 1) {
@@ -193,9 +194,14 @@ static void sd_write_byte(unsigned char byte) {
         GPIOA &= ~SD_CLK;
         GPIOA |= SD_CLK;
     }
+#endif
 }
 
 unsigned char sd_read_byte(void) {
+    GSDO0 = 0xFF;
+    while (GSGCR & GSGCR_Busy0);
+    return GSDI0;
+#if 0
     unsigned char byte = 0, mask;
     GPIOA |= SD_DI;
     for (mask = 0x80; mask > 0; mask >>= 1) {
@@ -207,6 +213,7 @@ unsigned char sd_read_byte(void) {
         }
     }
     return byte;
+#endif
 }
 
 /* implementation */
@@ -233,7 +240,13 @@ static int select_card(int card_no)
 
     if (!card_info[card_no].initialized)
     {
-        //setup_sci1(7); /* Initial rate: 375 kbps (need <= 400 per mmc specs) */
+        /* Initial rate: 375 kbps (need <= 400 per mmc specs) */
+        /* Use DCO mode to generate 192/2=96 MHz */
+        DIVMODE &= ~DIVMODE_DVMGSIO;
+        GCLKmode |= 0x120;
+        CKCTRL &= ~CKCTRL_GCK;
+        /* 96/(2*127+2) = 0.375 */
+        GSCR0 = GSCR_EN | GSCR_MS | GSCR_WORD(7) | GSCR_DIV(127) | GSCR_FRM2(8);
         write_transfer(dummy, 10); /* allow the card to synchronize */
         //while (!(SSR1 & SCI_TEND));
     } else {
