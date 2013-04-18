@@ -317,6 +317,18 @@
 #define PWDCTL (*(volatile unsigned long *)0x80000440)
 /* Divider Mode Enable (DCO Disable) */
 #define DIVMODE (*(volatile unsigned long *)0x80000444)
+#define DIVMODE_DVMCIF (1 << 12) /* Divider Mode Enable for CIF Clock (CIFCLK) */
+#define DIVMODE_DVMGSIO (1 << 11) /* Divider Mode Enable for GSIO Clock (GCLK) */
+#define DIVMODE_DVMTC (1 << 10) /* Divider Mode Enable for Timer/Counter Clock (TCLK) */
+#define DIVMODE_DVMLCD (1 << 9) /* Divider Mode Enable for LCD Clock (LCLK) */
+#define DIVMODE_DVMUSB (1 << 8) /* Divider Mode Enable for USB Clock (UHCLK, UDCLK) */
+#define DIVMODE_DVMUART (1 << 7) /* Divider Mode Enable for UART/IrDA Clock (UTCLK) */
+#define DIVMODE_DVMEXT (1 << 6) /* Divider Mode Enable for External Clock (EX1CLK) */
+#define DIVMODE_DVMADC (1 << 5) /* Divider Mode Enable for ADC Clock (ADCLK) */
+#define DIVMODE_DVMI2C (1 << 4) /* Divider Mode Enable for I2C Clock (EX2CLK) */
+#define DIVMODE_DVMDAI (1 << 3) /* Divider Mode Enable for DAI Clock (DCLK) */
+#define DIVMODE_DVMAHB (1 << 1) /* Divider Mode Enable for AHB Clock (HCLK) */
+#define DIVMODE_DVMCPU (1 << 0) /* Divider Mode Enable for CPU Clock (FCLK) */
 /* HCLK Stop Control */
 #define HCLKSTOP (*(volatile unsigned long *)0x80000448)
 
@@ -389,6 +401,54 @@
 /* 0x600 ~ 0x6FF UART/IrDA */
 
 /* 0x700 ~ 0x7FF GSIO (General Purpose Serial Input/Output) */
+
+/* GSIO1 Output Data Register */
+#define GSDO0 (*(volatile unsigned long *)0x80000700)
+/* GSIO0 Input Data Register */
+#define GSDI0 (*(volatile unsigned long *)0x80000704)
+/* GSIO0 Control Register */
+#define GSCR0 (*(volatile unsigned long *)0x80000708)
+#define GSCR_EN (1 << 31) /* GSIO Enable */
+#define GSCR_MS (1 << 30) /* 0: LSB first, 1: MSB first */
+#define GSCR_WORD(x) (((x)&0xF) << 26) /* GSIO word size minus 1 */
+#define GSCR_WS (1 << 25) /* Word size determined by 0: GSCRn, 1: GSDO */
+#define GSCR_DIV(x) (((x)&0x7F) << 18) /* Use 1/(2n+2) of GCLK frequency */
+#define GSCR_CP (1 << 17) /* GSIO clock polarity 0: falling, 1: rising */
+#define GSCR_CM (1 << 16) /* 1: GSIO clock is masked at the last SDO period */
+#define GSCR_DELAY(x) (((x)&3) << 13) /* Initial delay, must not be 0 */
+#define GSCR_FP (1 << 12) /* 0: FRM active low, 1: FRM active high */
+#define GSCR_FRM1(x) (((x)&0x3F) << 6) /* Frame pulse start position */
+#define GSCR_FRM2(x) (((x)&0x3F) << 0) /* Frame pulse end position */
+/* GSIO Global Control Register */
+#define GSGCR (*(volatile unsigned long *)0x8000070C)
+#define GSGCR_G3 (1 << 15) /* Use GPIO_B[23:21] for GSIO */
+#define GSGCR_G2 (1 << 14)
+#define GSGCR_G1 (1 << 13)
+#define GSGCR_G0 (1 << 12)
+#define GSGCR_IEN3 (1 << 11) /* Interrupt enable */
+#define GSGCR_IEN2 (1 << 10)
+#define GSGCR_IEN1 (1 << 9)
+#define GSGCR_IEN0 (1 << 8)
+#define GSGCR_FLG3 (1 << 7) /* Set when operation complete */
+#define GSGCR_FLG2 (1 << 6)
+#define GSGCR_FLG1 (1 << 5)
+#define GSGCR_FLG0 (1 << 4)
+#define GSGCR_Busy3 (1 << 3)
+#define GSGCR_Busy2 (1 << 2)
+#define GSGCR_Busy1 (1 << 1)
+#define GSGCR_Busy0 (1 << 0)
+
+#define GSDO1 (*(volatile unsigned long *)0x80000710)
+#define GSDI1 (*(volatile unsigned long *)0x80000714)
+#define GSCR1 (*(volatile unsigned long *)0x80000718)
+
+#define GSDO2 (*(volatile unsigned long *)0x80000720)
+#define GSDI2 (*(volatile unsigned long *)0x80000724)
+#define GSCR2 (*(volatile unsigned long *)0x80000728)
+
+#define GSDO3 (*(volatile unsigned long *)0x80000730)
+#define GSDI3 (*(volatile unsigned long *)0x80000734)
+#define GSCR3 (*(volatile unsigned long *)0x80000738)
 
 /* 0x800 ~ 0x8FF I2C */
 
