@@ -236,91 +236,75 @@ static void cpu_init(void)
 http://infocenter.arm.com/help/topic/com.arm.doc.ddi0201d/DDI0201D_arm946es_r1p1_trm.pdf
  */
     asm volatile (
-        /* Region 0 - addr=0, size=4GB, enabled */
+        /* Region 0 (everything) addr 0, size=4GB, enabled */
         "mov     r0, #0x3f              \n\t"
         "mcr     p15, 0, r0, c6, c0, 0  \n\t"
         "mcr     p15, 0, r0, c6, c0, 1  \n\t"
 
-#if defined(LOGIK_DAX) || defined(SANSA_C100)
-        /* Address region 1 - addr 0x2fff0000, size=64KB, enabled*/
-        "ldr     r0, =0x2fff001f        \n\t"
-#elif defined(IAUDIO_7)
-        /* Address region 1 - addr 0x20000000, size=8KB, enabled*/
-        "mov     r0, #0x19              \n\t"
-        "add     r0, r0, #0x20000000    \n\t"
-#elif defined(SANSA_M200)
-        /* Address region 1 - addr 0x20000000, size=256MB, enabled*/
+        /* Region 1 (SDRAM) addr 0x20000000, size=256MB, enabled*/
         "mov     r0, #0x37              \n\t"
         "add     r0, r0, #0x20000000    \n\t"
-#endif
         "mcr     p15, 0, r0, c6, c1, 0  \n\t"
         "mcr     p15, 0, r0, c6, c1, 1  \n\t"
 
-        /* Address region 2 - addr 0x30000000, size=256MB, enabled*/
-        "mov     r0, #0x37              \n\t"
-        "add     r0, r0, #0x30000000    \n\t"
+        /* Region 2 (SRAM) addr 0x30000000, size=256MB, enabled*/
+        "add     r0, r0, #0x10000000    \n\t"
         "mcr     p15, 0, r0, c6, c2, 0  \n\t"
         "mcr     p15, 0, r0, c6, c2, 1  \n\t"
 
         /* Address region 2 - addr 0x40000000, size=512MB, enabled*/
-        "mov     r0, #0x39              \n\t"
-        "add     r0, r0, #0x40000000    \n\t"
+//        "mov     r0, #0x39              \n\t"
+//        "add     r0, r0, #0x40000000    \n\t"
+        "mov     r0, #0                 \n\t"
         "mcr     p15, 0, r0, c6, c3, 0  \n\t"
         "mcr     p15, 0, r0, c6, c3, 1  \n\t"
 
         /* Address region 4 - addr 0x60000000, size=256MB, enabled*/
-        "mov     r0, #0x37              \n\t"
-        "add     r0, r0, #0x60000000    \n\t"
+//        "mov     r0, #0x37              \n\t"
+//        "add     r0, r0, #0x60000000    \n\t"
+        "mov     r0, #0                 \n\t"
         "mcr     p15, 0, r0, c6, c4, 0  \n\t"
         "mcr     p15, 0, r0, c6, c4, 1  \n\t"
 
         /* Address region 5 - addr 0x10000000, size=256MB, enabled*/
-        "mov     r0, #0x37              \n\t"
-        "add     r0, r0, #0x10000000    \n\t"
+//        "mov     r0, #0x37              \n\t"
+//        "add     r0, r0, #0x10000000    \n\t"
+        "mov     r0, #0                 \n\t"
         "mcr     p15, 0, r0, c6, c5, 0  \n\t"
         "mcr     p15, 0, r0, c6, c5, 1  \n\t"
 
-        /* Address region 6 - addr 0x80000000, size=2GB, enabled*/
-        "mov     r0, #0x37              \n\t"
-        "add     r0, r0, #0x80000006    \n\t"
+        /* Region 6 (perhipherals, etc.) addr 0x80000000, size=2GB, enabled*/
+        "mov     r0, #0x3D              \n\t"
+        "add     r0, r0, #0x80000000    \n\t"
         "mcr     p15, 0, r0, c6, c6, 0  \n\t"
         "mcr     p15, 0, r0, c6, c6, 1  \n\t"
 
         /* Address region 7 - addr 0x3000f000, size=4KB, enabled*/
-        "ldr     r0, =0x3000f017        \n\t"
+//        "ldr     r0, =0x3000f017        \n\t"
+        "mov     r0, #0                 \n\t"
         "mcr     p15, 0, r0, c6, c7, 0  \n\t"
         "mcr     p15, 0, r0, c6, c7, 1  \n\t"
 
-
-        /* Register 5 - Access Permission Registers */
-
+        /* Set access permissions */
         "ldr     r0, =0xffff            \n\t"
-        "mcr     p15, 0, r0, c5, c0, 0  \n\t"  /* write data access permission bits */
-        "mcr     p15, 0, r0, c5, c0, 1  \n\t"  /* write instruction access permission bits */
+        "mcr     p15, 0, r0, c5, c0, 0  \n\t"  /* data access */
+        "mcr     p15, 0, r0, c5, c0, 1  \n\t"  /* instruction access */
 
-        "mov     r0, #0xa7              \n\t"
-        "mcr     p15, 0, r0, c3, c0, 0  \n\t"  /* set write buffer control register */
+        /* Set up caches */
+        "mov     r0, #0x6               \n\t"
+        "mcr     p15, 0, r0, c3, c0, 0  \n\t"  /* write buffer control */
+        "mcr     p15, 0, r0, c2, c0, 0  \n\t"  /* data cacheable */
+        "mcr     p15, 0, r0, c2, c0, 1  \n\t"  /* instruction cacheable */
 
-#if defined(LOGIK_DAX) || defined(SANSA_C100)
-        "mov     r0, #0xa5              \n\t"
-#elif defined(IAUDIO_7) || defined(SANSA_M200)
-        "mov     r0, #0xa7              \n\t"
-#else
-    //#error NOT DEFINED FOR THIS TARGET! FIXME!!!! FIXME FIXME
-#endif
-        "mcr     p15, 0, r0, c2, c0, 0  \n\t"
-        "mcr     p15, 0, r0, c2, c0, 1  \n\t"
-
-        "mov     r0, #0xa0000006        \n\t"
-        "mcr     p15, 0, r0, c9, c1, 0  \n\t"
-
-        "ldr     r1, =0x1107d           \n\t"
         "mov     r0, #0x0               \n\t"
         "mcr     p15, 0, r0, c7, c5, 0  \n\t" /* Flush instruction cache */
         "mcr     p15, 0, r0, c7, c6, 0  \n\t" /* Flush data cache */
 
-        "mcr     p15, 0, r1, c1, c0, 0  \n\t" /* CPU control bits */
-        : : : "r0", "r1"
+        /* Enable caches */
+        "ldr     r0, =0xc000107d        \n\t"
+        "mcr     p15, 0, r0, c1, c0, 0  \n\t" /* CPU control bits */
+
+        : : : "r0"
     );
 }
 
@@ -340,7 +324,7 @@ void system_init(void)
     /* Set master enable bit */
     IEN = MEN_IRQ_MASK;
 
-    //cpu_init(); FIXME
+    cpu_init();
     clock_init();
     gpio_init();
 

@@ -82,14 +82,14 @@ static int xoffset; /* needed for flip */
 
 void lcd_write_command(int c) {
     LCD_COMMAND_PORT=c;
-    asm("nop; nop; nop;");
+    asm volatile ("nop; nop; nop; nop; nop; nop; nop;");
 }
 
 void lcd_write_data(const unsigned char *c, int n) {
     int i;
     for (i = 0; i < n; i++) {
         LCD_DATA_PORT = c[i];
-        asm("nop; nop; nop;");
+        asm volatile ("nop; nop; nop;");
     }
 }
 

@@ -70,12 +70,14 @@ void show_debug_screen(void)
 
         unsigned char b;
         int r;
-    
+
     //lcd_puts_scroll(0,0,"+++ this is a very very long line to test scrolling. ---");
-#include "cscodec.h"
     sw_i2c_init();
+#if 0
+#include "cscodec.h"
     audiohw_preinit();
     pcm_play_dma_init();
+#endif
             DAMR |= DAMR_TE;
     while (!do_power_off) {
         line = 1;
@@ -100,7 +102,7 @@ void show_debug_screen(void)
         }
 #endif
         printf("Btn: 0x%08x",button);
-#if 1
+#if 0
 
         DADO_L(0) = data[0];
         DADO_R(0) = data[0];
