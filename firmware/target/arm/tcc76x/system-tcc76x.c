@@ -30,7 +30,7 @@ extern void USB_DEVICE(void);
 
 void irq(void)
 {
-    int irq = IREQ & 0x7fffffff;
+    int irq = IREQ & ALL_IRQ_MASK;
     CREQ = irq;     /* Clears the corresponding IRQ status */
 
     if (irq & TC_IRQ_MASK)
@@ -120,21 +120,20 @@ static void pll_init(void)
     /* Clear XTFCLK and XTHCLK: ensure XTIN not selected for FCLK and HCLK */
     PWDCTL &= 0x30000;
 
-    /* Clear DIV1: use XIN, not PLL for DIVCLK0 and DIVCLK1 */
-    PLLMODE &= ~0x40000;
+    /* Use XIN, not PLL for DIVCLK0 and DIVCLK1 */
+    PLLMODE &= ~PLLMODE_DIV1;
 
     /* Disable PLL clock and peripherals using it */
-    CKCTRL |= 0x800;
+    CKCTRL |= CKCTRL_PLL;
 
     /* Set PLLMODE based on argument */
-#define PLLMODE_VAL(p,m,s) ((p)|((m)<<8)|((s)<<16))
     PLLMODE = PLLMODE_VAL(2, 14, 1);
 
     /* Re-enable PLL clock */
-    CKCTRL &= ~0x800;
+    CKCTRL &= ~CKCTRL_PLL;
 
     /* Wait for PLL lock */
-    while ((PLLMODE & 0x100000) == 0);
+    while ((PLLMODE & PLLMODE_LOCK) == 0);
 
     /* Zero out SCLKmode dividers for FCLK and HCLK. Not sure why. */
     SCLKmode &= ~0x3FFF;
@@ -148,7 +147,7 @@ static void pll_init(void)
     SCLKmode = 0x5020;
 
     /* Use PLL output for DIVCLK0 and DIVCLK1. This switches CPU to PLL. */
-    PLLMODE |= 0x40000;
+    PLLMODE |= PLLMODE_DIV1;
 
     asm volatile (
         "nop                         \n\t"
