@@ -49,8 +49,8 @@ void cscodec_power(bool state)
     // FIXME: might be reset, not power
     if (state) {
 
-        GPIOD |= 0x100000;
-        //GPIOA |= 0x400; // FIXME this is something else
+        GPIOD |= 0x100000; // For CODEC FIXME: might be reset, not power
+        GPIOA |= 0x400; // This enables power to speaker amplifier
         //GPIOD &= ~0x40000; // This messes with the CODEC and makes register writes unreliable!
     } else {
         GPIOD &= ~0x100000;
