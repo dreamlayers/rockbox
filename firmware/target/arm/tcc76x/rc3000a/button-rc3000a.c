@@ -53,3 +53,10 @@ bool button_hold(void)
 {
     return 0;
 }
+
+#ifdef HAVE_HEADPHONE_DETECTION
+bool headphones_inserted(void)
+{
+    return (GPIOD & 0x80000) == 0;
+}
+#endif /* HAVE_HEADPHONE_DETECTION */

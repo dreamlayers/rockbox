@@ -47,7 +47,6 @@ bool dbg_hw_info(void)
     /* Put all the static text before the while loop */
     lcd_puts(0, line++, "[Hardware info]");
 
-    line++;
     oldline=line;
     while(!done)
     {
@@ -62,17 +61,13 @@ bool dbg_hw_info(void)
 #endif
             done=true;
 
-        lcd_putsf(0, line++, "current tick: %08lx Seconds running: %08ld",
-            current_tick, current_tick/HZ);
+        lcd_putsf(0, line++, "tick: %d", current_tick);
+        lcd_putsf(0, line++, "seconds: %d", current_tick/HZ);
 
-        lcd_putsf(0, line++, "GPIOA: 0x%08lx  GPIOB: 0x%08lx", GPIOA, GPIOB);
-        lcd_putsf(0, line++, "GPIOC: 0x%08lx  GPIOD: 0x%08lx", GPIOC, GPIOD);
-#ifndef CPU_TCC76X
-        lcd_putsf(0, line++, "GPIOE: 0x%08lx",                 GPIOE);
-#endif
-
-        for (i = 0; i<4; i++)
-            lcd_putsf(0, line++, "ADC%d: 0x%04x", i, adc_read(i));
+        lcd_putsf(0, line++, "A:%08lx B:%08lx", GPIOA, GPIOB);
+        lcd_putsf(0, line++, "C:%08lx D:%08lx", GPIOC, GPIOD);
+        lcd_putsf(0, line++, "ADC0: %03x ADC1: %03x", adc_read(0), adc_read(1));
+        lcd_putsf(0, line++, "ADC2: %03x ADC3: %03x", adc_read(2), adc_read(3));
 
         lcd_update();
     }

@@ -94,7 +94,9 @@
 #define INPUT_SRC_CAPS (SRC_CAP_FMRADIO | SRC_CAP_LINEIN)
 
 /* TLV320 has no tone controls, so we use the software ones */
-#define HAVE_SW_TONE_CONTROLS
+#define HAVE_SW_TONE_CONTROLS // FIXME
+
+#define HAVE_HEADPHONE_DETECTION
 
 /* Define this for LCD backlight available */
 #define HAVE_BACKLIGHT
