@@ -117,12 +117,6 @@ static bool initialized = false;
 static bool new_mmc_circuit;
 
 static enum {
-    MMC_UNKNOWN,
-    MMC_UNTOUCHED,
-    MMC_TOUCHED
-} mmc_status = MMC_UNKNOWN;
-
-static enum {
     SER_POLL_WRITE,
     SER_POLL_READ,
     SER_DISABLED
@@ -473,10 +467,6 @@ static int initialize_card(int card_no)
     long init_timeout;
 
     memset(card, sizeof(*card), 0);
-
-    // FIXME is this needed?
-    if (card_no == 1)
-        mmc_status = MMC_TOUCHED;
 
     /* Switch to SPI mode (assuming CS already 0) */
     if (sd_command(SD_GO_IDLE_STATE, 0, SD_SPI_RESP_R1, NULL)
@@ -924,25 +914,6 @@ bool mmc_detect(void)
     return true; // FIXME (adc_read(ADC_MMC_SWITCH) < 0x200);
 }
 
-bool mmc_touched(void)
-{
-#if 0
-    if (mmc_status == MMC_UNKNOWN) /* try to detect */
-    {
-        mutex_lock(&mmc_mutex);
-        setup_sci1(7);             /* safe value */
-        and_b(~0x02, &PADRH);      /* assert CS */
-        if (send_cmd(CMD_SEND_OP_COND, 0, NULL) == 0xFF)
-            mmc_status = MMC_UNTOUCHED;
-        else
-            mmc_status = MMC_TOUCHED;
-
-        deselect_card();
-    }
-#endif // FIXME
-    return mmc_status == MMC_TOUCHED;
-}
-
 bool mmc_usb_active(int delayticks)
 {
     /* reading "inactive" is delayed by user-supplied monoflop value */
@@ -988,7 +959,6 @@ static void mmc_tick(void)
             else
             {
                 queue_broadcast(SYS_HOTSWAP_EXTRACTED, 0);
-                mmc_status = MMC_UNTOUCHED;
                 card_info[1].initialized = false;
             }
         }
@@ -1037,9 +1007,6 @@ int sd_init(void)
 
     if (!initialized)
     {
-        if (!last_mmc_status)
-            mmc_status = MMC_UNTOUCHED;
-
         /* Port setup */
         PACR1 &= ~0x0F3C;  /* GPIO function for PA13 (flash busy), PA12
                             * (clk gate), PA10 (flash CS), PA9 (MMC CS) */
