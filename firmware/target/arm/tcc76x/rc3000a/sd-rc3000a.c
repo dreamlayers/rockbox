@@ -45,6 +45,7 @@
 
 #define BLOCK_SIZE  512   /* fixed */
 
+#if 0
 /* Command definitions */
 #define CMD_GO_IDLE_STATE        0x40  /* R1 */
 #define CMD_SEND_OP_COND         0x41  /* R1 */
@@ -58,6 +59,7 @@
 #define CMD_WRITE_BLOCK          0x58  /* R1b */
 #define CMD_WRITE_MULTIPLE_BLOCK 0x59  /* R1b */
 #define CMD_READ_OCR             0x7a  /* R3 */
+#endif
 
 /* Response formats:
    R1  = single byte, msb=0, various error flags
@@ -88,6 +90,12 @@
 #define DT_START_BLOCK               0xfe
 #define DT_START_WRITE_MULTIPLE      0xfc
 #define DT_STOP_TRAN                 0xfd
+
+/* Reponse types supported by sd_command() */
+#define SD_SPI_RESP_R1 1
+#define SD_SPI_RESP_R2 2
+#define SD_SPI_RESP_R3 4
+#define SD_SPI_RESP_R7 4 /* Also a big endian long, like R3 */
 
 /* for compatibility */
 static long last_disk_activity = -1;
@@ -141,7 +149,7 @@ static long last_usb_activity;
 
 /* private function declarations */
 
-static int select_card(int card_no);
+//static int select_card(int card_no);
 static void deselect_card(void);
 //static void setup_sci1(int bitrate_register);
 //static void set_sci1_poll_read(void);
@@ -230,7 +238,8 @@ void mmc_enable_int_flash_clock(bool on)
 #endif
 }
 
-static int select_card(int card_no)
+//static FIXME
+int select_card(int card_no)
 {
     mutex_lock(&mmc_mutex);
     led(true);
@@ -397,7 +406,7 @@ static unsigned char poll_busy(long timeout)
 
 /* Send MMC command and get response. Returns R1 byte directly.
  * Returns further R2 or R3 bytes in *data (can be NULL for other commands) */
-static unsigned char send_cmd(int cmd, unsigned long parameter, void *data)
+static unsigned char sd_command(int cmd, unsigned long parameter, unsigned long resptype, void *data)
 {
     static struct {
         unsigned char cmd;
@@ -408,32 +417,29 @@ static unsigned char send_cmd(int cmd, unsigned long parameter, void *data)
 
     unsigned char ret;
 
-    command.cmd = cmd;
+    command.cmd = cmd + 0x40;
+    //printf("cmd: %d", command.cmd);
     command.parameter = htobe32(parameter);
 
     write_transfer((unsigned char *)&command, sizeof(command));
 
     ret = poll_byte(20);
 
-    switch (cmd)
-    {
-        case CMD_SEND_CSD:        /* R1 response, leave open */
-        case CMD_SEND_CID:
-        case CMD_READ_SINGLE_BLOCK:
-        case CMD_READ_MULTIPLE_BLOCK:
-            return ret;
-
-        case CMD_SEND_STATUS:     /* R2 response, close with dummy */
-            read_transfer(data, 1);
-            break;
-
-        case CMD_READ_OCR:        /* R3 response, close with dummy */
-            read_transfer(data, 4);
-            break;
-
-        default:                  /* R1 response, close with dummy */
-            break;                /* also catches block writes */
+    switch (resptype) {
+    case SD_SPI_RESP_R1:
+        break;
+    case SD_SPI_RESP_R2:
+        read_transfer(data, 1);
+        break;
+    case SD_SPI_RESP_R3:
+    /* duplicate case SD_SPI_RESP_R7: */
+        read_transfer(data, 4);
+        *(unsigned long *)data = betoh32(*(unsigned long *)data);
+        break;
+    default:
+        return ret;
     }
+
     write_transfer(dummy, 1);
     return ret;
 }
@@ -452,7 +458,102 @@ static int receive_cxd(unsigned char *buf)
     return 0;
 }
 
+static int initialize_card(int card_no)
+{
+    int rc, i;
+    tCardInfo *card = &card_info[card_no];
+    int r;
+    unsigned long response;
+    bool sd_v2 = false;
+    long init_timeout;
 
+    memset(card, sizeof(*card), 0);
+
+    // FIXME is this needed?
+    if (card_no == 1)
+        mmc_status = MMC_TOUCHED;
+
+    /* Switch to SPI mode (assuming CS already 0) */
+    if (sd_command(SD_GO_IDLE_STATE, 0, SD_SPI_RESP_R1, NULL)
+        != SD_SPI_R1_IDLE_STATE)
+        return -1;                /* error or no response */
+
+    /* Mandatory command for v2 hosts */
+    /* Non v2 cards will not respond to this command */
+    if(sd_command(SD_SEND_IF_COND, 0x1AA, SD_SPI_RESP_R7, &response)
+       != SD_SPI_R1_IDLE_STATE)
+        if((response & 0xFFF) == 0x1AA)
+            sd_v2 = true;
+
+    /* Optional command to get voltage range */
+    if (sd_command(SD_SPI_READ_OCR, 0, SD_SPI_RESP_R3, &card->ocr)
+        != SD_SPI_R1_IDLE_STATE)
+        return -2;
+
+    if (!(card->ocr & 0x00100000)) /* 3.2 .. 3.3 V */
+        return -3;
+
+    /* Timeout for initialization is 1sec, from SD Specification 2.00 */
+    init_timeout = current_tick + HZ;
+
+    while (1)
+    {
+        if(TIME_AFTER(current_tick, init_timeout))
+            return -4;
+
+        if (sd_command(SD_APP_CMD, card->rca, SD_SPI_RESP_R1, NULL)
+            & SD_SPI_R1_CARD_ERROR)
+            return -5;
+
+        response = sd_command(SD_APP_OP_COND,
+                              (1 << 20) /* 3.2-3.3V */ |
+                              (1 << 21) /* 3.3-3.4V */ |
+                              (sd_v2 ? (1 << 30) : 0),
+                              SD_SPI_RESP_R1, NULL);
+
+        if (response == 0)
+            break; /* Finished idle/initialization mode */
+        else if (response & SD_SPI_R1_CARD_ERROR)
+            return -6;
+    }
+
+    /* Mandatory command to get CCS */
+    if (sd_command(SD_SPI_READ_OCR, 0, SD_SPI_RESP_R3, &card->ocr))
+        return -7;
+
+    /* End of card identification mode. Entering data transfer mode. */
+
+    /* switch to full speed */
+//    setup_sci1(card->bitrate_register);
+// FIXME 4 MHz for now, FIXME where to put this
+        GSCR0 = GSCR_EN | GSCR_MS | GSCR_WORD(7) | GSCR_DIV(11) | GSCR_FRM2(8);
+
+#if 0
+    /* get CID register */
+    if (send_cmd(CMD_SEND_CID, 0, NULL))
+        return -8;
+    rc = receive_cxd((unsigned char*)card->cid);
+    if (rc)
+        return rc * 10 - 8;
+
+    /* get CSD register */
+    if (send_cmd(CMD_SEND_CSD, 0, NULL))
+        return -5;
+    rc = receive_cxd((unsigned char*)card->csd);
+    if (rc)
+        return rc * 10 - 5;
+
+    sd_parse_csd(&card_info);
+
+    /* always use 512 byte blocks */
+    if (send_cmd(CMD_SET_BLOCKLEN, BLOCK_SIZE, NULL))
+        return -7;
+#endif
+    card->initialized = true;
+    return 0;
+}
+
+# if 0
 //static
 int initialize_card(int card_no)
 {
@@ -583,6 +684,7 @@ int initialize_card(int card_no)
     card->initialized = true;
     return 0;
 }
+#endif
 
 tCardInfo *mmc_card_info(int card_no)
 {
@@ -731,6 +833,7 @@ int mmc_read_sectors(IF_MD2(int drive,)
                      int incount,
                      void* inbuf)
 {
+#if 0
     int rc = 0;
     int lastblock = 0;
     unsigned long end_block;
@@ -884,6 +987,7 @@ int mmc_write_sectors(IF_MD2(int drive,)
     return rc;
 #endif
     return 0;
+#endif
 }
 
 bool mmc_disk_is_active(void)

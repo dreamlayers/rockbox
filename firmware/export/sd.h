@@ -105,6 +105,7 @@ int sd_num_drives(int first_drive);
 #define SD_SET_CLR_CARD_DETECT    42  /* acmd42 */
 #define SD_SEND_SCR               51  /* acmd51 */
 #define SD_APP_CMD                55
+#define SD_SPI_READ_OCR           58  /* only for SPI mode */
 
 /*
   SD/MMC status in R1, for native mode (SPI bits are different)
@@ -167,5 +168,21 @@ int sd_num_drives(int first_drive);
                                    | SD_R1_WP_ERASE_SKIP          \
                                    | SD_R1_AKE_SEQ_ERROR)
 
+/* SD/MMC status in R1, for SPI mode */
+#define SD_SPI_R1_PARAM_ERROR      (1 << 6)
+#define SD_SPI_R1_ADDRESS_ERROR    (1 << 5)
+#define SD_SPI_R1_ERASE_SEQ_ERROR  (1 << 4)
+#define SD_SPI_R1_COM_CRC_ERROR    (1 << 3)
+#define SD_SPI_R1_ILLEGAL_COMMAND  (1 << 2)
+#define SD_SPI_R1_ERASE_RESET      (1 << 1)
+#define SD_SPI_R1_IDLE_STATE       (1 << 0)
+
+/* All R1 Response flags that indicate Card error(vs MCI Controller error) */
+#define SD_SPI_R1_CARD_ERROR    ( SD_SPI_R1_PARAM_ERROR     \
+                                | SD_SPI_R1_ADDRESS_ERROR   \
+                                | SD_SPI_R1_ERASE_SEQ_ERROR \
+                                | SD_SPI_R1_COM_CRC_ERROR   \
+                                | SD_SPI_R1_ILLEGAL_COMMAND \
+                                | SD_SPI_R1_ERASE_RESET)
 
 #endif
