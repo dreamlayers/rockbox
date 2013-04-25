@@ -85,7 +85,6 @@ SECTIONS
 
     _iramcopy = LOADADDR(.iram);
 
-#ifdef HAVE_INIT_ATTR
     .init ENDAUDIOADDR :
     {
         . = ALIGN(4);
@@ -95,24 +94,21 @@ SECTIONS
     } AT> DRAM
 
     _initcopy = LOADADDR(.init);
-#endif
 
-    .stack :
-    {
-         *(.stack)
-         _stackbegin = .;
-         stackbegin = .;
-         . += 0x2000;
-         _stackend = .;
-         stackend = .;
-    } > DRAM
-
-    .bss : {
+    .bss _noloaddram : {
          _edata = .;
          *(.bss*);
          *(COMMON)
          _end = .;
     } > DRAM
+
+    .stack (NOLOAD) :
+    {
+       *(.stack)
+       stackbegin = .;
+       . += 0x2000;
+       stackend = .;
+    } > DRAM // FIXME move to IRAM
 
     .audiobuf ALIGN(4) :
     {
