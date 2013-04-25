@@ -71,8 +71,10 @@ void show_debug_screen(void)
         unsigned char b;
         int r;
 
-    mmc_init();
-    printf("sc:%d",select_card(0));
+        unsigned char buf[512];
+    printf("sdi:%d", sd_init());
+    printf("srs:%d %x %x",sd_read_sectors(0, 1, buf),buf[511],buf[512]);
+
     lcd_update();
     while(1);
     //lcd_puts_scroll(0,0,"+++ this is a very very long line to test scrolling. ---");

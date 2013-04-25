@@ -47,36 +47,12 @@
 
 #define BLOCK_SIZE  512   /* fixed */
 
-#if 0
-/* Command definitions */
-#define CMD_GO_IDLE_STATE        0x40  /* R1 */
-#define CMD_SEND_OP_COND         0x41  /* R1 */
-#define CMD_SEND_CSD             0x49  /* R1 */
-#define CMD_SEND_CID             0x4a  /* R1 */
-#define CMD_STOP_TRANSMISSION    0x4c  /* R1 */
-#define CMD_SEND_STATUS          0x4d  /* R2 */
-#define CMD_SET_BLOCKLEN         0x50  /* R1 */
-#define CMD_READ_SINGLE_BLOCK    0x51  /* R1 */
-#define CMD_READ_MULTIPLE_BLOCK  0x52  /* R1 */
-#define CMD_WRITE_BLOCK          0x58  /* R1b */
-#define CMD_WRITE_MULTIPLE_BLOCK 0x59  /* R1b */
-#define CMD_READ_OCR             0x7a  /* R3 */
-#endif
-
 /* Response formats:
    R1  = single byte, msb=0, various error flags
    R1b = R1 + busy token(s)
    R2  = 2 bytes (1st byte identical to R1), additional flags
    R3  = 5 bytes (R1 + OCR register)
 */
-
-#define R1_PARAMETER_ERR 0x40
-#define R1_ADDRESS_ERR   0x20
-#define R1_ERASE_SEQ_ERR 0x10
-#define R1_COM_CRC_ERR   0x08
-#define R1_ILLEGAL_CMD   0x04
-#define R1_ERASE_RESET   0x02
-#define R1_IN_IDLE_STATE 0x01
 
 #define R2_OUT_OF_RANGE  0x80
 #define R2_ERASE_PARAM   0x40
@@ -145,7 +121,7 @@ static long last_usb_activity;
 
 /* private function declarations */
 
-//static int select_card(int card_no);
+static int select_card(int card_no);
 static void deselect_card(void);
 //static void setup_sci1(int bitrate_register);
 //static void set_sci1_poll_read(void);
@@ -155,11 +131,9 @@ static void read_transfer(unsigned char *buf, int len)
             __attribute__ ((section(".icode")));
 static unsigned char poll_byte(long timeout);
 //static unsigned char poll_busy(long timeout);
-static unsigned char send_cmd(int cmd, unsigned long parameter, void *data);
 static int receive_cxd(unsigned char *buf);
 static int initialize_card(int card_no);
 static int receive_block(unsigned char *inbuf, long timeout);
-//static void send_block_prepare(void);
 //static int send_block_send(unsigned char start_token, long timeout,
 //                           bool prepare_next);
 //static void mmc_tick(void);
@@ -234,8 +208,7 @@ void mmc_enable_int_flash_clock(bool on)
 #endif
 }
 
-//static FIXME
-int select_card(int card_no)
+static int select_card(int card_no)
 {
     mutex_lock(&mmc_mutex);
     led(true);
@@ -547,20 +520,6 @@ static int initialize_card(int card_no)
     return 0;
 }
 
-#if 0
-tCardInfo *mmc_card_info(int card_no)
-{
-    tCardInfo *card = &card_info[card_no];
-
-    if (!card->initialized && ((card_no == 0) || mmc_detect()))
-    {
-        select_card(card_no);
-        deselect_card();
-    }
-    return card;
-}
-#endif
-
 /* Receive one block with DMA and bitswap it (chasing bitswap). */
 static int receive_block(unsigned char *inbuf, long timeout)
 {
@@ -577,8 +536,7 @@ static int receive_block(unsigned char *inbuf, long timeout)
     for (i = 0; i < BLOCK_SIZE; i++) {
         inbuf[i] = sd_read_byte();
     }
-    sd_read_byte();
-    sd_read_byte();
+    write_transfer(dummy, 3);     /* discard CRC, send trailer FIXME is it needed */
 
     return 0;
 #if 0
@@ -630,23 +588,6 @@ static int receive_block(unsigned char *inbuf, long timeout)
 }
 
 #if 0
-/* Prepare a block for sending by copying it to the next write buffer
- * and bitswapping it. */
-static void send_block_prepare(void)
-{
-    unsigned char *dest;
-
-    current_buffer ^= 1; /* toggle buffer */
-    dest = write_buffer[current_buffer] + 2;
-
-    memcpy(dest, send_block_addr, BLOCK_SIZE);
-    bitswap(dest, BLOCK_SIZE);
-
-    send_block_addr += BLOCK_SIZE;
-}
-#endif
-
-#if 0
 /* Send one block with DMA from the current write buffer, possibly preparing
  * the next block within the next write buffer in the background. */
 static int send_block_send(unsigned char start_token, long timeout,
@@ -696,7 +637,6 @@ int sd_read_sectors(IF_MD2(int drive,)
                     int incount,
                     void* inbuf)
 {
-#if 0
     int rc = 0;
     int lastblock = 0;
     unsigned long end_block;
@@ -706,6 +646,8 @@ int sd_read_sectors(IF_MD2(int drive,)
 #endif
 
     card = &card_info[drive];
+    card->read_timeout = 1024; // FIXME!!!
+
     rc = select_card(drive);
     if (rc)
     {
@@ -728,8 +670,8 @@ int sd_read_sectors(IF_MD2(int drive,)
 
     if (incount > 1)
     {
-                     /* MMC4.2: make multiplication conditional */
-        if (send_cmd(CMD_READ_MULTIPLE_BLOCK, start * BLOCK_SIZE, NULL))
+        /* MMC4.2: make multiplication conditional */
+        if (sd_command(SD_READ_MULTIPLE_BLOCK, start * BLOCK_SIZE, 0, NULL))
         {
             rc =  -3;
             goto error;
@@ -741,7 +683,8 @@ int sd_read_sectors(IF_MD2(int drive,)
             {
                 /* If an error occurs during multiple block reading, the
                  * host still needs to send CMD_STOP_TRANSMISSION */
-                send_cmd(CMD_STOP_TRANSMISSION, 0, NULL);
+                /* FIXME actually R1b */
+                sd_command(SD_STOP_TRANSMISSION, 0, SD_SPI_RESP_R1, NULL);
                 rc = rc * 10 - 4;
                 goto error;
             }
@@ -749,7 +692,7 @@ int sd_read_sectors(IF_MD2(int drive,)
             start++;
             /* ^^ necessary for the abovementioned last block special case */
         }
-        if (send_cmd(CMD_STOP_TRANSMISSION, 0, NULL))
+        if (sd_command(SD_STOP_TRANSMISSION, 0, SD_SPI_RESP_R1, NULL))
         {
             rc = -5;
             goto error;
@@ -757,8 +700,8 @@ int sd_read_sectors(IF_MD2(int drive,)
     }
     if (incount > 0)
     {
-                     /* MMC4.2: make multiplication conditional */
-        if (send_cmd(CMD_READ_SINGLE_BLOCK, start * BLOCK_SIZE, NULL))
+        /* MMC4.2: make multiplication conditional */
+        if (sd_command(SD_READ_SINGLE_BLOCK, start * BLOCK_SIZE, 0, NULL))
         {
             rc = -6;
             goto error;
@@ -779,7 +722,6 @@ int sd_read_sectors(IF_MD2(int drive,)
     else printf("Y %d, %d, %d", rc, start, incount);
 #endif
     return rc;
-#endif
 }
 
 int sd_write_sectors(IF_MD2(int drive,)
