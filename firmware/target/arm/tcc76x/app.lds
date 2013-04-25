@@ -95,20 +95,20 @@ SECTIONS
 
     _initcopy = LOADADDR(.init);
 
-    .bss _noloaddram : {
-         _edata = .;
-         *(.bss*);
-         *(COMMON)
-         _end = .;
-    } > DRAM
-
     .stack (NOLOAD) :
     {
        *(.stack)
        stackbegin = .;
        . += 0x2000;
        stackend = .;
-    } > DRAM // FIXME move to IRAM
+    } > IRAM
+
+    .bss _noloaddram : {
+         _edata = .;
+         *(.bss*);
+         *(COMMON)
+         _end = .;
+    } > DRAM
 
     .audiobuf ALIGN(4) :
     {
