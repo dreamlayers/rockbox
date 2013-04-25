@@ -19,7 +19,9 @@
  *
  ****************************************************************************/
 #include <stdbool.h>
-#include "mmc.h"
+#include "mmc.h" // FIXME
+#include "sd.h"
+#include "sdmmc.h"
 #include "ata_mmc.h"
 #include "ata_idle_notify.h"
 #include "kernel.h"
@@ -87,9 +89,9 @@
 
 /* Data start tokens */
 
-#define DT_START_BLOCK               0xfe
-#define DT_START_WRITE_MULTIPLE      0xfc
-#define DT_STOP_TRAN                 0xfd
+#define SD_SPI_START_BLOCK               0xfe
+#define SD_SPI_START_WRITE_MULTIPLE      0xfc
+#define SD_SPI_STOP_TRAN                 0xfd
 
 /* Reponse types supported by sd_command() */
 #define SD_SPI_RESP_R1 1
@@ -256,7 +258,10 @@ int select_card(int card_no)
         CKCTRL &= ~CKCTRL_GCK;
         /* 96/(2*127+2) = 0.375. OF uses 0xDD3C0008 for 600 kHz here. */
         GSCR0 = GSCR_EN | GSCR_MS | GSCR_WORD(7) | GSCR_DIV(127) | GSCR_FRM2(8);
-        write_transfer(dummy, 10); /* allow the card to synchronize */
+
+        /* At least 74 clock cycles with CS high for synchronization */
+        GPIOA |= SD_CS;
+        write_transfer(dummy, 10);
         //while (!(SSR1 & SCI_TEND));
     } else {
      // FIXME why is this needed to make subsequent reads succeed
@@ -447,7 +452,7 @@ static unsigned char sd_command(int cmd, unsigned long parameter, unsigned long 
 /* Receive CID/ CSD data (16 bytes) */
 static int receive_cxd(unsigned char *buf)
 {
-    if (poll_byte(20) != DT_START_BLOCK)
+    if (poll_byte(20) != SD_SPI_START_BLOCK)
     {
         write_transfer(dummy, 1);
         return -1;                /* not start of data */
@@ -526,166 +531,33 @@ static int initialize_card(int card_no)
     /* switch to full speed */
 //    setup_sci1(card->bitrate_register);
 // FIXME 4 MHz for now, FIXME where to put this
-        GSCR0 = GSCR_EN | GSCR_MS | GSCR_WORD(7) | GSCR_DIV(11) | GSCR_FRM2(8);
+    GSCR0 = GSCR_EN | GSCR_MS | GSCR_WORD(7) | GSCR_DIV(11) | GSCR_FRM2(8);
 
-#if 0
     /* get CID register */
-    if (send_cmd(CMD_SEND_CID, 0, NULL))
+    if (sd_command(SD_SEND_CID, 0, SD_SPI_RESP_R1, NULL))
         return -8;
     rc = receive_cxd((unsigned char*)card->cid);
     if (rc)
         return rc * 10 - 8;
 
     /* get CSD register */
-    if (send_cmd(CMD_SEND_CSD, 0, NULL))
-        return -5;
+    if (sd_command(SD_SEND_CSD, 0, SD_SPI_RESP_R1, NULL))
+        return -9;
     rc = receive_cxd((unsigned char*)card->csd);
     if (rc)
         return rc * 10 - 5;
 
-    sd_parse_csd(&card_info);
+    sd_parse_csd(card);
 
-    /* always use 512 byte blocks */
-    if (send_cmd(CMD_SET_BLOCKLEN, BLOCK_SIZE, NULL))
+    /* always use 512 byte blocks (probably unnecessary) */
+    if (sd_command(SD_SET_BLOCKLEN, BLOCK_SIZE, SD_SPI_RESP_R1, NULL))
         return -7;
-#endif
+
     card->initialized = true;
     return 0;
 }
 
-# if 0
-//static
-int initialize_card(int card_no)
-{
-    int rc, i;
-    int blk_exp, ts_exp, taac_exp;
-    tCardInfo *card = &card_info[card_no];
-
-    static const char mantissa[] = {  /* *10 */
-        0,  10, 12, 13, 15, 20, 25, 30,
-        35, 40, 45, 50, 55, 60, 70, 80
-    };
-    static const int exponent[] = {  /* use varies */
-        1, 10, 100, 1000, 10000, 100000, 1000000,
-        10000000, 100000000, 1000000000
-    };
-
-    int r;
-
 #if 0
-    sd_gpio_init(); //FIXME;
-
-	GPIOA |= SD_CS; //mmc_spi_cs_high();
-	for (i = 0; i < 20; i++) sd_write_byte(0xff); //mmc_spi_io(0xff);
-
-    GPIOA &= ~SD_CS; //mmc_spi_cs_low();
-#endif
-
-#if 0
-	sd_write_byte(0x40);
-	for (i = 0; i < 4; i++) sd_write_byte(0x00);
-	sd_write_byte(0x95);
-	for (i = 0; i < 8; i++)
-	{
-		r = sd_read_byte();
-		if (r == 0x01) break;
-	}
-	GPIOA |= SD_CS; //mmc_spi_cs_high();
-	sd_write_byte(0xFF); //mmc_spi_io(0xff);
-	if (r != 0x01)
-	{
-		//restore_flags(flags);
-	//	return(1);
-	}
-    return r;
-#endif
-    if (card_no == 1)
-        mmc_status = MMC_TOUCHED;
-
-    /* switch to SPI mode */
-    if (send_cmd(CMD_GO_IDLE_STATE, 0, NULL) != 0x01)
-        return -1;                /* error or no response */
-
-    /* initialize card */
-    for (i = HZ;;)                /* try for 1 second*/
-    {
-        sleep(1);
-        if (send_cmd(CMD_SEND_OP_COND, 0, NULL) == 0)
-            break;
-        if (--i <= 0)
-            return -2;            /* timeout */
-    }
-
-    /* get OCR register */
-    if (send_cmd(CMD_READ_OCR, 0, &card->ocr))
-        return -3;
-    card->ocr = betoh32(card->ocr); /* no-op on big endian */
-
-    /* check voltage */
-    if (!(card->ocr & 0x00100000)) /* 3.2 .. 3.3 V */
-        return -4;
-
-    /* get CSD register */
-    if (send_cmd(CMD_SEND_CSD, 0, NULL))
-        return -5;
-    rc = receive_cxd((unsigned char*)card->csd);
-    if (rc)
-        return rc * 10 - 5;
-
-    blk_exp = card_extract_bits(card->csd, 83, 4);
-    if (blk_exp < 9) /* block size < 512 bytes not supported */
-        return -6;
-
-    card->numblocks = (card_extract_bits(card->csd, 73, 12) + 1)
-                   << (card_extract_bits(card->csd, 49, 3) + 2 + blk_exp - 9);
-    card->blocksize = BLOCK_SIZE;
-    //printf("%d", card->numblocks);
-    /* max transmission speed, clock divider */
-    ts_exp = card_extract_bits(card->csd, 98, 3);
-    ts_exp = (ts_exp > 3) ? 3 : ts_exp;
-    card->speed = mantissa[card_extract_bits(card->csd, 102, 4)]
-                * exponent[ts_exp + 4];
-    card->bitrate_register = (FREQ/4-1) / card->speed;
-
-    /* NSAC, TAAC, read timeout */
-    card->nsac = 100 * card_extract_bits(card->csd, 111, 8);
-    card->taac = mantissa[card_extract_bits(card->csd, 118, 4)];
-    taac_exp = card_extract_bits(card->csd, 114, 3);
-    card->read_timeout = ((FREQ/4) / (card->bitrate_register + 1)
-                         * card->taac / exponent[9 - taac_exp]
-                         + (10 * card->nsac));
-    card->read_timeout /= 8;      /* clocks -> bytes */
-    card->taac = card->taac * exponent[taac_exp] / 10;
-
-    /* r2w_factor, write timeout */
-    card->r2w_factor = BIT_N(card_extract_bits(card->csd, 28, 3));
-    card->write_timeout = card->read_timeout * card->r2w_factor;
-
-    if (card->r2w_factor > 32) /* Such cards often need extra read delay */
-        card->read_timeout *= 4;
-
-    /* switch to full speed */
-//    setup_sci1(card->bitrate_register);
-// FIXME 4 MHz for now
-        /* 96/(2*127+2) = 0.375. OF uses 0xDD3C0008 for 600 kHz here. */
-        GSCR0 = GSCR_EN | GSCR_MS | GSCR_WORD(7) | GSCR_DIV(11) | GSCR_FRM2(8);
-
-    /* always use 512 byte blocks */
-    if (send_cmd(CMD_SET_BLOCKLEN, BLOCK_SIZE, NULL))
-        return -7;
-
-    /* get CID register */
-    if (send_cmd(CMD_SEND_CID, 0, NULL))
-        return -8;
-    rc = receive_cxd((unsigned char*)card->cid);
-    if (rc)
-        return rc * 10 - 8;
-
-    card->initialized = true;
-    return 0;
-}
-#endif
-
 tCardInfo *mmc_card_info(int card_no)
 {
     tCardInfo *card = &card_info[card_no];
@@ -697,13 +569,14 @@ tCardInfo *mmc_card_info(int card_no)
     }
     return card;
 }
+#endif
 
 /* Receive one block with DMA and bitswap it (chasing bitswap). */
 static int receive_block(unsigned char *inbuf, long timeout)
 {
     //unsigned long buf_end;
 
-    if (poll_byte(timeout) != DT_START_BLOCK)
+    if (poll_byte(timeout) != SD_SPI_START_BLOCK)
     {
         write_transfer(dummy, 1);
         return -1;                /* not start of data */
@@ -828,10 +701,10 @@ static int send_block_send(unsigned char start_token, long timeout,
 }
 #endif
 
-int mmc_read_sectors(IF_MD2(int drive,)
-                     unsigned long start,
-                     int incount,
-                     void* inbuf)
+int sd_read_sectors(IF_MD(int drive,)
+                    unsigned long start,
+                    int incount,
+                    void* inbuf)
 {
 #if 0
     int rc = 0;
@@ -916,12 +789,13 @@ int mmc_read_sectors(IF_MD2(int drive,)
     else printf("Y %d, %d, %d", rc, start, incount);
 #endif
     return rc;
+#endif
 }
 
-int mmc_write_sectors(IF_MD2(int drive,)
-                      unsigned long start,
-                      int count,
-                      const void* buf)
+int sd_write_sectors(IF_MD(int drive,)
+                     unsigned long start,
+                     int count,
+                     const void* buf)
 {
 #if 0
     int rc = 0;
@@ -987,7 +861,6 @@ int mmc_write_sectors(IF_MD2(int drive,)
     return rc;
 #endif
     return 0;
-#endif
 }
 
 bool mmc_disk_is_active(void)
@@ -1123,7 +996,7 @@ static void mmc_tick(void)
 }
 #endif
 
-void mmc_enable(bool on)
+void sd_enable(bool on)
 {
 #if 0
     PBCR1 &= ~0x0CF0;      /* PB13, PB11 and PB10 become GPIO,
@@ -1141,7 +1014,7 @@ void mmc_enable(bool on)
 //#warning mmc_enable not implemented
 }
 
-int mmc_init(void)
+int sd_init(void)
 {
     int rc = 0;
 
@@ -1197,34 +1070,18 @@ int mmc_init(void)
     return rc;
 }
 
-long mmc_last_disk_activity(void)
+long sd_last_disk_activity(void)
 {
     return last_disk_activity;
 }
 
-#ifdef STORAGE_GET_INFO
-void mmc_get_info(IF_MD2(int drive,) struct storage_info *info)
+tCardInfo *card_get_info_target(int card_no)
 {
-#ifndef HAVE_MULTIDRIVE
-    const int drive=0;
-#endif
-    info->sector_size=card_info[drive].blocksize;
-    info->num_sectors=card_info[drive].numblocks;
-    info->vendor="Rockbox";
-    if(drive==0)
-    {
-        info->product="Internal Storage";
-    }
-    else
-    {
-        info->product="MMC Card Slot";
-    }
-    info->revision="0.00";
+    return &card_info[card_no];
 }
-#endif
 
 #ifdef HAVE_HOTSWAP
-bool mmc_removable(IF_MD_NONVOID(int drive))
+bool sd_removable(IF_MD_NONVOID(int drive))
 {
 #ifndef HAVE_MULTIDRIVE
     const int drive=0;
@@ -1232,7 +1089,7 @@ bool mmc_removable(IF_MD_NONVOID(int drive))
     return (drive==1);
 }
 
-bool mmc_present(IF_MD_NONVOID(int drive))
+bool sd_present(IF_MD_NONVOID(int drive))
 {
 #ifndef HAVE_MULTIDRIVE
     const int drive=0;
@@ -1248,22 +1105,8 @@ bool mmc_present(IF_MD_NONVOID(int drive))
 }
 #endif
 
-
-void mmc_sleep(void)
-{
-}
-
-void mmc_spin(void)
-{
-}
-
-void mmc_spindown(int seconds)
-{
-    (void)seconds;
-}
-
 #ifdef CONFIG_STORAGE_MULTI
-int mmc_num_drives(int first_drive)
+int sd_num_drives(int first_drive)
 {
     /* We don't care which logical drive number(s) we have been assigned */
     (void)first_drive;
