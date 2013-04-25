@@ -3874,6 +3874,7 @@ fi
     modelname="rcarc3000a"
     target="RC3000A"
     memory=2
+    if [ "$ARG_ARM_THUMB" != 0 ]; then ARG_ARM_THUMB=1; fi
     arm940tcc
     tool="$rootdir/tools/scramble -add=c100"
     boottool="$rootdir/tools/scramble -tcc=crc"
