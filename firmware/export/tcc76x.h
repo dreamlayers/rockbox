@@ -514,6 +514,68 @@
 
 /* 0xE00 ~ 0xEFF DMA Controller */
 
+/* Channel 0 registers */
+/* Start Address of Source Block */
+#define ST_SADR0 (*(void * volatile *)0x80000E00)
+/* Parameter of Source Block, also 0x80000E08 */
+#define SPARAM0 (*(volatile unsigned long *)0x80000E04)
+/* Current Address of Source Block */
+#define C_SADR0 (*(void * volatile *)0x80000E0C)
+/* Start Address of Destination Block */
+#define ST_DADR0 (*(void * volatile *)0x80000E10)
+/* Parameter of Destination Block, also 0x80000E18 */
+#define DPARAM0 (*(volatile unsigned long *)0x80000E14)
+/* Current Address of Destination Block */
+#define C_DADR0 (*(void * volatile *)0x80000E1C)
+/* Initial and Current Hop count */
+#define HCOUNT0 (*(volatile unsigned long *)0x80000E20)
+/* Channel Control Register */
+#define CHCTRL0 (*(volatile unsigned long *)0x80000E24)
+
+#define CHCTRL_DMASEL(x) ((x) << 16) /* Trigger source */
+#define CHCTRL_CONT (1 << 15) /* Issue Continuous Transfer */
+#define CHCTRL_SYNC (1 << 13) /* Hardware Request Synchronization */
+#define CHCTRL_HRD (1 << 12) /* Hardware Request Direction */
+#define CHCTRL_LOCK (1 << 11) /* Issue Locked Transfer */
+#define CHCTRL_BST (1 << 10) /* Burst Transfer */
+#define CHCTRL_TYPE_SINGLE_EDGE (0 << 8)
+#define CHCTRL_TYPE_HARDWARE (1 << 8)
+#define CHCTRL_TYPE_SOFTWARE (2 << 8)
+#define CHCTRL_TYPE_SINGLE_LEVEL (3 << 8)
+#define CHCTRL_BSIZE_1 (0 << 6) /* Burst Size */
+#define CHCTRL_BSIZE_2 (1 << 6)
+#define CHCTRL_BSIZE_4 (2 << 6)
+#define CHCTRL_WSIZE_8 (0 << 4) /* Word Size */
+#define CHCTRL_WSIZE_16 (1 << 4)
+#define CHCTRL_WSIZE_32 (2 << 4)
+#define CHCTRL_FLAG (1 << 3) /* DMA Done Flag */
+#define CHCTRL_IEN (1 << 2) /* Interrupt Enable */
+#define CHCTRL_REP (1 << 1) /* Repeat Mode Control */
+#define CHCTRL_EN (1 << 0) /* DMA Channel Enable */
+
+/* Channel Configuration Register, for both channels */
+#define CHCONFIG (*(volatile unsigned long *)0x80000E2C)
+
+#define CHCONFIG_IS1 (1 << 22) /* Channel 1 Alternate interrupt status */
+#define CHCONFIG_IS0 (1 << 21) /* Channel 0 Alternate interrupt status */
+#define CHCONFIG_MIS1 (1 << 17) /* Channel1 Masked Interrupt Status */
+#define CHCONFIG_MIS0 (1 << 16) /* Channel0 Masked Interrupt Status */
+#define CHCONFIG_SWP1 (1 << 9) /* Channel1 SWAP Enable bit */
+#define CHCONFIG_SWP0 (1 << 8) /* Channel0 SWAP Enable bit */
+#define CHCONFIG_PRI (1 << 4) /* Set to make Ch1 highest priority */
+#define CHCONFIG_FIX (1 << 0) /* Fixed Priority Operation */
+
+
+/* Channel 1 registers, just like channel 0 */
+#define ST_SADR1 (*(volatile unsigned long *)0x80000E30)
+#define SPARAM1 (*(volatile unsigned long *)0x80000E34)
+#define C_SADR1 (*(volatile unsigned long *)0x80000E3C)
+#define ST_DADR1 (*(volatile unsigned long *)0x80000E40)
+#define DPARAM1 (*(volatile unsigned long *)0x80000E44) */
+#define C_DADR1 (*(volatile unsigned long *)0x80000E4C)
+#define HCOUNT1 (*(volatile unsigned long *)0x80000E50)
+#define CHCTRL1 (*(volatile unsigned long *)0x80000E54)
+
 /* 0xF00 ~ 0xFFF LCD controller (TCC761 only) */
 
 /*
