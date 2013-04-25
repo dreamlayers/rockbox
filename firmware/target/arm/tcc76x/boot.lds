@@ -8,8 +8,8 @@ STARTUP(target/arm/tcc76x/crt0.o)
 #define DRAMSIZE (MEMORYSIZE * 0x100000)
 
 #define DRAMORIG 0x20000000
-#define IRAMORIG 0x00001000
-#define IRAMSIZE (64K-0x1000)
+#define IRAMORIG 0x30000000
+#define IRAMSIZE 64K
 
 
 MEMORY
@@ -25,17 +25,17 @@ MEMORY
 SECTIONS
 {
     .text : {
+        loadaddress = .;
+        _loadaddress = .;
+        . = ALIGN(0x200);
         *(.init.text)
         *(.text)
         *(.text*)
         *(.glue_7)
         *(.glue_7t)
-   } > DRAM
+    } > DRAM
 
     .data : {
-        *(.icode)
-        *(.irodata)
-        *(.idata)
         *(.data*)
         *(.rodata.*)
         *(.rodata)
@@ -43,21 +43,50 @@ SECTIONS
         _dataend = . ;
     } > DRAM
 
+    /* IRAM is mapped to 0 and vectors are at start of IRAM */
+    .vectors IRAMORIG :
+    {
+        _vectorsstart = .;
+        KEEP(*(.vectors));
+        _vectorsend = .;
+    } > IRAM AT> DRAM
+
+    _vectorscopy = LOADADDR(.vectors);
+    _noloaddram  = LOADADDR(.vectors);
+
+    .ibss (NOLOAD) :
+    {
+        _iedata = .;
+        *(.qharray)
+        *(.ibss)
+        . = ALIGN(0x4);
+        _iend = .;
+    } > IRAM
+
+    .iram _iend :
+    {
+        _iramstart = .;
+        *(.icode)
+        *(.irodata)
+        *(.idata)
+        . = ALIGN(0x4);
+        _iramend = .;
+    } > IRAM AT> DRAM
+
+    _iramcopy = LOADADDR(.iram);
+
     .stack (NOLOAD) :
     {
-         *(.stack)
-         _stackbegin = .;
-         stackbegin = .;
-         . += 0x2000;
-         _stackend = .;
-         stackend = .;
-    } > DRAM
+       *(.stack)
+       stackbegin = .;
+       . += 0x2000;
+       stackend = .;
+    } > IRAM
 
-    .bss (NOLOAD) : {
+    .bss _noloaddram : {
          _edata = .;
          *(.bss*);
-         *(.ibss);
          *(COMMON)
          _end = .;
-     } > DRAM
+    } > DRAM
 }
