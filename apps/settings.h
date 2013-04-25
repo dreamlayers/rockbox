@@ -165,9 +165,6 @@ enum {  ALARM_START_WPS = 0,
 #elif CONFIG_CPU==DM320
 /* the DM320 has IRAM at 0, so we use 0xffff bytes right after that */
 #define VIRT_PTR ((unsigned char*)0x4000)
-#elif defined(CPU_TCC76X)
-/* the TCC76X has 64KB IRAM at 0, so we use 0xffff bytes right after that */
-#define VIRT_PTR ((unsigned char*)0x10000)
 #else
 /* a location where we won't store strings, 0 is the fastest */
 #define VIRT_PTR ((unsigned char*)0)
