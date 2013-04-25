@@ -11,7 +11,7 @@ STARTUP(target/arm/tcc76x/crt0.o)
 #define DRAMSIZE (MEMORYSIZE * 0x100000) - PLUGINSIZE - CODECSIZE
 
 #define DRAMORIG 0x20000000
-#define IRAMORIG 0x00000000
+#define IRAMORIG 0x30000000
 #define IRAMSIZE 64K
 
 
@@ -54,7 +54,7 @@ SECTIONS
     } > DRAM
 
     /* IRAM is mapped to 0 and vectors are at start of IRAM */
-    .vectors 0x0 :
+    .vectors IRAMORIG :
     {
         _vectorsstart = .;
         KEEP(*(.vectors));
