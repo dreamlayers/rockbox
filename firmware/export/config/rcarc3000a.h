@@ -28,15 +28,15 @@
 #define HAVE_TAGCACHE
 
 /* define this if you have a flash memory storage */
-//#define HAVE_FLASH_STORAGE
+#define HAVE_FLASH_STORAGE
 
 /* Only v1 */
 //#define CONFIG_STORAGE_MULTI
 #define NUM_DRIVES 1
-#define CONFIG_STORAGE STORAGE_MMC
+#define CONFIG_STORAGE STORAGE_SD
 //#define CONFIG_NAND NAND_TCC
 
-/* c100's with direct-to-NAND access are FAT16 */
+/* c100's with direct-to-NAND access are FAT16 FIXME */
 #define HAVE_FAT16SUPPORT
 
 /* LCD dimensions */

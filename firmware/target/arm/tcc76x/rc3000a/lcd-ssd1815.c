@@ -165,7 +165,7 @@ void lcd_init_device(void)
     lcd_write_command(LCD_SET_DISPLAY_OFF);
     lcd_write_command(LCD_SET_LCD_BIAS);
     lcd_write_command(LCD_SET_SEGMENT_REMAP);
-    asm volatile ("nop; nop; nop; nop;");
+    asm volatile ("nop; nop; nop; nop; nop; nop;");
     lcd_write_command(LCD_SET_COM_OUTPUT_SCAN_DIRECTION|8);
     lcd_write_command(LCD_SET_INTERNAL_REGULATOR_RESISTOR_RATIO + 5);
     lcd_set_contrast(lcd_default_contrast());

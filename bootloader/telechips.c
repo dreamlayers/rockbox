@@ -71,6 +71,10 @@ void show_debug_screen(void)
         unsigned char b;
         int r;
 
+    mmc_init();
+    printf("sc:%d",select_card(0));
+    lcd_update();
+    while(1);
     //lcd_puts_scroll(0,0,"+++ this is a very very long line to test scrolling. ---");
     sw_i2c_init();
 #if 0
