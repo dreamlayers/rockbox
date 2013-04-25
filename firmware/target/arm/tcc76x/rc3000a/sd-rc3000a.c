@@ -230,18 +230,6 @@ static int select_card(int card_no)
         GPIOA |= SD_CS;
         write_transfer(dummy, 10);
         //while (!(SSR1 & SCI_TEND));
-    } else {
-     // FIXME why is this needed to make subsequent reads succeed
-        write_transfer(dummy, 10); /* allow the card to synchronize */
-        write_transfer(dummy, 10); /* allow the card to synchronize */
-        write_transfer(dummy, 10); /* allow the card to synchronize */
-        write_transfer(dummy, 10); /* allow the card to synchronize */
-        write_transfer(dummy, 10); /* allow the card to synchronize */
-        write_transfer(dummy, 10); /* allow the card to synchronize */
-        write_transfer(dummy, 10); /* allow the card to synchronize */
-        write_transfer(dummy, 10); /* allow the card to synchronize */
-        write_transfer(dummy, 10); /* allow the card to synchronize */
-        write_transfer(dummy, 10); /* allow the card to synchronize */
     }
 
     GPIOA &= ~SD_CS; /* assert CS */
