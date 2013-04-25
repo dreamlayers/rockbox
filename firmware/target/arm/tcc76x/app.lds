@@ -43,18 +43,59 @@ SECTIONS
         *(.text*)
         *(.glue_7)
         *(.glue_7t)
-   } > DRAM
+    } > DRAM
 
     .data : {
-        *(.icode)
-        *(.irodata)
-        *(.idata)
         *(.data*)
         *(.rodata.*)
         *(.rodata)
         . = ALIGN(0x4);
         _dataend = . ;
     } > DRAM
+
+    /* IRAM is mapped to 0 and vectors are at start of IRAM */
+    .vectors 0x0 :
+    {
+        _vectorsstart = .;
+        KEEP(*(.vectors));
+        _vectorsend = .;
+    } > IRAM AT> DRAM
+
+    _vectorscopy = LOADADDR(.vectors);
+    _noloaddram  = LOADADDR(.vectors);
+
+    .ibss (NOLOAD) :
+    {
+        _iedata = .;
+        *(.qharray)
+        *(.ibss)
+        . = ALIGN(0x4);
+        _iend = .;
+    } > IRAM
+
+    .iram _iend :
+    {
+        _iramstart = .;
+        *(.icode)
+        *(.irodata)
+        *(.idata)
+        . = ALIGN(0x4);
+        _iramend = .;
+    } > IRAM AT> DRAM
+
+    _iramcopy = LOADADDR(.iram);
+
+#ifdef HAVE_INIT_ATTR
+    .init ENDAUDIOADDR :
+    {
+        . = ALIGN(4);
+        _initstart = .;
+        *(.init*)
+        _initend = .;
+    } AT> DRAM
+
+    _initcopy = LOADADDR(.init);
+#endif
 
     .stack :
     {
@@ -69,10 +110,10 @@ SECTIONS
     .bss : {
          _edata = .;
          *(.bss*);
-         *(.ibss);
          *(COMMON)
          _end = .;
-     } > DRAM
+    } > DRAM
+
     .audiobuf ALIGN(4) :
     {
         _audiobuffer = .;
