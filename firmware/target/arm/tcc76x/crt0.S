@@ -154,6 +154,61 @@ copied_start:
     msr    cpsr, r0
     ldr    sp, =stackend
 
+    /* Vectors and IRAM copy is done first since they are reclaimed for
+     * other uninitialized sections */
+
+    /* Copy exception handler code to address 0 */
+    ldr    r2, =_vectorsstart
+    ldr    r3, =_vectorsend
+    ldr    r4, =_vectorscopy
+1:
+    cmp    r3, r2
+    ldrhi  r5, [r4], #4
+    strhi  r5, [r2], #4
+    bhi    1b
+
+    /* Copy the IRAM */
+    ldr    r2, =_iramcopy
+    ldr    r3, =_iramstart
+    ldr    r4, =_iramend
+1:
+    cmp    r4, r3
+    ldrhi  r5, [r2], #4
+    strhi  r5, [r3], #4
+    bhi    1b
+
+#ifdef HAVE_INIT_ATTR
+    /* copy init code to codec buffer */
+    ldr    r2, =_initstart
+    ldr    r3, =_initend
+    ldr    r4, =_initcopy
+
+1:
+    cmp     r3, r2
+    ldrhi   r5, [r4], #4
+    strhi   r5, [r2], #4
+    bhi 1b
+#endif
+
+    /* Zero out IBSS */
+    ldr    r2, =_iedata
+    ldr    r3, =_iend
+    mov    r4, #0
+1:
+    cmp    r3, r2
+    strhi  r4, [r2], #4
+    bhi    1b
+
+    /* Initialise bss section to zero */
+    ldr    r2, =_edata
+    ldr    r3, =_end
+    mov    r4, #0
+1:
+    cmp    r3, r2
+    strhi  r4, [r2], #4
+    bhi    1b
+
+#if 0
     /* Copy exception handler code to address 0 */
     mov    r2, #0x0
     ldr    r3, =vectors_start
@@ -172,6 +227,7 @@ copied_start:
     cmp    r3, r2
     strhi  r4, [r2], #4
     bhi    1b
+#endif
 
     /* Set up some stack and munge it with 0xdeadbeef */
     ldr    sp, =stackend
@@ -187,7 +243,7 @@ copied_start:
     /* main() should never return */
 
 /* Exception handlers. Will be copied to address 0 after memory remapping */
-vectors_start:
+    .section .vectors,"aw"
     ldr    pc, [pc, #24]
     ldr    pc, [pc, #24]
     ldr    pc, [pc, #24]
@@ -208,7 +264,6 @@ vectors:
     .word  reserved_handler
     .word  irq_handler
     .word  fiq_handler
-vectors_end:
 
     .text
 

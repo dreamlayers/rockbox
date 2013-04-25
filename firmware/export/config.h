@@ -925,7 +925,8 @@ Lyre prototype 1 */
     (CONFIG_CPU == TCC7801) || \
     (CONFIG_CPU == IMX233 && !defined(PLUGIN) && !defined(CODEC)) || /* IMX233: core only */ \
     defined(CPU_S5L870X)) || /* Samsung S5L8700: core, plugins, codecs */ \
-    (CONFIG_CPU == JZ4732 && !defined(PLUGIN) && !defined(CODEC)) /* Jz4740: core only */
+    (CONFIG_CPU == JZ4732 && !defined(PLUGIN) && !defined(CODEC)) || /* Jz4740: core only */ \
+    (defined(CPU_TCC76X) && !defined(PLUGIN) && !defined(CODEC)) /* TCC76X: core only FIXME*/
 #define ICODE_ATTR      __attribute__ ((section(".icode")))
 #define ICONST_ATTR     __attribute__ ((section(".irodata")))
 #define IDATA_ATTR      __attribute__ ((section(".idata")))
