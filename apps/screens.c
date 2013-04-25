@@ -59,14 +59,13 @@
 #include "adc.h"
 #endif
 
-#if (CONFIG_STORAGE & STORAGE_MMC)
-// why? FIXME && (defined(ARCHOS_ONDIOSP) || defined(ARCHOS_ONDIOFM))
+#if (CONFIG_STORAGE & STORAGE_MMC) && (defined(ARCHOS_ONDIOSP) || defined(ARCHOS_ONDIOFM))
 int mmc_remove_request(void)
 {
     struct queue_event ev;
     FOR_NB_SCREENS(i)
         screens[i].clear_display();
-    splash(0, ID2P(LANG_ID3_TITLE)); //MONTH_JANUARY)); // FIXME LANG_REMOVE_MMC));
+    splash(0, ID2P(LANG_REMOVE_MMC));
 
     while (1)
     {
