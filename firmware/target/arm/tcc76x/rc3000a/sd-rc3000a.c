@@ -521,8 +521,22 @@ static int receive_block(unsigned char *inbuf, long timeout)
 
     int i;
 
+    commit_discard_dcache();
     for (i = 0; i < BLOCK_SIZE; i++) {
+#if 0
         inbuf[i] = sd_read_byte();
+#else
+        GSDO0 = 0xFF;
+        while (GSGCR & GSGCR_Busy0);
+
+        ST_SADR0 = (void *)&GSDI0;
+        ST_DADR0 = &inbuf[i];
+        HCOUNT0 = 1;
+        CHCTRL0 = CHCTRL_TYPE_SOFTWARE | CHCTRL_WSIZE_8;
+        CHCTRL0 |= CHCTRL_EN;
+        while ((CHCTRL0 & CHCTRL_FLAG) == 0);
+        CHCTRL0 &= ~CHCTRL_EN;
+#endif
     }
     write_transfer(dummy, 3);     /* discard CRC, send trailer FIXME is it needed */
 
