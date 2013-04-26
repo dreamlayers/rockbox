@@ -43,7 +43,7 @@ static inline void udelay(unsigned usecs)
     while (TIME_BEFORE(USEC_TIMER, stop));
 }
 
-
+#if 0 // FIXME unnecessary?
 #define TCC77X_CSCFG_BW8       0
 #define TCC77X_CSCFG_BW16      1
 
@@ -55,10 +55,10 @@ unsigned long tcc77x_cscfg_bw(int bw) {
     else
         return (((MCFG >> 11) & 3) ^ 2) << 28;
 }
+#endif
 
-// FIXME implement cache
-static inline void commit_dcache(void) {}
-static inline void commit_discard_dcache(void) {}
-static inline void commit_discard_idcache(void) {}
+/** Cache coherency **/
+
+#include "mmu-arm.h"
 
 #endif /* SYSTEM_TARGET_H */

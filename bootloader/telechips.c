@@ -73,23 +73,15 @@ void show_debug_screen(void)
         unsigned char b;
         int r;
 
-        unsigned char *buf = 0x8000;
-        buf[0] = 0xAA;
+        unsigned char buf[512];
+    printf("sdi:%d", sd_init());
+    buf[510]=0; buf[511]=0;
+    printf("srs:%d %x %x",sd_read_sectors(0, 1, buf),buf[510],buf[511]);
 
-        buf[1] = 0xFF;
-
-        printf("DMA: %02x %02x", buf[0], buf[1]);
-
-        ST_SADR0 = &buf[0];
-        ST_DADR0 = &buf[1];
-        HCOUNT0 = 1;
-        CHCTRL0 = CHCTRL_TYPE_SOFTWARE | CHCTRL_WSIZE_8;
-        CHCTRL0 |= CHCTRL_EN;
-
-        while ((CHCTRL0 & CHCTRL_FLAG) == 0);
-
-        printf("DMA: %02x %02x", buf[0], buf[1]);
-        while(true) core_sleep();
+    lcd_update();
+    while(1);
+    //lcd_puts_scroll(0,0,"+++ this is a very very long line to test scrolling. ---");
+    sw_i2c_init();
 #if 0
 #include "cscodec.h"
     audiohw_preinit();
