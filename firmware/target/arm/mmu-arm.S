@@ -49,6 +49,10 @@
 #define USE_MMU
 #define CACHE_SIZE 16
 
+#elif defined(CPU_TCC76X)
+/* MMU not present */
+#define CACHE_SIZE 4
+
 #else
 #error Cache settings unknown for this CPU !
 

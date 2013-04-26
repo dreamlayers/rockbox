@@ -76,7 +76,7 @@ SECTIONS
     .iram _iend :
     {
         _iramstart = .;
-        *(.icode)
+        *(.icode*)
         *(.irodata)
         *(.idata)
         . = ALIGN(0x4);
