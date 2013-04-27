@@ -521,23 +521,34 @@ static int receive_block(unsigned char *inbuf, long timeout)
 
     int i;
 
-    commit_discard_dcache();
+#if 1
     for (i = 0; i < BLOCK_SIZE; i++) {
-#if 0
         inbuf[i] = sd_read_byte();
+    }
 #else
+    /* Unfinished DMA code */
+    commit_discard_dcache();
+
+    /* Set up byte DMA from GSDI0 non-incrementing to inbuf incrementing */
+    ST_SADR0 = (void *)&GSDI0;
+    SPARAM0 = 0;
+
+    ST_DADR0 = inbuf;
+    DPARAM0 = 1;
+
+    HCOUNT0 = 1;
+    CHCTRL0 = CHCTRL_DMASEL(GS_IRQ_MASK) | CHCTRL_SYNC | CHCTRL_TYPE_HARDWARE | CHCTRL_WSIZE_8;
+
+    for (i = 0; i < BLOCK_SIZE; i++) {
         GSDO0 = 0xFF;
         while (GSGCR & GSGCR_Busy0);
 
-        ST_SADR0 = (void *)&GSDI0;
-        ST_DADR0 = &inbuf[i];
-        HCOUNT0 = 1;
-        CHCTRL0 = CHCTRL_TYPE_SOFTWARE | CHCTRL_WSIZE_8;
         CHCTRL0 |= CHCTRL_EN;
         while ((CHCTRL0 & CHCTRL_FLAG) == 0);
-        CHCTRL0 &= ~CHCTRL_EN;
-#endif
+        CHCTRL0 &= ~(CHCTRL_EN|CHCTRL_FLAG);
+        CHCTRL0 |= CHCTRL_CONT;
     }
+#endif
     write_transfer(dummy, 3);     /* discard CRC, send trailer FIXME is it needed */
 
     return 0;
