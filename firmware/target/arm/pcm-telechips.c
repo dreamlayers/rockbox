@@ -342,6 +342,7 @@ void fiq_handler(void)
 
     if (dma_play_data.size >= 16)
     {
+#if 0
         /* TCC76x: data is justified to MSB */
         DADO_L(0) = *dma_play_data.p++ << 16;
         DADO_R(0) = *dma_play_data.p++ << 16;
@@ -351,7 +352,22 @@ void fiq_handler(void)
         DADO_R(2) = *dma_play_data.p++ << 16;
         DADO_L(3) = *dma_play_data.p++ << 16;
         DADO_R(3) = *dma_play_data.p++ << 16;
+#else
+        ST_SADR0 = dma_play_data.p;
+        SPARAM0 = 2;
 
+        ST_DADR0 = ((unsigned short *)&DADO_L(0))+1;
+        DPARAM0 = 4;
+
+        HCOUNT0 = 8;
+
+        CHCTRL0 = CHCTRL_TYPE_SOFTWARE | CHCTRL_WSIZE_16;
+        CHCTRL0 |= CHCTRL_EN;
+        while ((CHCTRL0 & CHCTRL_FLAG) == 0);
+        CHCTRL0 &= ~(CHCTRL_EN|CHCTRL_FLAG);
+
+        dma_play_data.p += 8;
+#endif
         dma_play_data.size -= 16;
     }
 
