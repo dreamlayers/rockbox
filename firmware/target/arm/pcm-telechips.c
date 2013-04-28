@@ -1,3 +1,4 @@
+#define USE_TCC76X_DMA
 /***************************************************************************
  *             __________               __   ___.
  *   Open      \______   \ ____   ____ |  | _\_ |__   _______  ___
@@ -108,7 +109,7 @@ void pcm_play_dma_init(void)
 
     DAMR = DAMR_EN | DAMR_SM | DAMR_BM | DAMR_FM | DAMR_BD_4 | DAMR_FD_64;
 
-    /* Normal writes need to be MSB justified, but DMA does not */
+#ifdef USE_TCC76X_DMA
     SPARAM0 = 2;
 
     ST_DADR0 = &DADO_L(0);
@@ -116,6 +117,7 @@ void pcm_play_dma_init(void)
 
     HCOUNT0 = 2;
     CHCTRL0 = CHCTRL_TYPE_SOFTWARE | CHCTRL_BSIZE_4 | CHCTRL_WSIZE_16;
+#endif
 #else
 #error "Target isn't supported"
 #endif
@@ -194,17 +196,17 @@ static void play_start_pcm(void)
         //lcd_update();
         //sleep(HZ);
 
-#elif 0
+#elif !defined(USE_TCC76X_DMA)
     if (dma_play_data.size >= 16)
     {
-        DADO_L(0) = *dma_play_data.p++ << 16;
-        DADO_R(0) = *dma_play_data.p++ << 16;
-        DADO_L(1) = *dma_play_data.p++ << 16;
-        DADO_R(1) = *dma_play_data.p++ << 16;
-        DADO_L(2) = *dma_play_data.p++ << 16;
-        DADO_R(2) = *dma_play_data.p++ << 16;
-        DADO_L(3) = *dma_play_data.p++ << 16;
-        DADO_R(3) = *dma_play_data.p++ << 16;
+        DADO_SHORT_L(0) = *dma_play_data.p++;
+        DADO_SHORT_R(0) = *dma_play_data.p++;
+        DADO_SHORT_L(1) = *dma_play_data.p++;
+        DADO_SHORT_R(1) = *dma_play_data.p++;
+        DADO_SHORT_L(2) = *dma_play_data.p++;
+        DADO_SHORT_R(2) = *dma_play_data.p++;
+        DADO_SHORT_L(3) = *dma_play_data.p++;
+        DADO_SHORT_R(3) = *dma_play_data.p++;
         dma_play_data.size -= 16;
     }
 
@@ -415,16 +417,15 @@ void fiq_handler(void)
 
     if (dma_play_data.size >= 16)
     {
-#if 0
-        /* TCC76x: data is justified to MSB */
-        DADO_L(0) = *dma_play_data.p++ << 16;
-        DADO_R(0) = *dma_play_data.p++ << 16;
-        DADO_L(1) = *dma_play_data.p++ << 16;
-        DADO_R(1) = *dma_play_data.p++ << 16;
-        DADO_L(2) = *dma_play_data.p++ << 16;
-        DADO_R(2) = *dma_play_data.p++ << 16;
-        DADO_L(3) = *dma_play_data.p++ << 16;
-        DADO_R(3) = *dma_play_data.p++ << 16;
+#ifndef USE_TCC76X_DMA
+        DADO_SHORT_L(0) = *dma_play_data.p++;
+        DADO_SHORT_R(0) = *dma_play_data.p++;
+        DADO_SHORT_L(1) = *dma_play_data.p++;
+        DADO_SHORT_R(1) = *dma_play_data.p++;
+        DADO_SHORT_L(2) = *dma_play_data.p++;
+        DADO_SHORT_R(2) = *dma_play_data.p++;
+        DADO_SHORT_L(3) = *dma_play_data.p++;
+        DADO_SHORT_R(3) = *dma_play_data.p++;
 #else
         CHCTRL0 |= CHCTRL_EN;
         //while ((CHCTRL0 & CHCTRL_FLAG) == 0);

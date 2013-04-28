@@ -34,29 +34,19 @@
  */
 
 /* Digital Audio Input Registers, Left and Right */
-/* Normal writes need to be MSB justified, but DMA can write 16 bit values. */
-#define DADI_L0 (*(volatile unsigned long *)0x80000000)
-#define DADI_R0 (*(volatile unsigned long *)0x80000004)
-#define DADI_L1 (*(volatile unsigned long *)0x80000008)
-#define DADI_R1 (*(volatile unsigned long *)0x8000000C)
-#define DADI_L2 (*(volatile unsigned long *)0x80000010)
-#define DADI_R2 (*(volatile unsigned long *)0x80000014)
-#define DADI_L3 (*(volatile unsigned long *)0x80000018)
-#define DADI_R3 (*(volatile unsigned long *)0x8000001C)
 #define DADI_L(x)  (*(volatile unsigned long *)(0x80000000 + (x) * 8))
 #define DADI_R(x)  (*(volatile unsigned long *)(0x80000004 + (x) * 8))
+#define DADI_SHORT_L(x)  (*(volatile unsigned short *)(0x80000000 + (x) * 8))
+#define DADI_SHORT_R(x)  (*(volatile unsigned short *)(0x80000004 + (x) * 8))
+
+/* DADO registers are 32 bit, and data is MSB justified. 16 bit data can be
+ * written using 16 bit writes, without need to shift it to MSB justify. */
 
 /* Digital Audio Output Registers, Left and Right */
-#define DADO_L0 (*(volatile unsigned long *)0x80000020)
-#define DADO_R0 (*(volatile unsigned long *)0x80000024)
-#define DADO_L1 (*(volatile unsigned long *)0x80000028)
-#define DADO_R1 (*(volatile unsigned long *)0x8000002C)
-#define DADO_L2 (*(volatile unsigned long *)0x80000030)
-#define DADO_R2 (*(volatile unsigned long *)0x80000034)
-#define DADO_L3 (*(volatile unsigned long *)0x80000038)
-#define DADO_R3 (*(volatile unsigned long *)0x8000003C)
 #define DADO_L(x)  (*(volatile unsigned long *)(0x80000020 + (x) * 8))
 #define DADO_R(x)  (*(volatile unsigned long *)(0x80000024 + (x) * 8))
+#define DADO_SHORT_L(x)  (*(volatile unsigned short *)(0x80000020 + (x) * 8))
+#define DADO_SHORT_R(x)  (*(volatile unsigned short *)(0x80000024 + (x) * 8))
 
 /* Digital Audio Mode Register */
 #define DAMR (*(volatile unsigned long *)0x80000040)
