@@ -481,8 +481,8 @@ static int initialize_card(int card_no)
 
     /* switch to full speed */
 //    setup_sci1(card->bitrate_register);
-// FIXME 4 MHz for now, FIXME where to put this
-    GSCR0 = GSCR_EN | GSCR_MS | GSCR_WORD(7) | GSCR_DIV(11) | GSCR_FRM2(8);
+// FIXME 24 MHz for now, FIXME where to put this
+    GSCR0 = GSCR_EN | GSCR_MS | GSCR_WORD(7) | GSCR_DIV(1) | GSCR_FRM2(8);
 
     /* get CID register */
     if (sd_command(SD_SEND_CID, 0, SD_SPI_RESP_R1, NULL))
