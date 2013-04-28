@@ -107,6 +107,15 @@ void pcm_play_dma_init(void)
     DCLKmode = 0x4010;
 
     DAMR = DAMR_EN | DAMR_SM | DAMR_BM | DAMR_FM | DAMR_BD_4 | DAMR_FD_64;
+
+    /* Normal writes need to be MSB justified, but DMA does not */
+    SPARAM0 = 2;
+
+    ST_DADR0 = &DADO_L(0);
+    DPARAM0 = 0xFFFFFE04;
+
+    HCOUNT0 = 2;
+    CHCTRL0 = CHCTRL_TYPE_SOFTWARE | CHCTRL_BSIZE_4 | CHCTRL_WSIZE_16;
 #else
 #error "Target isn't supported"
 #endif
@@ -136,6 +145,9 @@ static void play_start_pcm(void)
     DAMR &= ~DAMR_TE;   /* disable tx */
     dma_play_data.state = 1;
 
+#if 0
+    /* Fixme no interrupts */
+    IEN &= ~(DAI_RX_IRQ_MASK | DAI_TX_IRQ_MASK);
     if (dma_play_data.size >= 16)
     {
         DADO_L(0) = *dma_play_data.p++ << 16;
@@ -149,6 +161,62 @@ static void play_start_pcm(void)
         dma_play_data.size -= 16;
     }
 
+#if 0
+    int i;
+    for (i = 0; i < 512; i++) {
+        int k = (i/2) % 40;
+        if (k < 20) dma_play_data.p[i] = i * 256;
+        else dma_play_data.p[i] = 2560 - (i-20) * 256;
+    }
+#endif
+        commit_dcache();
+
+        ST_SADR0 = dma_play_data.p;
+        SPARAM0 = 2;
+
+        /* Normal writes need to be MSB justified, but DMA does not */
+        ST_DADR0 = &DADO_L(0);
+        DPARAM0 = 0xFFFFFE04;
+
+        HCOUNT0 = (dma_play_data.size / (2 * 4)) & 0xFFFF;
+
+        //lcd_putsxyf(20,20,"HC:%d", HCOUNT0);
+        //lcd_update();
+        //sleep(HZ);
+
+        CHCTRL0 = CHCTRL_DMASEL(DAI_TX_IRQ_MASK) | CHCTRL_SYNC | CHCTRL_HRD | CHCTRL_TYPE_SINGLE_LEVEL | (3 << 6) | CHCTRL_WSIZE_16;
+        CHCTRL0 |= CHCTRL_EN;
+        DAMR |= DAMR_TE;   /* enable tx */
+        while ((CHCTRL0 & CHCTRL_FLAG) == 0);
+        CHCTRL0 &= ~(CHCTRL_EN|CHCTRL_FLAG);
+
+        //lcd_putsxyf(30,30,"DD:%d", HCOUNT0);
+        //lcd_update();
+        //sleep(HZ);
+
+#elif 0
+    if (dma_play_data.size >= 16)
+    {
+        DADO_L(0) = *dma_play_data.p++ << 16;
+        DADO_R(0) = *dma_play_data.p++ << 16;
+        DADO_L(1) = *dma_play_data.p++ << 16;
+        DADO_R(1) = *dma_play_data.p++ << 16;
+        DADO_L(2) = *dma_play_data.p++ << 16;
+        DADO_R(2) = *dma_play_data.p++ << 16;
+        DADO_L(3) = *dma_play_data.p++ << 16;
+        DADO_R(3) = *dma_play_data.p++ << 16;
+        dma_play_data.size -= 16;
+    }
+
+    commit_dcache();
+    ST_SADR0 = dma_play_data.p;
+#else
+    commit_dcache();
+    ST_SADR0 = dma_play_data.p;
+    CHCTRL0 = (CHCTRL0 & ~CHCTRL_CONT) | CHCTRL_EN;
+    dma_play_data.size -= 16;
+    dma_play_data.p += 8;
+#endif
     DAMR |= DAMR_TE;   /* enable tx */
 }
 
@@ -338,7 +406,12 @@ void fiq_handler(void)
         /* p is empty, get some more data */
         new_buffer = pcm_play_dma_complete_callback(0, &dma_play_data.p_r,
                                                     &dma_play_data.size);
+        commit_dcache();
+        ST_SADR0 = dma_play_data.p;
+        CHCTRL0 &= ~CHCTRL_CONT;
     }
+    else
+        CHCTRL0 |= CHCTRL_CONT;
 
     if (dma_play_data.size >= 16)
     {
@@ -353,19 +426,9 @@ void fiq_handler(void)
         DADO_L(3) = *dma_play_data.p++ << 16;
         DADO_R(3) = *dma_play_data.p++ << 16;
 #else
-        ST_SADR0 = dma_play_data.p;
-        SPARAM0 = 2;
-
-        ST_DADR0 = ((unsigned short *)&DADO_L(0))+1;
-        DPARAM0 = 4;
-
-        HCOUNT0 = 8;
-
-        CHCTRL0 = CHCTRL_TYPE_SOFTWARE | CHCTRL_WSIZE_16;
         CHCTRL0 |= CHCTRL_EN;
-        while ((CHCTRL0 & CHCTRL_FLAG) == 0);
-        CHCTRL0 &= ~(CHCTRL_EN|CHCTRL_FLAG);
-
+        //while ((CHCTRL0 & CHCTRL_FLAG) == 0);
+        //CHCTRL0 &= ~(CHCTRL_EN|CHCTRL_FLAG);
         dma_play_data.p += 8;
 #endif
         dma_play_data.size -= 16;
