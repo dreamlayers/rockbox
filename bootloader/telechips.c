@@ -74,9 +74,11 @@ void show_debug_screen(void)
         int r;
 
         unsigned char buf[512];
+        memset(buf, 0, 512);
     printf("sdi:%d", sd_init());
-    buf[510]=0; buf[511]=0;
     printf("srs:%d %x %x",sd_read_sectors(0, 1, buf),buf[510],buf[511]);
+    for (count = 0; count < 512; count++) power_count += buf[count];
+    printf("ttl:%d %x %x",power_count,buf[0],buf[1]);
 
     lcd_update();
     while(1);
