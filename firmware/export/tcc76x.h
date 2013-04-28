@@ -34,6 +34,7 @@
  */
 
 /* Digital Audio Input Registers, Left and Right */
+/* Normal writes need to be MSB justified, but DMA can write 16 bit values. */
 #define DADI_L0 (*(volatile unsigned long *)0x80000000)
 #define DADI_R0 (*(volatile unsigned long *)0x80000004)
 #define DADI_L1 (*(volatile unsigned long *)0x80000008)
