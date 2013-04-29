@@ -147,7 +147,7 @@ static void play_start_pcm(void)
     DAMR &= ~DAMR_TE;   /* disable tx */
     dma_play_data.state = 1;
 
-#if 0
+#if 1
     /* Fixme no interrupts */
     IEN &= ~(DAI_RX_IRQ_MASK | DAI_TX_IRQ_MASK);
     if (dma_play_data.size >= 16)
@@ -171,26 +171,35 @@ static void play_start_pcm(void)
         else dma_play_data.p[i] = 2560 - (i-20) * 256;
     }
 #endif
+        *(dma_play_data.p) = 0x4000;
         commit_dcache();
+    //while (1) {
+        SPARAM0 = 4;
+        SPARAM1 = 4;
+
+        ST_DADR0 = &DADO_L(0);
+        DPARAM0 = 0xFFFFFE08;
+        ST_DADR1 = &DADO_R(0);
+        DPARAM1 = 0xFFFFFE08;
 
         ST_SADR0 = dma_play_data.p;
-        SPARAM0 = 2;
-
-        /* Normal writes need to be MSB justified, but DMA does not */
-        ST_DADR0 = &DADO_L(0);
-        DPARAM0 = 0xFFFFFE04;
-
-        HCOUNT0 = (dma_play_data.size / (2 * 4)) & 0xFFFF;
+        ST_SADR1 = dma_play_data.p+1;
+        HCOUNT0 = (dma_play_data.size / (2 * 4 * 2)) & 0xFFFF;
+        HCOUNT1 = (dma_play_data.size / (2 * 4 * 2)) & 0xFFFF;
 
         //lcd_putsxyf(20,20,"HC:%d", HCOUNT0);
         //lcd_update();
         //sleep(HZ);
 
-        CHCTRL0 = CHCTRL_DMASEL(DAI_TX_IRQ_MASK) | CHCTRL_SYNC | CHCTRL_HRD | CHCTRL_TYPE_SINGLE_LEVEL | (3 << 6) | CHCTRL_WSIZE_16;
+        CHCTRL0 = CHCTRL_DMASEL(DAI_TX_IRQ_MASK) | CHCTRL_SYNC | CHCTRL_HRD | CHCTRL_TYPE_SINGLE_EDGE | (3 << 6) | CHCTRL_WSIZE_16 | CHCTRL_FLAG;
+        CHCTRL1 = CHCTRL_DMASEL(DAI_TX_IRQ_MASK) | CHCTRL_SYNC | CHCTRL_HRD | CHCTRL_TYPE_SINGLE_EDGE | (3 << 6) | CHCTRL_WSIZE_16 | CHCTRL_FLAG;
         CHCTRL0 |= CHCTRL_EN;
+        CHCTRL1 |= CHCTRL_EN;
         DAMR |= DAMR_TE;   /* enable tx */
-        while ((CHCTRL0 & CHCTRL_FLAG) == 0);
-        CHCTRL0 &= ~(CHCTRL_EN|CHCTRL_FLAG);
+    //    while ((CHCTRL0 & CHCTRL_FLAG) == 0);
+    //    while ((CHCTRL1 & CHCTRL_FLAG) == 0);
+    //}
+        //CHCTRL0 &= ~(CHCTRL_EN|CHCTRL_FLAG);
 
         //lcd_putsxyf(30,30,"DD:%d", HCOUNT0);
         //lcd_update();
@@ -410,8 +419,13 @@ void fiq_handler(void)
                                                     &dma_play_data.size);
         commit_dcache();
         ST_SADR0 = dma_play_data.p;
-        CHCTRL0 &= ~CHCTRL_CONT;
+        ST_SADR1 = dma_play_data.p+1;
+        HCOUNT0 = (dma_play_data.size / (2 * 4 * 2)) & 0xFFFF;
+        HCOUNT1 = (dma_play_data.size / (2 * 4 * 2)) & 0xFFFF;
+        CHCTRL0 |= CHCTRL_EN;
+        CHCTRL1 |= CHCTRL_EN;
     }
+#if 0
     else
         CHCTRL0 |= CHCTRL_CONT;
 
@@ -434,6 +448,9 @@ void fiq_handler(void)
 #endif
         dma_play_data.size -= 16;
     }
+#else
+    dma_play_data.size -= 16;
+#endif
 
     /* Clear FIQ status */
     CREQ = DAI_TX_IRQ_MASK | DAI_RX_IRQ_MASK;
