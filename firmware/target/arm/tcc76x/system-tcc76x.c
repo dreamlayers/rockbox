@@ -19,6 +19,7 @@
  *
  ****************************************************************************/
 
+#include "config.h"
 #include "kernel.h"
 #include "system.h"
 #include "panic.h"
@@ -71,7 +72,7 @@ void system_exception_wait(void)
 */
 
 #if defined(RC3000A)
-static void gpio_init(void)
+static void INIT_ATTR gpio_init(void)
 {
     /* Set GPIO buffer drive strength */
     CFGDRVXL = 0;
@@ -108,7 +109,7 @@ static void gpio_init(void)
 }
 #endif
 
-static void pll_init(void)
+static void INIT_ATTR pll_init(void)
 {
     /* Set ARM core to FastBus mode */
     asm volatile (
@@ -161,7 +162,7 @@ static void pll_init(void)
 
 /* Second function called in the original firmware's startup code - we just
    set up the clocks in the same way as the original firmware for now. */
-static void clock_init(void)
+static void INIT_ATTR clock_init(void)
 {
     /* Stop clocks for unused modules: CIF, LCD, I2C, UART */
     HCLKSTOP = 0x60A0;
@@ -229,7 +230,7 @@ static void clock_init(void)
 #endif
 }
 
-static void cpu_init(void)
+static void INIT_ATTR cpu_init(void)
 {
  /* Memory protection - see page 48 of ARM946 TRM
 http://infocenter.arm.com/help/topic/com.arm.doc.ddi0201d/DDI0201D_arm946es_r1p1_trm.pdf
@@ -309,7 +310,7 @@ http://infocenter.arm.com/help/topic/com.arm.doc.ddi0201d/DDI0201D_arm946es_r1p1
 
 
 
-void system_init(void)
+void INIT_ATTR system_init(void)
 {
     /* mask all interrupts */
     IEN = 0;
