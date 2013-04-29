@@ -103,7 +103,7 @@ unsigned short adc_read(int channel)
     return adcdata[channel];
 }
 
-void adc_init(void)
+void INIT_ATTR adc_init(void)
 {
     /* Initialize ADC clocks */
     //PCLKCFG6 = (PCLKCFG6 & 0xffff0000) | 4004;
