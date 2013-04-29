@@ -562,7 +562,7 @@
 #define SPARAM1 (*(volatile unsigned long *)0x80000E34)
 #define C_SADR1 (*(volatile unsigned long *)0x80000E3C)
 #define ST_DADR1 (*(volatile unsigned long *)0x80000E40)
-#define DPARAM1 (*(volatile unsigned long *)0x80000E44) */
+#define DPARAM1 (*(volatile unsigned long *)0x80000E44)
 #define C_DADR1 (*(volatile unsigned long *)0x80000E4C)
 #define HCOUNT1 (*(volatile unsigned long *)0x80000E50)
 #define CHCTRL1 (*(volatile unsigned long *)0x80000E54)
