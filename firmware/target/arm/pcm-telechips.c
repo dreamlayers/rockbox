@@ -122,7 +122,7 @@ void pcm_play_dma_init(void)
 #error "Target isn't supported"
 #endif
     /* Set DAI interrupts as FIQs */
-    IRQSEL = ~(DAI_RX_IRQ_MASK | DAI_TX_IRQ_MASK);
+    IRQSEL = ~(DAI_RX_IRQ_MASK | DAI_TX_IRQ_MASK | DMA_IRQ_MASK);
 
     /* Initialize default register values. */
     audiohw_init();
@@ -192,9 +192,12 @@ static void play_start_pcm(void)
         //sleep(HZ);
 
         CHCTRL0 = CHCTRL_DMASEL(DAI_TX_IRQ_MASK) | CHCTRL_SYNC | CHCTRL_HRD | CHCTRL_TYPE_SINGLE_EDGE | (3 << 6) | CHCTRL_WSIZE_16 | CHCTRL_FLAG;
-        CHCTRL1 = CHCTRL_DMASEL(DAI_TX_IRQ_MASK) | CHCTRL_SYNC | CHCTRL_HRD | CHCTRL_TYPE_SINGLE_EDGE | (3 << 6) | CHCTRL_WSIZE_16 | CHCTRL_FLAG;
+        CHCTRL1 = CHCTRL_DMASEL(DAI_TX_IRQ_MASK) | CHCTRL_SYNC | CHCTRL_HRD | CHCTRL_TYPE_SINGLE_EDGE | (3 << 6) | CHCTRL_WSIZE_16 | CHCTRL_FLAG | CHCTRL_IEN;
+        CHCONFIG = CHCONFIG_FIX;
         CHCTRL0 |= CHCTRL_EN;
         CHCTRL1 |= CHCTRL_EN;
+
+        IEN |= DMA_IRQ_MASK;
         DAMR |= DAMR_TE;   /* enable tx */
     //    while ((CHCTRL0 & CHCTRL_FLAG) == 0);
     //    while ((CHCTRL1 & CHCTRL_FLAG) == 0);
@@ -247,7 +250,7 @@ void pcm_play_dma_start(const void *addr, size_t size)
     dma_play_data.core = processor_id(); /* save initiating core */
 #endif
 
-    IEN |= DAI_TX_IRQ_MASK;
+    IEN |= DMA_IRQ_MASK;
 
     play_start_pcm();
 }
@@ -267,7 +270,7 @@ void pcm_play_lock(void)
 
     if (++dma_play_data.locked == 1)
     {
-        IEN &= ~DAI_TX_IRQ_MASK;
+        IEN &= ~DMA_IRQ_MASK;
     }
 
     restore_fiq(status);
@@ -279,7 +282,8 @@ void pcm_play_unlock(void)
 
     if (--dma_play_data.locked == 0 && dma_play_data.state != 0)
     {
-        IEN |= DAI_TX_IRQ_MASK;
+        IEN |= DMA_IRQ_MASK;
+;
     }
 
    restore_fiq(status);
@@ -412,6 +416,7 @@ void fiq_handler(void)
 {
     register bool new_buffer = false;
 
+    dma_play_data.size = 0;
     if (dma_play_data.size < 16)
     {
         /* p is empty, get some more data */
@@ -422,8 +427,8 @@ void fiq_handler(void)
         ST_SADR1 = dma_play_data.p+1;
         HCOUNT0 = (dma_play_data.size / (2 * 4 * 2)) & 0xFFFF;
         HCOUNT1 = (dma_play_data.size / (2 * 4 * 2)) & 0xFFFF;
-        CHCTRL0 |= CHCTRL_EN;
-        CHCTRL1 |= CHCTRL_EN;
+        CHCTRL0 |= CHCTRL_EN | CHCTRL_FLAG;
+        CHCTRL1 |= CHCTRL_EN | CHCTRL_FLAG;
     }
 #if 0
     else
@@ -448,12 +453,10 @@ void fiq_handler(void)
 #endif
         dma_play_data.size -= 16;
     }
-#else
-    dma_play_data.size -= 16;
 #endif
 
     /* Clear FIQ status */
-    CREQ = DAI_TX_IRQ_MASK | DAI_RX_IRQ_MASK;
+    CREQ = DMA_IRQ_MASK | DAI_TX_IRQ_MASK | DAI_RX_IRQ_MASK;
 
     if (new_buffer)
         pcm_play_dma_status_callback(PCM_DMAST_STARTED);
