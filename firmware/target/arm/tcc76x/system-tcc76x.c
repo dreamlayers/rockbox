@@ -32,15 +32,17 @@ extern void USB_DEVICE(void);
 void irq(void)
 {
     int irq = IREQ & ALL_IRQ_MASK;
-    CREQ = irq;     /* Clears the corresponding IRQ status */
-
-    if (irq & TC_IRQ_MASK)
+    if (irq & TC_IRQ_MASK) {
+        CREQ = TC_IRQ_MASK;
         TIMER();
-    else if (irq & ADC_IRQ_MASK)
+    } else if (irq & ADC_IRQ_MASK) {
+        CREQ = ADC_IRQ_MASK;
         ADC();
 #ifdef HAVE_USBSTACK
-    else if (irq & USBD_IRQ_MASK)
+    } else if (irq & UB_IRQ_MASK) {
+        CREQ = UB_IRQ_MASK;
         USB_DEVICE();
+    }
 #endif
     else
         panicf("Unhandled IRQ 0x%08X", irq);
