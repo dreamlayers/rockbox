@@ -522,6 +522,17 @@ static int receive_block(unsigned char *inbuf, long timeout)
     int i;
 
 #if 1
+    GSCR0 = GSCR_EN | GSCR_MS | GSCR_WORD(15) | GSCR_DIV(1) | GSCR_FRM2(8);
+    register unsigned char *p = inbuf;
+    for (i = 0; i < BLOCK_SIZE/2; i++) {
+        GSDO0 = 0xFFFF;
+        while (GSGCR & GSGCR_Busy0);
+        register unsigned long v = GSDI0;
+        *p++ = v >> 8;
+        *p++ = v;
+    }
+    GSCR0 = GSCR_EN | GSCR_MS | GSCR_WORD(7) | GSCR_DIV(1) | GSCR_FRM2(8);
+#elif 0
     for (i = 0; i < BLOCK_SIZE; i++) {
         inbuf[i] = sd_read_byte();
     }
