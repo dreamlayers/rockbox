@@ -47,6 +47,11 @@
 
 #define BLOCK_SIZE  512   /* fixed */
 
+/* DMA would be nice here, but it does not seem possible on TCC760.
+   A transfer can be triggered using CHCTRL_TYPE_HARDWARE, but it
+   does not seem to synchronize with GSIO and runs too fast.
+ */
+
 /* Response formats:
    R1  = single byte, msb=0, various error flags
    R1b = R1 + busy token(s)
@@ -508,11 +513,9 @@ static int initialize_card(int card_no)
     return 0;
 }
 
-/* Receive one block with DMA and bitswap it (chasing bitswap). */
+/* Receive one block */
 static int receive_block(unsigned char *inbuf, long timeout)
 {
-    //unsigned long buf_end;
-
     if (poll_byte(timeout) != SD_SPI_START_BLOCK)
     {
         write_transfer(dummy, 1);
@@ -521,7 +524,6 @@ static int receive_block(unsigned char *inbuf, long timeout)
 
     int i;
 
-#if 1
     GSCR0 = GSCR_EN | GSCR_MS | GSCR_WORD(15) | GSCR_DIV(1) | GSCR_FRM2(8);
     register unsigned char *p = inbuf;
     for (i = 0; i < BLOCK_SIZE/2; i++) {
@@ -531,84 +533,15 @@ static int receive_block(unsigned char *inbuf, long timeout)
         *p++ = v >> 8;
         *p++ = v;
     }
+
+    /* discard CRC, send trailer */
+    GSDO0 = 0xFFFF;
+    while (GSGCR & GSGCR_Busy0);
     GSCR0 = GSCR_EN | GSCR_MS | GSCR_WORD(7) | GSCR_DIV(1) | GSCR_FRM2(8);
-#elif 0
-    for (i = 0; i < BLOCK_SIZE; i++) {
-        inbuf[i] = sd_read_byte();
-    }
-#else
-    /* Unfinished DMA code */
-    commit_discard_dcache();
-
-    /* Set up byte DMA from GSDI0 non-incrementing to inbuf incrementing */
-    ST_SADR0 = (void *)&GSDI0;
-    SPARAM0 = 0;
-
-    ST_DADR0 = inbuf;
-    DPARAM0 = 1;
-
-    HCOUNT0 = 1;
-    CHCTRL0 = CHCTRL_DMASEL(GS_IRQ_MASK) | CHCTRL_SYNC | CHCTRL_TYPE_HARDWARE | CHCTRL_WSIZE_8;
-
-    for (i = 0; i < BLOCK_SIZE; i++) {
-        GSDO0 = 0xFF;
-        while (GSGCR & GSGCR_Busy0);
-
-        CHCTRL0 |= CHCTRL_EN;
-        while ((CHCTRL0 & CHCTRL_FLAG) == 0);
-        CHCTRL0 &= ~(CHCTRL_EN|CHCTRL_FLAG);
-        CHCTRL0 |= CHCTRL_CONT;
-    }
-#endif
-    write_transfer(dummy, 3);     /* discard CRC, send trailer FIXME is it needed */
+    GSDO0 = 0xFF;
+    while (GSGCR & GSGCR_Busy0);
 
     return 0;
-#if 0
-    while (!(SSR1 & SCI_TEND));   /* wait for end of transfer */
-
-    SCR1 = 0;                     /* disable serial */
-    SSR1 = 0;                     /* clear all flags */
-
-    /* setup DMA channel 0 */
-    CHCR0 = 0;                    /* disable */
-    SAR0 = RDR1_ADDR;
-    DAR0 = (unsigned long) inbuf;
-    DTCR0 = BLOCK_SIZE;
-    CHCR0 = 0x4601;               /* fixed source address, RXI1, enable */
-    DMAOR = 0x0001;
-    SCR1 = (SCI_RE|SCI_RIE);      /* kick off DMA */
-
-    /* DMA receives 2 bytes more than DTCR2, but the last 2 bytes are not
-     * stored. The first extra byte is available from RDR1 after the DMA ends,
-     * the second one is lost because of the SCI overrun. However, this
-     * behaviour conveniently discards the crc. */
-
-    yield();                      /* be nice */
-
-    /* Bitswap received data, chasing the DMA pointer */
-    buf_end = (unsigned long)inbuf + BLOCK_SIZE;
-    do
-    {
-        /* Call bitswap whenever (a multiple of) 8 bytes are
-         * available (value optimised by experimentation). */
-        int swap_now = (DAR0 - (unsigned long)inbuf) & ~0x00000007;
-        if (swap_now)
-        {
-            bitswap(inbuf, swap_now);
-            inbuf += swap_now;
-        }
-    }
-    while ((unsigned long)inbuf < buf_end);
-
-    while (!(CHCR0 & 0x0002));    /* wait for end of DMA */
-    while (!(SSR1 & SCI_ORER));   /* wait for the trailing bytes */
-    SCR1 = 0;
-    serial_mode = SER_DISABLED;
-
-    write_transfer(dummy, 1);     /* send trailer */
-    last_disk_activity = current_tick;
-    return 0;
-#endif
 }
 
 #if 0
@@ -670,7 +603,7 @@ int sd_read_sectors(IF_MD(int drive,)
 #endif
 
     card = &card_info[drive];
-    card->read_timeout = 1024; // FIXME!!!
+    card->read_timeout = 2048; // FIXME!!!
 
     rc = select_card(drive);
     if (rc)
