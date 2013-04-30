@@ -304,6 +304,21 @@
 #define CIFCLKmode (*(volatile unsigned long *)0x8000042C)
 /* Software Reset for each peripherals */
 #define SW_nRST (*(volatile unsigned long *)0x8000043C)
+#define SW_nRST_CIF (1 << 14) /* CIF Block */
+#define SW_nRST_LCD (1 << 13) /* LCD Block */
+#define SW_nRST_DMA (1 << 12) /* DMA Block */
+#define SW_nRST_UBH (1 << 11) /* USB Host Block */
+#define SW_nRST_ETC (1 << 10) /* Miscellaneous Block */
+#define SW_nRST_ECC (1 << 9) /* ECC Block */
+#define SW_nRST_FGP (1 << 8) /* Fast GPIO Block */
+#define SW_nRST_I2C (1 << 7) /* I2C Block */
+#define SW_nRST_GS (1 << 6) /* GSIO Block */
+#define SW_nRST_UT (1 << 5) /* UART/IrDA Block */
+#define SW_nRST_UB (1 << 4) /* USB Device Block */
+#define SW_nRST_GP (1 << 3) /* GPIO Block */
+#define SW_nRST_TC (1 << 2) /* Timer/Counter Block */
+#define SW_nRST_IC (1 << 1) /* Interrupt Controller Block */
+#define SW_nRST_DAI (1 << 0) /* DAI/CDIF Block */
 /* Power Down Control */
 #define PWDCTL (*(volatile unsigned long *)0x80000440)
 /* Divider Mode Enable (DCO Disable) */
@@ -320,73 +335,144 @@
 #define DIVMODE_DVMDAI (1 << 3) /* Divider Mode Enable for DAI Clock (DCLK) */
 #define DIVMODE_DVMAHB (1 << 1) /* Divider Mode Enable for AHB Clock (HCLK) */
 #define DIVMODE_DVMCPU (1 << 0) /* Divider Mode Enable for CPU Clock (FCLK) */
-/* HCLK Stop Control */
+/* HCLK Stop Control: set bits disable module clocks. */
 #define HCLKSTOP (*(volatile unsigned long *)0x80000448)
+#define HCLKSTOP_CIF (1 << 14) /* CIF Block */
+#define HCLKSTOP_LCD (1 << 13) /* LCD Block */
+#define HCLKSTOP_DMA (1 << 12) /* DMA Block */
+#define HCLKSTOP_UBH (1 << 11) /* USB Host Block */
+#define HCLKSTOP_ETC (1 << 10) /* Miscellaneous Block. */
+#define HCLKSTOP_ECC (1 << 9) /* ECC Block */
+#define HCLKSTOP_I2C (1 << 7) /* I2C Block */
+#define HCLKSTOP_GSIO (1 << 6) /* GSIO Block */
+#define HCLKSTOP_UART (1 << 5) /* UART/IrDA Block */
+#define HCLKSTOP_USBD (1 << 4) /* USB Device Block */
+#define HCLKSTOP_GPIO (1 << 3) /* GPIO Block */
+#define HCLKSTOP_TC (1 << 2) /* Timer/Counter Block */
+#define HCLKSTOP_IC (1 << 1) /* Interrupt Controller Block */
+#define HCLKSTOP_DAI (1 << 0) /* DAI/CDIF Block */
 
 /*
  * 0x500 ~ 0x5FF USB1.1 Device
  */
 
+/* One control and 2 bulk/iso endpoints */
+#define USB_NUM_ENDPOINTS 2
+/* Won't fit in IRAM, but why? FIXME */
+#define USB_DEVBSS_ATTR
+
 /* Non Indexed Registers */
 
 /* Function Address Register */
 #define UBFADR (*(volatile unsigned short *)0x80000500)
+#define UBFADR_UP (1 << 7) /* Function Address Update */
+#define UBFADR_FADR(x) (x)
 /* Power Management Register */
 #define UBPWR (*(volatile unsigned short *)0x80000504)
-/* Endpoint Interrupt Flag Register */
+#define UBPWR_ISOUP (1 << 7) /* ISO Update */
+#define UBPWR_URST (1 << 3) /* Got USB Reset */
+#define UBPWR_RSM (1 << 2) /* Generate Resume Signal */
+#define UBPWR_SP (1 << 1) /* Suspend Mode */
+#define UBPWR_ENSP (1 << 0) /* Enable Suspend Mode */
+/* Endpoint Interrupt Flag Register, write 1 to clear */
 #define UBEIR (*(volatile unsigned short *)0x80000508)
-/* USB Interrupt Flag Register */
+#define UBEIR_EP2 (1 << 2)
+#define UBEIR_EP1 (1 << 1)
+#define UBEIR_EP0 (1 << 0)
+/* USB Interrupt Flag Register, write 1 to clear */
 #define UBIR (*(volatile unsigned short *)0x80000518)
-/* Endpoint Interrupt Enable Register */
+#define UBIR_RST (1 << 2) /* Reset Interrupt Flag */
+#define UBIR_RSM (1 << 1) /* Resume Interrupt Flag */
+#define UBIR_SP (1 << 0) /* Suspend Interrupt Flag */
+/* Endpoint Interrupt Enable Register, 1 enables */
 #define UBEIEN (*(volatile unsigned short *)0x8000051C)
+#define UBEIEN_EP2 (1 << 2)
+#define UBEIEN_EP1 (1 << 1)
+#define UBEIEN_EP0 (1 << 0)
 /* Interrupt Enable Register */
 #define UBIEN (*(volatile unsigned short *)0x8000052C)
-/* Frame Number 1 Register */
+#define UBIEN_RST (1 << 2) /* Reset Interrupt Control */
+#define UBIEN_SP (1 << 0) /* Suspend Interrupt Control */
+/* Frame number registers, number is = UBFRM2 * 256 + UBFRM1 */
 #define UBFRM1 (*(volatile unsigned short *)0x80000530)
-/* Frame Number 2 Register */
 #define UBFRM2 (*(volatile unsigned short *)0x80000534)
-/* Index Register */
+/* Index Register, selects endpoint for indexed registers */
 #define UBIDX (*(volatile unsigned short *)0x80000538)
 
 /* Common Indexed Register */
 
 /* IN Max Packet Register */
 #define MAXP (*(volatile unsigned short *)0x80000540)
+#define MAXP_8_BYTES 0
+#define MAXP_16_BYTES 2
+#define MAXP_32_BYTES 4
+#define MAXP_64_BYTES 8
+#define MAXP_128_BYTES 16 /* EP1, EP2 ISO mode only */
 
-/* In Indexed Registers */
+/* EP0 CSR Register */
+#define EP0CSR (*(volatile unsigned short *)0x80000544)
+#define EP0CSR_CLSE (1 << 7) /* Clear Setup End Bit */
+#define EP0CSR_CLOR (1 << 6) /* Clear Output Packet Ready Bit */
+#define EP0CSR_ISST (1 << 5) /* Issue STALL Handshake */
+#define EP0CSR_CEND (1 << 4) /* Control Transfer End */
+#define EP0CSR_DEND (1 << 3) /* Data End */
+#define EP0CSR_STST (1 << 2) /* STALL Handshake Issued */
+#define EP0CSR_IRDY (1 << 1) /* IN Packet Ready */
+#define EP0CSR_ORDY (1 << 0) /* OUT Packet Ready */
 
 /* IN CSR1 Register (EP0 CSR Register) */
 #define INCSR1 (*(volatile unsigned short *)0x80000544)
+#define INCSR1n_CTGL (1 << 6) /* Clear Data Toggle Bit */
+#define INCSR1n_STST (1 << 5) /* STALL Handshake Issued to an IN token */
+#define INCSR1n_ISST (1 << 4) /* Issue STALL Handshake */
+#define INCSR1n_FLFF (1 << 3) /* Issue FIFO Flush */
+#define INCSR1n_UNDER (1 << 2) /* Under Run */
+#define INCSR1n_FNE (1 << 1) /* IN FIFO Not Empty */
+#define INCSR1n_IRDY (1 << 0) /* IN Packet Ready */
 /* IN CSR2 Register */
 #define INCSR2 (*(volatile unsigned short *)0x80000548)
-
-/* Out Indexed Registers */
+#define INCSR2n_ASET (1 << 7) /* Auto Set IRDY Flag */
+#define INCSR2n_ISO (1 << 6) /* Mode Select: 0:BULK, 1:ISO */
+#define INCSR2n_MDIN (1 << 5) /* Endpoint Direction: 0:out, 1:in */
+#define INCSR2n_DMA (1 << 4) /* DMA Enable */
 
 /* OUT CSR1 Register */
 #define OCSR1 (*(volatile unsigned short *)0x80000550)
+#define OCSR1n_CTGL (1 << 7) /* Data Toggle Bit */
+#define OCSR1n_STST (1 << 6) /* STALL Handshake Issued */
+#define OCSR1n_ISST (1 << 5) /* Issue STALL Handshake */
+#define OCSR1n_FLFF (1 << 4) /* Issue FIFO Flush */
+#define OCSR1n_DERR (1 << 3) /* Data Error */
+#define OCSR1n_OVER (1 << 2) /* OUT FIFO Over Run */
+#define OCSR1n_FFL (1 << 1) /* OUT FIFO Full */
+#define OCSR1n_ORDY (1 << 0) /* OUT Packet Ready */
 /* OUT CSR2 Register */
 #define OCSR2 (*(volatile unsigned short *)0x80000554)
-/* OUT FIFO Write Count 1 Register */
+#define OCSR2n_ACLR (1 << 7) /* Auto Clear ORDY Flag*/
+#define OCSR2n_ISO (1 << 6) /* Mode Select: 0:BULK, 1:ISO */
+/* OUT FIFO Write Count Registers*/
+/* When ORDY is set, write count = OFIFO2n * 256 + OFIFO1n */
 #define OFIFO1 (*(volatile unsigned short *)0x80000558)
-/* OUT FIFO Write Count 2 Register */
 #define OFIFO2 (*(volatile unsigned short *)0x8000055C)
 
-/* FIFO Registers */
+/* FIFO Registers (8 bit values in lower 8 bits of halfword) */
 
-/* EP0 FIFO Register */
 #define EP0FIFO (*(volatile unsigned short *)0x80000580)
-/* EP1 FIFO Register */
 #define EP1FIFO (*(volatile unsigned short *)0x80000584)
-/* EP2 FIFO Register */
 #define EP2FIFO (*(volatile unsigned short *)0x80000588)
 
 /* DMA Registers */
 
 /* DMA Control Register */
 #define DMACON (*(volatile unsigned short *)0x800005C0)
-/* EP1 FIFO Access Register for DMA */
+#define DMACON_EOT_EP1 /* Force EOT. For test purpose only */
+#define DMACON_EOT_EP0
+#define DMACON_RUN_EP1 /* Start DMA Command */
+#define DMACON_RUN_EP0
+#define DMACON_CKSEL (1 << 0) /* Clock Select for System Bus Interface */
+
+/* FIFO Access Registers for DMA */
 #define DMAEP1 (*(volatile unsigned short *)0x800005C4)
-/* EP2 FIFO Access Register for DMA */
 #define DMAEP2 (*(volatile unsigned short *)0x800005C8)
 
 /* 0x600 ~ 0x6FF UART/IrDA */
