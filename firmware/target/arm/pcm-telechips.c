@@ -423,12 +423,22 @@ void fiq_handler(void)
         new_buffer = pcm_play_dma_complete_callback(0, &dma_play_data.p_r,
                                                     &dma_play_data.size);
         commit_dcache();
+#if 1
         ST_SADR0 = dma_play_data.p;
         ST_SADR1 = dma_play_data.p+1;
         HCOUNT0 = (dma_play_data.size / (2 * 4 * 2)) & 0xFFFF;
         HCOUNT1 = (dma_play_data.size / (2 * 4 * 2)) & 0xFFFF;
         CHCTRL0 |= CHCTRL_EN | CHCTRL_FLAG;
         CHCTRL1 |= CHCTRL_EN | CHCTRL_FLAG;
+#else
+        SPARAM1 = 2;
+        ST_DADR1 = &DADO_L(0);
+        DPARAM1 = 0xFFFFFE04;
+        ST_SADR1 = dma_play_data.p;
+        HCOUNT1 = (dma_play_data.size / (2)) & 0xFFFF;
+        CHCTRL1 = CHCTRL_DMASEL(DAI_TX_IRQ_MASK) | CHCTRL_SYNC | CHCTRL_HRD | CHCTRL_TYPE_HARDWARE | CHCTRL_BSIZE_1 | CHCTRL_WSIZE_16 | CHCTRL_FLAG | CHCTRL_IEN;
+        CHCTRL1 |= CHCTRL_EN | CHCTRL_FLAG;
+#endif
     }
 #if 0
     else
