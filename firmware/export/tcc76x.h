@@ -421,7 +421,7 @@
 #define EP0CSR_ORDY (1 << 0) /* OUT Packet Ready */
 
 /* IN CSR1 Register (EP0 CSR Register) */
-#define INCSR1 (*(volatile unsigned short *)0x80000544)
+#define INCSR1n (*(volatile unsigned short *)0x80000544)
 #define INCSR1n_CTGL (1 << 6) /* Clear Data Toggle Bit */
 #define INCSR1n_STST (1 << 5) /* STALL Handshake Issued to an IN token */
 #define INCSR1n_ISST (1 << 4) /* Issue STALL Handshake */
@@ -430,14 +430,14 @@
 #define INCSR1n_FNE (1 << 1) /* IN FIFO Not Empty */
 #define INCSR1n_IRDY (1 << 0) /* IN Packet Ready */
 /* IN CSR2 Register */
-#define INCSR2 (*(volatile unsigned short *)0x80000548)
+#define INCSR2n (*(volatile unsigned short *)0x80000548)
 #define INCSR2n_ASET (1 << 7) /* Auto Set IRDY Flag */
 #define INCSR2n_ISO (1 << 6) /* Mode Select: 0:BULK, 1:ISO */
 #define INCSR2n_MDIN (1 << 5) /* Endpoint Direction: 0:out, 1:in */
 #define INCSR2n_DMA (1 << 4) /* DMA Enable */
 
 /* OUT CSR1 Register */
-#define OCSR1 (*(volatile unsigned short *)0x80000550)
+#define OCSR1n (*(volatile unsigned short *)0x80000550)
 #define OCSR1n_CTGL (1 << 7) /* Data Toggle Bit */
 #define OCSR1n_STST (1 << 6) /* STALL Handshake Issued */
 #define OCSR1n_ISST (1 << 5) /* Issue STALL Handshake */
@@ -447,7 +447,7 @@
 #define OCSR1n_FFL (1 << 1) /* OUT FIFO Full */
 #define OCSR1n_ORDY (1 << 0) /* OUT Packet Ready */
 /* OUT CSR2 Register */
-#define OCSR2 (*(volatile unsigned short *)0x80000554)
+#define OCSR2n (*(volatile unsigned short *)0x80000554)
 #define OCSR2n_ACLR (1 << 7) /* Auto Clear ORDY Flag*/
 #define OCSR2n_ISO (1 << 6) /* Mode Select: 0:BULK, 1:ISO */
 /* OUT FIFO Write Count Registers*/

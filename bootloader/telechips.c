@@ -73,15 +73,17 @@ void show_debug_screen(void)
         unsigned char b;
         int r;
 
+    usb_test();
+#if 0
         unsigned char buf[512];
         memset(buf, 0, 512);
     printf("sdi:%d", sd_init());
     printf("srs:%d %x %x",sd_read_sectors(0, 1, buf),buf[510],buf[511]);
     for (count = 0; count < 512; count++) power_count += buf[count];
     printf("ttl:%d %x %x",power_count,buf[0],buf[1]);
-
+#endif
     lcd_update();
-    while(1);
+    while(1) { core_sleep(); }
     //lcd_puts_scroll(0,0,"+++ this is a very very long line to test scrolling. ---");
     sw_i2c_init();
 #if 0
