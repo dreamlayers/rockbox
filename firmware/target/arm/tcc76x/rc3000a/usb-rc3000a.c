@@ -65,67 +65,76 @@ int printf(const char *fmt, ...);
 #endif
 
 struct tcc_ep {
-    unsigned char dir;      /* endpoint direction */
-    volatile uint16_t  *ep; /* hw ep buffer */
-    int id;       /* Endpoint id */
-    int mask;     /* Endpoint bit mask */
-    char *buf;    /* user buffer to store data */
-    int max_len;  /* how match data will fit */
-    int count;    /* actual data count */
-    bool busy;
-} ;
+    bool allocated; /* Endpoint has been allocated */
+    unsigned char id; /* Combination of direction and number */
+    //int mask;      /* Endpoint bit mask */
+    int count;     /* Size of entire transfer, for later completion callback. */
+    /* Data to send/recv. Updated during transfer. */
+    char *buf;     /* Pointer to data or NULL if none. */
+    int bytesleft; /* Bytes left to transfer, starting at buf. */
+    volatile unsigned short *fifo; /* FIFO register to read/write bytes via PIO */
+    unsigned short packet_size;
+    unsigned short irdy;
+    struct semaphore completion_sem;
+};
 
 static struct tcc_ep tcc_endpoints[] = {
     /* control */
     {
-        .dir = -1,
-        .ep = NULL, //&TCC7xx_USB_EP0_BUF,
+        .allocated = false,
+        .id = EP_CONTROL,
+        .buf = NULL,
+        .fifo = &EP0FIFO,
+        .packet_size = 64,
+        .irdy = EP0CSR_IRDY,
     }, {  /* bulk */
-        .dir = -1,
-        .ep = NULL, //&TCC7xx_USB_EP1_BUF,
+        .allocated = false,
+        .buf = NULL,
+        .fifo = &EP1FIFO,
+        .packet_size = 64,
+        .irdy = INCSR1n_IRDY,
     }, { /* bulk */
-        .dir = -1,
-        .ep = NULL, //&TCC7xx_USB_EP2_BUF,
+        .allocated = false,
+        .buf = NULL,
+        .fifo = &EP2FIFO,
+        .packet_size = 64,
+        .irdy = INCSR1n_IRDY,
     },
 } ;
 
 static bool usb_drv_write_ep(struct tcc_ep *ep);
 static void usb_set_speed(int);
+static int usb_pio_write_packet(struct tcc_ep *ep);
 
 int usb_drv_request_endpoint(int type, int dir)
 {
-    //printf("udre: %d %d", type, dir);
-    lcd_update();
-    return 0;
-#if 0
-    int flags = disable_irq_save();
+    int flags;
     size_t ep;
-    int ret = 0;
+    int ret = -1;
+    int ep_dir = dir & USB_ENDPOINT_DIR_MASK;
 
+    /* TODO handle isochronous also */
     if (type != USB_ENDPOINT_XFER_BULK)
         return -1;
 
-    if (dir == USB_DIR_IN)
-        ep = 1;
-    else
-        ep = 2;
+    flags = disable_irq_save();
 
-    if (!tcc_endpoints[ep].busy) {
-        tcc_endpoints[ep].busy = true;
-        tcc_endpoints[ep].dir = dir;
-        ret = ep | dir;
-    } else {
-        ret = -1;
+    /* Find free endpoint. Control endpoint is not allocated this way. */
+    for (ep = 1; ep <= USB_NUM_ENDPOINTS; ep++) {
+        if (!tcc_endpoints[ep].allocated) {
+            tcc_endpoints[ep].allocated = true;
+            tcc_endpoints[ep].id = ep | ep_dir;
+            ret = ep | ep_dir;
+            break;
+        }
     }
 
     restore_irq(flags);
     return ret;
-#endif
 }
 
 void usb_drv_release_endpoint(int ep)
 {
-#if 0
     int flags;
     ep = ep & 0x7f;
 
@@ -134,24 +143,10 @@ void usb_drv_release_endpoint(int ep)
 
     flags = disable_irq_save();
 
-    tcc_endpoints[ep].busy = false;
-    tcc_endpoints[ep].dir = -1;
+    tcc_endpoints[ep].allocated = false;
 
     restore_irq(flags);
-#endif
 }
-
-#if 0
-static inline void pullup_on(void)
-{
-    TCC7xx_USB_PHY_CFG = 0x000c;
-}
-
-static inline void pullup_off(void)
-{
-    TCC7xx_USB_PHY_CFG = 0x3e4c;
-}
-#endif
 
 #if 0
 static
@@ -358,7 +353,7 @@ void handle_ep(unsigned short ep_irq)
 
             if (0 == (ep_irq & (1 << endpoint)))
                 continue;
-            if (!tcc_ep->busy)
+            if (!tcc_ep->allocated)
                 panicf_my("ep%d: wasn't requested", endpoint);
 
             TCC7xx_USB_INDEX = endpoint;
@@ -451,7 +446,7 @@ static void usb_reset(void)
     usb_core_bus_reset();
 }
 
-static inline handle_control_interrupt(void) {
+static inline void handle_control_interrupt(void) {
     unsigned long ep0csr_val;
 
     UBIDX = 0;
@@ -471,7 +466,7 @@ static inline handle_control_interrupt(void) {
 
     if (ep0csr_val & EP0CSR_STST) {
         /* Stall, meaning protocol violation */
-        //fixme
+        //FIXME
     }
 
     if (ep0csr_val & EP0CSR_CEND) {
@@ -505,6 +500,10 @@ static inline handle_control_interrupt(void) {
         //}
     } else if (ep0csr_val & EP0CSR_IRDY) {
         /* Ready to send packet */
+        if (tcc_endpoints[0].buf != NULL) {
+            /* Data available to send */
+            usb_pio_write_packet(&tcc_endpoints[0]);
+        }
     }
 }
 
@@ -642,6 +641,7 @@ static bool usb_drv_write_ep(struct tcc_ep *ep)
 }
 #endif
 
+#if 0
 int usb_drv_send(int endpoint, void *ptr, int length)
 {
     //printf("send: %d, %d", endpoint, length);
@@ -692,18 +692,57 @@ int usb_drv_send(int endpoint, void *ptr, int length)
     return rc;
 #endif
 }
+#endif
 
-
-int usb_drv_send_nonblocking(int endpoint, void *ptr, int length)
+/* This is a separate function because it is called both from
+ * usb_drv_send and from the interrupt handler. */
+static int usb_pio_write_packet(struct tcc_ep *ep)
 {
-#if 0
+    register volatile unsigned short *fifo = ep->fifo;
+    unsigned int l = MIN(ep->bytesleft, ep->packet_size);
+    unsigned char *p = ep->buf;
+    unsigned int i;
+    for (i = 0; i < l; i++) {
+        *fifo = *(p++);
+    }
+
+    ep->bytesleft -= l;
+
+    if (ep->bytesleft == 0) {
+        ep->buf = NULL;
+        INCSR1n = ep->irdy |
+                  ((ep->id == EP_CONTROL) ? EP0CSR_DEND : 0);
+        semaphore_release(&ep->completion_sem);
+        usb_core_transfer_complete(ep->id, USB_DIR_OUT, 0, ep->count);
+    } else {
+        ep->buf = p;
+        INCSR1n |= ep->irdy;
+    }
+
+    return 0; // FIXME can it fail?
+}
+
+static int usb_drv_send_internal(int endpoint, void *ptr, int length, bool wait)
+{
     int flags;
     int rc = 0, count = length;
     char *data = (unsigned char*) ptr;
-    struct tcc_ep *ep = &tcc_endpoints[endpoint & 0x7f];
+    unsigned short epidx = endpoint & 0x7f;
+    struct tcc_ep *ep;
+    unsigned short irdy;
 
-    if (ep->dir != USB_DIR_IN || length == 0)
+    ep = &tcc_endpoints[epidx];
+
+    if (endpoint == EP_CONTROL) {
+        /* Assume 0 length send means no data phase */
+        if (length == 0) {
+            printf("CLOR, DEND");
+            EP0CSR |= EP0CSR_CLOR | EP0CSR_DEND;
+            return 0;
+        }
+    } else if ((ep->id & USB_ENDPOINT_DIR_MASK) != USB_DIR_IN || length == 0) {
         panicf_my("%s(%d,%d): Not supported", __func__, endpoint, length);
+    }
 
     DEBUG(2, "%s(%d,%d):", __func__, endpoint, length);
 
@@ -714,29 +753,39 @@ int usb_drv_send_nonblocking(int endpoint, void *ptr, int length)
     }
 
     ep->buf = data;
-    ep->max_len = length;
+    ep->bytesleft = length;
     ep->count = count;
 
-    TCC7xx_USB_INDEX = ep->id;
-#if 1
-    TCC7xx_USB_EP_STAT = 0x2;
-    /* TODO: use interrupts instead */
-    while (!usb_drv_write_ep(ep)) {
-        while (0==(TCC7xx_USB_EP_STAT & 0x2))
-            ;
+    UBIDX = epidx;
+
+    /* If IRDY is low, the IRDY interrupt was probably already handled.
+       A packet must be written now to start the transfer. After it is sent,
+       hardware clears IRDY, generating an interrupt. Such interrupts
+       will then send the rest of the data, if any remains. */
+//#if &EP0CSR != &INCSR1n
+//#error Code assumes EP0CSR == INCSR1n
+//#endif
+    if ((INCSR1n & ep->irdy) == 0) {
+        usb_pio_write_packet(ep);
     }
-#else
-    if (!usb_drv_write_ep(ep)) {
-        TCC7xx_USB_EPIE |= ep->mask;
-        global_ep_irq_mask |= ep->mask;
-    }
-#endif
+
     restore_irq(flags);
 
-    DEBUG(2, "%s end", __func__);
+    if (wait) {
+        semaphore_wait(&ep->completion_sem, TIMEOUT_BLOCK);
+    }
 
-    return rc;
-#endif
+    return 0;
+}
+
+int usb_drv_send_nonblocking(int endpoint, void *ptr, int length, bool wait)
+{
+    return usb_drv_send_internal(endpoint, ptr, length, false);
+}
+
+int usb_drv_send(int endpoint, void *ptr, int length, bool wait)
+{
+    return usb_drv_send_internal(endpoint, ptr, length, true);
 }
 
 int usb_drv_recv(int endpoint, void* ptr, int length)
@@ -849,11 +898,9 @@ void usb_drv_init(void)
     DEBUG(2, "%s", __func__);
 
     for (i = 0; i < sizeof(tcc_endpoints)/sizeof(struct tcc_ep); i++) {
-        tcc_endpoints[i].id = i;
-        tcc_endpoints[i].mask = 1 << i;
         tcc_endpoints[i].buf = NULL;
-        tcc_endpoints[i].busy = false;
-        tcc_endpoints[i].dir = -1;
+        tcc_endpoints[i].allocated = false;
+        semaphore_init(&tcc_endpoints[i].completion_sem, 1, 0);
     }
 
     /* Driving USB GPIO low will cause re-enumeration */
