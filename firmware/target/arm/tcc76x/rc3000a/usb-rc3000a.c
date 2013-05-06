@@ -105,6 +105,7 @@ static struct tcc_ep tcc_endpoints[] = {
 static bool usb_drv_write_ep(struct tcc_ep *ep);
 static void usb_set_speed(int);
 static int usb_pio_write_packet(struct tcc_ep *ep);
+static int usb_pio_read(struct tcc_ep *ep);
 
 int usb_drv_request_endpoint(int type, int dir)
 {
@@ -125,8 +126,21 @@ int usb_drv_request_endpoint(int type, int dir)
             tcc_endpoints[ep].allocated = true;
             tcc_endpoints[ep].id = ep | ep_dir;
             ret = ep | ep_dir;
+            UBIDX = ep;
             break;
         }
+    }
+
+    /* Initialize endpoint registers */
+    MAXP = MAXP_64_BYTES;
+    if (ep_dir == USB_DIR_IN) {
+        INCSR1n = (INCSR1n & ~0xFF) | (INCSR1n_CTGL|INCSR1n_FLFF);
+        INCSR2n = (INCSR2n & ~(INCSR2n_ASET|INCSR2n_ISO|INCSR2n_DMA)) |
+                  INCSR2n_MDIN;
+    } else {
+        INCSR2n &= ~(INCSR2n_ASET|INCSR2n_ISO|INCSR2n_DMA|INCSR2n_MDIN);
+        OCSR1n = (OCSR1n & ~0xFF) | (OCSR1n_CTGL|OCSR1n_FLFF);
+        OCSR2n &= ~(OCSR2n_ACLR|OCSR2n_ISO);
     }
 
     restore_irq(flags);
@@ -446,7 +460,7 @@ static void usb_reset(void)
     usb_core_bus_reset();
 }
 
-static inline void handle_control_interrupt(void) {
+static inline void usb_ep0_interrupt(void) {
     unsigned long ep0csr_val;
 
     UBIDX = 0;
@@ -484,7 +498,7 @@ static inline void handle_control_interrupt(void) {
             static unsigned char ctrldata[8];
             int i;
             unsigned char *p = (unsigned char *)ctrldata;
-            printf ("CPR: %d", OFIFO1);
+            printf ("CPR: %d", OFIFO1n);
             for (i = 0; i < 8; i++) {
                 p[i] = EP0FIFO;
             }
@@ -503,6 +517,22 @@ static inline void handle_control_interrupt(void) {
         if (tcc_endpoints[0].buf != NULL) {
             /* Data available to send */
             usb_pio_write_packet(&tcc_endpoints[0]);
+        }
+    }
+}
+
+static inline void usb_ep12_interrupt(struct tcc_ep *ep) {
+    unsigned long epcsr_val;
+
+    if ((ep->id & USB_ENDPOINT_DIR_MASK) == USB_DIR_IN) {
+        epcsr_val = INCSR1n;
+        if ((epcsr_val & INCSR1n_IRDY) && ep->buf != NULL) {
+            usb_pio_write_packet(ep);
+        }
+    } else {
+        epcsr_val = OCSR1n;
+        if ((epcsr_val & OCSR1n_ORDY) && ep->buf != NULL) {
+            usb_pio_read(ep);
         }
     }
 }
@@ -537,7 +567,17 @@ void USB_DEVICE(void)
     }
 
     if (ubeir_val & UBEIR_EP0) {
-        handle_control_interrupt();
+        usb_ep0_interrupt();
+    }
+
+    if (ubeir_val & UBEIR_EP1) {
+        UBIDX = 1;
+        usb_ep12_interrupt(&tcc_endpoints[1]);
+    }
+
+    if (ubeir_val & UBEIR_EP2) {
+        UBIDX = 2;
+        usb_ep12_interrupt(&tcc_endpoints[2]);
     }
 #if 0
     unsigned short sys_stat;
@@ -725,9 +765,9 @@ static int usb_pio_write_packet(struct tcc_ep *ep)
 static int usb_drv_send_internal(int endpoint, void *ptr, int length, bool wait)
 {
     int flags;
-    int rc = 0, count = length;
+    int rc = 0;
     char *data = (unsigned char*) ptr;
-    unsigned short epidx = endpoint & 0x7f;
+    unsigned short epidx = endpoint & USB_ENDPOINT_NUMBER_MASK;
     struct tcc_ep *ep;
     unsigned short irdy;
 
@@ -754,7 +794,7 @@ static int usb_drv_send_internal(int endpoint, void *ptr, int length, bool wait)
 
     ep->buf = data;
     ep->bytesleft = length;
-    ep->count = count;
+    ep->count = length;
 
     UBIDX = epidx;
 
@@ -788,28 +828,90 @@ int usb_drv_send(int endpoint, void *ptr, int length, bool wait)
     return usb_drv_send_internal(endpoint, ptr, length, true);
 }
 
+/* This is a separate function because it is called both from
+ * usb_drv_send and from the interrupt handler. */
+static int usb_pio_read(struct tcc_ep *ep)
+{
+    register volatile unsigned short *fifo = ep->fifo;
+    unsigned int l;
+    unsigned char *p = ep->buf;
+    unsigned int i;
+
+    l = MIN(ep->bytesleft, OFIFO1n & 0xFF);
+    l = MIN(l, ep->packet_size);
+    for (i = 0; i < l; i++) {
+        *(p++) = *fifo;
+    }
+
+    ep->bytesleft -= l;
+
+    if (ep->id == EP_CONTROL) {
+        if (ep->bytesleft == 0) {
+            EP0CSR |= EP0CSR_CLOR | EP0CSR_DEND;
+            semaphore_release(&ep->completion_sem);
+            usb_core_transfer_complete(EP_CONTROL, USB_DIR_IN, 0, ep->count);
+        } else {
+            EP0CSR |= EP0CSR_CLOR;
+        }
+    } else {
+        OCSR1n &= ~OCSR1n_ORDY;
+        semaphore_release(&ep->completion_sem);
+        usb_core_transfer_complete(ep->id, USB_DIR_IN, 0, ep->count);
+    }
+
+    return 0; // FIXME can it fail?
+}
+
+
 int usb_drv_recv(int endpoint, void* ptr, int length)
 {
     //printf("recv: %d, %d", endpoint, length);
-    if (endpoint == EP_CONTROL) {
-        int i;
-        while ((EP0CSR & EP0CSR_ORDY) == 0);
-        for (i = 0; i < length; i++) {
-            ((unsigned char *)ptr)[i] = EP0FIFO;
-        }
+    int flags;
+    int rc = 0;
+    char *data = (unsigned char*) ptr;
+    unsigned short epidx = endpoint & USB_ENDPOINT_NUMBER_MASK;
+    struct tcc_ep *ep;
+    unsigned short irdy;
 
-        if (length == 0) {
-            printf("CLOR");
-            EP0CSR |= EP0CSR_CLOR;
-        } else {
-            printf("CLOR, DEND");
-            EP0CSR |= EP0CSR_CLOR | EP0CSR_DEND;
-        }
-        //EP0CSR |= EP0CSR_CLOR | ((length == 0) ? 0 : EP0CSR_DEND);
-        setup_phase = false;
-
+    if (endpoint == EP_CONTROL && length == 0) {
+        /* Use zero length send as end of setup packet */
+        printf("CLOR");
+        UBIDX = epidx; // FIXME
+        EP0CSR |= EP0CSR_CLOR;
         return 0;
+    } else if ((ep->id & USB_ENDPOINT_DIR_MASK) == USB_DIR_IN || length == 0) {
+        panicf_my("%s(%d,%d): Not supported", __func__, endpoint, length);
     }
+
+    DEBUG(2, "%s(%d,%d):", __func__, endpoint, length);
+
+    flags = disable_irq_save();
+
+    if(ep->buf != NULL) {
+        panicf_my("%s: ep is already busy", __func__);
+    }
+
+    ep->buf = data;
+    ep->bytesleft = length;
+    ep->count = length;
+
+    UBIDX = epidx;
+
+    /* FIXME rewrite If IRDY is low, the IRDY interrupt was probably already handled.
+       A packet must be written now to start the transfer. After it is sent,
+       hardware clears IRDY, generating an interrupt. Such interrupts
+       will then send the rest of the data, if any remains. */
+//#if &EP0CSR != &INCSR1n
+//#error Code assumes EP0CSR == INCSR1n
+//#endif
+    if ((endpoint == EP_CONTROL) ?
+        (EP0CSR & EP0CSR_ORDY) : (OCSR1n & OCSR1n_ORDY)) {
+        usb_pio_write_packet(ep);
+    }
+
+    restore_irq(flags);
+
+    return 0;
 #if 0
     volatile struct tcc_ep *tcc_ep = &tcc_endpoints[endpoint & 0x7f];
     int flags;
