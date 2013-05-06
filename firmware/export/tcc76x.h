@@ -452,8 +452,8 @@
 #define OCSR2n_ISO (1 << 6) /* Mode Select: 0:BULK, 1:ISO */
 /* OUT FIFO Write Count Registers*/
 /* When ORDY is set, write count = OFIFO2n * 256 + OFIFO1n */
-#define OFIFO1 (*(volatile unsigned short *)0x80000558)
-#define OFIFO2 (*(volatile unsigned short *)0x8000055C)
+#define OFIFO1n (*(volatile unsigned short *)0x80000558)
+#define OFIFO2n (*(volatile unsigned short *)0x8000055C)
 
 /* FIFO Registers (8 bit values in lower 8 bits of halfword) */
 
