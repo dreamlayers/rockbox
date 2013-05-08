@@ -36,7 +36,6 @@
 #define USB_PACKET_SIZE 64
 
 static bool setup_phase = true;
-int fucked = 2;
 
 static int dbg_level = 0x00;
 #define DEBUG(level, fmt, args...) do { if (dbg_level & (level)) printf(fmt, ## args); } while (0)
@@ -240,26 +239,27 @@ static inline void usb_ep0_interrupt(void) {
         /* New token received. */
         if (setup_phase) {
             /* This should be setup token */
-            static unsigned char ctrldata[8];
             int i;
-            unsigned char *p = (unsigned char *)ctrldata;
+            struct usb_ctrlrequest ep0_setup_pkt;
+            unsigned char *p = (unsigned char *)&ep0_setup_pkt;
             int l = OFIFO1n;
             //printf ("CPR: %d", l);
             if (l != 8) die("LEN");
             for (i = 0; i < 8; i++) {
                 p[i] = EP0FIFO;
             }
-#if 1
-            if (ctrldata[1] == 5) {
-                // FIXME all this delay is needed for set address
-                printf("0: %02x %02x %02x %02x", p[0], p[1], p[2], p[3]);
-                printf("4: %02x %02x %02x %02x", p[4], p[5], p[6], p[7]);
-                //EP0CSR = EP0CSR_CLOR;
-                lcd_update();
-            }
+#if 0
+            printf("0: %02x %02x %02x %02x", p[0], p[1], p[2], p[3]);
+            printf("4: %02x %02x %02x %02x", p[4], p[5], p[6], p[7]);
 #endif
+            /* Address needs to be set before DEND so it can take effect
+             * after DEND for next setup packet. */
+            if(ep0_setup_pkt.bRequestType == USB_TYPE_STANDARD &&
+               ep0_setup_pkt.bRequest     == USB_REQ_SET_ADDRESS)
+                UBFADR = UBFADR_UP | ep0_setup_pkt.wValue;
+
             /* For setup tokens, usb_core_control_request is called */
-            usb_core_control_request((struct usb_ctrlrequest*)ctrldata);
+            usb_core_control_request(&ep0_setup_pkt);
             setup_phase = false;
         }
         //} else {
@@ -311,12 +311,6 @@ void USB_DEVICE(void)
     }
     //printf("USBD: %d %d", ubir_val, ubeir_val);
 
-    /* FIXME this wait is necessary and horrible for performance */
-    if (fucked) {//(ubeir_val & (UBEIR_EP1|UBEIR_EP2)) == 0)
-        printf("FUCKED: %d %d", ubir_val, ubeir_val);
-        lcd_update();
-    }
-
     if (ubir_val & UBIR_RST) {
         usb_reset();
     }
@@ -340,9 +334,10 @@ void USB_DEVICE(void)
 
 void usb_drv_set_address(int address)
 {
-    UBFADR = UBFADR_UP | address;
-    // DEBUG(2, "setting address %d %d", address, TCC7xx_USB_FUNC);
-    if (fucked == 2) fucked = 0;
+    /* Ignored because the address takes effect after DEND, and at this point
+     * DEND has already been set. Address is instead set in the EP0 interrupt
+     * handler. */
+    (void)address;
 }
 
 int usb_drv_port_speed(void)
