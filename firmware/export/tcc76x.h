@@ -357,7 +357,7 @@
  */
 
 /* One control and 2 bulk/iso endpoints */
-#define USB_NUM_ENDPOINTS 2
+#define USB_NUM_ENDPOINTS 3
 /* Won't fit in IRAM, but why? FIXME */
 #define USB_DEVBSS_ATTR
 

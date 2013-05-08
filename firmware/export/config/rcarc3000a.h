@@ -157,6 +157,6 @@
 /* enable these for the experimental usb stack */
 #define HAVE_USBSTACK
 #define USE_ROCKBOX_USB
-#define USB_VENDOR_ID 0x05ac
-#define USB_PRODUCT_ID 0x1209
+#define USB_VENDOR_ID 0x069b
+#define USB_PRODUCT_ID 0x301d
 #endif
