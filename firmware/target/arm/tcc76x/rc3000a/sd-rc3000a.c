@@ -47,6 +47,20 @@
 
 #define BLOCK_SIZE  512   /* fixed */
 
+
+/* GSCR setting used after initialization
+ * With GCLKmode = 0x100, this gives
+ * 192 / (2 * 1 + 2) / 2 = 24 MHz
+ *
+ * OF instead uses 0xDC00400A, which violates requirement for DIV > 0.
+ * With GCLKmode = 0x120, that's presumably 192 / 2 / (2 * 0 + 2) / 2 = 24 MHz
+ * OF sometimes uses GCLKmode = 0x11A based on CSD
+ *
+ * FIXME: Can all SD cards handle 24 MHz?
+ */
+#define SD_GSCR (GSCR_EN | GSCR_MS | GSCR_WORD(7) | GSCR_DIV(1) | \
+                 GSCR_DELAY(1) | GSCR_FRM2(10))
+
 /* DMA would be nice here, but it does not seem possible on TCC760.
    A transfer can be triggered using CHCTRL_TYPE_HARDWARE, but it
    does not seem to synchronize with GSIO and runs too fast.
@@ -223,13 +237,20 @@ static int select_card(int card_no)
 
     if (!card_info[card_no].initialized)
     {
-        /* Initial rate: 375 kbps (need <= 400 per mmc specs) */
-        /* Use DCO mode to generate 192/2=96 MHz */
+        /* Initial rate <= 400 kHz for init */
+
+        /* OF uses GCLKmode = 0x120 and GSCR0 = 0xDD3C0008
+         * giving SCLK speed 192 / 2 / (2 * 79 + 2) / 2 : 300 kHz
+         * It violates "DELAY should not be set to 0." */
+
+        /* Use PLL frequency for GSCLK (192 MHz) */
         DIVMODE &= ~DIVMODE_DVMGSIO;
-        GCLKmode |= 0x120;
+        GCLKmode |= 0x100; /* OF uses 0x120 for PLL/2 = 96 MHz */
         CKCTRL &= ~CKCTRL_GCK;
-        /* 96/(2*127+2) = 0.375. OF uses 0xDD3C0008 for 600 kHz here. */
-        GSCR0 = GSCR_EN | GSCR_MS | GSCR_WORD(7) | GSCR_DIV(127) | GSCR_FRM2(8);
+
+        /* 192 / (2 * 127 + 2) / 2 : 375 kHz */
+        GSCR0 = GSCR_EN | GSCR_MS | GSCR_WORD(7) | \
+                GSCR_DIV(127) | GSCR_DELAY(1) | GSCR_FRM2(7);
 
         /* At least 74 clock cycles with CS high for synchronization */
         GPIOA |= SD_CS;
@@ -487,7 +508,7 @@ static int initialize_card(int card_no)
     /* switch to full speed */
 //    setup_sci1(card->bitrate_register);
 // FIXME 24 MHz for now, FIXME where to put this
-    GSCR0 = GSCR_EN | GSCR_MS | GSCR_WORD(7) | GSCR_DIV(1) | GSCR_FRM2(8);
+    GSCR0 = SD_GSCR;
 
     /* get CID register */
     if (sd_command(SD_SEND_CID, 0, SD_SPI_RESP_R1, NULL))
@@ -522,22 +543,34 @@ static int receive_block(unsigned char *inbuf, long timeout)
         return -1;                /* not start of data */
     }
 
-    int i;
+    /* Temporarily use 16 bit transfers */
+    GSCR0 = SD_GSCR | GSCR_WORD(15);
 
-    GSCR0 = GSCR_EN | GSCR_MS | GSCR_WORD(15) | GSCR_DIV(1) | GSCR_FRM2(8);
     register unsigned char *p = inbuf;
-    for (i = 0; i < BLOCK_SIZE/2; i++) {
-        GSDO0 = 0xFFFF;
-        while (GSGCR & GSGCR_Busy0);
-        register unsigned long v = GSDI0;
+    register unsigned char *pend = inbuf + BLOCK_SIZE - 2;
+    register unsigned long v;
+
+    /* First part of loop unrolled for optimization */
+    GSDO0 = 0xFFFF;
+    goto recv_blk_loop_entry;
+
+    /* Loop structured so write and test happen while waiting for busy */
+    do {
         *p++ = v >> 8;
         *p++ = v;
-    }
+        /* Last iteration will discard CRC */
+recv_blk_loop_entry:
+        while (GSGCR & GSGCR_Busy0);
+        v = GSDI0;
+        GSDO0 = 0xFFFF;
+    } while (p < pend);
 
-    /* discard CRC, send trailer */
-    GSDO0 = 0xFFFF;
-    while (GSGCR & GSGCR_Busy0);
-    GSCR0 = GSCR_EN | GSCR_MS | GSCR_WORD(7) | GSCR_DIV(1) | GSCR_FRM2(8);
+    /* End of unrolled loop */
+    *p++ = v >> 8;
+    *p++ = v;
+
+    while (GSGCR & GSGCR_Busy0); /* Waiting for CRC */
+    GSCR0 = SD_GSCR;
     GSDO0 = 0xFF;
     while (GSGCR & GSGCR_Busy0);
 
