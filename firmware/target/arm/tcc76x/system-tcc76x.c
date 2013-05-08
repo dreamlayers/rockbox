@@ -38,8 +38,9 @@ void irq(void)
     } else if (irq & ADC_IRQ_MASK) {
         CREQ = ADC_IRQ_MASK;
         ADC();
+    }
 #ifdef HAVE_USBSTACK
-    } else if (irq & UB_IRQ_MASK) {
+      else if (irq & UB_IRQ_MASK) {
         CREQ = UB_IRQ_MASK;
         USB_DEVICE();
     }
