@@ -130,8 +130,10 @@ static void INIT_ATTR pll_init(void)
     /* Disable PLL clock and peripherals using it */
     CKCTRL |= CKCTRL_PLL;
 
-    /* Set PLLMODE based on argument */
-    PLLMODE = PLLMODE_VAL(2, 14, 1);
+    /* PLL frequency is:
+     * fXin * 8 * (M + 2) / ((P + 2) * 2**S
+     * 12 MHz * 8 * (14 + 2) / ((2 + 2) * 2**1) = 192 MHz */
+    PLLMODE = PLLMODE_M(14) | PLLMODE_P(2) | PLLMODE_S(1);
 
     /* Re-enable PLL clock */
     CKCTRL &= ~CKCTRL_PLL;
@@ -147,8 +149,8 @@ static void INIT_ATTR pll_init(void)
 
     /* FIXME init CSCFG3 */
 
-    /* HCLK = PLL/2, HCLK = PLL*5/64 */
-    SCLKmode = 0x5020;
+    /* FCLK = PLL/2, HCLK = PLL/4 */
+    SCLKmode = SCLKmode_H_PHASE(16) | SCLKmode_F_PHASE(32);
 
     /* Use PLL output for DIVCLK0 and DIVCLK1. This switches CPU to PLL. */
     PLLMODE |= PLLMODE_DIV1;
