@@ -280,10 +280,16 @@
 #define PLLMODE_XTE (1 << 19) /* XTIN Enable in Power Down Mode */
 #define PLLMODE_DIV1 (1 << 18) /* Set to use PLL to clock CPU */
 /* Values defining PLL speed: fPLL = fXin * 8 * (M + 2) / ((P + 2) * 2**S ) */
-#define PLLMODE_VAL(p,m,s) ((p)|((m)<<8)|((s)<<16))
+#define PLLMODE_S(s) ((s)<<16)
+#define PLLMODE_M(m) ((m)<<8)
+#define PLLMODE_P(p) (p)
 
 /* System Clock Control Register */
 #define SCLKmode (*(volatile unsigned long *)0x80000408)
+#define SCLKmode_HS (1 << 15) /* HCLK Clock Select */
+#define SCLKmode_HD (1 << 14) /* HCLK Clock Disable in IDLE Mode */
+#define SCLKmode_H_PHASE(x) ((x) << 8)
+#define SCLKmode_F_PHASE(x) ((x) << 0)
 /* DCLK (DAI/CODEC) Control Register */
 #define DCLKmode (*(volatile unsigned long *)0x8000040C)
 /* ADCLK and EX2CLK Control Register */
