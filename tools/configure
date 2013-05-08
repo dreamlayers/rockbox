@@ -3434,7 +3434,7 @@ fi
     t_model="ma"
     ;;
 
-   247|rc3000a)
+   247|rcarc3000a)
     target_id=247
     modelname="rcarc3000a"
     target="RC3000A"
