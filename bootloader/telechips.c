@@ -60,6 +60,14 @@ extern int line;
 
 unsigned long data[] = { 0, 0x00001111, 0x00002222, 0x00003333 };
 
+#include "timer.h"
+void timer_proc(void) {
+    static int cnt = 0;
+    printf("timer_proc %d", cnt++);
+}
+
+void timer_unreg(void) {}
+
 /* The following function is just test/development code */
 void show_debug_screen(void)
 {
@@ -71,8 +79,14 @@ void show_debug_screen(void)
         unsigned char b;
         int r;
 
-    usb_test();
+    printf("tr=%d", timer_register(0, timer_unreg, 20000000, timer_proc));
+    timer_start();
+    while (1) {
+        core_sleep();
+    }
 #if 0
+    usb_test();
+
         unsigned char buf[512];
         memset(buf, 0, 512);
     printf("sdi:%d", sd_init());
