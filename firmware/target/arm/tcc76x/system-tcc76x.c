@@ -25,19 +25,22 @@
 #include "panic.h"
 
 /* Externally defined interrupt handlers */
-extern void TIMER(void);
-extern void ADC(void);
+extern void ICODE_ATTR TIMER(void);
+extern void ICODE_ATTR TC32(void);
 extern void USB_DEVICE(void);
+extern void ADC(void);
 
+void irq(void) __attribute__((interrupt ("IRQ"), section(".icode")));
 void irq(void)
 {
     int irq = IREQ & ALL_IRQ_MASK;
+    /* This function is responsible for clearing interrupt request flags
+     * in the interrupt controller. Some modules have their own interrupt
+     * request flags, and called functions need to clear those flags first. */
+    // FIXME which to use? Could this miss interrupts?
     if (irq & TC_IRQ_MASK) {
         CREQ = TC_IRQ_MASK;
         TIMER();
-    } else if (irq & ADC_IRQ_MASK) {
-        CREQ = ADC_IRQ_MASK;
-        ADC();
     }
 #ifdef HAVE_USBSTACK
       else if (irq & UB_IRQ_MASK) {
@@ -45,6 +48,10 @@ void irq(void)
         USB_DEVICE();
     }
 #endif
+      else if (irq & ADC_IRQ_MASK) {
+        CREQ = ADC_IRQ_MASK;
+        ADC();
+    }
     else
         panicf("Unhandled IRQ 0x%08X", irq);
 }
@@ -54,7 +61,7 @@ void fiq_handler(void) __attribute__((interrupt ("FIQ"), naked));
 #ifdef BOOTLOADER
 void fiq_handler(void)
 {
-    /* TODO */
+    panicf("Unhandled FIQ 0x%08X", IREQ);
 }
 #endif
 
@@ -63,8 +70,9 @@ void system_reboot(void)
 }
 
 void system_exception_wait(void)
+
 {
-    while (1);
+    while (1) core_sleep();
 }
 
 /* TODO - these should live in the target-specific directories and
@@ -101,7 +109,8 @@ static void INIT_ATTR gpio_init(void)
     /* Set GPIO special function */
     GSEL_A =  0;
     GTSEL_A = 0;
-    GSEL_B =  0x33E000FB;
+    GSEL_B =  0x33E000FB;        TC32PCNT = 0; TC32MCNT = 0;
+
     GTSEL_B = 0x33E000FB;
 
     /* Initialize GPIO output data */
@@ -180,6 +189,10 @@ static void INIT_ATTR clock_init(void)
     LCLKmode = 0x2000;
     GCLKmode = 0x2000;
     CIFCLKmode = 0x2000;
+
+    /* 2 Mhz, from 12Mhz / (5+1) */
+    DIVMODE |= DIVMODE_DVMTC;
+    TCLKmode = (0 << 7) | 5;
 
     pll_init();
 
@@ -318,7 +331,7 @@ http://infocenter.arm.com/help/topic/com.arm.doc.ddi0201d/DDI0201D_arm946es_r1p1
 void INIT_ATTR system_init(void)
 {
     /* mask all interrupts */
-    IEN = 0;
+    IEN &= ~ALL_IRQ_MASK;
 
     /* Set all interrupts as IRQ for now - some may need to be FIQ in future */
     IRQSEL |= ALL_IRQ_MASK;
@@ -326,8 +339,8 @@ void INIT_ATTR system_init(void)
     /* Clear all interrupts */
     CREQ |= ALL_IRQ_MASK;
 
-    /* Set master enable bit */
-    IEN = MEN_IRQ_MASK;
+    /* Set master enable bit, but leave all interrupts disabled */
+    IEN = (IEN & ~ALL_IRQ_MASK) | MEN_IRQ_MASK;
 
     cpu_init();
     clock_init();

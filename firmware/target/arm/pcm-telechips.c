@@ -171,7 +171,7 @@ static void play_start_pcm(void)
         else dma_play_data.p[i] = 2560 - (i-20) * 256;
     }
 #endif
-        *(dma_play_data.p) = 0x4000;
+        //*(dma_play_data.p) = 0x4000;
         commit_dcache();
     //while (1) {
         SPARAM0 = 4;
