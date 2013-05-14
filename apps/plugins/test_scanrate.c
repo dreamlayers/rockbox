@@ -70,6 +70,8 @@ static const struct button_mapping *plugin_contexts[] = { pla_main_ctx };
 #define DEFAULT_SCAN_RATE 780
 #elif defined SAMSUNG_YH920
 #define DEFAULT_SCAN_RATE 700
+#elif defined RC3000A
+#define DEFAULT_SCAN_RATE 762
 #else
 #define DEFAULT_SCAN_RATE 700
 #warning Generic default scanrate

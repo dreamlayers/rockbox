@@ -56,6 +56,8 @@ bool timer_set(long cycles, bool start)
     /* Counter counts from 0 to cycles */
     TREF4 = cycles - 1;
 
+    if (!start) timer_start(); // FIXME is it possible to not restart?
+
     return true;
 }
 
