@@ -27,18 +27,14 @@
 
 void tick_start(unsigned int interval_in_ms)
 {
-    /* 2 Mhz, from 12Mhz / (5+1) */
-    DIVMODE |= (1 << 7);
-    TCLKmode = (0 << 14) | 5;
-
     /* disable Timer0 */
-    TCFG0 &= ~1;
+    TCFG0 &= ~TCFGn_EN;
 
-    /* set counter reference value based on 1Mhz tick */
-    TREF0 = interval_in_ms * 1000;
+    /* Counter counts from 0 to TREF0 (TREF0 + 1 steps */
+    TREF0 = (interval_in_ms * 1000) - 1;
 
-    /* Timer0 = reset to 0, divide=2, IRQ enable, enable (continuous) */
-    TCFG0 = (1<<8) | (0<<4) | (1<<3) | 1;
+    /* Timer0 = reset to 0, TCLK/2, IRQ enable, enable, continuous */
+    TCFG0 = TCFGn_CC | TCFGn_TCKSEL(0) | TCFGn_IEN | TCFGn_EN;
 
     /* Unmask timer IRQ */
     IEN |= TC_IRQ_MASK;
