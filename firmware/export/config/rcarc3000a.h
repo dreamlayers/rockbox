@@ -21,6 +21,11 @@
 /* define this if you can invert the colours on your LCD */
 #define HAVE_LCD_INVERT
 
+/* After using black on white display and cutting power, vertical lines appeared
+ * on next start up on white on black display and faded over a a few tens of
+ * seconds. This should fix it. */
+#define HAVE_LCD_SHUTDOWN
+
 /* define this if you have access to the quickscreen */
 #define HAVE_QUICKSCREEN
 

@@ -33,7 +33,7 @@ extern void ADC(void);
 void irq(void) __attribute__((interrupt ("IRQ"), section(".icode")));
 void irq(void)
 {
-    int irq = IREQ & ALL_IRQ_MASK;
+    unsigned int irq = IREQ & ALL_IRQ_MASK;
     /* This function is responsible for clearing interrupt request flags
      * in the interrupt controller. Some modules have their own interrupt
      * request flags, and called functions need to clear those flags first. */
@@ -61,7 +61,7 @@ void fiq_handler(void) __attribute__((interrupt ("FIQ"), naked));
 #ifdef BOOTLOADER
 void fiq_handler(void)
 {
-    panicf("Unhandled FIQ 0x%08X", IREQ);
+    panicf("Unhandled FIQ 0x%08X", (unsigned int)IREQ);
 }
 #endif
 
