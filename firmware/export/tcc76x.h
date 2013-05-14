@@ -700,14 +700,32 @@
 #define MCFG (*(volatile unsigned long *)0xF0000008)
 /* Test mode register (must be remained zero) */
 #define TST (*(volatile unsigned long *)0xF000000C)
-/* External Chip Select 0 Configuration Register */
+/* Chip Select Configuration Registers */
 #define CSCFG0 (*(volatile unsigned long *)0xF0000010)
-/* External Chip Select 1 Configuration Register */
 #define CSCFG1 (*(volatile unsigned long *)0xF0000014)
-/* External Chip Select 2 Configuration Register */
 #define CSCFG2 (*(volatile unsigned long *)0xF0000018)
-/* External Chip Select 3 Configuration Register */
 #define CSCFG3 (*(volatile unsigned long *)0xF000001C)
+#define CSCFGn_OD (1 << 31) /* Delayed OE Signal */
+#define CSCFGn_WD (1 << 30) /* Delayed WE Signal */
+#define CSCFGn_BW(x) ((x) << 26) /* Bus Width Select, xor with MCFG */
+#define CSCFGn_MTYPE_NAND (0 << 24)
+#define CSCFGn_MTYPE_IDE (1 << 24)
+#define CSCFGn_MTYPE_SMEM_0 (2 << 24) /* Byte write control signal not needed */
+#define CSCFGn_MTYPE_SMEM_1 (3 << 24) /* Byte write control signal needed */
+#define CSCFGn_CSBASE(x) ((x) << 20) /* Base address set to x * 0x10000000 */
+#define CSCFGn_URDY (1 << 19) /* Use Ready */
+#define CSCFGn_RDY (1 << 18) /* Ready / Busy Select */
+#define CSCFGn_AMSK (1 << 14) /* Address Mask Bit */
+#define CSCFGn_PSIZE_256 (0 << 12) /* Page size of NAND Flash */
+#define CSCFGn_PSIZE_512 (1 << 12)
+#define CSCFGn_PSIZE_1024 (2 << 12)
+#define CSCFGn_PSIZE_2048 (3 << 12)
+#define CSCFGn_CADR(x) ((x) << 9) /* (x+1) cycles used for NAND address */
+#define CSCFGn_STP(x) ((x) << 6) /* Number of Cycle for Setup Time (tSH) */
+#define CSCFGn_HLD(x) ((x) << 0) /* Number of Cycle for Hold Time (tHLD) */
+#define CSCFGn_PW(x) (((((x) >> 6) & 3) << 28) | \
+                      ((((x) >> 3) & 7) << 15) | \
+                      (((x) & 7) << 3)) /* Number of Cycle for Pulse Width (tPW) */
 /* Memory Controller Clock Count Register */
 #define CLKCFG (*(volatile unsigned long *)0xF0000020)
 /* SDRAM Command Register */

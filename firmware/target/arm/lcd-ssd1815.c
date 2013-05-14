@@ -145,10 +145,13 @@ void lcd_init_device(void)
 }
 
 
-#elif defined(CPU_TCC77X)
+#elif defined(CPU_TCC77X) || defined(CPU_TCC76X)
 
-/* TCC77x specific defines */
+#if defined(CPU_TCC77X)
 #define LCD_BASE 0x50000000
+#elif defined(CPU_TCC76X)
+#define LCD_BASE 0x50080000
+#endif
 #define LCD_CMD   *(volatile unsigned char*)(LCD_BASE)
 #define LCD_DATA  *(volatile unsigned char*)(LCD_BASE+1)
 
@@ -182,13 +185,33 @@ void lcd_init_device(void)
 {
     uint32_t bus_width;
 
+    bus_width = ((MCFG >> 11) & 0x3) ^ 3;
+
+#ifdef RC3000A
+    GPIOD |= 0x200000; /* This seems to enable LCD and backlight power */
+
+    CSCFG1 =  CSCFGn_BW(3) | CSCFGn_MTYPE_SMEM_1 | CSCFGn_CSBASE(5) |
+              CSCFGn_RDY | CSCFGn_STP(1) | CSCFGn_PW(3) | CSCFGn_HLD(1);
+
+    lcd_write_command(LCD_SET_DISPLAY_OFF);
+    lcd_write_command(LCD_SET_LCD_BIAS);
+    lcd_set_flip(false);
+    lcd_write_command(LCD_SET_INTERNAL_REGULATOR_RESISTOR_RATIO + 5);
+    lcd_set_contrast(lcd_default_contrast());
+    lcd_write_command(LCD_CNTL_POWER);
+
+    lcd_clear_display();
+    lcd_update();
+
+    lcd_write_command(LCD_SET_DISPLAY_ON);
+    lcd_write_command(LCD_SET_ENTIRE_DISPLAY_OFF);
+#else
     /* Telechips init the same as the original firmware */
     CSCFG1 &= 0xc3ffc000;
     CSCFG1 |= 0x3400101a;
     CSCFG1 |= (1 << 21);
-    CSCFG1 &= ~(1 << 21);
+    CSCFG1 &= ~(1 << 21); die
 
-    bus_width = ((MCFG >> 11) & 0x3) ^ 3;
 
     CSCFG1 = (bus_width << 28) |
              (3 << 26) |                 /* MTYPE = 3 */
@@ -216,11 +239,11 @@ void lcd_init_device(void)
 
     lcd_clear_display();
     lcd_update();
+#endif
 }
 
 /* End of TCC77x specific defines */
 #endif
-
 
 /** globals **/
 
@@ -230,7 +253,11 @@ static int xoffset; /* needed for flip */
 
 int lcd_default_contrast(void)
 {
+#ifdef RC3000A
+    return 44;
+#else
     return 0x1f;
+#endif
 }
 
 void lcd_set_contrast(int val)
@@ -239,6 +266,7 @@ void lcd_set_contrast(int val)
     lcd_write_command(val);
 }
 
+#ifdef HAVE_LCD_INVERT
 void lcd_set_invert_display(bool yesno)
 {
     if (yesno) 
@@ -246,14 +274,22 @@ void lcd_set_invert_display(bool yesno)
     else 
         lcd_write_command(LCD_SET_NORMAL_DISPLAY);
 }
+#endif
 
 /* turn the display upside down (call lcd_update() afterwards) */
 void lcd_set_flip(bool yesno)
 {
+#ifdef RC3000A
+    lcd_write_command(LCD_SET_SEGMENT_REMAP | (yesno ? 1 : 0));
+    sleep(1);
+    lcd_write_command(LCD_SET_COM_OUTPUT_SCAN_DIRECTION | (yesno? 0 : 8));
+    asm volatile ("nop; nop; nop; nop; nop; nop;");
+    xoffset = yesno ? (132 - LCD_WIDTH) : 0;
+#else
     (void)yesno;
     /* TODO */
+#endif
 }
-
 
 /*** Update functions ***/
 
