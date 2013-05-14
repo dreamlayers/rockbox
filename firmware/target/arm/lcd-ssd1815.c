@@ -291,6 +291,14 @@ void lcd_set_flip(bool yesno)
 #endif
 }
 
+#ifdef HAVE_LCD_SHUTDOWN
+void lcd_shutdown(void)
+{
+    lcd_write_command(LCD_SET_DISPLAY_OFF);
+    lcd_write_command(LCD_SET_POWER_CONTROL_REGISTER);
+}
+#endif
+
 /*** Update functions ***/
 
 /* Performance function that works with an external buffer
