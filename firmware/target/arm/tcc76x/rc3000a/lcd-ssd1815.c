@@ -25,6 +25,7 @@
 #include "kernel.h"
 #include "lcd.h"
 #include "system.h"
+#include "cpu.h"
 
 /*** definitions ***/
 
@@ -179,6 +180,7 @@ void lcd_init_device(void)
     lcd_write_command(LCD_SET_ENTIRE_DISPLAY_OFF);
 }
 
+
 /*** Update functions ***/
 
 /* Performance function that works with an external buffer
@@ -198,36 +200,24 @@ void lcd_blit_mono(const unsigned char *data, int x, int by, int width,
     }
 }
 
-#if 0
-/* Helper function for lcd_grey_phase_blit(). */
-void lcd_grey_data(unsigned char *values, unsigned char *phases, int count);
 
 /* Performance function that works with an external buffer
    note that by and bheight are in 8-pixel units! */
 void lcd_blit_grey_phase(unsigned char *values, unsigned char *phases,
                          int x, int by, int width, int bheight, int stride)
 {
-    stride <<= 3; /* 8 pixels per block */
-    while (bheight--)
-    {
-        lcd_write_command (LCD_CNTL_PAGE | (by++ & 0xf));
-        lcd_write_command (LCD_CNTL_HIGHCOL | (((x+xoffset)>>4) & 0xf));
-        lcd_write_command (LCD_CNTL_LOWCOL | ((x+xoffset) & 0xf));
-
-        lcd_grey_data(values, phases, width);
-        values += stride;
-        phases += stride;
-    }
+    (void)values;
+    (void)phases;
+    (void)x;
+    (void)by;
+    (void)width;
+    (void)bheight;
+    (void)stride;
 }
-#endif
-void lcd_blit_grey_phase(unsigned char *values, unsigned char *phases,
-                         int x, int by, int width, int bheight, int stride)
-{ // FIXME
-}
-
 
 /* Update the display.
    This must be called after all other LCD functions that change the display. */
+void lcd_update(void) ICODE_ATTR;
 void lcd_update(void)
 {
     int y;
@@ -244,6 +234,7 @@ void lcd_update(void)
 }
 
 /* Update a fraction of the display. */
+void lcd_update_rect(int, int, int, int) ICODE_ATTR;
 void lcd_update_rect(int x, int y, int width, int height)
 {
     int ymax;
