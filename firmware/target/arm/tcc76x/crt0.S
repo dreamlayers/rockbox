@@ -262,16 +262,10 @@ vectors:
     .word  prefetch_abort_handler
     .word  data_abort_handler
     .word  reserved_handler
-    .word  irq_handler
+    .word  irq
     .word  fiq_handler
 
     .text
-
-irq_handler:
-    stmfd  sp!, {r0-r3, r12, lr}
-    bl     irq
-    ldmfd  sp!, {r0-r3, r12, lr}
-    subs   pc, lr, #4
 
 /* Align stacks to cache line boundary */
     .balign 16

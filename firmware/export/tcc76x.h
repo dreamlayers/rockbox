@@ -23,6 +23,7 @@
 
 #define CACHEALIGN_BITS (5) // FIXME is this right?
 
+#define TIMER_FREQ (1000000)
 
 /* Generated from datasheet using this plus some manual attention: */
 // sed "s/^\([^ ]*\) 0x\([^ ]*\) .* \(0x[0-9A-Fa-f]*\|Unknown\|-\) \(.*\)$/\/* \4 *\/\n#define \1 (*(volatile unsigned long *)0x80000A\2)/" new\ \ 3.txt  > foo
@@ -153,6 +154,13 @@
 
 /* Timer/Counter 0 Configuration Register */
 #define TCFG0 (*(volatile unsigned short *)0x80000200)
+#define TCFGn_CC (1 << 8) /* Clear Count */
+#define TCFGn_POL (1 << 7) /* TCK Polarity */
+#define TCFGn_TCKSEL(x) ((x) << 4) /* TCK Select */
+#define TCFGn_IEN (1 << 3) /* Interrupt Enable */
+#define TCFGn_PWM (1 << 2) /* PWM Mode Enable */
+#define TCFGn_CON (1 << 1) /* Continue Counting */
+#define TCFGn_EN (1 << 0) /* Timer/Counter Enable */
 /* Timer/Counter 0 Counter Register */
 #define TCNT0 (*(volatile unsigned long *)0x80000204)
 /* Timer/Counter 0 Reference Register */
@@ -197,6 +205,22 @@
 #define TREF5 (*(volatile unsigned long *)0x80000258)
 /* Timer/Counter n Interrupt Request Register */
 #define TIREQ (*(volatile unsigned short *)0x80000260)
+/* Timer flags, set when timer reaches value */
+#define TIREQ_TWF (1 << 14)
+#define TIREQ_TF5 (1 << 13)
+#define TIREQ_TF4 (1 << 12)
+#define TIREQ_TF3 (1 << 11)
+#define TIREQ_TF2 (1 << 10)
+#define TIREQ_TF1 (1 << 9)
+#define TIREQ_TF0 (1 << 8)
+/* Timer interrupt request flags */
+#define TIREQ_TWI (1 << 6)
+#define TIREQ_TI5 (1 << 5)
+#define TIREQ_TI4 (1 << 4)
+#define TIREQ_TI3 (1 << 3)
+#define TIREQ_TI2 (1 << 2)
+#define TIREQ_TI1 (1 << 1)
+#define TIREQ_TI0 (1 << 0)
 
 /* TIREQ flags */
 #define TF0 (1<<8) /* Timer 0 reference value reached */
@@ -208,6 +232,9 @@
 #define TWDCFG (*(volatile unsigned short *)0x80000270)
 /* Watchdog Timer Clear Register */
 #define TWDCLR (*(volatile unsigned short *)0x80000274)
+
+/* TC32 timer doesn't seem to work on RC3000A, maybe because XTIN
+ * is unavailable. This is despite setting XTTH32. */
 /* 32-bit Counter Enable / Pre-scale Value */
 #define TC32EN (*(volatile unsigned long *)0x80000280)
 /* 32-bit Counter Load Value */
