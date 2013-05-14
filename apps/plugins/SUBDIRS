@@ -19,7 +19,7 @@ clock
     && (LCD_PIXELFORMAT != VERTICAL_INTERLEAVED) /* TODO */ \
     && (defined(HAVE_LCD_COLOR) || (LCD_HEIGHT == 64) && (LCD_DEPTH == 1) || \
                                    (LCD_HEIGHT == 128) && (LCD_DEPTH == 2))
-//rockboy
+rockboy
 #endif
 
 #ifdef HAVE_TAGCACHE
