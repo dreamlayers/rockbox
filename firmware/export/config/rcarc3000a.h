@@ -26,6 +26,12 @@
  * seconds. This should fix it. */
 #define HAVE_LCD_SHUTDOWN
 
+#define HAVE_LCD_CONTRAST
+
+/* OF uses 37, 38, 39, 40, 41, 48, 63, presented as -3...3 */
+#define MIN_CONTRAST_SETTING        37
+#define MAX_CONTRAST_SETTING        63
+
 /* define this if you have access to the quickscreen */
 #define HAVE_QUICKSCREEN
 
