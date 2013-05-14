@@ -193,11 +193,12 @@ void lcd_init_device(void)
     CSCFG1 =  CSCFGn_BW(3) | CSCFGn_MTYPE_SMEM_1 | CSCFGn_CSBASE(5) |
               CSCFGn_RDY | CSCFGn_STP(1) | CSCFGn_PW(3) | CSCFGn_HLD(1);
 
+    /* Initialization sequence like in OF */
     lcd_write_command(LCD_SET_DISPLAY_OFF);
     lcd_write_command(LCD_SET_LCD_BIAS);
     lcd_set_flip(false);
     lcd_write_command(LCD_SET_INTERNAL_REGULATOR_RESISTOR_RATIO + 5);
-    lcd_set_contrast(lcd_default_contrast());
+    lcd_set_contrast(44);
     lcd_write_command(LCD_CNTL_POWER);
 
     lcd_clear_display();
@@ -254,7 +255,8 @@ static int xoffset; /* needed for flip */
 int lcd_default_contrast(void)
 {
 #ifdef RC3000A
-    return 44;
+    /* OF LCD initialization function uses 44, but OF default setting is 40 */
+    return 40;
 #else
     return 0x1f;
 #endif
