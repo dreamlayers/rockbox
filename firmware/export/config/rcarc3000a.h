@@ -16,10 +16,10 @@
 #define HAVE_LCD_BITMAP
 
 /* define this if you can flip your LCD */
-/*#define HAVE_LCD_FLIP*/
+#define HAVE_LCD_FLIP
 
 /* define this if you can invert the colours on your LCD */
-/*#define HAVE_LCD_INVERT*/
+#define HAVE_LCD_INVERT
 
 /* define this if you have access to the quickscreen */
 #define HAVE_QUICKSCREEN
@@ -134,7 +134,7 @@
 /* #define ROM_START 0x11010 for behind original Archos */
 // #define ROM_START 0x7010 /* for behind BootBox */
 
-#define CONFIG_LCD LCD_S6B33B2 // FIXME integrate LCD driver LCD_SSD1815
+#define CONFIG_LCD LCD_SSD1815
 
 #define BOOTFILE_EXT "c100"
 #define BOOTFILE "rockbox." BOOTFILE_EXT

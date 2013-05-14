@@ -1838,7 +1838,6 @@ target/arm/rk27xx/ihifi/powermgmt-ihifi960.c
 
 #ifdef RC3000A
 drivers/nand_id.c
-target/arm/tcc76x/rc3000a/lcd-ssd1815.c
 target/arm/tcc76x/rc3000a/button-rc3000a.c
 target/arm/tcc76x/rc3000a/power-rc3000a.c
 target/arm/tcc76x/rc3000a/sd-rc3000a.c
