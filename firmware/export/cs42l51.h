@@ -24,8 +24,20 @@
 #define VOLUME_MIN -1020
 #define VOLUME_MAX  120
 
-#define AUDIOHW_CAPS (BASS_CAP | TREBLE_CAP | BASS_CUTOFF_CAP \
-                    | TREBLE_CUTOFF_CAP | PRESCALER_CAP)
+
+#define AUDIOHW_CAPS 0 /* (BASS_CAP | TREBLE_CAP | BASS_CUTOFF_CAP \
+                    | TREBLE_CUTOFF_CAP | PRESCALER_CAP) */
+
+AUDIOHW_SETTING(VOLUME,        "dB", 0,  1,-102,  12, -25)
+#if 0
+AUDIOHW_SETTING(BASS,          "dB", 1, 15,-105, 120,   0)
+AUDIOHW_SETTING(TREBLE,        "dB", 1, 15,-105, 120,   0)
+AUDIOHW_SETTING(BALANCE,       "%",  0,  1,-100, 100,   0)
+AUDIOHW_SETTING(CHANNELS,      "",   0,  1,   0,   5,   0)
+AUDIOHW_SETTING(STEREO_WIDTH,  "%",  0,  5,   0, 250, 100)
+AUDIOHW_SETTING(BASS_CUTOFF,   "",   0,  1,   1,   4,   2)
+AUDIOHW_SETTING(TREBLE_CUTOFF, "",   0,  1,   1,   4,   1)
+#endif
 
 extern int tenthdb2master(int db);
 
