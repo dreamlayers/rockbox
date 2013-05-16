@@ -29,17 +29,6 @@
 #include "cscodec.h"
 #include "cs42l51.h"
 
-const struct sound_settings_info audiohw_settings[] = {
-    [SOUND_VOLUME]        = {"dB", 0,  1,-102,  12, -25},
-    [SOUND_BASS]          = {"dB", 1, 15,-105, 120,   0},
-    [SOUND_TREBLE]        = {"dB", 1, 15,-105, 120,   0},
-    [SOUND_BALANCE]       = {"%",  0,  1,-100, 100,   0},
-    [SOUND_CHANNELS]      = {"",   0,  1,   0,   5,   0},
-    [SOUND_STEREO_WIDTH]  = {"%",  0,  5,   0, 250, 100},
-    [SOUND_BASS_CUTOFF]   = {"",   0,  1,   1,   4,   2},
-    [SOUND_TREBLE_CUTOFF] = {"",   0,  1,   1,   4,   1},
-};
-
 static int bass, treble;
 
 static void cscodec_freeze(bool freeze)
@@ -52,14 +41,6 @@ static void cscodec_freeze(bool freeze)
                   (freeze ? CS42L51_DAC_CTL_FREEZE : 0) | \
                   /* Change volume on zero crossings */
                   CS42L51_DAC_CTL_DACSZ(1));
-}
-
-
-/* convert tenth of dB volume (-600..120) to master volume register value */
-int tenthdb2master(int db)
-{
-    // FIXME if (db < VOLUME_MIN) return HPACTL_HPAMUTE;
-    return (db / 5);
 }
 
 #if 0
@@ -177,7 +158,7 @@ void audiohw_postinit(void)
 #endif
 }
 
-void audiohw_set_master_vol(int vol_l, int vol_r)
+void audiohw_set_volume(int vol_l, int vol_r)
 {
     /* -102dB to +12dB in 0.5dB steps */
     /* 00011000 == +12dB  (0x18) */
@@ -186,14 +167,14 @@ void audiohw_set_master_vol(int vol_l, int vol_r)
     /* 00011001 == -102dB (0x19) */
 
     cscodec_freeze(1);
-    cscodec_write(CS42L51_AOUTA_VOL, vol_l & 0xFF);
-    cscodec_write(CS42L51_AOUTB_VOL, vol_r & 0xFF);
+    cscodec_write(CS42L51_AOUTA_VOL, (vol_l / 5) & 0xFF);
+    cscodec_write(CS42L51_AOUTB_VOL, (vol_r / 5) & 0xFF);
     cscodec_freeze(0);
 }
 
+#if 0
 static void handle_dsp_power(void)
 {
-#if 0
     if (bass || treble)
     {
         cscodec_setbits(PLAYCTL, PLAYCTL_PDN_DSP, 0);
@@ -204,56 +185,46 @@ static void handle_dsp_power(void)
         cscodec_setbits(BTCTL, BTCTL_TCEN, 0);
         cscodec_setbits(PLAYCTL, 0, PLAYCTL_PDN_DSP);
     }
-#endif
 }
 
 void audiohw_set_bass(int value)
 {
-#if 0
     bass = value;
     handle_dsp_power();
     if (value >= -105 && value <= 120)
         cscodec_setbits(TONECTL, TONECTL_BASS_MASK,
                         (8 - value / 15) << TONECTL_BASS_SHIFT);
-#endif
 }
 
 void audiohw_set_treble(int value)
 {
-#if 0
     treble = value;
     handle_dsp_power();
     if (value >= -105 && value <= 120)
         cscodec_setbits(TONECTL, TONECTL_TREB_MASK,
                         (8 - value / 15) << TONECTL_TREB_SHIFT);
-#endif
 }
 
 void audiohw_set_bass_cutoff(int value)
 {
-#if 0
     cscodec_setbits(BTCTL, BTCTL_BASSCF_MASK,
                     (value - 1) << BTCTL_BASSCF_SHIFT);
-#endif
 }
 
 void audiohw_set_treble_cutoff(int value)
 {
-#if 0
     cscodec_setbits(BTCTL, BTCTL_TREBCF_MASK,
                     (value - 1) << BTCTL_TREBCF_SHIFT);
-#endif
 }
 
 void audiohw_set_prescaler(int value)
 {
-#if 0
     cscodec_setbits(MSTAVOL, MSTAVOL_VOLUME_MASK,
                     (-value / 5) << MSTAVOL_VOLUME_SHIFT);
     cscodec_setbits(MSTBVOL, MSTBVOL_VOLUME_MASK,
                     (-value / 5) << MSTBVOL_VOLUME_SHIFT);
-#endif
 }
+#endif
 
 /* Nice shutdown of CS42L55 codec */
 void audiohw_close(void)
