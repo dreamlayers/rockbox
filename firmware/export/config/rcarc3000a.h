@@ -97,12 +97,11 @@
 
 /* Define this if you have the CS42L55 audio codec */
 #define HAVE_CS42L51
+#define INPUT_SRC_CAPS (SRC_CAP_FMRADIO | SRC_CAP_LINEIN)
 
 /* Define this if you have the TEA5767 radio */
 #define CONFIG_TUNER TEA5767
 #define CONFIG_TUNER_XTAL 32768
-#define HAVE_FMRADIO_IN
-#define INPUT_SRC_CAPS (SRC_CAP_FMRADIO | SRC_CAP_LINEIN)
 
 #define HAVE_HEADPHONE_DETECTION
 

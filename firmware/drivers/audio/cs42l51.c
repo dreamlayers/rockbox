@@ -45,6 +45,11 @@ static void cscodec_freeze(bool freeze)
                   CS42L51_DAC_CTL_DACSZ(1));
 }
 
+#define AINPOWER_BITS (CS42L51_POWER_CTL1_PDN_PGAB | \
+                       CS42L51_POWER_CTL1_PDN_PGAA | \
+                       CS42L51_POWER_CTL1_PDN_ADCB | \
+                       CS42L51_POWER_CTL1_PDN_ADCA)
+
 static void cscodec_setbits(int reg, unsigned char off, unsigned char on)
 {
     unsigned char data = (cscodec_read(reg) & ~off) | on;
@@ -72,12 +77,16 @@ void audiohw_preinit(void)
 
     bass = 0;
     treble = 0;
-    // FIXME preserve reserved values
-    cscodec_write(CS42L51_POWER_CTL1, CS42L51_POWER_CTL1_PDN);
+
+    /* PDN must be set quickly to ensure CODEC goes into
+     * software controlled mode. */
+    cscodec_setbits(CS42L51_POWER_CTL1, 0, CS42L51_POWER_CTL1_PDN);
+    /* Keep analog input off until needed */
+    cscodec_setbits(CS42L51_POWER_CTL1, 0,  AINPOWER_BITS);
     cscodec_write(CS42L51_MIC_POWER_CTL,
                   /* Single speed mode, for 4 to 50 kHz sample rates */
                   CS42L51_MIC_POWER_CTL_SPEED(CS42L51_SSM_MODE) | \
-                  /* RC3000A has no microphone */
+                  /* Power down microphone hardware */
                   CS42L51_MIC_POWER_CTL_PDN_MICB | \
                   CS42L51_MIC_POWER_CTL_PDN_MICA | \
                   CS42L51_MIC_POWER_CTL_PDN_BIAS | \
@@ -88,6 +97,7 @@ void audiohw_preinit(void)
                   CS42L51_INTF_CTL_DAC_FORMAT(CS42L51_DAC_DIF_I2S) | \
                   CS42L51_INTF_CTL_ADC_I2S);
     cscodec_freeze(true);
+    // FIXME examine these
     cscodec_write(CS42L51_PCMA_VOL, 0);
     cscodec_write(CS42L51_PCMB_VOL, 0);
     cscodec_write(CS42L51_ADCA_VOL, 0);
@@ -97,11 +107,8 @@ void audiohw_preinit(void)
                   CS42L51_ADC_INPUT_ADCB_MUTE | CS42L51_ADC_INPUT_ADCA_MUTE);
     audiohw_mute(true);
     cscodec_freeze(false);
-    cscodec_write(CS42L51_POWER_CTL1,
-                  /* Remove overall powerdown, only powering down PGA */
-                  CS42L51_POWER_CTL1_PDN_PGAB | \
-                  CS42L51_POWER_CTL1_PDN_PGAA);
-
+    /* Remove PDN */
+    cscodec_setbits(CS42L51_POWER_CTL1, CS42L51_POWER_CTL1_PDN, 0);
 
     // FIXME sequence for selecting radio input
 #if 0
@@ -231,10 +238,48 @@ void audiohw_set_prescaler(int value)
      * inverted because the argument is a gain decrease. */
     if (value > 120) value = -120;
     if (value < -515) value = 515;
-    cscodec_write(CS42L51_PCMA_VOL, CS42L51_MIX_VOLUME(-value / 5));
-    cscodec_write(CS42L51_PCMB_VOL, CS42L51_MIX_VOLUME(-value / 5));
+    int vol = CS42L51_MIX_VOLUME(-value / 5);
+
+    /* Set PCM volume for playback */
+    cscodec_write(CS42L51_PCMA_VOL, vol);
+    cscodec_write(CS42L51_PCMB_VOL, vol);
+    /* Set ADC volume for radio. Preserve mute because it is
+     * set via audiohw_set_monitor(). */
+    cscodec_setbits(CS42L51_ADCA_VOL, CS42L51_MIX_VOLUME(0x7F), vol);
+    cscodec_setbits(CS42L51_ADCA_VOL, CS42L51_MIX_VOLUME(0x7F), vol);
 }
 #endif
+
+void audiohw_set_monitor(bool x)
+{
+    /* Monitoring is done via the ADC mixer in the signal processing engine.
+     * It allows for tone controls and mixing with PCM output for voice.
+     * The volume in these registers is used as a prescaler and preserved. */
+    unsigned char val = x ? 0 : CS42L51_MIX_MUTE_ADCMIX;
+    cscodec_setbits(CS42L51_ADCA_VOL, CS42L51_MIX_MUTE_ADCMIX, val);
+    cscodec_setbits(CS42L51_ADCB_VOL, CS42L51_MIX_MUTE_ADCMIX, val);
+}
+
+void cscodec_select_ain(int ain, int gain)
+{
+    cscodec_freeze(true);
+
+    /* Datasheet recommends this for powering down channel */
+    cscodec_setbits(CS42L51_POWER_CTL1, 0, CS42L51_POWER_CTL1_PDN);
+    cscodec_setbits(CS42L51_POWER_CTL1, AINPOWER_BITS, ain ? 0 : AINPOWER_BITS);
+    cscodec_setbits(CS42L51_POWER_CTL1, CS42L51_POWER_CTL1_PDN, 0);
+
+    /* OF sets PGA to 18 for stereo and 24 for mono, but powers it down.
+     * It uses 6, meaning +3dB in ADCx_VOL. Here, ADCx_VOL is the prescaler
+     * and the PGA is used for +3dB gain. */
+    cscodec_write(CS42L51_ALC_PGA_CTL, 6);
+    cscodec_write(CS42L51_ALC_PGB_CTL, 6);
+
+    /* Input AIN1 to ADC */
+    cscodec_write(CS42L51_ADC_INPUT,0);
+
+    cscodec_freeze(false);
+}
 
 /* Nice shutdown of CS42L55 codec */
 void audiohw_close(void)
