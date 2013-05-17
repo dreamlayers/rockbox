@@ -24,19 +24,18 @@
 #define VOLUME_MIN -1020
 #define VOLUME_MAX  120
 
-
-#define AUDIOHW_CAPS 0 /* (BASS_CAP | TREBLE_CAP | BASS_CUTOFF_CAP \
-                    | TREBLE_CUTOFF_CAP | PRESCALER_CAP) */
+#define AUDIOHW_CAPS (BASS_CAP | TREBLE_CAP | BASS_CUTOFF_CAP | \
+                      TREBLE_CUTOFF_CAP | PRESCALER_CAP)
 
 AUDIOHW_SETTING(VOLUME,        "dB", 0,  1,-102,  12, -25)
-#if 0
 AUDIOHW_SETTING(BASS,          "dB", 1, 15,-105, 120,   0)
 AUDIOHW_SETTING(TREBLE,        "dB", 1, 15,-105, 120,   0)
+AUDIOHW_SETTING(BASS_CUTOFF,   "",   0,  1,   1,   4,   2)
+AUDIOHW_SETTING(TREBLE_CUTOFF, "",   0,  1,   1,   4,   1)
+#if 0
 AUDIOHW_SETTING(BALANCE,       "%",  0,  1,-100, 100,   0)
 AUDIOHW_SETTING(CHANNELS,      "",   0,  1,   0,   5,   0)
 AUDIOHW_SETTING(STEREO_WIDTH,  "%",  0,  5,   0, 250, 100)
-AUDIOHW_SETTING(BASS_CUTOFF,   "",   0,  1,   1,   4,   2)
-AUDIOHW_SETTING(TREBLE_CUTOFF, "",   0,  1,   1,   4,   1)
 #endif
 
 extern int tenthdb2master(int db);
@@ -148,7 +147,13 @@ extern void audiohw_set_master_vol(int vol_l, int vol_r);
 
 #define CS42L51_BEEP_FREQ		0x12
 #define CS42L51_BEEP_VOL		0x13
+
 #define CS42L51_BEEP_CONF		0x14
+#define CS42L51_BEEP_CONF_REPEAT	(1<<7)
+#define CS42L51_BEEP_CONF_BEEP	(1<<6)
+#define CS42L51_BEEP_CONF_TREB_CF(x)	(((x)&3)<<3)
+#define CS42L51_BEEP_CONF_BASS_CF(x)	(((x)&3)<<1)
+#define CS42L51_BEEP_CONF_TC_EN	(1<<0)
 
 #define CS42L51_TONE_CTL		0x15
 #define CS42L51_TONE_CTL_TREB(x)	(((x)&0xf)<<4)
