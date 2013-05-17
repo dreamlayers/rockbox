@@ -31,7 +31,7 @@ AUDIOHW_SETTING(VOLUME,        "dB", 0,  1,-102,  12, -25)
 AUDIOHW_SETTING(BASS,          "dB", 1, 15,-105, 120,   0)
 AUDIOHW_SETTING(TREBLE,        "dB", 1, 15,-105, 120,   0)
 AUDIOHW_SETTING(BASS_CUTOFF,   "",   0,  1,   1,   4,   2)
-AUDIOHW_SETTING(TREBLE_CUTOFF, "",   0,  1,   1,   4,   1)
+AUDIOHW_SETTING(TREBLE_CUTOFF, "",   0,  1,   1,   4,   2)
 #if 0
 AUDIOHW_SETTING(BALANCE,       "%",  0,  1,-100, 100,   0)
 AUDIOHW_SETTING(CHANNELS,      "",   0,  1,   0,   5,   0)
