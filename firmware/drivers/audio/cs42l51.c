@@ -227,11 +227,12 @@ void audiohw_set_treble_cutoff(int value)
 #ifdef AUDIOHW_HAVE_PRESCALER
 void audiohw_set_prescaler(int value)
 {
-    /* -51.5dB to +12dB in 0.5dB steps */
-    if (value > 120) value = 120;
-    if (value < -515) value = -515;
-    cscodec_write(CS42L51_PCMA_VOL, CS42L51_MIX_VOLUME(value / 5));
-    cscodec_write(CS42L51_PCMB_VOL, CS42L51_MIX_VOLUME(value / 5));
+    /* Hardware supports -51.5dB to +12dB in 0.5dB steps. Values are
+     * inverted because the argument is a gain decrease. */
+    if (value > 120) value = -120;
+    if (value < -515) value = 515;
+    cscodec_write(CS42L51_PCMA_VOL, CS42L51_MIX_VOLUME(-value / 5));
+    cscodec_write(CS42L51_PCMB_VOL, CS42L51_MIX_VOLUME(-value / 5));
 }
 #endif
 
