@@ -30,13 +30,14 @@
 #include "cscodec.h"
 #include "cs42l51.h"
 
-static int bass, treble;
+static int bass = 0, treble = 0;
 
 static void cscodec_freeze(bool freeze)
 {
     cscodec_write(CS42L51_DAC_CTL,
-                  /* Route data via Signal Processing Engine to DAC */
-                  /* FIXME is this needed when not using treble or bass */
+                  /* Route data via Signal Processing Engine to DAC.
+                   * That isn't needed when not using its features, but
+                   * switching back and forth causes nasty clicks */
                   CS42L51_DAC_CTL_DATA_SEL(1) | \
                   /* Make modifications take effect after unfreeze */
                   (freeze ? CS42L51_DAC_CTL_FREEZE : 0) | \
@@ -44,13 +45,11 @@ static void cscodec_freeze(bool freeze)
                   CS42L51_DAC_CTL_DACSZ(1));
 }
 
-#if 0
 static void cscodec_setbits(int reg, unsigned char off, unsigned char on)
 {
     unsigned char data = (cscodec_read(reg) & ~off) | on;
     cscodec_write(reg, data);
 }
-#endif
 
 static void audiohw_mute(bool mute)
 {
@@ -173,57 +172,66 @@ void audiohw_set_volume(int vol_l, int vol_r)
     cscodec_freeze(0);
 }
 
-#if 0
 static void handle_dsp_power(void)
 {
     if (bass || treble)
     {
-        cscodec_setbits(PLAYCTL, PLAYCTL_PDN_DSP, 0);
-        cscodec_setbits(BTCTL, 0, BTCTL_TCEN);
+        /* Enable tone controls */
+        cscodec_setbits(CS42L51_BEEP_CONF, 0, CS42L51_BEEP_CONF_TC_EN);
     }
     else
     {
-        cscodec_setbits(BTCTL, BTCTL_TCEN, 0);
-        cscodec_setbits(PLAYCTL, 0, PLAYCTL_PDN_DSP);
+        /* Disable tone controls */
+        cscodec_setbits(CS42L51_BEEP_CONF, CS42L51_BEEP_CONF_TC_EN, 0);
     }
 }
 
+#ifdef AUDIOHW_HAVE_BASS_CUTOFF
 void audiohw_set_bass(int value)
 {
     bass = value;
     handle_dsp_power();
     if (value >= -105 && value <= 120)
-        cscodec_setbits(TONECTL, TONECTL_BASS_MASK,
-                        (8 - value / 15) << TONECTL_BASS_SHIFT);
+        cscodec_setbits(CS42L51_TONE_CTL, CS42L51_TONE_CTL_BASS(15),
+                        CS42L51_TONE_CTL_BASS(8 - value / 15));
 }
+#endif
 
+#ifdef AUDIOHW_HAVE_TREBLE
 void audiohw_set_treble(int value)
 {
     treble = value;
     handle_dsp_power();
     if (value >= -105 && value <= 120)
-        cscodec_setbits(TONECTL, TONECTL_TREB_MASK,
-                        (8 - value / 15) << TONECTL_TREB_SHIFT);
+        cscodec_setbits(CS42L51_TONE_CTL, CS42L51_TONE_CTL_TREB(15),
+                        CS42L51_TONE_CTL_TREB(8 - value / 15));
 }
+#endif
 
+#ifdef AUDIOHW_HAVE_BASS_CUTOFF
 void audiohw_set_bass_cutoff(int value)
 {
-    cscodec_setbits(BTCTL, BTCTL_BASSCF_MASK,
-                    (value - 1) << BTCTL_BASSCF_SHIFT);
+    cscodec_setbits(CS42L51_BEEP_CONF, CS42L51_BEEP_CONF_BASS_CF(3),
+                    CS42L51_BEEP_CONF_BASS_CF(value - 1));
 }
+#endif
 
+#ifdef AUDIOHW_HAVE_TREBLE_CUTOFF
 void audiohw_set_treble_cutoff(int value)
 {
-    cscodec_setbits(BTCTL, BTCTL_TREBCF_MASK,
-                    (value - 1) << BTCTL_TREBCF_SHIFT);
+    cscodec_setbits(CS42L51_BEEP_CONF, CS42L51_BEEP_CONF_TREB_CF(3),
+                    CS42L51_BEEP_CONF_TREB_CF(value - 1));
 }
+#endif
 
+#ifdef AUDIOHW_HAVE_PRESCALER
 void audiohw_set_prescaler(int value)
 {
-    cscodec_setbits(MSTAVOL, MSTAVOL_VOLUME_MASK,
-                    (-value / 5) << MSTAVOL_VOLUME_SHIFT);
-    cscodec_setbits(MSTBVOL, MSTBVOL_VOLUME_MASK,
-                    (-value / 5) << MSTBVOL_VOLUME_SHIFT);
+    /* -51.5dB to +12dB in 0.5dB steps */
+    if (value > 120) value = 120;
+    if (value < -515) value = -515;
+    cscodec_write(CS42L51_PCMA_VOL, CS42L51_MIX_VOLUME(value / 5));
+    cscodec_write(CS42L51_PCMB_VOL, CS42L51_MIX_VOLUME(value / 5));
 }
 #endif
 
