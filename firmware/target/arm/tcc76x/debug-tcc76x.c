@@ -32,19 +32,14 @@
 
 bool dbg_ports(void)
 {
-    return false;
-}
-
-bool dbg_hw_info(void)
-{
-    int line = 0, i, button, oldline;
+    int line = 0, button, oldline;
     bool done=false;
 
     lcd_setfont(FONT_SYSFIXED);
     lcd_clear_display();
 
     /* Put all the static text before the while loop */
-    lcd_puts(0, line++, "[Hardware info]");
+    lcd_puts(0, line++, "[Ports]");
 
     oldline=line;
     while(!done)
@@ -70,5 +65,34 @@ bool dbg_hw_info(void)
 
         lcd_update();
     }
+    return false;
+}
+
+bool dbg_hw_info(void)
+{
+    int line = 0, button;
+
+    lcd_setfont(FONT_SYSFIXED);
+    lcd_clear_display();
+
+    /* Put all the static text before the while loop */
+    lcd_puts(0, line++, "[Hardware info]");
+
+    lcd_putsf(0, line++, "tick: %d", current_tick);
+    lcd_update();
+
+    while(1)
+    {
+        button = button_get(false);
+
+        button &= ~BUTTON_REPEAT;
+#ifdef BUTTON_SELECT
+        if (button == BUTTON_SELECT)
+#else
+        if (button == BUTTON_PLAY)  // BUTTON_STOP fixme
+#endif
+            break;
+    }
+
     return false;
 }
