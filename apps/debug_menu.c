@@ -1,4 +1,3 @@
-
 /***************************************************************************
  *             __________               __   ___.
  *   Open      \______   \ ____   ____ |  | _\_ |__   _______  ___
@@ -131,35 +130,6 @@
 #ifdef HAVE_RDS_CAP
 #include "rds.h"
 #endif
-
-static bool dbg_xxx(void)
-{
-    int line;
-
-#ifdef HAVE_LCD_BITMAP
-    lcd_setfont(FONT_SYSFIXED);
-#endif
-    lcd_clear_display();
-
-    while(1)
-    {
-        int offs;
-        line = 0;
-GPIOD |= 0x100000;
-        for (offs = 0; offs < 0x24; offs += 4) {
-            lcd_putsf(0, line++, "%02x: %02x %02x %02x %02x", offs, cscodec_read((offs==0)?0x20:offs), cscodec_read(offs+1), cscodec_read(offs+2), cscodec_read(offs+3));
-        }
-        lcd_update();
-        if (action_userabort(HZ/10))
-        {
-            lcd_setfont(FONT_UI);
-            return false;
-        }
-    }
-
-    lcd_setfont(FONT_UI);
-    return false;
-}
 
 /*---------------------------------------------------*/
 /*    SPECIAL DEBUG STUFF                            */
@@ -2306,7 +2276,7 @@ static const struct {
 #if CONFIG_CPU == SH7034 || defined(CPU_COLDFIRE)
         { "Catch mem accesses", dbg_set_memory_guard },
 #endif
-        { "View OS stacks", dbg_xxx },
+        { "View OS stacks", dbg_os },
 #ifdef __linux__
         { "View CPU stats", dbg_cpuinfo },
 #endif
