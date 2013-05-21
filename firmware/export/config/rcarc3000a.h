@@ -122,14 +122,13 @@
 /* define this if the unit should not shut down on low battery. */
 #define NO_LOW_BATTERY_SHUTDOWN
 
-/* Define this if you have a TCC770 */
+/* Define this if you have a TCC760 */
 #define CONFIG_CPU TCC760
 
 /* Define this if you have ATA power-off control */
 #define HAVE_ATA_POWER_OFF
 
-/* Define this to the CPU frequency */
-#define CPU_FREQ      120000000
+#define HAVE_ADJUSTABLE_CPU_FREQ
 
 /* Offset ( in the firmware file's header ) to the file CRC */
 #define FIRMWARE_OFFSET_FILE_CRC 0

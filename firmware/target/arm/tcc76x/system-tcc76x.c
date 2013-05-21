@@ -24,6 +24,7 @@
 #include "system.h"
 #include "panic.h"
 
+//#undef HAVE_ADJUSTABLE_CPU_FREQ
 /* Externally defined interrupt handlers */
 extern void ICODE_ATTR TIMER(void);
 extern void ICODE_ATTR TC32(void);
@@ -128,6 +129,7 @@ static void INIT_ATTR pll_init(void)
         "mrc     p15, 0, r0, c1, c0  \n\t"
         "bic     r0, r0, #0xc0000000 \n\t"
         "mcr     p15, 0, r0, c1, c0  \n\t"
+        : : : "r0"
     );
 
     /* Clear XTFCLK and XTHCLK: ensure XTIN not selected for FCLK and HCLK */
@@ -158,6 +160,19 @@ static void INIT_ATTR pll_init(void)
 
     /* FIXME init CSCFG3 */
 
+#ifdef HAVE_ADJUSTABLE_CPU_FREQ
+    /* FCLK = PLL/4 = 48 MHz, HCLK = PLL/4 = 48 MHz */
+    SCLKmode = SCLKmode_H_PHASE(16) | SCLKmode_F_PHASE(16);
+    cpu_frequency = 48000000;
+
+    /* Use PLL output for DIVCLK0 and DIVCLK1. This switches CPU to PLL. */
+    PLLMODE |= PLLMODE_DIV1;
+
+    asm volatile (
+        "nop                         \n\t"
+        "nop                         \n\t"
+    );
+#else
     /* FCLK = PLL/2, HCLK = PLL/4 */
     SCLKmode = SCLKmode_H_PHASE(16) | SCLKmode_F_PHASE(32);
 
@@ -171,7 +186,9 @@ static void INIT_ATTR pll_init(void)
         "mrc     p15, 0, r0, c1, c0  \n\t"
         "orr     r0, r0, #0xc0000000 \n\t"
         "mcr     p15, 0, r0, c1, c0  \n\t"
+        : : : "r0"
     );
+#endif
 }
 
 /* Second function called in the original firmware's startup code - we just
@@ -356,9 +373,48 @@ int system_memory_guard(int newmode)
 }
 
 #ifdef HAVE_ADJUSTABLE_CPU_FREQ
-
 void set_cpu_frequency(long frequency)
 {
-}
+    int flags;
+    bool max;
 
+    if (cpu_frequency == frequency) return;
+
+    max = frequency == CPUFREQ_MAX;
+
+    flags = disable_irq_save();
+
+    if (max) {
+        /* FCLK = PLL/2 = 96 MHz, HCLK = PLL/4 = 48 MHz */
+        SCLKmode = SCLKmode_H_PHASE(16) | SCLKmode_F_PHASE(32);
+        cpu_frequency = 96000000;
+
+        asm volatile (
+            /* Set ARM core to ASYNC mode */
+            "mrc     p15, 0, r0, c1, c0  \n\t"
+            "orr     r0, r0, #0xc0000000 \n\t"
+            "mcr     p15, 0, r0, c1, c0  \n\t"
+            : : : "r0"
+        );
+    } else {
+        /* Set ARM core to FastBus mode */
+        asm volatile (
+            "mrc     p15, 0, r0, c1, c0  \n\t"
+            "bic     r0, r0, #0xc0000000 \n\t"
+            "mcr     p15, 0, r0, c1, c0  \n\t"
+            : : : "r0"
+        );
+
+        /* TODO: Is there any point in changing SCLKmode?
+         * Why not just use ASYNC/FastBus switching? */
+
+        /* FCLK = PLL/8 = 48 MHz, HCLK = PLL/8 = 48 MHz
+         * Slower might be better, but going to 24 MHz causes
+         * audio crackling, maybe because of HCLK switching */
+        SCLKmode = SCLKmode_H_PHASE(16) | SCLKmode_F_PHASE(16);
+        cpu_frequency = 48000000;
+    }
+
+    restore_irq(flags);
+}
 #endif
