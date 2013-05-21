@@ -23,9 +23,11 @@
 
 #include "system-arm.h"
 
-#define CPUFREQ_DEFAULT 98784000
-#define CPUFREQ_NORMAL  98784000
-#define CPUFREQ_MAX    120000000
+#if defined(RC3000A)
+#define CPUFREQ_DEFAULT 24000000
+#define CPUFREQ_NORMAL  24000000
+#define CPUFREQ_MAX     96000000
+#endif
 
 #define inl(a) (*(volatile unsigned long *) (a))
 #define outl(a,b) (*(volatile unsigned long *) (b) = (a))
@@ -34,6 +36,7 @@
 #define inw(a) (*(volatile unsigned short *) (a))
 #define outw(a,b) (*(volatile unsigned short *) (b) = (a))
 
+#if 0 // FIXME TC32 won't work!
 /* TC32 is configured to 1MHz in clock_init() */
 #define USEC_TIMER  TC32MCNT
 
@@ -41,19 +44,6 @@ static inline void udelay(unsigned usecs)
 {
     unsigned stop = USEC_TIMER + usecs;
     while (TIME_BEFORE(USEC_TIMER, stop));
-}
-
-#if 0 // FIXME unnecessary?
-#define TCC77X_CSCFG_BW8       0
-#define TCC77X_CSCFG_BW16      1
-
-/* Due to hardware bug or "feature" this hack is needed to set bus width bits */
-static inline
-unsigned long tcc77x_cscfg_bw(int bw) {
-    if (bw == TCC77X_CSCFG_BW8)
-        return (((MCFG >> 11) & 3) ^ 3) << 28;
-    else
-        return (((MCFG >> 11) & 3) ^ 2) << 28;
 }
 #endif
 
