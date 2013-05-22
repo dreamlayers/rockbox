@@ -158,7 +158,15 @@ static void INIT_ATTR pll_init(void)
     /* Use clock dividers for USB, ADC and DAI */
     DIVMODE |= 0x128;
 
-    /* FIXME init CSCFG3 */
+    /* Set flash chip select. OF algorithm:
+     * Divide HCLK frequency in MHz by 10, rounding up, giving result x
+     * if (x > 15) x = 15;
+     *
+     * if (x > 8) { STP = x - 8; PW = 7; }
+     * else if (x > 1) { STP = 1; PW = x - 2; }
+     * else { STP = 0; PW = 0; } */
+    CSCFG3 = (CSCFG3 & ~(CSCFGn_STP(7) | CSCFGn_PW(7))) |
+             CSCFGn_STP(1) | CSCFGn_PW(3);
 
 #ifdef HAVE_ADJUSTABLE_CPU_FREQ
     /* FCLK = PLL/4 = 48 MHz, HCLK = PLL/4 = 48 MHz */
