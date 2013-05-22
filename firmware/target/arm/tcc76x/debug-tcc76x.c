@@ -68,9 +68,59 @@ bool dbg_ports(void)
     return false;
 }
 
+/* Tool function to read the flash manufacturer and type, if available.
+   Only chips which could be reprogrammed in system will return values.
+   (The mode switch addresses vary between flash manufacturers, hence addr1/2) */
+   /* In IRAM to avoid problems when running directly from Flash */
+static bool dbg_flash_id(unsigned* p_manufacturer, unsigned* p_device,
+                         unsigned addr1, unsigned addr2)
+                         ICODE_ATTR __attribute__((noinline));
+static bool dbg_flash_id(unsigned* p_manufacturer, unsigned* p_device,
+                         unsigned addr1, unsigned addr2)
+{
+    unsigned not_manu, not_id; /* read values before switching to ID mode */
+    unsigned manu, id; /* read values when in ID mode */
+
+    volatile unsigned short* flash = (unsigned short*)0x70000000; /* flash mapping */
+    int old_level; /* saved interrupt level */
+
+    not_manu = flash[0]; /* read the normal content */
+    not_id   = flash[1]; /* should be 'A' (0x41) and 'R' (0x52) from the "ARCH" marker */
+
+    /* disable interrupts, prevent any stray flash access */
+    old_level = disable_irq_save();
+
+    flash[addr1] = 0xAA; /* enter command mode */
+    flash[addr2] = 0x55;
+    flash[addr1] = 0x90; /* ID command */
+    /* Atmel wants 20ms pause here */
+    /* sleep(HZ/50); no sleeping possible while interrupts are disabled */
+
+    manu = flash[0]; /* read the IDs */
+    id   = flash[1];
+
+    flash[0] = 0xF0; /* reset flash (back to normal read mode) */
+    /* Atmel wants 20ms pause here */
+    /* sleep(HZ/50); no sleeping possible while interrupts are disabled */
+
+    restore_irq(old_level); /* enable interrupts again */
+    /* I assume success if the obtained values are different from
+        the normal flash content. This is not perfectly bulletproof, they
+        could theoretically be the same by chance, causing us to fail. */
+    if (not_manu != manu || not_id != id) /* a value has changed */
+    {
+        *p_manufacturer = manu; /* return the results */
+        *p_device = id;
+        return true; /* success */
+    }
+    return false; /* fail */
+}
+
 bool dbg_hw_info(void)
 {
     int line = 0, button;
+    unsigned manu, id;
+    bool got_id;
 
     lcd_setfont(FONT_SYSFIXED);
     lcd_clear_display();
@@ -78,7 +128,15 @@ bool dbg_hw_info(void)
     /* Put all the static text before the while loop */
     lcd_puts(0, line++, "[Hardware info]");
 
-    lcd_putsf(0, line++, "tick: %d", current_tick);
+    got_id = dbg_flash_id(&manu, &id, 0x5555, 0x2AAA); /* try SST, Atmel, NexFlash */
+    if (!got_id)
+        got_id = dbg_flash_id(&manu, &id, 0x555, 0x2AA); /* try AMD, Macronix */
+
+    if (got_id)
+        lcd_putsf(0, line++, "Flash: M=%02x D=%04x", manu, id);
+    else
+        lcd_puts(0, line++, "Flash: M=?? D=????"); /* unknown, sorry */
+
     lcd_update();
 
     while(1)
