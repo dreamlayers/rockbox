@@ -1847,6 +1847,27 @@ static bool dbg_save_roms(void)
 
     return false;
 }
+#elif defined(CPU_TCC76X)
+static bool dbg_save_roms(void)
+{
+    int fd = creat("/internal_rom_E0000000-E0000FFF.bin", 0666);
+    if (fd >= 0)
+    {
+        write(fd, (void*)0xe0000000, 0x1000);
+        close(fd);
+    }
+
+#ifdef RC3000A
+    fd = creat("/nor_flash_70000000-701FFFFF.bin", 0666);
+    if (fd >= 0)
+    {
+        write(fd, (void*)0x70000000, 0x200000);
+        close(fd);
+    }
+#endif
+
+    return false;
+}
 #endif /* CPU */
 
 #ifndef SIMULATOR
@@ -2333,7 +2354,7 @@ static const struct {
 #if CONFIG_CPU == SH7034 || defined(CPU_COLDFIRE) || \
     (defined(CPU_PP) && !(CONFIG_STORAGE & STORAGE_SD)) || \
     CONFIG_CPU == IMX31L || defined(CPU_TCC780X) || CONFIG_CPU == AS3525v2 || \
-    CONFIG_CPU == AS3525 || CONFIG_CPU == RK27XX
+    CONFIG_CPU == AS3525 || CONFIG_CPU == RK27XX || defined(CPU_TCC76X)
         { "Dump ROM contents", dbg_save_roms },
 #endif
 #if CONFIG_CPU == SH7034 || defined(CPU_COLDFIRE) || defined(CPU_PP) \
