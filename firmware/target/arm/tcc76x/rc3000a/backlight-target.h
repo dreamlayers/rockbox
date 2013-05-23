@@ -27,19 +27,35 @@ static inline bool backlight_hw_init(void)
 {
     /* Set GPIO pin as output */
     GPIOD_DIR |= 0x8000;
+#ifndef BOOTLOADER
+    /* With PWM fading, it seems init should turn on backlight */
+    GPIOD |= 0x8000;
+#endif
     return true;
 }
 
-static inline void _backlight_on(void)
+static inline void _backlight_led_on(void)
 {
     /* Enable backlight */
     GPIOD |= 0x8000;
 }
 
-static inline void _backlight_off(void)
+static inline void _backlight_led_off(void)
 {
     /* Disable backlight */
     GPIOD &= ~0x8000;
 }
+
+#ifdef BOOTLOADER
+/* No PWM fading, and normal backlight switching functions are used. */
+#define _backlight_on() _backlight_led_on()
+#define _backlight_off() _backlight_led_off()
+#else /* !BOOTLOADER */
+/* PWM fading functions */
+#define _backlight_on_normal() _backlight_led_on()
+#define _backlight_on_isr() _backlight_led_on()
+#define _backlight_off_normal() _backlight_led_off()
+#define _backlight_off_isr() _backlight_led_off()
+#endif
 
 #endif

@@ -108,6 +108,9 @@
 /* Define this for LCD backlight available */
 #define HAVE_BACKLIGHT
 
+/* We can fade the backlight by using PWM */
+#define CONFIG_BACKLIGHT_FADING BACKLIGHT_FADING_PWM
+
 /* Software I2C is used */
 #define HAVE_SOFTWARE_I2C
 
