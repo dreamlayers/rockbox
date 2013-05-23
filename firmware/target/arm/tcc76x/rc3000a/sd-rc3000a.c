@@ -571,7 +571,6 @@ static int ICODE_ATTR send_block(const unsigned char *buf,
     /* Send start token */
     GSDO0 = start_token;
 
-#if 0
     register const unsigned char *p = buf;
     register const unsigned char *pend = buf + BLOCK_SIZE;
     register unsigned long v;
@@ -600,6 +599,7 @@ static int ICODE_ATTR send_block(const unsigned char *buf,
     /* End of unrolled loop, sending last word */
     while (GSGCR & GSGCR_Busy0);
     GSDO0 = v;
+    while (GSGCR & GSGCR_Busy0);
 
     /* Send dummy CRC */
     GSDO0 = 0xFFFF;
@@ -607,25 +607,7 @@ static int ICODE_ATTR send_block(const unsigned char *buf,
 
     /* Reset GSCR to normal value */
     GSCR0 = SD_GSCR;
-#else
-    register const unsigned char *pend = buf + BLOCK_SIZE;
-    register const unsigned char *p = buf;
 
-    /* Wait for busy after start token */
-    while (GSGCR & GSGCR_Busy0);
-    GSDO0 = *(p++);
-    do {
-        while (GSGCR & GSGCR_Busy0);
-        GSDO0 = *(p++);
-    } while (p < pend);
-
-    /* Wait for busy after last byte */
-    while (GSGCR & GSGCR_Busy0);
-
-    /* Send CRC */
-    sd_write_byte(0xFF);
-    sd_write_byte(0xFF);
-#endif
     if ((poll_busy() & 0x1F) != 0x05) /* something went wrong */
         rc = -1;
 
