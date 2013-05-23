@@ -38,14 +38,9 @@
 #include "disk.h" /* for mount/unmount */
 #include "storage.h"
 
-#undef CONFIG_STORAGE
-#define CONFIG_STORAGE STORAGE_MMC
-#include "sdmmc.h"
-#pragma GCC diagnostic ignored "-Wunused-variable"
-#pragma GCC diagnostic ignored "-Wunused-parameter"
+#pragma GCC diagnostic ignored "-Wunused-variable" //FIXME
 
 #define BLOCK_SIZE  512   /* fixed */
-
 
 /* GSCR setting used after initialization
  * With GCLKmode = 0x100, this gives
@@ -120,11 +115,6 @@ static const unsigned char dummy[] = {
     0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF
 };
 
-/* 2 buffers used alternatively for writing, including start token,
- * dummy CRC and an extra byte to keep word alignment. */
-static unsigned char write_buffer[2][BLOCK_SIZE+4];
-static int current_buffer = 0;
-
 static tCardInfo card_info[2];
 #ifndef HAVE_MULTIDRIVE
 static int current_card = 0;
@@ -155,9 +145,7 @@ static int ICODE_ATTR send_block(const unsigned char *buf,
                                  unsigned char start_token);
 //static void mmc_tick(void);
 
-/* TCC76x implementation */
-
-//#include <stdio.h> // For printf
+/* implementation */
 
 /* GPIOA pins used for SD card in SPI mode */
 #define SD_DI 1 /* Serial data sent to card, GSIO0 Data Out */
@@ -207,20 +195,6 @@ static inline unsigned char sd_read_byte(void) {
         }
     }
     return byte;
-#endif
-}
-
-/* implementation */
-
-void mmc_enable_int_flash_clock(bool on)
-{
-#if 0
-    /* Internal flash clock is enabled by setting PA12 high with the new
-     * clock circuit, and by setting it low with the old clock circuit */
-    if (on ^ new_mmc_circuit)
-        and_b(~0x10, &PADRH);     /* clear clock gate PA12 */
-    else
-        or_b(0x10, &PADRH);       /* set clock gate PA12 */
 #endif
 }
 
