@@ -79,26 +79,21 @@ void show_debug_screen(void)
         unsigned char b;
         int r;
 
-    printf("tr=%d", timer_register(0, timer_unreg, 20000000, timer_proc));
-    timer_start();
-    while (1) {
-        core_sleep();
-    }
+    unsigned char buf[512];
+    memset(buf, 0, 512);
+
+    printf("sdi:%d", sd_init());
+    //printf("srs:%d",sd_read_sectors(0, 1, buf));
+    //printf("sws:%d",sd_write_sectors(2, 11, (unsigned char *)0x20001000));
 #if 0
     usb_test();
 
-        unsigned char buf[512];
-        memset(buf, 0, 512);
-    printf("sdi:%d", sd_init());
-    printf("srs:%d %x %x",sd_read_sectors(0, 1, buf),buf[510],buf[511]);
-    for (count = 0; count < 512; count++) power_count += buf[count];
-    printf("ttl:%d %x %x",power_count,buf[0],buf[1]);
 #endif
     lcd_update();
     while(1) { core_sleep(); }
+#if 0
     //lcd_puts_scroll(0,0,"+++ this is a very very long line to test scrolling. ---");
     sw_i2c_init();
-#if 0
 #include "cscodec.h"
     audiohw_preinit();
     pcm_play_dma_init();

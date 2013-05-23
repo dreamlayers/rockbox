@@ -19,7 +19,6 @@
  *
  ****************************************************************************/
 #include <stdbool.h>
-#include "mmc.h" // FIXME
 #include "sd.h"
 #include "sdmmc.h"
 #include "ata_mmc.h"
@@ -125,7 +124,6 @@ static const unsigned char dummy[] = {
  * dummy CRC and an extra byte to keep word alignment. */
 static unsigned char write_buffer[2][BLOCK_SIZE+4];
 static int current_buffer = 0;
-static const unsigned char *send_block_addr = NULL;
 
 static tCardInfo card_info[2];
 #ifndef HAVE_MULTIDRIVE
@@ -148,13 +146,13 @@ static void write_transfer(const unsigned char *buf, int len)
             __attribute__ ((section(".icode")));
 static void read_transfer(unsigned char *buf, int len)
             __attribute__ ((section(".icode")));
-static unsigned char poll_byte(long timeout);
-//static unsigned char poll_busy(long timeout);
+static unsigned char poll_byte(void);
+static unsigned char poll_busy(void);
 static int receive_cxd(unsigned char *buf);
 static int initialize_card(int card_no);
-static int receive_block(unsigned char *inbuf, long timeout);
-//static int send_block_send(unsigned char start_token, long timeout,
-//                           bool prepare_next);
+static int ICODE_ATTR receive_block(unsigned char *inbuf);
+static int ICODE_ATTR send_block(const unsigned char *buf,
+                                 unsigned char start_token);
 //static void mmc_tick(void);
 
 /* TCC76x implementation */
@@ -167,8 +165,7 @@ static int receive_block(unsigned char *inbuf, long timeout);
 #define SD_CS 4 /* Chip select for card */
 #define SD_DO 8 /* Serial data received from card, GSIO0 Data In */
 
-
-void sd_gpio_init(void) {
+static inline void sd_gpio_init(void) {
     /* DI, CLK and DO use GSIO, and CS is a GPIO output */
     GSEL_A = (GSEL_A & ~SD_CS) | (SD_DI | SD_CLK | SD_DO);
     GTSEL_A &= ~(SD_DI | SD_CLK | SD_CS | SD_DO);
@@ -176,7 +173,7 @@ void sd_gpio_init(void) {
     GPIOA |= SD_DI | SD_CLK | SD_CS;
 }
 
-static void sd_write_byte(unsigned char byte) {
+static inline void sd_write_byte(unsigned char byte) {
     GSDO0 = byte;
     while (GSGCR & GSGCR_Busy0);
 #if 0
@@ -194,7 +191,7 @@ static void sd_write_byte(unsigned char byte) {
 #endif
 }
 
-unsigned char sd_read_byte(void) {
+static inline unsigned char sd_read_byte(void) {
     GSDO0 = 0xFF;
     while (GSGCR & GSGCR_Busy0);
     return GSDI0;
@@ -335,14 +332,15 @@ static void read_transfer(unsigned char *buf, int len)
 //#warning read_transfer not implemented
 }
 
-/* returns 0xFF on timeout, timeout is in bytes */
-static unsigned char poll_byte(long timeout)
+/* returns 0xFF on timeout */
+static unsigned char poll_byte(void)
 {
-    long i = 0;
-    unsigned char data = 0;       /* stop the compiler complaining */
+    long timeout = current_tick + HZ/10;
+
+    unsigned char data;
     do {
         data = sd_read_byte();
-    } while ((data == 0xFF) && (++i < timeout));
+    } while ((data == 0xFF) && !TIME_AFTER(current_tick, timeout));
     return data;
 #if 0
     long i;
@@ -363,10 +361,22 @@ static unsigned char poll_byte(long timeout)
 //#warning poll_byte not implemented
 }
 
-/* returns 0 on timeout, timeout is in bytes */
-#if 0
-static unsigned char poll_busy(long timeout)
+/* returns 0 on timeout */
+static unsigned char poll_busy(void)
 {
+    unsigned char data, dummy;
+
+    data = sd_read_byte();
+
+    long timeout = current_tick + HZ/2;
+    do {
+        dummy = sd_read_byte();
+    } while ((dummy != 0xFF) && !TIME_AFTER(current_tick, timeout));
+
+    //intf("%02x %02x %d", dummy, data, current_tick - timeout);
+
+    return (dummy == 0xFF) ? data : 0;
+#if 0
     long i;
     unsigned char data, dummy;
 
@@ -387,12 +397,13 @@ static unsigned char poll_busy(long timeout)
     } while ((dummy != 0xFF) && (++i < timeout));
 
     return (dummy == 0xFF) ? data : 0;
-}
 #endif
+}
 
 /* Send MMC command and get response. Returns R1 byte directly.
  * Returns further R2 or R3 bytes in *data (can be NULL for other commands) */
-static unsigned char sd_command(int cmd, unsigned long parameter, unsigned long resptype, void *data)
+static unsigned char sd_command(int cmd, unsigned long parameter,
+                                unsigned long resptype, void *data)
 {
     static struct {
         unsigned char cmd;
@@ -409,7 +420,7 @@ static unsigned char sd_command(int cmd, unsigned long parameter, unsigned long 
 
     write_transfer((unsigned char *)&command, sizeof(command));
 
-    ret = poll_byte(20);
+    ret = poll_byte();
 
     switch (resptype) {
     case SD_SPI_RESP_R1:
@@ -433,7 +444,7 @@ static unsigned char sd_command(int cmd, unsigned long parameter, unsigned long 
 /* Receive CID/ CSD data (16 bytes) */
 static int receive_cxd(unsigned char *buf)
 {
-    if (poll_byte(20) != SD_SPI_START_BLOCK)
+    if (poll_byte() != SD_SPI_START_BLOCK)
     {
         write_transfer(dummy, 1);
         return -1;                /* not start of data */
@@ -506,7 +517,6 @@ static int initialize_card(int card_no)
     /* End of card identification mode. Entering data transfer mode. */
 
     /* switch to full speed */
-//    setup_sci1(card->bitrate_register);
 // FIXME 24 MHz for now, FIXME where to put this
     GSCR0 = SD_GSCR;
 
@@ -535,9 +545,9 @@ static int initialize_card(int card_no)
 }
 
 /* Receive one block */
-static int receive_block(unsigned char *inbuf, long timeout)
+static int ICODE_ATTR receive_block(unsigned char *inbuf)
 {
-    if (poll_byte(timeout) != SD_SPI_START_BLOCK)
+    if (poll_byte() != SD_SPI_START_BLOCK)
     {
         write_transfer(dummy, 1);
         return -1;                /* not start of data */
@@ -577,12 +587,81 @@ recv_blk_loop_entry:
     return 0;
 }
 
-#if 0
 /* Send one block with DMA from the current write buffer, possibly preparing
  * the next block within the next write buffer in the background. */
-static int send_block_send(unsigned char start_token, long timeout,
-                           bool prepare_next)
+static int ICODE_ATTR send_block(const unsigned char *buf,
+                                 unsigned char start_token)
 {
+    int rc = 0;
+
+    /* Send start token */
+    GSDO0 = start_token;
+
+#if 0
+    register const unsigned char *p = buf;
+    register const unsigned char *pend = buf + BLOCK_SIZE;
+    register unsigned long v;
+
+    /* First part of loop unrolled for optimization, reading first word */
+    v = *(p++) << 8;
+    v |= *(p++);
+
+    /* Wait for busy after start token */
+    while (GSGCR & GSGCR_Busy0);
+
+    /* Temporarily use 16 bit transfers */
+    GSCR0 = SD_GSCR | GSCR_WORD(15);
+
+    /* Loop structured so read and test happen while waiting for busy */
+    do {
+        while (GSGCR & GSGCR_Busy0);
+        //FIXME 16 bit transfers don't work without this delay
+        //printf("%04x", GSDI0);
+        GSDO0 = v;
+
+        v = *(p++) << 8;
+        v |= *(p++);
+    } while (p < pend);
+
+    /* End of unrolled loop, sending last word */
+    while (GSGCR & GSGCR_Busy0);
+    GSDO0 = v;
+
+    /* Send dummy CRC */
+    GSDO0 = 0xFFFF;
+    while (GSGCR & GSGCR_Busy0); /* Waiting for CRC */
+
+    /* Reset GSCR to normal value */
+    GSCR0 = SD_GSCR;
+#else
+    register const unsigned char *pend = buf + BLOCK_SIZE;
+    register const unsigned char *p = buf;
+
+    /* Wait for busy after start token */
+    while (GSGCR & GSGCR_Busy0);
+    GSDO0 = *(p++);
+    do {
+        while (GSGCR & GSGCR_Busy0);
+        GSDO0 = *(p++);
+    } while (p < pend);
+
+    /* Wait for busy after last byte */
+    while (GSGCR & GSGCR_Busy0);
+
+    /* Send CRC */
+    sd_write_byte(0xFF);
+    sd_write_byte(0xFF);
+#endif
+    if ((poll_busy() & 0x1F) != 0x05) /* something went wrong */
+        rc = -1;
+
+    GSDO0 = 0xFF;
+    while (GSGCR & GSGCR_Busy0);
+
+    last_disk_activity = current_tick;
+
+    return rc;
+#if 0
     int rc = 0;
     unsigned char *curbuf = write_buffer[current_buffer];
 
@@ -612,15 +691,15 @@ static int send_block_send(unsigned char start_token, long timeout,
     SCR1 = 0;
     serial_mode = SER_DISABLED;
 
-    if ((poll_busy(timeout) & 0x1F) != 0x05) /* something went wrong */
+    if ((poll_busy() & 0x1F) != 0x05) /* something went wrong */
         rc = -1;
 
     write_transfer(dummy, 1);
     last_disk_activity = current_tick;
 
     return rc;
-}
 #endif
+}
 
 int sd_read_sectors(IF_MD2(int drive,)
                     unsigned long start,
@@ -636,7 +715,6 @@ int sd_read_sectors(IF_MD2(int drive,)
 #endif
 
     card = &card_info[drive];
-    card->read_timeout = 2048; // FIXME!!!
 
     rc = select_card(drive);
     if (rc)
@@ -668,7 +746,7 @@ int sd_read_sectors(IF_MD2(int drive,)
         }
         while (--incount >= lastblock)
         {
-            rc = receive_block(inbuf, card->read_timeout);
+            rc = receive_block(inbuf);
             if (rc)
             {
                 /* If an error occurs during multiple block reading, the
@@ -696,7 +774,7 @@ int sd_read_sectors(IF_MD2(int drive,)
             rc = -6;
             goto error;
         }
-        rc = receive_block(inbuf, card->read_timeout);
+        rc = receive_block(inbuf);
         if (rc)
         {
             rc = rc * 10 - 7;
@@ -719,7 +797,6 @@ int sd_write_sectors(IF_MD2(int drive,)
                      int count,
                      const void* buf)
 {
-#if 0
     int rc = 0;
     int write_cmd;
     unsigned char start_token;
@@ -739,28 +816,25 @@ int sd_write_sectors(IF_MD2(int drive,)
     if (start + count  > card->numblocks)
         panicf("Writing past end of card");
 
-    send_block_addr = buf;
-    send_block_prepare();
-
     if (count > 1)
     {
-        write_cmd   = CMD_WRITE_MULTIPLE_BLOCK;
-        start_token = DT_START_WRITE_MULTIPLE;
+        write_cmd   = SD_WRITE_MULTIPLE_BLOCK;
+        start_token = SD_SPI_START_WRITE_MULTIPLE;
     }
     else
     {
-        write_cmd   = CMD_WRITE_BLOCK;
-        start_token = DT_START_BLOCK;
+        write_cmd   = SD_WRITE_BLOCK;
+        start_token = SD_SPI_START_BLOCK;
     }
                  /* MMC4.2: make multiplication conditional */
-    if (send_cmd(write_cmd, start * BLOCK_SIZE, NULL))
+    if (sd_command(write_cmd, start * BLOCK_SIZE, SD_SPI_RESP_R1, NULL))
     {
         rc = -2;
         goto error;
     }
     while (--count >= 0)
     {
-        rc = send_block_send(start_token, card->write_timeout, count > 0);
+        rc = send_block(buf, start_token);
         if (rc)
         {
             rc = rc * 10 - 3;
@@ -768,12 +842,13 @@ int sd_write_sectors(IF_MD2(int drive,)
             /* If an error occurs during multiple block writing,
              * the STOP_TRAN token still needs to be sent. */
         }
+        buf += BLOCK_SIZE;
     }
-    if (write_cmd == CMD_WRITE_MULTIPLE_BLOCK)
+    if (write_cmd == SD_WRITE_MULTIPLE_BLOCK)
     {
-        static const unsigned char stop_tran = DT_STOP_TRAN;
+        static const unsigned char stop_tran = SD_SPI_STOP_TRAN;
         write_transfer(&stop_tran, 1);
-        poll_busy(card->write_timeout);
+        poll_busy();
     }
 
   error:
@@ -781,8 +856,6 @@ int sd_write_sectors(IF_MD2(int drive,)
     deselect_card();
 
     return rc;
-#endif
-    return 0;
 }
 
 bool mmc_disk_is_active(void)
