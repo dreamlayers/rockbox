@@ -158,6 +158,10 @@ static ICODE_ATTR int ata_wait_intrq(void)
    and then call ata_dma_finish().
  */
 bool ata_dma_setup(void *addr, unsigned long bytes, bool write) {
+    /* Single sector transfers work but are slower than PIO */
+    if (bytes <= 512)
+        return false;
+
     /* Require cacheline alignment for reads to prevent interference. */
     if (!write && ((unsigned long)addr & 15))
         return false;
