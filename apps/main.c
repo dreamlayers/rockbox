@@ -622,6 +622,7 @@ static void init(void)
     dsp_init();
 #endif
 
+#if 0
 #if defined(SETTINGS_RESET) || (CONFIG_KEYPAD == IPOD_4G_PAD) || \
     (CONFIG_KEYPAD == IRIVER_H10_PAD)
 #ifdef SETTINGS_RESET
@@ -637,6 +638,7 @@ static void init(void)
         settings_reset();
     }
     else
+#endif
 #endif
     {
         CHART(">settings_load(ALL)");
