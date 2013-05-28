@@ -233,7 +233,11 @@ void* main(void)
         error(EDISK,rc, true);
     }
 
+#ifdef CPU_TCC76X
+    rc = load_firmware(loadbuffer, BOOTDIR "/" BOOTFILE, MAX_LOAD_SIZE);
+#else
     rc = load_firmware(loadbuffer, BOOTFILE, MAX_LOAD_SIZE);
+#endif
 
     if (rc <= EFILE_EMPTY)
     {
