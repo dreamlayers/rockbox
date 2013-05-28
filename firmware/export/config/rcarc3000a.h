@@ -145,12 +145,12 @@
 
 #define CONFIG_LCD LCD_SSD1815
 
-#define BOOTFILE_EXT "c100"
+#define BOOTFILE_EXT "rc3000"
 #define BOOTFILE "rockbox." BOOTFILE_EXT
 #define BOOTDIR "/.rockbox"
 
 #ifdef BOOTLOADER
-//#define TCCBOOT FIXME not appending to OF, so no need for this
+#define TCCBOOT
 #endif
 
 #define IRAM_LCDFRAMEBUFFER IBSS_ATTR /* put the lcd frame buffer in IRAM */

@@ -87,6 +87,7 @@ static off_t filesize(int fd) {
 }
 
 #define DRAMORIG 0x20000000
+#define FLASHORIG 0x70000000
 /* Injects a bootloader into a Telechips 77X/78X firmware file */
 unsigned char *patch_firmware_tcc(unsigned char *of_buf, int of_size,
         unsigned char *boot_buf, int boot_size, int *patched_size)
@@ -94,6 +95,7 @@ unsigned char *patch_firmware_tcc(unsigned char *of_buf, int of_size,
     unsigned char *patched_buf;
     uint32_t ldr, old_ep_offset, new_ep_offset;
     int of_offset;
+    int tcc_76x;
 
     patched_buf = malloc(of_size + boot_size);
     if (!patched_buf)
@@ -107,7 +109,11 @@ unsigned char *patch_firmware_tcc(unsigned char *of_buf, int of_size,
     /* TODO: Verify it's a LDR instruction */
     of_offset = (ldr & 0xfff) + 8;
     old_ep_offset = get_uint32le(patched_buf + of_offset);
-    new_ep_offset = DRAMORIG + of_size;
+    tcc_76x = get_uint32le(patched_buf + 4) == 0xffff0106;
+    if (!tcc_76x)
+        new_ep_offset = DRAMORIG + of_size;
+    else
+        new_ep_offset = FLASHORIG + of_size;
 
     printf("OF entry point: 0x%08x\n", old_ep_offset);
     printf("New entry point: 0x%08x\n", new_ep_offset + 8);
@@ -119,7 +125,10 @@ unsigned char *patch_firmware_tcc(unsigned char *of_buf, int of_size,
     /* Change the OF entry point to the third word in our bootloader */
     put_uint32le(new_ep_offset + 8, patched_buf + of_offset);
 
-    telechips_encode_crc(patched_buf, of_size + boot_size);
+    if (!tcc_76x)
+        telechips_encode_crc(patched_buf, of_size + boot_size);
+    else
+        telechips_encode_sum(patched_buf, of_size + boot_size);
     *patched_size = of_size + boot_size;
 
     return patched_buf;
@@ -171,6 +180,9 @@ error:
 /* A CRC test in order to reject non OF file */
 int test_firmware_tcc(unsigned char* buf, int length)
 {
-    return telechips_test_crc(buf, length);
+    if (get_uint32le(buf + 4) != 0xffff0106)
+        return telechips_test_crc(buf, length);
+    else
+        return 0; // FIXME telechips_test_sum(buf, length);
 }
 
