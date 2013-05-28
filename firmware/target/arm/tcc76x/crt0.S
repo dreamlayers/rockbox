@@ -38,7 +38,7 @@
 
     .global    start
 
-/* Telechips firmware files start with a 32-byte header, as part of the code. */
+/* Telechips firmware files start with a header, as part of the code. */
 
 start:
 #ifdef TCCBOOT
@@ -52,62 +52,65 @@ of_entrypoint:  .word  0   /* Saved entrypoint of original firmware*/
 bl_entrypoint:  .word  0   /* Location in RAM of the start of our bootloader */
 
 #else
-//    ldr    pc, =start_loc    /* jump to the main entry point  */
-    b       start_loc
+    ldr    pc, =start_loc    /* jump to the main entry point  */
 
-    .word  0xffff0601        /* Unknown magic */
+    .word  0xffff0106        /* Unknown magic */
     .word  0x3a726556        /* "Ver:" */
-    .word  0x31373030        /* "0071" */
-    .word  0                 /* First CRC32 */
-    .word  0                 /* Unknown - always 0 */
-    .word  0                 /* Second CRC32 */
-    .word  0                 /* length of firmware file */
+    .word  1234              /* Version? */
+    .word  0                 /* 32 bit LE checksum, set so file sums to 0 */
 
-#if defined(LOGIK_DAX) || defined(SANSA_C100)
-    /* Some original firmwares have 0x40 bytes of zeroes here - we
-       don't know why, but err on the side of caution and include it
-       here. */
-    .space 0x40
-#endif
 #endif
 
 start_loc:
 
-#ifdef BOOTLOADER
-
 /*
-  If we are appended to the OF (i.e. dual-booting), do a simple GPIO
-  button check, and branch to the OF's entry point (saved by mktccboot)
-  if not active
+  If we are appended to the OF (i.e. dual-booting), do a button check,
+  and branch to the OF's entry point (saved by mktccboot) if not active.
 */
 
 #ifdef TCCBOOT
     mov    r0, #0x80000000
-#if defined(LOGIK_DAX) || defined(SANSA_C100)
-    ldr    r0, [r0, #0x300]     /* Hold button is GPIO A, pin 0x2 */
-    tst    r0, #0x2
-#elif defined(SANSA_M200)
-    ldr    r0, [r0, #0x310]     /* Hold button is GPIO B, pin 0x200 */
-    tst    r0, #0x200
-#elif defined(IAUDIO_7)
-    ldr    r0, [r0, #0x300]     /* Hold button is !GPIO A, pin 0x2 */
-    tst  r0, #0x2
+#if defined(RC3000A)
+    /* Only key accessible via GPIO is the power/play/pause key, which
+       cannot be used because it is pressed to turn on the device. All other
+       keys use ADC channel 0, and the pin isn't shared with GPIO.
+     */
+
+    mov    r1, #0x8000
+    str    r1, [r0,#0x410]      /* EACLKmode = 0x8000 : ADC clock = XIN */
+
+    ldr    r1, [r0,#0x400]
+    bic    r1, r1, #0x2000      /* CKCTRL : enable ADC clock */
+    str    r1, [r0,#0x400]
+
+    ldr    r1, [r0,#0xA88]
+    orr    r1, r1, #3           /* ADCCFG : auto powerdown, single mode */
+    str    r1, [r0,#0xA88]      /* TODO: More precise init */
+
+    mov    r1, #0               /* ADCCON : operate, channel 0 */
+    str    r1, [r0,#0xA00]
+
+1:
+    ldr    r1, [r0,#0xA04]      /* Load ADCDATA */
+    tst    r1, #1               /* Conversion finished and data stable? */
+    beq    1b                   /* No, keep polling */
+
+    ldr    r2, [r0,#0x400]
+    orr    r2, r2, #0x2000      /* CKCTRL : disable ADC clock */
+    str    r2, [r0,#0x400]
+
+    cmp    r1, #0x200
+    ldrhi  pc, of_entrypoint    /* Jump to OF if button not pressed */
 #else
     #error No bootup key detection implemented for this target
 #endif
 
-    ldrne  pc, of_entrypoint   /* Jump to OF if HOLD button not pressed */
-#endif /* TCCBOOT */
-
 /* We are now definitely executing the bootloader, so we relocate to the
    linked address (see boot.lds) - 1MB from the end of DRAM.
-*/
+ */
 
-#ifdef TCCBOOT
     ldr    r0, bl_entrypoint
-#else
-    mov    r0, #0x20000000    /* Otherwise, load address is the start of DRAM */
-#endif
+
     mov    r1, #0x20000000    /* Destination: 1MB from end of DRAM */
     add    r1, r1, #((MEMORYSIZE - 1) * 0x100000)
 
@@ -118,9 +121,11 @@ start_loc:
     strhi  r3, [r1], #4
     bhi    1b
 
+    sub    r1, r0, r1          /* save copy distance for later copies */
+
     ldr    pc, =copied_start   /* jump to the relocated start_loc:  */
 copied_start:
-#endif /* BOOTLOADER */
+#endif /* TCCBOOT */
 
     /* Set up stack for IRQ mode */
     mov    r0,#0xd2
@@ -152,7 +157,6 @@ copied_start:
     /* Switch to sys mode */
     mov    r0,#0xdf
     msr    cpsr, r0
-    ldr    sp, =stackend
 
     /* Vectors and IRAM copy is done first since they are reclaimed for
      * other uninitialized sections */
@@ -161,6 +165,9 @@ copied_start:
     ldr    r2, =_vectorsstart
     ldr    r3, =_vectorsend
     ldr    r4, =_vectorscopy
+#ifdef TCCBOOT
+    add    r4, r4, r1
+#endif
 1:
     cmp    r3, r2
     ldrhi  r5, [r4], #4
@@ -168,13 +175,16 @@ copied_start:
     bhi    1b
 
     /* Copy the IRAM */
-    ldr    r2, =_iramcopy
-    ldr    r3, =_iramstart
-    ldr    r4, =_iramend
+    ldr    r2, =_iramstart
+    ldr    r3, =_iramend
+    ldr    r4, =_iramcopy
+#ifdef TCCBOOT
+    add    r4, r4, r1
+#endif
 1:
-    cmp    r4, r3
-    ldrhi  r5, [r2], #4
-    strhi  r5, [r3], #4
+    cmp    r3, r2
+    ldrhi  r5, [r4], #4
+    strhi  r5, [r2], #4
     bhi    1b
 
 #ifdef HAVE_INIT_ATTR
@@ -182,12 +192,14 @@ copied_start:
     ldr    r2, =_initstart
     ldr    r3, =_initend
     ldr    r4, =_initcopy
-
+#ifdef TCCBOOT
+    add    r4, r4, r1
+#endif
 1:
     cmp     r3, r2
     ldrhi   r5, [r4], #4
     strhi   r5, [r2], #4
-    bhi 1b
+    bhi     1b
 #endif
 
     /* Zero out IBSS */
@@ -207,27 +219,6 @@ copied_start:
     cmp    r3, r2
     strhi  r4, [r2], #4
     bhi    1b
-
-#if 0
-    /* Copy exception handler code to address 0 */
-    mov    r2, #0x0
-    ldr    r3, =vectors_start
-    ldr    r4, =vectors_end
-1:
-    cmp    r4, r3
-    ldrhi  r5, [r3], #4
-    strhi  r5, [r2], #4
-    bhi    1b
-
-    /* Initialise bss section to zero */
-    ldr    r2, =_edata
-    ldr    r3, =_end
-    mov    r4, #0
-1:
-    cmp    r3, r2
-    strhi  r4, [r2], #4
-    bhi    1b
-#endif
 
     /* Set up some stack and munge it with 0xdeadbeef */
     ldr    sp, =stackend
