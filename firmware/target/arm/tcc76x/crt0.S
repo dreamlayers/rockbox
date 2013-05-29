@@ -114,6 +114,20 @@ start_loc:
    linked address (see boot.lds) - 1MB from the end of DRAM.
  */
 
+// FIXME FIXME FIXME copied from boot ROM
+
+    ldr     r0, =0xc0000078
+    mcr     p15, 0, r0,c1,c0
+
+    mov     r12, #0x80000000
+
+    ldr     r0, =0x3036be
+    str     r0, [r12,#0x400] // ckctrl
+    ldr     r1, =0xffffffff
+    str     r1, [r12,#0x43c] // sw_nrst : clear all resets
+
+// FIXME FIXME FIXME copied from boot ROM
+
 /* Configure memory controller. Datasheet recommends simply clearing SDEN,
    setting SDCFG and setting SDEN. Code here is like the RC3000A firmware.
    Currently executing from NOR flash. This must not be run from SDRAM!
