@@ -47,9 +47,6 @@
 #include "loader_strerror.h"
 #include "version.h"
 
-// TEMP FIXME
-#include "i2c.h"
-
 /* Show the Rockbox logo - in show_logo.c */
 extern void show_logo(void);
 
@@ -60,16 +57,6 @@ extern int line;
 
 #define MAX_LOAD_SIZE (8*1024*1024) /* Arbitrary, but plenty. */
 
-unsigned long data[] = { 0, 0x00001111, 0x00002222, 0x00003333 };
-
-#include "timer.h"
-void timer_proc(void) {
-    static int cnt = 0;
-    printf("timer_proc %d", cnt++);
-}
-
-void timer_unreg(void) {}
-
 /* The following function is just test/development code */
 void show_debug_screen(void)
 {
@@ -78,29 +65,7 @@ void show_debug_screen(void)
     int count = 0;
     bool do_power_off = false;
 
-        unsigned char b;
-        int r;
-
-    unsigned char buf[512];
-    memset(buf, 0, 512);
-
-    printf("sdi:%d", sd_init());
-    //printf("srs:%d",sd_read_sectors(0, 1, buf));
-    //printf("sws:%d",sd_write_sectors(2, 11, (unsigned char *)0x20001000));
-#if 0
-    usb_test();
-
-#endif
-    lcd_update();
-    while(1) { core_sleep(); }
-#if 0
-    //lcd_puts_scroll(0,0,"+++ this is a very very long line to test scrolling. ---");
-    sw_i2c_init();
-#include "cscodec.h"
-    audiohw_preinit();
-    pcm_play_dma_init();
-#endif
-            DAMR |= DAMR_TE;
+    lcd_puts_scroll(0,0,"+++ this is a very very long line to test scrolling. ---");
     while (!do_power_off) {
         line = 1;
         button = button_get(false);
@@ -125,37 +90,12 @@ void show_debug_screen(void)
 #endif
         printf("Btn: 0x%08x",button);
 #if 0
-
-        DADO_L(0) = data[0];
-        DADO_R(0) = data[0];
-        DADO_L(1) = data[1];
-        DADO_R(1) = data[1];
-        DADO_L(2) = data[2];
-        DADO_R(2) = data[2];
-        DADO_L(3) = data[3];
-        DADO_R(3) = data[3];
-#endif
-#if 0
-    cscodec_write(9,0x61);
-    cscodec_write(9,0x97);
-    cscodec_write(0x12,0x60);
-    cscodec_write(0x13,/*xx*/0x60);
-    cscodec_write(0x14,0xC0);
-    cscodec_write(9,0x41);
-#endif
-
-        b=255;
-        r = i2c_readmem(0x94, 0x20, &b, 1);
-        printf("S: %d: %d", r, b);
-#if 0
         printf("Tick: %d",current_tick);
         printf("GPIOA: 0x%08x",GPIOA);
         printf("GPIOB: 0x%08x",GPIOB);
         printf("GPIOC: 0x%08x",GPIOC);
         printf("GPIOD: 0x%08x",GPIOD);
-#ifndef CPU_TCC76X
         printf("GPIOE: 0x%08x",GPIOE);
-#endif
 #endif
 
 #if 0
@@ -169,7 +109,6 @@ void show_debug_screen(void)
         printf("Count: %d",count);
         lcd_update();
         sleep(HZ/10);
-        GPIOA &= ~0x800;
 
     }
 
