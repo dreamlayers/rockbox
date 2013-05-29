@@ -27,7 +27,7 @@
 unsigned char *audiobuf;
 ssize_t audiobuf_size;
 
-#ifndef IRIVER_H100_SERIES
+#ifndef RC3000A
 #error this platform is not (yet) flashable
 #endif
 
@@ -42,28 +42,29 @@ ssize_t audiobuf_size;
 
 struct flash_info
 {
-    uint8_t manufacturer;
-    uint8_t id;
+    uint16_t manufacturer;
+    uint16_t id;
     int size;
     char name[32];
 };
 
-#ifdef IRIVER_H100_SERIES
+#ifdef RC3000A
 #define SEC_SIZE 4096
-#define BOOTLOADER_ERASEGUARD  (BOOTLOADER_ENTRYPOINT / SEC_SIZE)
+//#define BOOTLOADER_ERASEGUARD  (BOOTLOADER_ENTRYPOINT / SEC_SIZE)
 enum sections {
     SECT_RAMIMAGE = 1,
     SECT_ROMIMAGE = 2,
 };
 
-static volatile uint16_t* FB = (uint16_t*)0x00000000; /* Flash base address */
+static volatile uint16_t* FB = (uint16_t*)0x70000000; /* Flash base address */
 #endif
 
 /* read the manufacturer and device ID */
-bool cfi_read_id(volatile uint16_t* pBase, uint8_t* pManufacturerID, uint8_t* pDeviceID)
+static bool cfi_read_id(volatile uint16_t* pBase,
+                        uint16_t* pManufacturerID, uint16_t* pDeviceID)
 {
-    uint8_t not_manu, not_id; /* read values before switching to ID mode */
-    uint8_t manu, id; /* read values when in ID mode */
+    uint16_t not_manu, not_id; /* read values before switching to ID mode */
+    uint16_t manu, id; /* read values when in ID mode */
 
     pBase = (uint16_t*)((uint32_t)pBase & 0xFFF80000); /* down to 512k align */
 
@@ -94,11 +95,12 @@ bool cfi_read_id(volatile uint16_t* pBase, uint8_t* pManufacturerID, uint8_t* pD
     return false; /* fail */
 }
 
+// FIXME check timeouts
 
 /* erase the sector which contains the given address */
-bool cfi_erase_sector(volatile uint16_t* pAddr)
+static bool cfi_erase_sector(volatile uint16_t* pAddr)
 {
-    unsigned timeout = 430000; /* the timeout loop should be no less than 25ms */
+    unsigned timeout = 430000; /* the timeout loop should be no less than 18ms */
 
     FB[0x5555] = 0xAA; /* enter command mode */
     FB[0x2AAA] = 0x55;
@@ -118,11 +120,11 @@ bool cfi_erase_sector(volatile uint16_t* pAddr)
 /* address must be in an erased location */
 static inline bool cfi_program_word(volatile uint16_t* pAddr, uint16_t data)
 {
-    unsigned timeout = 85; /* the timeout loop should be no less than 20us */
-
+    unsigned timeout = 85; /* the timeout loop should be no less than 7us */
+#if 0
     if (~*pAddr & data) /* just a safety feature, not really necessary */
         return false; /* can't set any bit from 0 to 1 */
-
+#endif // FIXME
     FB[0x5555] = 0xAA; /* enter command mode */
     FB[0x2AAA] = 0x55;
     FB[0x5555] = 0xA0; /* byte program command */
@@ -138,7 +140,7 @@ static inline bool cfi_program_word(volatile uint16_t* pAddr, uint16_t data)
 
 
 /* this returns true if supported and fills the info struct */
-bool cfi_get_flash_info(struct flash_info* pInfo)
+static bool cfi_get_flash_info(struct flash_info* pInfo)
 {
     rb->memset(pInfo, 0, sizeof(struct flash_info));
 
@@ -147,22 +149,10 @@ bool cfi_get_flash_info(struct flash_info* pInfo)
 
     if (pInfo->manufacturer == 0xBF) /* SST */
     {
-        if (pInfo->id == 0xD6)
+        if (pInfo->id == 0x234B)
         {
-            pInfo->size = 256* 1024; /* 256k */
-            rb->strcpy(pInfo->name, "SST39VF020");
-            return true;
-        }
-        else if (pInfo->id == 0xD7)
-        {
-            pInfo->size = 512* 1024; /* 512k */
-            rb->strcpy(pInfo->name, "SST39VF040");
-            return true;
-        }
-        else if (pInfo->id == 0x82)
-        {
-            pInfo->size = 2048* 1024; /* 2 MiB */
-            rb->strcpy(pInfo->name, "SST39VF160");
+            pInfo->size = 2048 * 1024; /* 2048k */
+            rb->strcpy(pInfo->name, "SST39VF1601");
             return true;
         }
         else
@@ -172,7 +162,7 @@ bool cfi_get_flash_info(struct flash_info* pInfo)
 }
 
 /***************** User Interface Functions *****************/
-int wait_for_button(void)
+static int wait_for_button(void)
 {
     int button;
 
@@ -185,18 +175,17 @@ int wait_for_button(void)
 }
 
 /* helper for DoUserDialog() */
-void ShowFlashInfo(struct flash_info* pInfo)
+static void ShowFlashInfo(struct flash_info* pInfo)
 {
     if (!pInfo->manufacturer)
     {
-        rb->lcd_puts(0, 0, "Flash: M=?? D=??");
+        rb->lcd_puts(0, 0, "Flash: M=?? D=????");
         rb->lcd_puts(0, 1, "Impossible to program");
     }
     else
     {
-        rb->lcd_putsf(0, 0, "Flash: M=%02x D=%02x",
-            pInfo->manufacturer, pInfo->id);
-
+        rb->lcd_putsf(0, 0, "Flash: M=%02x D=%04x",
+                      pInfo->manufacturer, pInfo->id);
 
         if (pInfo->size)
         {
@@ -213,7 +202,7 @@ void ShowFlashInfo(struct flash_info* pInfo)
     rb->lcd_update();
 }
 
-bool show_info(void)
+static bool show_info(void)
 {
     struct flash_info fi;
 
@@ -229,7 +218,7 @@ bool show_info(void)
     return true;
 }
 
-bool confirm(const char *msg)
+static bool confirm(const char *msg)
 {
     bool ret;
 
@@ -241,6 +230,32 @@ bool confirm(const char *msg)
     return ret;
 }
 
+static int load_firmware_file(const char *filename, uint32_t *checksum)
+{
+    int fd;
+    int len, rc;
+    int i;
+    uint32_t sum;
+
+    if (audiobuf_size < SEC_SIZE)
+    {
+        rb->splash(HZ*3, "Aborting: Out of memory!");
+        rb->close(fd);
+        return -2;
+    }
+
+    fd = rb->open(filename,  O_RDONLY);
+    if (fd < 0)
+        return -1;
+
+    len = rb->filesize(fd);
+
+
+
+    return -1;
+}
+
+#if 0
 int load_firmware_file(const char *filename, uint32_t *checksum)
 {
     int fd;
@@ -685,6 +700,7 @@ int load_romdump(const char *filename)
 
     return flash_original_fw(len);
 }
+#endif
 
 /* Kind of our main function, defines the application flow. */
 void DoUserDialog(char* filename)
@@ -707,6 +723,8 @@ void DoUserDialog(char* filename)
     if (!show_info())
         return ;
 
+    cfi_program_word(FB+3,0x1234);
+    cfi_program_word(FB+4,0);
     if (filename == NULL)
     {
         rb->splash(HZ*3, "Please use this plugin with \"Open with...\"");
@@ -715,6 +733,7 @@ void DoUserDialog(char* filename)
 
     audiobuf = rb->plugin_get_audio_buffer((size_t *)&audiobuf_size);
 
+#if 0
     if (rb->strcasestr(filename, "/rockbox.iriver"))
         flash_rockbox(filename, SECT_RAMIMAGE);
     else if (rb->strcasestr(filename, "/rombox.iriver"))
@@ -726,6 +745,7 @@ void DoUserDialog(char* filename)
     else if (rb->strcasestr(filename, "/internal_rom_000000-1FFFFF.bin"))
         load_romdump(filename);
     else
+#endif
         rb->splash(HZ*3, "Unknown file type");
 }
 

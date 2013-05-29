@@ -21,13 +21,13 @@ endif
 
 # Get directory this Makefile is in for relative paths.
 TOP := $(dir $(lastword $(MAKEFILE_LIST)))
-ifeq ($(OS),Windows_NT)
-mkdir = if not exist $(subst /,\,$(1)) mkdir $(subst /,\,$(1))
-rm = if exist $(subst /,\,$(1)) del /q /s $(subst /,\,$(1))
-else
+#ifeq ($(OS),Windows_NT)
+#mkdir = if not exist $(subst /,\,$(1)) mkdir $(subst /,\,$(1))
+#rm = if exist $(subst /,\,$(1)) del /q /s $(subst /,\,$(1))
+#else
 mkdir = mkdir -p $(1)
 rm = rm -rf $(1)
-endif
+#endif
 
 # overwrite for releases
 APPVERSION ?= $(shell $(TOP)/../tools/version.sh $(TOP)/..)

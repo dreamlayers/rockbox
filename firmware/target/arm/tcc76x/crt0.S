@@ -58,7 +58,6 @@ bl_entrypoint:  .word  0   /* Location in RAM of the start of our bootloader */
     .word  0x3a726556        /* "Ver:" */
     .word  1234              /* Version? */
     .word  0                 /* 32 bit LE checksum, set so file sums to 0 */
-
 #endif
 
 start_loc:
@@ -66,9 +65,15 @@ start_loc:
 /*
   If we are appended to the OF (i.e. dual-booting), do a button check,
   and branch to the OF's entry point (saved by mktccboot) if not active.
-*/
+ */
 
 #ifdef TCCBOOT
+/* Both RC3000A firmware and TCC760 boot ROM have this seemingly
+   pointless code after the initial jump. Maybe it is important?
+ */
+    mov    r0, #0
+    subs   r0, r0, r0
+
     mov    r0, #0x80000000
 #if defined(RC3000A)
     /* Only key accessible via GPIO is the power/play/pause key, which
@@ -109,6 +114,37 @@ start_loc:
    linked address (see boot.lds) - 1MB from the end of DRAM.
  */
 
+/* Configure memory controller. Datasheet recommends simply clearing SDEN,
+   setting SDCFG and setting SDEN. Code here is like the RC3000A firmware.
+   Currently executing from NOR flash. This must not be run from SDRAM!
+ */
+    mov    r0, #0xf0000000
+    /* SDCFG value, depends on particular player */
+#ifdef RC3000A
+    ldr    r1, =0xc268a420
+#else
+    #error No SDCFG value defined for this target
+#endif
+    str    r1, [r0]             /* Set SDCFG */
+    ldr    r1, [r0,#8]          /* MCFG */
+    bic    r1, r1, #0x4000      /* Clear XDM: idle bus input mode */
+    bic    r1, r1, #0x10        /* Clear SDEN: disable sdram */
+    /* Release area 0 from boot ROM and use it for SDRAM.
+       RCA3000A OF also enables JTAG here.
+     */
+    orr    r1, r1, #0x1
+    str    r1, [r0,#8]
+    eor    r1, r1, #0x10        /* Set SDEN */
+    str    r1, [r0,#8]
+    eor    r1, r1, #0x10        /* Clear SDEN */
+    str    r1, [r0,#8]
+    eor    r1, r1, #0x10        /* Set SDEN */
+    str    r1, [r0,#8]
+
+ /* Copy code and data for which the final destination is DRAM.
+    Other sections are copied later, directly from original
+    to final locations.
+  */
     ldr    r0, bl_entrypoint
 
     mov    r1, #0x20000000    /* Destination: 1MB from end of DRAM */
