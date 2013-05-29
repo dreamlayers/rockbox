@@ -29,8 +29,10 @@ void power_init(void)
 {
 }
 
+/* Irrelevant, but required for panicf() */
 void ide_power_enable(bool on)
 {
+    (void)on;
 }
 
 bool ide_powered(void)
@@ -40,6 +42,7 @@ bool ide_powered(void)
 
 void power_off(void)
 {
+    GPIOA &= ~0x800;
 }
 
 bool tuner_power(bool status) {
