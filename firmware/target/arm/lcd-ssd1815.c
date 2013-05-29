@@ -183,10 +183,6 @@ void lcd_write_data(const fb_data* p_bytes, int count)
 /* LCD init */
 void lcd_init_device(void)
 {
-    uint32_t bus_width;
-
-    bus_width = ((MCFG >> 11) & 0x3) ^ 3;
-
 #ifdef RC3000A
     GPIOD |= 0x200000; /* This seems to enable LCD and backlight power */
 
@@ -207,6 +203,10 @@ void lcd_init_device(void)
     lcd_write_command(LCD_SET_DISPLAY_ON);
     lcd_write_command(LCD_SET_ENTIRE_DISPLAY_OFF);
 #else
+    uint32_t bus_width;
+
+    bus_width = ((MCFG >> 11) & 0x3) ^ 3;
+
     /* Telechips init the same as the original firmware */
     CSCFG1 &= 0xc3ffc000;
     CSCFG1 |= 0x3400101a;
@@ -364,6 +364,14 @@ void lcd_update(void) ICODE_ATTR;
 void lcd_update(void)
 {
     int y;
+
+#ifdef RC3000A
+    /* FIXME: This is needed to prevent occasional vertical wrapping
+     * when running after bootloader. It doesn't affect the first
+     * show_logo(), but shows up at the main menu about 1 of 10 times.
+     */
+    lcd_write_command(LCD_SET_DISPLAY_START_LINE);
+#endif
 
     /* Copy display bitmap to hardware */
     for (y = 0; y < LCD_FBHEIGHT; y++)
