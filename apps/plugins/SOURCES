@@ -261,3 +261,7 @@ test_touchscreen.c
 #endif
 test_viewports.c
 #endif /* HAVE_TEST_PLUGINS */
+
+#ifdef RC3000A
+rc3000a_flash.c
+#endif
