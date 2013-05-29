@@ -282,6 +282,7 @@ void lcd_set_invert_display(bool yesno)
 void lcd_set_flip(bool yesno)
 {
 #ifdef RC3000A
+    /* These delays are not present in OF code. Why are they needed? */
     lcd_write_command(LCD_SET_SEGMENT_REMAP | (yesno ? 1 : 0));
     sleep(1);
     lcd_write_command(LCD_SET_COM_OUTPUT_SCAN_DIRECTION | (yesno? 0 : 8));
