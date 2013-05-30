@@ -750,6 +750,7 @@ void usb_enable(bool on)
 /* Always return false for now */
 int usb_detect(void)
 {
+    /* GPIOA & 0x4000 */
     return USB_EXTRACTED;
 }
 #endif
