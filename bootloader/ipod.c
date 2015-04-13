@@ -295,14 +295,14 @@ void* main(void)
     int btn;
     int rc;
     bool haveramos;
-    bool button_was_held;
+    /* bool button_was_held; */
     struct partinfo pinfo;
     unsigned short* identify_info;
 
     /* Check the button hold status as soon as possible - to 
        give the user maximum chance to turn it off in order to
        reset the settings in rockbox. */
-    button_was_held = button_hold();
+    /* button_was_held = button_hold(); */
 
     system_init();
     kernel_init();
@@ -367,7 +367,7 @@ void* main(void)
     printf("Partition 1: 0x%02x %ld sectors", 
            pinfo.type, pinfo.size);
 
-    if (button_was_held || (btn==BUTTON_MENU)) {
+    if (/* button_was_held || */ (btn==BUTTON_MENU)) {
         /* If either the hold switch was on, or the Menu button was held, then 
            try the Apple firmware */
 
