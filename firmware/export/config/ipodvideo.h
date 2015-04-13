@@ -226,7 +226,7 @@
 
 /* define this if the hard drive uses large physical sectors (ATA-7 feature) */
 /* and doesn't handle them in the drive firmware */
-#define MAX_PHYS_SECTOR_SIZE 1024
+#define MAX_PHYS_SECTOR_SIZE 4096
 
 #define BOOTFILE_EXT "ipod"
 #define BOOTFILE "rockbox." BOOTFILE_EXT
