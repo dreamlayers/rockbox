@@ -48,8 +48,8 @@ static inline void _backlight_led_off(void)
 
 #ifdef BOOTLOADER
 /* No PWM fading, and normal backlight switching functions are used. */
-#define _backlight_on() _backlight_led_on()
-#define _backlight_off() _backlight_led_off()
+#define backlight_hw_on() _backlight_led_on()
+#define backlight_hw_off() _backlight_led_off()
 #else /* !BOOTLOADER */
 /* PWM fading functions */
 #define _backlight_on_normal() _backlight_led_on()
