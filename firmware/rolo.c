@@ -186,6 +186,18 @@ void rolo_restart(const unsigned char* source, unsigned char* dest,
         : : "r"(DRAM_START)
     );
 
+#elif defined(CPU_TCC76X)
+    /* Flush and invalidate caches */
+    commit_discard_idcache();
+    asm volatile(
+        /* Disable caches, because not disabling them
+           leads to mysterious shutdowns at startup. */
+        "ldr     r0, =0xc0000079        \n\t"
+        "mcr     p15, 0, r0, c1, c0, 0  \n\t" /* CPU control bits */
+
+        "bx    %0   \n"
+        : : "r"(dest)
+    );
 #elif defined(CPU_ARM)
     /* Flush and invalidate caches */
     commit_discard_idcache();
