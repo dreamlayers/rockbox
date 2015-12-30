@@ -173,6 +173,8 @@ static usb_hid_report_t usb_hid_reports[REPORT_ID_COUNT];
 static unsigned char report_descriptor[HID_BUF_SIZE_REPORT]
     USB_DEVBSS_ATTR __attribute__((aligned(32)));
 
+static unsigned char ep_int_slot[USB_DRV_SLOT_SIZE] USB_DRV_SLOT_ATTR;
+
 static unsigned char send_buffer[HID_NUM_BUFFERS][HID_BUF_SIZE_MSG]
     USB_DEVBSS_ATTR __attribute__((aligned(32)));
 static size_t send_buffer_len[HID_NUM_BUFFERS];
@@ -594,6 +596,9 @@ int usb_hid_get_config_descriptor(unsigned char *dest, int max_packet_size)
 void usb_hid_init_connection(void)
 {
     logf("hid: init connection");
+    
+    usb_drv_select_endpoint_mode(ep_in, USB_DRV_ENDPOINT_MODE_QUEUE);
+    usb_drv_allocate_slots(ep_in, sizeof(ep_int_slot), ep_int_slot);
 
     active = true;
     currently_sending = false;
@@ -624,12 +629,17 @@ void usb_hid_disconnect(void)
 }
 
 /* called by usb_core_transfer_complete() */
+#ifdef HAVE_NEW_USB_API
+void usb_hid_transfer_complete(int ep, int dir, int status, int length, void *buffer)
+#else
 void usb_hid_transfer_complete(int ep, int dir, int status, int length)
+#endif
 {
     (void)ep;
     (void)dir;
     (void)status;
     (void)length;
+    (void)buffer;
 
     logf("HID: transfer complete: %d %d %d %d",ep,dir,status,length);
     switch (dir)
@@ -689,7 +699,7 @@ static int usb_hid_set_report(struct usb_ctrlrequest *req)
     }
 
     memset(buf, 0, length);
-    usb_drv_recv(EP_CONTROL, buf, length);
+    usb_drv_recv_blocking(EP_CONTROL, buf, length);
 
 #ifdef LOGF_ENABLE
     if (buf[1] & 0x01)
@@ -747,8 +757,8 @@ bool usb_hid_control_request(struct usb_ctrlrequest *req, unsigned char *dest)
             }
             if (dest != orig_dest)
             {
-                usb_drv_recv(EP_CONTROL, NULL, 0); /* ack */
-                usb_drv_send(EP_CONTROL, orig_dest, dest - orig_dest);
+                usb_drv_send_blocking(EP_CONTROL, orig_dest, dest - orig_dest);
+                usb_drv_recv_blocking(EP_CONTROL, NULL, 0); /* ack */
                 handled = true;
             }
             break;
@@ -760,14 +770,14 @@ bool usb_hid_control_request(struct usb_ctrlrequest *req, unsigned char *dest)
             {
                 case USB_HID_SET_IDLE:
                     logf("hid: set idle");
-                    usb_drv_send(EP_CONTROL, NULL, 0); /* ack */
+                    usb_drv_send_blocking(EP_CONTROL, NULL, 0); /* ack */
                     handled = true;
                     break;
                 case USB_HID_SET_REPORT:
                     logf("hid: set report");
                     if (!usb_hid_set_report(req))
                     {
-                        usb_drv_send(EP_CONTROL, NULL, 0); /* ack */
+                        usb_drv_send_blocking(EP_CONTROL, NULL, 0); /* ack */
                         handled = true;
                     }
                     break;
@@ -789,7 +799,7 @@ static void usb_hid_try_send_drv(void)
 {
     int rc;
     int length = send_buffer_len[cur_buf_send];
-
+    
     if (!length)
         return;
 
@@ -869,6 +879,6 @@ void usb_hid_send(usage_page_t usage_page, int id)
         buf_dump(buf, length, "key release");
         usb_hid_queue(buf, length);
     }
-
+    
     usb_hid_try_send_drv();
 }

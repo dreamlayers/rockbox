@@ -44,6 +44,8 @@
 
 extern bool audio_is_initialized;
 
+static int sound_setting_volume = (VOLUME_MAX + VOLUME_MIN) / 2;
+
 const char *sound_unit(int setting)
 {
     return audiohw_settings[setting].unit;
@@ -276,6 +278,7 @@ void sound_set_volume(int value)
 {
     if(!audio_is_initialized)
         return;
+    sound_setting_volume = value;
 
 #if defined(AUDIOHW_HAVE_CLIPPING)
     audiohw_set_volume(value);
@@ -286,6 +289,11 @@ void sound_set_volume(int value)
     current_volume = value * 10;     /* tenth of dB */
     set_prescaled_volume();
 #endif
+}
+
+int sound_get_volume(void)
+{
+    return sound_setting_volume;
 }
 
 void sound_set_balance(int value)

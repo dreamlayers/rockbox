@@ -23,7 +23,7 @@
 #include "usb_core.h"
 #include "usb_drv.h"
 #include "usb_class_driver.h"
-/*#define LOGF_ENABLE*/
+#define LOGF_ENABLE
 #include "logf.h"
 #include "storage.h"
 #include "disk.h"
@@ -94,6 +94,13 @@
 #define WRITE_BUFFER_SIZE (1024*24)
 #endif /* (CONFIG_STORAGE & STORAGE_SD) */
 #endif /* USB_WRITE_BUFFER_SIZE */
+
+#ifdef HAVE_NEW_USB_API
+/* FIXME: this should probably depend on the usb driver because one slot
+ * can send/receive a limited amount of data. On the ARC controller, a
+ * slot is a TD and can carry up to 16kiB, so use 4 slots per direction */
+static unsigned char ep_bulk_slots[2][USB_DRV_SLOT_SIZE * 8] USB_DRV_SLOT_ATTR;
+#endif
 
 #define ALLOCATE_BUFFER_SIZE (2*MAX(READ_BUFFER_SIZE,WRITE_BUFFER_SIZE))
 
@@ -481,7 +488,15 @@ void usb_storage_init_connection(void)
     ramdisk_buffer = tb.transfer_buffer + ALLOCATE_BUFFER_SIZE;
 #endif
 #endif
-    usb_drv_recv(ep_out, cbw_buffer, MAX_CBW_SIZE);
+    /* keep coherent with definition of ep_bulk_slots */
+    #ifdef HAVE_NEW_USB_API
+    usb_drv_select_endpoint_mode(ep_out, USB_DRV_ENDPOINT_MODE_QUEUE);
+    usb_drv_allocate_slots(ep_out, sizeof(ep_bulk_slots[0]), ep_bulk_slots[0]);
+    usb_drv_select_endpoint_mode(ep_in, USB_DRV_ENDPOINT_MODE_QUEUE);
+    usb_drv_allocate_slots(ep_in, sizeof(ep_bulk_slots[1]), ep_bulk_slots[1]);
+    #endif
+
+    usb_drv_recv_nonblocking(ep_out, cbw_buffer, MAX_CBW_SIZE);
 
     int i;
     for(i=0;i<storage_num_drives();i++) {
@@ -497,9 +512,16 @@ void usb_storage_disconnect(void)
 }
 
 /* called by usb_core_transfer_complete() */
+#ifdef HAVE_NEW_USB_API
+void usb_storage_transfer_complete(int ep,int dir,int status,int length, void *buffer)
+#else
 void usb_storage_transfer_complete(int ep,int dir,int status,int length)
+#endif
 {
     (void)ep;
+    #ifdef HAVE_NEW_USB_API
+    (void)buffer;
+    #endif
     struct command_block_wrapper* cbw = (void*)cbw_buffer;
     struct tm tm;
 
@@ -597,6 +619,7 @@ void usb_storage_transfer_complete(int ep,int dir,int status,int length)
             }
             handle_scsi(cbw);
             break;
+
 #if 0
             if(cur_cmd.cur_cmd == SCSI_WRITE_10)
             {
@@ -684,6 +707,7 @@ bool usb_storage_control_request(struct usb_ctrlrequest* req, unsigned char* des
     bool handled = false;
 
     (void)dest;
+    
     switch (req->bRequest) {
         case USB_BULK_GET_MAX_LUN: {
             *tb.max_lun = storage_num_drives() - 1;
@@ -691,8 +715,8 @@ bool usb_storage_control_request(struct usb_ctrlrequest* req, unsigned char* des
             *tb.max_lun --;
 #endif
             logf("ums: getmaxlun");
-            usb_drv_recv(EP_CONTROL, NULL, 0); /* ack */
-            usb_drv_send(EP_CONTROL, tb.max_lun, 1);
+            usb_drv_send_blocking(EP_CONTROL, tb.max_lun, 1);
+            usb_drv_recv_blocking(EP_CONTROL, NULL, 0); /* ack */
             handled = true;
             break;
         }
@@ -707,7 +731,7 @@ bool usb_storage_control_request(struct usb_ctrlrequest* req, unsigned char* des
             usb_drv_reset_endpoint(ep_in, false);
             usb_drv_reset_endpoint(ep_out, true);
 #endif
-            usb_drv_send(EP_CONTROL, NULL, 0);  /* ack */
+            usb_drv_send_blocking(EP_CONTROL, NULL, 0);  /* ack */
             handled = true;
             break;
     }
@@ -1189,12 +1213,12 @@ static void send_command_failed_result(void)
 
 static void receive_time(void)
 {
-    usb_drv_recv(ep_out, tb.transfer_buffer, 12);
+    usb_drv_recv_nonblocking(ep_out, tb.transfer_buffer, 12);
     state = RECEIVING_TIME;
 }
 static void receive_block_data(void *data,int size)
 {
-    usb_drv_recv(ep_out, data, size);
+    usb_drv_recv_nonblocking(ep_out, data, size);
     state = RECEIVING_BLOCKS;
 }
 
@@ -1210,7 +1234,7 @@ static void send_csw(int status)
     state = WAITING_FOR_CSW_COMPLETION_OR_COMMAND;
     //logf("CSW: %X",status);
     /* Already start waiting for the next command */
-    usb_drv_recv(ep_out, cbw_buffer, MAX_CBW_SIZE);
+    usb_drv_recv_nonblocking(ep_out, cbw_buffer, MAX_CBW_SIZE);
     /* The next completed transfer will be either the CSW one
      * or the new command */
 
