@@ -1,4 +1,3 @@
-#define USE_TCC76X_DMA
 /***************************************************************************
  *             __________               __   ___.
  *   Open      \______   \ ____   ____ |  | _\_ |__   _______  ___
@@ -109,20 +108,16 @@ void pcm_play_dma_init(void)
 
     DAMR = DAMR_EN | DAMR_SM | DAMR_BM | DAMR_FM | DAMR_BD_4 | DAMR_FD_64;
 
-#ifdef USE_TCC76X_DMA
-    SPARAM0 = 2;
-
-    ST_DADR0 = &DADO_L(0);
-    DPARAM0 = 0xFFFFFE04;
-
-    HCOUNT0 = 2;
-    CHCTRL0 = CHCTRL_TYPE_SOFTWARE | CHCTRL_BSIZE_4 | CHCTRL_WSIZE_16;
-#endif
+#define USE_TCC76X_DMA
 #else
 #error "Target isn't supported"
 #endif
     /* Set DAI interrupts as FIQs */
-    IRQSEL = ~(DAI_RX_IRQ_MASK | DAI_TX_IRQ_MASK | DMA_IRQ_MASK);
+    IRQSEL = ~(DAI_RX_IRQ_MASK | DAI_TX_IRQ_MASK
+#ifdef USE_TCC76X_DMA
+               | DMA_IRQ_MASK
+#endif
+               );
 
     /* Initialize default register values. */
     audiohw_init();
@@ -147,22 +142,34 @@ static void play_start_pcm(void)
     DAMR &= ~DAMR_TE;   /* disable tx */
     dma_play_data.state = 1;
 
-#if 1
-    /* Fixme no interrupts */
+    #ifdef USE_TCC76X_DMA
     IEN &= ~(DAI_RX_IRQ_MASK | DAI_TX_IRQ_MASK);
+    #endif
     if (dma_play_data.size >= 16)
     {
-        DADO_L(0) = *dma_play_data.p++ << 16;
-        DADO_R(0) = *dma_play_data.p++ << 16;
-        DADO_L(1) = *dma_play_data.p++ << 16;
-        DADO_R(1) = *dma_play_data.p++ << 16;
-        DADO_L(2) = *dma_play_data.p++ << 16;
-        DADO_R(2) = *dma_play_data.p++ << 16;
-        DADO_L(3) = *dma_play_data.p++ << 16;
-        DADO_R(3) = *dma_play_data.p++ << 16;
+#ifdef CPU_TCC76X
+        DADO_SHORT_L(0) = *dma_play_data.p++;
+        DADO_SHORT_R(0) = *dma_play_data.p++;
+        DADO_SHORT_L(1) = *dma_play_data.p++;
+        DADO_SHORT_R(1) = *dma_play_data.p++;
+        DADO_SHORT_L(2) = *dma_play_data.p++;
+        DADO_SHORT_R(2) = *dma_play_data.p++;
+        DADO_SHORT_L(3) = *dma_play_data.p++;
+        DADO_SHORT_R(3) = *dma_play_data.p++;
+#else
+        DADO_L(0) = *dma_play_data.p++;
+        DADO_R(0) = *dma_play_data.p++;
+        DADO_L(1) = *dma_play_data.p++;
+        DADO_R(1) = *dma_play_data.p++;
+        DADO_L(2) = *dma_play_data.p++;
+        DADO_R(2) = *dma_play_data.p++;
+        DADO_L(3) = *dma_play_data.p++;
+        DADO_R(3) = *dma_play_data.p++;
+#endif
         dma_play_data.size -= 16;
     }
 
+#ifdef USE_TCC76X_DMA
     commit_dcache();
 
     SPARAM0 = 4;
@@ -178,29 +185,19 @@ static void play_start_pcm(void)
     HCOUNT0 = (dma_play_data.size / (2 * 4 * 2)) & 0xFFFF;
     HCOUNT1 = (dma_play_data.size / (2 * 4 * 2)) & 0xFFFF;
 
-    CHCTRL0 = CHCTRL_DMASEL(DAI_TX_IRQ_MASK) | CHCTRL_SYNC | CHCTRL_HRD | CHCTRL_TYPE_SINGLE_EDGE | (3 << 6) | CHCTRL_WSIZE_16 | CHCTRL_FLAG;
-    CHCTRL1 = CHCTRL_DMASEL(DAI_TX_IRQ_MASK) | CHCTRL_SYNC | CHCTRL_HRD | CHCTRL_TYPE_SINGLE_EDGE | (3 << 6) | CHCTRL_WSIZE_16 | CHCTRL_FLAG | CHCTRL_IEN;
+    CHCTRL0 = CHCTRL_DMASEL(DAI_TX_IRQ_MASK) | CHCTRL_SYNC | CHCTRL_HRD | 
+              CHCTRL_TYPE_SINGLE_EDGE | (3 << 6) | CHCTRL_WSIZE_16 |
+              CHCTRL_FLAG;
+    CHCTRL1 = CHCTRL_DMASEL(DAI_TX_IRQ_MASK) | CHCTRL_SYNC | CHCTRL_HRD |
+              CHCTRL_TYPE_SINGLE_EDGE | (3 << 6) | CHCTRL_WSIZE_16 |
+              CHCTRL_FLAG | CHCTRL_IEN;
     CHCONFIG = CHCONFIG_FIX;
     CHCTRL0 |= CHCTRL_EN;
     CHCTRL1 |= CHCTRL_EN;
 
     IEN |= DMA_IRQ_MASK;
-    DAMR |= DAMR_TE;   /* enable tx */
-
-#elif !defined(USE_TCC76X_DMA)
-    if (dma_play_data.size >= 16)
-    {
-        DADO_SHORT_L(0) = *dma_play_data.p++;
-        DADO_SHORT_R(0) = *dma_play_data.p++;
-        DADO_SHORT_L(1) = *dma_play_data.p++;
-        DADO_SHORT_R(1) = *dma_play_data.p++;
-        DADO_SHORT_L(2) = *dma_play_data.p++;
-        DADO_SHORT_R(2) = *dma_play_data.p++;
-        DADO_SHORT_L(3) = *dma_play_data.p++;
-        DADO_SHORT_R(3) = *dma_play_data.p++;
-        dma_play_data.size -= 16;
-    }
 #endif
+
     DAMR |= DAMR_TE;   /* enable tx */
 }
 
@@ -220,7 +217,11 @@ void pcm_play_dma_start(const void *addr, size_t size)
     dma_play_data.core = processor_id(); /* save initiating core */
 #endif
 
+#ifdef USE_TCC76X_DMA
     IEN |= DMA_IRQ_MASK;
+#else
+    IEN |= DAI_TX_IRQ_MASK;
+#endif
 
     play_start_pcm();
 }
@@ -240,7 +241,11 @@ void pcm_play_lock(void)
 
     if (++dma_play_data.locked == 1)
     {
+#ifdef USE_TCC76X_DMA
         IEN &= ~DMA_IRQ_MASK;
+#else
+        IEN &= ~DAI_TX_IRQ_MASK;
+#endif
     }
 
     restore_fiq(status);
@@ -252,8 +257,11 @@ void pcm_play_unlock(void)
 
     if (--dma_play_data.locked == 0 && dma_play_data.state != 0)
     {
+#ifdef USE_TCC76X_DMA
         IEN |= DMA_IRQ_MASK;
-;
+#else
+        IEN |= DAI_TX_IRQ_MASK;
+#endif
     }
 
    restore_fiq(status);
@@ -307,8 +315,31 @@ const void * pcm_rec_dma_get_peak_buffer(void)
 }
 #endif
 
-#if 0 // FIXME
-//#if defined(CPU_TCC76X) || defined(CPU_TCC77X) || defined(CPU_TCC780X)
+#ifdef USE_TCC76X_DMA
+void fiq_handler(void) ICODE_ATTR __attribute__((interrupt ("FIQ")));
+void fiq_handler(void)
+{
+    register bool new_buffer;
+
+    /* p is empty, get some more data */
+    new_buffer = pcm_play_dma_complete_callback(0, &dma_play_data.p_r,
+                                                &dma_play_data.size);
+
+    commit_dcache();
+    ST_SADR0 = dma_play_data.p;
+    ST_SADR1 = dma_play_data.p+1;
+    HCOUNT0 = (dma_play_data.size / (2 * 4 * 2)) & 0xFFFF;
+    HCOUNT1 = (dma_play_data.size / (2 * 4 * 2)) & 0xFFFF;
+    CHCTRL0 |= CHCTRL_EN | CHCTRL_FLAG;
+    CHCTRL1 |= CHCTRL_EN | CHCTRL_FLAG;
+
+    /* Clear FIQ status */
+    CREQ = DAI_TX_IRQ_MASK | DAI_RX_IRQ_MASK | DMA_IRQ_MASK;
+
+    if (new_buffer)
+        pcm_play_dma_status_callback(PCM_DMAST_STARTED);
+}
+#elif defined(CPU_TCC76X) || defined(CPU_TCC77X) || defined(CPU_TCC780X)
 void fiq_handler(void) ICODE_ATTR __attribute__((naked));
 void fiq_handler(void)
 {
@@ -335,6 +366,22 @@ void fiq_handler(void)
         "blo     .more_data          \n" /* if so, ask pcmbuf for more data */
 
     ".fill_fifo:                     \n"
+#ifdef CPU_TCC76X
+        /* You can either write a 16 bit value or an MSB justified
+           32 bit value. This allows shifts to be avoided */
+        "ldr     r12, [r8], #4       \n" /* load two samples */
+        "strh    r12, [r10, #0x0]    \n" /* write top sample to DADO_L0 */
+        "str     r12, [r10, #0x4]    \n" /* write low sample to DADO_R0*/
+        "ldr     r12, [r8], #4       \n" /* load two samples */
+        "strh    r12, [r10, #0x8]    \n" /* write top sample to DADO_L1 */
+        "str     r12, [r10, #0xc]    \n" /* write low sample to DADO_R1*/
+        "ldr     r12, [r8], #4       \n" /* load two samples */
+        "strh    r12, [r10, #0x10]   \n" /* write top sample to DADO_L2 */
+        "str     r12, [r10, #0x14]   \n" /* write low sample to DADO_R2*/
+        "ldr     r12, [r8], #4       \n" /* load two samples */
+        "strh    r12, [r10, #0x18]   \n" /* write top sample to DADO_L3 */
+        "str     r12, [r10, #0x1c]   \n" /* write low sample to DADO_R3*/
+#else
         "ldr     r12, [r8], #4       \n" /* load two samples */
         "str     r12, [r10, #0x0]    \n" /* write top sample to DADO_L0 */
         "mov     r12, r12, lsr #16   \n" /* put right sample at the bottom */
@@ -351,6 +398,7 @@ void fiq_handler(void)
         "str     r12, [r10, #0x18]   \n" /* write top sample to DADO_L3 */
         "mov     r12, r12, lsr #16   \n" /* put right sample at the bottom */
         "str     r12, [r10, #0x1c]   \n" /* write low sample to DADO_R3*/
+#endif
         "sub     r9, r9, #0x10       \n" /* 4 words written */
         "stmia   r11, { r8-r9 }      \n" /* save p and size */
 
@@ -361,7 +409,12 @@ void fiq_handler(void)
         "ldr     r1, [r1]            \n"
         "cmp     r1, #0              \n"
         "movne   r0, %1              \n"
+#ifdef CPU_TCC76X
+        "movne   lr, pc              \n"
+        "bxne    r1                  \n"
+#else
         "blxne   r1                  \n"
+#endif
         "ldmfd   sp!, { r0-r3, pc }^ \n" /* exit */
 
     ".more_data:                     \n"
@@ -369,8 +422,13 @@ void fiq_handler(void)
         "mov     r0, %0              \n" /* r0 = status */
         "mov     r1, r11             \n" /* r1 = &dma_play_data.p_r */
         "add     r2, r11, #4         \n" /* r2 = &dma_play_data.size */
+        "ldr     r12, =pcm_play_dma_complete_callback \n"
+#ifdef CPU_TCC76X
         "mov     lr, pc              \n"
-        "ldr     pc, =pcm_play_dma_complete_callback \n"
+        "bx      r12                 \n"
+#else
+        "blx     r12                 \n"
+#endif
         "cmp     r0, #0              \n" /* any more to play? */
         "ldmneia r11, { r8-r9 }      \n" /* load new p and size */
         "cmpne   r9, #0x0f           \n" /* did we actually get enough data? */
@@ -386,25 +444,16 @@ void fiq_handler(void)
 {
     register bool new_buffer = false;
 
-    dma_play_data.size = 0;
     if (dma_play_data.size < 16)
     {
         /* p is empty, get some more data */
         new_buffer = pcm_play_dma_complete_callback(0, &dma_play_data.p_r,
                                                     &dma_play_data.size);
-        commit_dcache();
-
-        ST_SADR0 = dma_play_data.p;
-        ST_SADR1 = dma_play_data.p+1;
-        HCOUNT0 = (dma_play_data.size / (2 * 4 * 2)) & 0xFFFF;
-        HCOUNT1 = (dma_play_data.size / (2 * 4 * 2)) & 0xFFFF;
-        CHCTRL0 |= CHCTRL_EN | CHCTRL_FLAG;
-        CHCTRL1 |= CHCTRL_EN | CHCTRL_FLAG;
     }
-#if 0
+
     if (dma_play_data.size >= 16)
     {
-#ifndef USE_TCC76X_DMA
+#if defined(CPU_TCC76X)
         DADO_SHORT_L(0) = *dma_play_data.p++;
         DADO_SHORT_R(0) = *dma_play_data.p++;
         DADO_SHORT_L(1) = *dma_play_data.p++;
@@ -414,14 +463,21 @@ void fiq_handler(void)
         DADO_SHORT_L(3) = *dma_play_data.p++;
         DADO_SHORT_R(3) = *dma_play_data.p++;
 #else
-        dma_play_data.p += 8;
-#endif
-        dma_play_data.size -= 16;
-    }
+        DADO_L(0) = *dma_play_data.p++;
+        DADO_R(0) = *dma_play_data.p++;
+        DADO_L(1) = *dma_play_data.p++;
+        DADO_R(1) = *dma_play_data.p++;
+        DADO_L(2) = *dma_play_data.p++;
+        DADO_R(2) = *dma_play_data.p++;
+        DADO_L(3) = *dma_play_data.p++;
+        DADO_R(3) = *dma_play_data.p++;
 #endif
 
+        dma_play_data.size -= 16;
+    }
+
     /* Clear FIQ status */
-    CREQ = DMA_IRQ_MASK | DAI_TX_IRQ_MASK | DAI_RX_IRQ_MASK;
+    CREQ = DAI_TX_IRQ_MASK | DAI_RX_IRQ_MASK;
 
     if (new_buffer)
         pcm_play_dma_status_callback(PCM_DMAST_STARTED);
