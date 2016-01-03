@@ -168,4 +168,5 @@
 #define USE_ROCKBOX_USB
 #define USB_VENDOR_ID 0x069b
 #define USB_PRODUCT_ID 0x301d
+#define USB_NO_HIGH_SPEED
 #endif
