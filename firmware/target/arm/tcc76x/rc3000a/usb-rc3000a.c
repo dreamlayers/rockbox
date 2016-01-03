@@ -721,6 +721,8 @@ void usb_test(void)
         panicf("sd_init failed");
     }
 
+    filesystem_init(); /* for buffers needed by USB storage */
+
     usb_init();
     usb_start_monitoring();
     usb_acknowledge(SYS_USB_CONNECTED_ACK);
