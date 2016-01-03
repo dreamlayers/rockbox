@@ -626,17 +626,17 @@
 
 /* Channel 0 registers */
 /* Start Address of Source Block */
-#define ST_SADR0 (*(void * volatile *)0x80000E00)
+#define ST_SADR0 (*(volatile void * volatile *)0x80000E00)
 /* Parameter of Source Block, also 0x80000E08 */
 #define SPARAM0 (*(volatile unsigned long *)0x80000E04)
 /* Current Address of Source Block */
-#define C_SADR0 (*(void * volatile *)0x80000E0C)
+#define C_SADR0 (*(volatile void * volatile *)0x80000E0C)
 /* Start Address of Destination Block */
-#define ST_DADR0 (*(void * volatile *)0x80000E10)
+#define ST_DADR0 (*(volatile void * volatile *)0x80000E10)
 /* Parameter of Destination Block, also 0x80000E18 */
 #define DPARAM0 (*(volatile unsigned long *)0x80000E14)
 /* Current Address of Destination Block */
-#define C_DADR0 (*(void * volatile *)0x80000E1C)
+#define C_DADR0 (*(volatile void * volatile *)0x80000E1C)
 /* Initial and Current Hop count */
 #define HCOUNT0 (*(volatile unsigned long *)0x80000E20)
 /* Channel Control Register */
@@ -677,12 +677,12 @@
 
 
 /* Channel 1 registers, just like channel 0 */
-#define ST_SADR1 (*(volatile unsigned long *)0x80000E30)
+#define ST_SADR1 (*(volatile void * volatile *)0x80000E30)
 #define SPARAM1 (*(volatile unsigned long *)0x80000E34)
-#define C_SADR1 (*(volatile unsigned long *)0x80000E3C)
-#define ST_DADR1 (*(volatile unsigned long *)0x80000E40)
+#define C_SADR1 (*(volatile void * volatile *)0x80000E3C)
+#define ST_DADR1 (*(volatile void * volatile *)0x80000E40)
 #define DPARAM1 (*(volatile unsigned long *)0x80000E44)
-#define C_DADR1 (*(volatile unsigned long *)0x80000E4C)
+#define C_DADR1 (*(volatile void * volatile *)0x80000E4C)
 #define HCOUNT1 (*(volatile unsigned long *)0x80000E50)
 #define CHCTRL1 (*(volatile unsigned long *)0x80000E54)
 
