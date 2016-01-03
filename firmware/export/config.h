@@ -367,6 +367,7 @@ Lyre prototype 1 */
 #define USBOTG_S3C6400X 6400 /* Samsung S3C6400X, also used in the S5L8701/S5L8702/S5L8720 */
 #define USBOTG_RK27XX   2700 /* Rockchip rk27xx */
 #define USBOTG_TNETV105 105  /* TI TNETV105 */
+#define USBOTG_TCC76X   760  /* Telechips TCC76X */
 
 /* Multiple cores */
 #define CPU 0
