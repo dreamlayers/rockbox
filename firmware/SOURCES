@@ -778,6 +778,8 @@ target/arm/usb-designware.c
 drivers/isp1583.c
 #elif CONFIG_USBOTG == USBOTG_RK27XX
 target/arm/rk27xx/usb-drv-rk27xx.c
+#elif CONFIG_USBOTG == USBOTG_TCC76X
+target/arm/tcc76x/usb-drv-tcc76x.c
 #endif
 #else /* !defined(HAVE_USBSTACK) */
 #if CONFIG_USBOTG == USBOTG_ISP1362	 

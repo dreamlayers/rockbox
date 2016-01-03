@@ -368,6 +368,7 @@ Lyre prototype 1 */
 #define USBOTG_DESIGNWARE 6401 /* Synopsys DesignWare OTG, used in S5L8701/S5L8702/S5L8720/AS3252v2 */
 #define USBOTG_RK27XX   2700 /* Rockchip rk27xx */
 #define USBOTG_TNETV105 105  /* TI TNETV105 */
+#define USBOTG_TCC76X   760  /* Telechips TCC76X */
 
 /* Multiple cores */
 #define CPU 0

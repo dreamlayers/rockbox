@@ -158,9 +158,9 @@
 /* Define this if a programmable hotkey is mapped */
 #define HAVE_HOTKEY
 
-#ifdef BOOTLOADER
+#ifdef USB_TEST
 /* USB On-the-go */
-//#define CONFIG_USBOTG USBOTG_TCC76X
+#define CONFIG_USBOTG USBOTG_TCC76X
 #define HAVE_BOOTLOADER_USB_MODE
 
 /* enable these for the experimental usb stack */
