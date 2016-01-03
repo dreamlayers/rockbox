@@ -1,3 +1,4 @@
+#define USE_TCC76X_DMA
 /***************************************************************************
  *             __________               __   ___.
  *   Open      \______   \ ____   ____ |  | _\_ |__   _______  ___
@@ -107,11 +108,21 @@ void pcm_play_dma_init(void)
     DCLKmode = 0x4010;
 
     DAMR = DAMR_EN | DAMR_SM | DAMR_BM | DAMR_FM | DAMR_BD_4 | DAMR_FD_64;
+
+#ifdef USE_TCC76X_DMA
+    SPARAM0 = 2;
+
+    ST_DADR0 = &DADO_L(0);
+    DPARAM0 = 0xFFFFFE04;
+
+    HCOUNT0 = 2;
+    CHCTRL0 = CHCTRL_TYPE_SOFTWARE | CHCTRL_BSIZE_4 | CHCTRL_WSIZE_16;
+#endif
 #else
 #error "Target isn't supported"
 #endif
     /* Set DAI interrupts as FIQs */
-    IRQSEL = ~(DAI_RX_IRQ_MASK | DAI_TX_IRQ_MASK);
+    IRQSEL = ~(DAI_RX_IRQ_MASK | DAI_TX_IRQ_MASK | DMA_IRQ_MASK);
 
     /* Initialize default register values. */
     audiohw_init();
@@ -136,6 +147,9 @@ static void play_start_pcm(void)
     DAMR &= ~DAMR_TE;   /* disable tx */
     dma_play_data.state = 1;
 
+#if 1
+    /* Fixme no interrupts */
+    IEN &= ~(DAI_RX_IRQ_MASK | DAI_TX_IRQ_MASK);
     if (dma_play_data.size >= 16)
     {
         DADO_L(0) = *dma_play_data.p++ << 16;
@@ -149,6 +163,74 @@ static void play_start_pcm(void)
         dma_play_data.size -= 16;
     }
 
+#if 0
+    int i;
+    for (i = 0; i < 512; i++) {
+        int k = (i/2) % 40;
+        if (k < 20) dma_play_data.p[i] = i * 256;
+        else dma_play_data.p[i] = 2560 - (i-20) * 256;
+    }
+#endif
+        //*(dma_play_data.p) = 0x4000;
+        commit_dcache();
+    //while (1) {
+        SPARAM0 = 4;
+        SPARAM1 = 4;
+
+        ST_DADR0 = &DADO_L(0);
+        DPARAM0 = 0xFFFFFE08;
+        ST_DADR1 = &DADO_R(0);
+        DPARAM1 = 0xFFFFFE08;
+
+        ST_SADR0 = dma_play_data.p;
+        ST_SADR1 = dma_play_data.p+1;
+        HCOUNT0 = (dma_play_data.size / (2 * 4 * 2)) & 0xFFFF;
+        HCOUNT1 = (dma_play_data.size / (2 * 4 * 2)) & 0xFFFF;
+
+        //lcd_putsxyf(20,20,"HC:%d", HCOUNT0);
+        //lcd_update();
+        //sleep(HZ);
+
+        CHCTRL0 = CHCTRL_DMASEL(DAI_TX_IRQ_MASK) | CHCTRL_SYNC | CHCTRL_HRD | CHCTRL_TYPE_SINGLE_EDGE | (3 << 6) | CHCTRL_WSIZE_16 | CHCTRL_FLAG;
+        CHCTRL1 = CHCTRL_DMASEL(DAI_TX_IRQ_MASK) | CHCTRL_SYNC | CHCTRL_HRD | CHCTRL_TYPE_SINGLE_EDGE | (3 << 6) | CHCTRL_WSIZE_16 | CHCTRL_FLAG | CHCTRL_IEN;
+        CHCONFIG = CHCONFIG_FIX;
+        CHCTRL0 |= CHCTRL_EN;
+        CHCTRL1 |= CHCTRL_EN;
+
+        IEN |= DMA_IRQ_MASK;
+        DAMR |= DAMR_TE;   /* enable tx */
+    //    while ((CHCTRL0 & CHCTRL_FLAG) == 0);
+    //    while ((CHCTRL1 & CHCTRL_FLAG) == 0);
+    //}
+        //CHCTRL0 &= ~(CHCTRL_EN|CHCTRL_FLAG);
+
+        //lcd_putsxyf(30,30,"DD:%d", HCOUNT0);
+        //lcd_update();
+        //sleep(HZ);
+
+#elif !defined(USE_TCC76X_DMA)
+    if (dma_play_data.size >= 16)
+    {
+        DADO_SHORT_L(0) = *dma_play_data.p++;
+        DADO_SHORT_R(0) = *dma_play_data.p++;
+        DADO_SHORT_L(1) = *dma_play_data.p++;
+        DADO_SHORT_R(1) = *dma_play_data.p++;
+        DADO_SHORT_L(2) = *dma_play_data.p++;
+        DADO_SHORT_R(2) = *dma_play_data.p++;
+        DADO_SHORT_L(3) = *dma_play_data.p++;
+        DADO_SHORT_R(3) = *dma_play_data.p++;
+        dma_play_data.size -= 16;
+    }
+
+    commit_dcache();
+    ST_SADR0 = dma_play_data.p;
+#else
+    commit_dcache();
+    ST_SADR0 = dma_play_data.p;
+    CHCTRL0 = (CHCTRL0 & ~CHCTRL_CONT) | CHCTRL_EN;
+    dma_play_data.size -= 16;
+    dma_play_data.p += 8;
+#endif
     DAMR |= DAMR_TE;   /* enable tx */
 }
 
@@ -168,7 +250,7 @@ void pcm_play_dma_start(const void *addr, size_t size)
     dma_play_data.core = processor_id(); /* save initiating core */
 #endif
 
-    IEN |= DAI_TX_IRQ_MASK;
+    IEN |= DMA_IRQ_MASK;
 
     play_start_pcm();
 }
@@ -188,7 +270,7 @@ void pcm_play_lock(void)
 
     if (++dma_play_data.locked == 1)
     {
-        IEN &= ~DAI_TX_IRQ_MASK;
+        IEN &= ~DMA_IRQ_MASK;
     }
 
     restore_fiq(status);
@@ -200,7 +282,8 @@ void pcm_play_unlock(void)
 
     if (--dma_play_data.locked == 0 && dma_play_data.state != 0)
     {
-        IEN |= DAI_TX_IRQ_MASK;
+        IEN |= DMA_IRQ_MASK;
+;
     }
 
    restore_fiq(status);
@@ -333,30 +416,57 @@ void fiq_handler(void)
 {
     register bool new_buffer = false;
 
+    dma_play_data.size = 0;
     if (dma_play_data.size < 16)
     {
         /* p is empty, get some more data */
         new_buffer = pcm_play_dma_complete_callback(0, &dma_play_data.p_r,
                                                     &dma_play_data.size);
+        commit_dcache();
+#if 1
+        ST_SADR0 = dma_play_data.p;
+        ST_SADR1 = dma_play_data.p+1;
+        HCOUNT0 = (dma_play_data.size / (2 * 4 * 2)) & 0xFFFF;
+        HCOUNT1 = (dma_play_data.size / (2 * 4 * 2)) & 0xFFFF;
+        CHCTRL0 |= CHCTRL_EN | CHCTRL_FLAG;
+        CHCTRL1 |= CHCTRL_EN | CHCTRL_FLAG;
+#else
+        SPARAM1 = 2;
+        ST_DADR1 = &DADO_L(0);
+        DPARAM1 = 0xFFFFFE04;
+        ST_SADR1 = dma_play_data.p;
+        HCOUNT1 = (dma_play_data.size / (2)) & 0xFFFF;
+        CHCTRL1 = CHCTRL_DMASEL(DAI_TX_IRQ_MASK) | CHCTRL_SYNC | CHCTRL_HRD | CHCTRL_TYPE_HARDWARE | CHCTRL_BSIZE_1 | CHCTRL_WSIZE_16 | CHCTRL_FLAG | CHCTRL_IEN;
+        CHCTRL1 |= CHCTRL_EN | CHCTRL_FLAG;
+#endif
     }
+#if 0
+    else
+        CHCTRL0 |= CHCTRL_CONT;
 
     if (dma_play_data.size >= 16)
     {
-        /* TCC76x: data is justified to MSB */
-        DADO_L(0) = *dma_play_data.p++ << 16;
-        DADO_R(0) = *dma_play_data.p++ << 16;
-        DADO_L(1) = *dma_play_data.p++ << 16;
-        DADO_R(1) = *dma_play_data.p++ << 16;
-        DADO_L(2) = *dma_play_data.p++ << 16;
-        DADO_R(2) = *dma_play_data.p++ << 16;
-        DADO_L(3) = *dma_play_data.p++ << 16;
-        DADO_R(3) = *dma_play_data.p++ << 16;
-
+#ifndef USE_TCC76X_DMA
+        DADO_SHORT_L(0) = *dma_play_data.p++;
+        DADO_SHORT_R(0) = *dma_play_data.p++;
+        DADO_SHORT_L(1) = *dma_play_data.p++;
+        DADO_SHORT_R(1) = *dma_play_data.p++;
+        DADO_SHORT_L(2) = *dma_play_data.p++;
+        DADO_SHORT_R(2) = *dma_play_data.p++;
+        DADO_SHORT_L(3) = *dma_play_data.p++;
+        DADO_SHORT_R(3) = *dma_play_data.p++;
+#else
+        CHCTRL0 |= CHCTRL_EN;
+        //while ((CHCTRL0 & CHCTRL_FLAG) == 0);
+        //CHCTRL0 &= ~(CHCTRL_EN|CHCTRL_FLAG);
+        dma_play_data.p += 8;
+#endif
         dma_play_data.size -= 16;
     }
+#endif
 
     /* Clear FIQ status */
-    CREQ = DAI_TX_IRQ_MASK | DAI_RX_IRQ_MASK;
+    CREQ = DMA_IRQ_MASK | DAI_TX_IRQ_MASK | DAI_RX_IRQ_MASK;
 
     if (new_buffer)
         pcm_play_dma_status_callback(PCM_DMAST_STARTED);
