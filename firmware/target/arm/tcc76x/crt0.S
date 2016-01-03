@@ -43,7 +43,7 @@
 start:
 #ifdef IRAM_BOOTLOADER
     b      start_loc
-of_entrypoint:  .word  0x7000000   /* Start of flash */
+of_entrypoint:  .word  0x70000000  /* Start of flash */
 bl_entrypoint:  .word  0x1000      /* Start in IRAM */
 #elif defined(TCCBOOT)
     /* Add -DTCCBOOT to EXTRA_DEFINES in the bootloader Makefile to
