@@ -19,9 +19,13 @@
  *
  ****************************************************************************/
 
+#include "config.h"
+
 unsigned char cscodec_read(int reg);
 void cscodec_write(int reg, unsigned char data);
 void cscodec_power(bool state);
 void cscodec_clock(bool state);
 void cscodec_reset(bool state);
-
+#ifdef HAVE_CS42L51
+void cscodec_select_ain(int ain, int gain);
+#endif
