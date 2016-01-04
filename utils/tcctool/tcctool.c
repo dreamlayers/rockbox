@@ -64,6 +64,21 @@ static struct device_t devices[] =
     {"ypp2",     "Samsung YP-P2",                0xb011, 0x20000000, 0x22e92010 },
     {"ypk3",     "Samsung YP-K3",                0xb021, 0x20000000, 0x62e92018 },
     {"ypt10",    "Samsung YP-T10",               0xb011, 0x20000000, 0x62e97080 },
+
+    /* The TCC76X USB bootloader is not capable of setting SDCFG, and the
+       last parameter is instead the address to jump to after receiving the
+       specified quantity of data. The bootloader copies 0x1000 bytes from
+       internal ROM to IRAM, but overwriting is probably possible starting
+       at 0x880.
+
+       Uploading to DRAM is possible by uploading a simple program to IRAM
+       which sets SDCFG and then continues the USB bootloader. A jump to
+       0 simulates a reset and causes a USB disconnect and reconnect.
+       A jump to 0x144 after re-enabling IRQ avoids that but doesn't
+       work with Linux.
+     */
+    {"rc3000ai", "RCA RC3000A IRAM",             0xb001, 0x00001000, 0x00001000 },
+    {"rc3000ad", "RCA RC3000A DRAM",             0xb001, 0x20000000, 0x20000000 },
 };
 
 #define NUM_DEVICES ((sizeof(devices) / sizeof(struct device_t)))
