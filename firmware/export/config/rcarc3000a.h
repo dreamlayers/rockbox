@@ -10,7 +10,8 @@
 /* define hardware samples rate caps mask */
 #define HW_SAMPR_CAPS   (SAMPR_CAP_8 | SAMPR_CAP_11 | SAMPR_CAP_12 | \
                          SAMPR_CAP_16 | SAMPR_CAP_22 | SAMPR_CAP_24 | \
-                         SAMPR_CAP_32 | SAMPR_CAP_44 | SAMPR_CAP_48)
+                         SAMPR_CAP_32 | SAMPR_CAP_44 | SAMPR_CAP_48 | \
+                         SAMPR_CAP_64 | SAMPR_CAP_88 | SAMPR_CAP_96)
 
 /* define this if you have a bitmap LCD display */
 #define HAVE_LCD_BITMAP
@@ -47,7 +48,7 @@
 #define CONFIG_STORAGE STORAGE_SD
 //#define CONFIG_NAND NAND_TCC
 
-/* c100's with direct-to-NAND access are FAT16 FIXME */
+/* SD cards are supposed to use FAT16. SDHC use FAT32. */
 #define HAVE_FAT16SUPPORT
 
 /* LCD dimensions */

@@ -263,20 +263,25 @@ void audiohw_close(void)
     cscodec_power(false);
 }
 
-/* Note: Disable output before calling this function */
 void audiohw_set_frequency(int fsel)
 {
-#if 0
-    if (fsel == HW_FREQ_8) cscodec_write(CLKCTL2, CLKCTL2_8000HZ);
-    else if (fsel == HW_FREQ_11) cscodec_write(CLKCTL2, CLKCTL2_11025HZ);
-    else if (fsel == HW_FREQ_12) cscodec_write(CLKCTL2, CLKCTL2_12000HZ);
-    else if (fsel == HW_FREQ_16) cscodec_write(CLKCTL2, CLKCTL2_16000HZ);
-    else if (fsel == HW_FREQ_22) cscodec_write(CLKCTL2, CLKCTL2_22050HZ);
-    else if (fsel == HW_FREQ_24) cscodec_write(CLKCTL2, CLKCTL2_24000HZ);
-    else if (fsel == HW_FREQ_32) cscodec_write(CLKCTL2, CLKCTL2_32000HZ);
-    else if (fsel == HW_FREQ_44) cscodec_write(CLKCTL2, CLKCTL2_44100HZ);
-    else if (fsel == HW_FREQ_48) cscodec_write(CLKCTL2, CLKCTL2_48000HZ);
-#endif
+    static const unsigned char freq_params[HW_NUM_FREQ] = {
+        /* Note DAMR setup for CS42L51 dividing these frequencies below. */
+        HW_HAVE_8_([HW_FREQ_8]  = CS42L51_MIC_POWER_CTL_SPEED(CS42L51_QSM_MODE),)
+        HW_HAVE_11_([HW_FREQ_11] = CS42L51_MIC_POWER_CTL_SPEED(CS42L51_QSM_MODE),)
+        HW_HAVE_12_([HW_FREQ_12] = CS42L51_MIC_POWER_CTL_SPEED(CS42L51_QSM_MODE),)
+        HW_HAVE_16_([HW_FREQ_16] = CS42L51_MIC_POWER_CTL_SPEED(CS42L51_HSM_MODE),)
+        HW_HAVE_22_([HW_FREQ_22] = CS42L51_MIC_POWER_CTL_SPEED(CS42L51_HSM_MODE),)
+        HW_HAVE_24_([HW_FREQ_24] = CS42L51_MIC_POWER_CTL_SPEED(CS42L51_HSM_MODE),)
+        HW_HAVE_32_([HW_FREQ_32] = CS42L51_MIC_POWER_CTL_SPEED(CS42L51_SSM_MODE),)
+        HW_HAVE_44_([HW_FREQ_44] = CS42L51_MIC_POWER_CTL_SPEED(CS42L51_SSM_MODE),)
+        HW_HAVE_48_([HW_FREQ_48] = CS42L51_MIC_POWER_CTL_SPEED(CS42L51_SSM_MODE),)
+        HW_HAVE_64_([HW_FREQ_64] = CS42L51_MIC_POWER_CTL_SPEED(CS42L51_DSM_MODE),)
+        HW_HAVE_88_([HW_FREQ_88] = CS42L51_MIC_POWER_CTL_SPEED(CS42L51_DSM_MODE),)
+        HW_HAVE_96_([HW_FREQ_96] = CS42L51_MIC_POWER_CTL_SPEED(CS42L51_DSM_MODE),)
+    };
+    cscodec_setbits(CS42L51_MIC_POWER_CTL,
+                    CS42L51_MIC_POWER_CTL_SPEED(3), freq_params[fsel]);
 }
 
 #ifdef HAVE_RECORDING
