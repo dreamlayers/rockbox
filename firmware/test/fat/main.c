@@ -8,14 +8,16 @@
 #include "disk.h"
 #include "dir.h"
 #include "file.h"
+#include "ata.h"
+#include "storage.h"
 
 void dbg_dump_sector(int sec);
 void dbg_dump_buffer(unsigned char *buf, int len, int offset);
 void dbg_console(void);
 
-void mutex_init(void* l) {}
-void mutex_lock(void* l) {}
-void mutex_unlock(void* l) {}
+void mutex_init(struct mutex* l) {}
+void mutex_lock(struct mutex* l) {}
+void mutex_unlock(struct mutex* l) {}
 
 void panicf( char *fmt, ...)
 {
@@ -47,11 +49,11 @@ void ldebugf(const char* file, int line, const char *fmt, ...)
 
 void dbg_dump_sector(int sec)
 {
-    unsigned char buf[512];
+    unsigned char buf[SECTOR_SIZE];
 
-    ata_read_sectors(sec,1,buf);
+    storage_read_sectors(sec,1,buf);
     DEBUGF("---< Sector %d >-----------------------------------------\n", sec);
-    dbg_dump_buffer(buf, 512, 0);
+    dbg_dump_buffer(buf, SECTOR_SIZE, 0);
 }
 
 void dbg_dump_buffer(unsigned char *buf, int len, int offset)
@@ -92,8 +94,7 @@ void dbg_dir(char* currdir)
     if (dir)
     {
         while ( (entry = readdir(dir)) ) {
-            DEBUGF("%15s (%d bytes) %x\n", 
-                   entry->d_name, entry->size, entry->startcluster);
+            DEBUGF("%15s %lx\n", entry->d_name, entry->startcluster);
         }
         closedir(dir);
     }
@@ -426,13 +427,13 @@ void dbg_tail(char* name)
         return;
     DEBUGF("Got file descriptor %d\n",fd);
     
-    rc = lseek(fd,-512,SEEK_END);
+    rc = lseek(fd,-SECTOR_SIZE,SEEK_END);
     if ( rc >= 0 ) {
         rc = read(fd, buf, SECTOR_SIZE);
         if( rc > 0 )
         {
             buf[rc]=0;
-            printf("%d:\n%s\n", strlen(buf), buf);
+            printf("%d:\n%s\n", (int)strlen(buf), buf);
         }
         else if ( rc == 0 ) {
             DEBUGF("EOF\n");
@@ -463,7 +464,7 @@ int dbg_head(char* name)
     if( rc > 0 )
     {
         buf[rc]=0;
-        printf("%d:\n%s\n", strlen(buf), buf);
+        printf("%d:\n%s\n", (int)strlen(buf), buf);
     }
     else if ( rc == 0 ) {
         DEBUGF("EOF\n");
@@ -508,7 +509,7 @@ int dbg_mkdir(char* name)
 {
     int fd;
 
-    fd = mkdir(name, 0);
+    fd = mkdir(name);
     if (fd<0) {
         DEBUGF("Failed creating directory\n");
         return -1;
@@ -565,7 +566,7 @@ int dbg_cmd(int argc, char *argv[])
     if (!strcasecmp(cmd, "ds"))
     {                    
         if ( arg1 ) {
-            DEBUGF("secnum: %d\n", strtol(arg1, NULL, 0));
+            DEBUGF("secnum: %ld\n", strtol(arg1, NULL, 0));
             dbg_dump_sector(strtol(arg1, NULL, 0));
         }
     }
@@ -696,7 +697,7 @@ int main(int argc, char *argv[])
 #endif
         ) {
             DEBUGF("*** Mounting at block %ld\n",pinfo[i].start);
-            rc = fat_mount(IF_MV2(0,) IF_MD2(0,) pinfo[i].start);
+            rc = fat_mount(IF_MV(0,) IF_MD(0,) pinfo[i].start);
             if(rc) {
                 DEBUGF("mount: %d",rc);
                 return -1;
@@ -705,7 +706,7 @@ int main(int argc, char *argv[])
         }
     }
     if ( i==4 ) {
-        if(fat_mount(IF_MV2(0,) IF_MD2(0,) 0)) {
+        if(fat_mount(IF_MV(0,) IF_MD(0,) 0)) {
             DEBUGF("No FAT32 partition!");
             return -1;
         }

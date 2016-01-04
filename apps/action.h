@@ -92,7 +92,8 @@ enum {
     ACTION_REDRAW, /* returned if keys are locked and we splash()'ed */
     ACTION_TOUCHSCREEN,
     ACTION_TOUCHSCREEN_MODE, /* toggle the touchscreen mode */
-    
+    ACTION_TOUCHSCREEN_IGNORE, /* used for the 'none' action in skins */
+
     /* standard actions, use these first */
     ACTION_STD_PREV, 
     ACTION_STD_PREVREPEAT,
@@ -128,6 +129,8 @@ enum {
     ACTION_WPS_QUICKSCREEN,/* optional */
     ACTION_WPS_MENU, /*this should be the same as ACTION_STD_MENU */
     ACTION_WPS_VIEW_PLAYLIST,
+    ACTION_WPS_LIST_BOOKMARKS,/* optional */
+    ACTION_WPS_CREATE_BOOKMARK,/* optional */
     ACTION_WPS_REC,
 #if 0
     ACTION_WPSAB_SINGLE, /* This needs to be #defined in 
@@ -196,6 +199,7 @@ enum {
     ACTION_SETTINGS_DECREPEAT,
     ACTION_SETTINGS_DECBIGSTEP,
     ACTION_SETTINGS_RESET,
+    ACTION_SETTINGS_SET, /* Used by touchscreen targets */
     
     /* bookmark screen */
     ACTION_BMS_DELETE,
@@ -246,6 +250,11 @@ enum {
      * being used, but are nice additions if the touchscreen is used */
     ACTION_TOUCH_SHUFFLE,
     ACTION_TOUCH_REPMODE,
+    ACTION_TOUCH_MUTE,
+    ACTION_TOUCH_SCROLLBAR,
+    ACTION_TOUCH_VOLUME,
+    ACTION_TOUCH_SOFTLOCK,
+    ACTION_TOUCH_SETTING,
 #endif    
 
     /* USB HID codes */

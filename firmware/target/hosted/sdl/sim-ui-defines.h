@@ -130,6 +130,13 @@
 #define UI_LCD_POSX                 14 /* x position of lcd */
 #define UI_LCD_POSY                 12 /* y position of lcd */
 
+#elif defined(IPOD_6G)
+#define UI_TITLE                    "iPod 6G"
+#define UI_WIDTH                    350 /* width of GUI window */
+#define UI_HEIGHT                   591 /* height of GUI window */
+#define UI_LCD_POSX                 14 /* x position of lcd */
+#define UI_LCD_POSY                 12 /* y position of lcd */
+
 #elif defined(IAUDIO_X5)
 #define UI_TITLE                    "iAudio X5"
 #define UI_WIDTH                    300 /* width of GUI window */
@@ -287,6 +294,14 @@
 #define UI_LCD_POSX                 39 /* x position of lcd */
 #define UI_LCD_POSY                 38 /* y position of lcd */
 
+#elif defined(SANSA_FUZEPLUS)
+#define UI_TITLE                    "Sansa Fuze+"
+#define UI_WIDTH                    322 /* width of GUI window */
+#define UI_HEIGHT                   609 /* height of GUI window */
+#define UI_LCD_POSX                 43 /* x position of lcd */
+#define UI_LCD_POSY                 62 /* y position of lcd */
+
+
 #elif defined(SANSA_FUZE) || defined(SANSA_FUZEV2)
 #ifdef SANSA_FUZE
 #define UI_TITLE                    "Sansa Fuze"
@@ -317,7 +332,12 @@
 #define UI_LCD_POSX                 42 /* x position of lcd */
 #define UI_LCD_POSY                 42 /* y position of lcd */
 
-
+#elif defined(SANSA_CLIPZIP)
+#define UI_TITLE                    "Sansa Clip Zip"
+#define UI_WIDTH                    160 /* width of GUI window */
+#define UI_HEIGHT                   254 /* height of GUI window */
+#define UI_LCD_POSX                 33 /* x position of lcd */
+#define UI_LCD_POSY                 26 /* y position of lcd */
 
 #elif defined(PHILIPS_SA9200)
 #define UI_TITLE                    "Philips GoGear SA9200"
@@ -411,12 +431,82 @@
 #define UI_LCD_POSX                 64
 #define UI_LCD_POSY                 127
 
+#elif defined(SANSA_CONNECT)
+#define UI_TITLE                    "Sansa Connect"
+#define UI_WIDTH                    371 /* width of GUI window */
+#define UI_HEIGHT                   687 /* height of GUI window */
+#define UI_LCD_POSX                 68
+#define UI_LCD_POSY                 77
+
+#elif defined(CREATIVE_ZENXFI3)
+#define UI_TITLE                    "Creative ZEN X-Fi3"
+#define UI_WIDTH                    262 /* width of GUI window */
+#define UI_HEIGHT                   350 /* height of GUI window */
+#define UI_LCD_POSX                 43
+#define UI_LCD_POSY                 65
+
+#elif defined(CREATIVE_ZENXFI2)
+#define UI_TITLE                    "Creative ZEN X-Fi2"
+#define UI_WIDTH                    324 /* width of GUI window */
+#define UI_HEIGHT                   586 /* height of GUI window */
+#define UI_LCD_POSX                 42
+#define UI_LCD_POSY                 42
+
+#elif defined(SONY_NWZE360)
+#define UI_TITLE                    "Sony NWZ-E360"
+#define UI_WIDTH                    340 /* width of GUI window */
+#define UI_HEIGHT                   674 /* height of GUI window */
+#define UI_LCD_POSX                 50
+#define UI_LCD_POSY                 62
+
+#elif defined(SONY_NWZE370)
+#define UI_TITLE                    "Sony NWZ-E370"
+#define UI_WIDTH                    196 /* width of GUI window */
+#define UI_HEIGHT                   398 /* height of GUI window */
+#define UI_LCD_POSX                 34
+#define UI_LCD_POSY                 32
+
 #elif defined(APPLICATION)
 #define UI_TITLE                    "Rockbox"
 #define UI_LCD_POSX                 0
 #define UI_LCD_POSY                 0
 #define UI_WIDTH                    LCD_WIDTH
 #define UI_HEIGHT                   LCD_HEIGHT
+
+#elif defined(SAMSUNG_YPR0)
+#define UI_TITLE                    "Samsung YP-R0"
+#define UI_WIDTH                    313 /* width of GUI window */
+#define UI_HEIGHT                   560 /* height of GUI window */
+#define UI_LCD_POSX                 36
+#define UI_LCD_POSY                 37
+
+#elif defined(CREATIVE_ZEN)
+#define UI_TITLE                    "Creative ZEN"
+#define UI_WIDTH                    520 /* width of GUI window */
+#define UI_HEIGHT                   340 /* height of GUI window */
+#define UI_LCD_POSX                 35
+#define UI_LCD_POSY                 36
+
+#elif defined(CREATIVE_ZENXFI)
+#define UI_TITLE                    "Creative ZEN X-Fi"
+#define UI_WIDTH                    510 /* width of GUI window */
+#define UI_HEIGHT                   330 /* height of GUI window */
+#define UI_LCD_POSX                 32
+#define UI_LCD_POSY                 33
+
+#elif defined(CREATIVE_ZENMOZAIC)
+#define UI_TITLE                    "Creative ZEN Mozaic"
+#define UI_WIDTH                    184 /* width of GUI window */
+#define UI_HEIGHT                   366/* height of GUI window */
+#define UI_LCD_POSX                 27
+#define UI_LCD_POSY                 48
+
+#elif defined(CREATIVE_ZENXFISTYLE)
+#define UI_TITLE                    "Creative ZEN X-Fi Style"
+#define UI_WIDTH                    548 /* width of GUI window */
+#define UI_HEIGHT                   318/* height of GUI window */
+#define UI_LCD_POSX                 46
+#define UI_LCD_POSY                 40
 
 #elif defined(SIMULATOR)
 #error no UI defines

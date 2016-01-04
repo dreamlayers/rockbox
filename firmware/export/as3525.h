@@ -61,6 +61,7 @@
 
 /* AHB */
 #define USB_BASE             0xC6000000
+#define OTGBASE              USB_BASE
 #define VIC_BASE             0xC6010000
 #define DMAC_BASE            0xC6020000
 #define MPMC_BASE            0xC6030000
@@ -223,6 +224,7 @@ CE lines
 /* --- are disabled after reset --- */
 #define CGU_EXTMEM_CLOCK_ENABLE              ( 1 << 27 ) /* external memory */
 #define CGU_EXTMEMIF_CLOCK_ENABLE            ( 1 << 26 ) /* ext mem AHB IF */
+#define CGU_ROM_ENABLE                       ( 1 << 24 ) /* internal ROM */
 #define CGU_DMA_CLOCK_ENABLE                 ( 1 << 22 ) /* dma */
 #define CGU_USB_CLOCK_ENABLE                 ( 1 << 21 ) /* usb */
 #define CGU_I2SOUT_APB_CLOCK_ENABLE          ( 1 << 20 ) /* i2sout */
@@ -343,7 +345,6 @@ CE lines
 
 
 /* GPIO registers */
-
 #define GPIOA_DIR       (*(volatile unsigned char*)(GPIOA_BASE+0x400))
 #define GPIOA_IS        (*(volatile unsigned char*)(GPIOA_BASE+0x404))
 #define GPIOA_IBE       (*(volatile unsigned char*)(GPIOA_BASE+0x408))
@@ -354,6 +355,7 @@ CE lines
 #define GPIOA_IC        (*(volatile unsigned char*)(GPIOA_BASE+0x41C))
 #define GPIOA_AFSEL     (*(volatile unsigned char*)(GPIOA_BASE+0x420))
 #define GPIOA_PIN(a)    (*(volatile unsigned char*)(GPIOA_BASE+(1<<((a)+2))))
+#define GPIOA_PIN_MASK(m) (*(volatile unsigned char *)(GPIOA_BASE+(((m)&0xff)<<2)))
 #define GPIOA_DATA      (*(volatile unsigned char*)(GPIOA_BASE+(0xff<<2)))
 
 
@@ -367,6 +369,7 @@ CE lines
 #define GPIOB_IC        (*(volatile unsigned char*)(GPIOB_BASE+0x41C))
 #define GPIOB_AFSEL     (*(volatile unsigned char*)(GPIOB_BASE+0x420))
 #define GPIOB_PIN(a)    (*(volatile unsigned char*)(GPIOB_BASE+(1<<((a)+2))))
+#define GPIOB_PIN_MASK(m) (*(volatile unsigned char *)(GPIOB_BASE+(((m)&0xff)<<2)))
 #define GPIOB_DATA      (*(volatile unsigned char*)(GPIOB_BASE+(0xff<<2)))
 
 #define GPIOC_DIR       (*(volatile unsigned char*)(GPIOC_BASE+0x400))
@@ -379,6 +382,7 @@ CE lines
 #define GPIOC_IC        (*(volatile unsigned char*)(GPIOC_BASE+0x41C))
 #define GPIOC_AFSEL     (*(volatile unsigned char*)(GPIOC_BASE+0x420))
 #define GPIOC_PIN(a)    (*(volatile unsigned char*)(GPIOC_BASE+(1<<((a)+2))))
+#define GPIOC_PIN_MASK(m) (*(volatile unsigned char *)(GPIOC_BASE+(((m)&0xff)<<2)))
 #define GPIOC_DATA      (*(volatile unsigned char*)(GPIOC_BASE+(0xff<<2)))
 
 #define GPIOD_DIR       (*(volatile unsigned char*)(GPIOD_BASE+0x400))
@@ -391,6 +395,7 @@ CE lines
 #define GPIOD_IC        (*(volatile unsigned char*)(GPIOD_BASE+0x41C))
 #define GPIOD_AFSEL     (*(volatile unsigned char*)(GPIOD_BASE+0x420))
 #define GPIOD_PIN(a)    (*(volatile unsigned char*)(GPIOD_BASE+(1<<((a)+2))))
+#define GPIOD_PIN_MASK(m) (*(volatile unsigned char *)(GPIOD_BASE+(((m)&0xff)<<2)))
 #define GPIOD_DATA      (*(volatile unsigned char*)(GPIOD_BASE+(0xff<<2)))
 
 /* ARM PL172 Memory Controller registers */
@@ -523,7 +528,6 @@ CE lines
 
 /* PCM addresses for obtaining buffers will be what DMA is using (physical) */
 #define HAVE_PCM_DMA_ADDRESS
-#define HAVE_PCM_REC_DMA_ADDRESS
 
 /* Timer frequency */
 #define TIMER_FREQ (24000000 / 16)

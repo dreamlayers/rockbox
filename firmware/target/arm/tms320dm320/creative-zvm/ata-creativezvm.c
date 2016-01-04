@@ -26,11 +26,11 @@
 #include "system.h"
 #include "power.h"
 #include "panic.h"
-#include "ata-target.h"
+#include "ata-driver.h"
 #include "dm320.h"
 #include "ata.h"
 #include "string.h"
-#include "buffer.h"
+#include "core_alloc.h"
 #include "logf.h"
 #include "ata-defines.h"
 
@@ -126,8 +126,8 @@ void GIO2(void)
 
 #define VFAT_SECTOR_SIZE(x) ( (x)/0x8000 ) /* 1GB array requires 80kB of RAM */
 
-extern int ata_read_sectors(IF_MD2(int drive,) unsigned long start, int count, void* buf);
-extern int ata_write_sectors(IF_MD2(int drive,) unsigned long start, int count, const void* buf);
+extern int ata_read_sectors(IF_MD(int drive,) unsigned long start, int count, void* buf);
+extern int ata_write_sectors(IF_MD(int drive,) unsigned long start, int count, const void* buf);
 
 struct main_header
 {
@@ -202,7 +202,11 @@ struct cfs_direntry_item
 
 static bool cfs_inited = false;
 static unsigned long cfs_start;
+#ifdef BOOTLOADER
 static unsigned long *sectors;
+#else
+static int sectors_handle;
+#endif
 
 #define CFS_START              ( ((hdr->partitions[1].start*hdr->sector_size) & ~0xFFFF) + 0x10000 )
 #define CFS_CLUSTER2CLUSTER(x) ( (CFS_START/512)+((x)-1)*64 )
@@ -299,7 +303,8 @@ static void cfs_init(void)
         _ata_read_sectors(CFS_CLUSTER2CLUSTER(vfat_inodes_nr[1]), 1, &sector);
         inode = (struct cfs_inode*)&sector;
 #ifndef BOOTLOADER
-        sectors = (unsigned long*)buffer_alloc(VFAT_SECTOR_SIZE(inode->filesize));
+        sectors_handle = core_alloc("ata sectors", VFAT_SECTOR_SIZE(inode->filesize));
+        unsigned long *sectors = core_get_data(sectors_handle);
 #else
         static unsigned long _sector[VFAT_SECTOR_SIZE(1024*1024*1024)]; /* 1GB guess */
         sectors = _sector;
@@ -322,6 +327,9 @@ static void cfs_init(void)
             _ata_read_sectors(CFS_CLUSTER2CLUSTER(inode->second_class_chain_second_cluster), 64, &vfat_data[1]);
 
             /* First class chain */
+#ifndef BOOTLOADER
+            sectors = core_get_data(sectors_handle);
+#endif
             for(j=0; j<12; j++)
             {
                 if( (inode->first_class_chain[j] & 0xFFFF) != 0xFFFF &&
@@ -331,6 +339,9 @@ static void cfs_init(void)
             }
 
             /* Second class chain */
+#ifndef BOOTLOADER
+            sectors = core_get_data(sectors_handle);
+#endif
             for(j=0; j<0x8000/4; j++)
             {
                 if( (vfat_data[0][j] & 0xFFFF) != 0xFFFF &&
@@ -351,6 +362,9 @@ static void cfs_init(void)
                     /* Read third class subchain(s) */
                     _ata_read_sectors(CFS_CLUSTER2CLUSTER(vfat_data[1][j]), 64, &vfat_data[0]);
 
+#ifndef BOOTLOADER
+                    sectors = core_get_data(sectors_handle);
+#endif
                     for(k=0; k<0x8000/4; k++)
                     {
                         if( (vfat_data[0][k] & 0xFFFF) != 0xFFFF &&
@@ -376,17 +390,20 @@ static inline unsigned long map_sector(unsigned long sector)
      *  Sector mapping: start of CFS + FAT_SECTOR2CFS_SECTOR(sector) + missing part
      *  FAT works with sectors of 0x200 bytes, CFS with sectors of 0x8000 bytes.
      */
+#ifndef BOOTLOADER
+    unsigned long *sectors = core_get_data(sectors_handle);
+#endif
     return cfs_start+sectors[sector/64]*64+sector%64;
 }
 
-int ata_read_sectors(IF_MD2(int drive,) unsigned long start, int count, void* buf)
+int ata_read_sectors(IF_MD(int drive,) unsigned long start, int count, void* buf)
 {
     if(!cfs_inited)
         cfs_init();
 
     /* Check if count is lesser than or equal to 1 native CFS sector */
     if(count <= 64)
-        return _ata_read_sectors(IF_MD2(drive,) map_sector(start), count, buf);
+        return _ata_read_sectors(IF_MD(drive,) map_sector(start), count, buf);
     else
     {
         int i;
@@ -395,7 +412,7 @@ int ata_read_sectors(IF_MD2(int drive,) unsigned long start, int count, void* bu
         /* Read sectors in parts of 0x8000 */
         for(i=0; i<count; i+=64)
         {
-            int ret = _ata_read_sectors(IF_MD2(drive,) map_sector(start+i), (count-i >= 64 ? 64 : count-i), (void*)dest);
+            int ret = _ata_read_sectors(IF_MD(drive,) map_sector(start+i), (count-i >= 64 ? 64 : count-i), (void*)dest);
             if(ret != 0)
                 return ret;
 
@@ -406,7 +423,7 @@ int ata_read_sectors(IF_MD2(int drive,) unsigned long start, int count, void* bu
     }
 }
 
-int ata_write_sectors(IF_MD2(int drive,) unsigned long start, int count, const void* buf)
+int ata_write_sectors(IF_MD(int drive,) unsigned long start, int count, const void* buf)
 {
     if(!cfs_inited)
         cfs_init();
@@ -414,7 +431,7 @@ int ata_write_sectors(IF_MD2(int drive,) unsigned long start, int count, const v
 #if 0 /* Disabled for now */
     /* Check if count is lesser than or equal to 1 native CFS sector */
     if(count <= 64)
-        return _ata_write_sectors(IF_MD2(drive,) map_sector(start), count, buf);
+        return _ata_write_sectors(IF_MD(drive,) map_sector(start), count, buf);
     else
     {
         int i, ret;
@@ -423,7 +440,7 @@ int ata_write_sectors(IF_MD2(int drive,) unsigned long start, int count, const v
         /* Read sectors in parts of 0x8000 */
         for(i=0; i<count; i+=64)
         {
-            ret = _ata_write_sectors(IF_MD2(drive,) map_sector(start+i), (count-i >= 64 ? 64 : count-i), (const void*)dest);
+            ret = _ata_write_sectors(IF_MD(drive,) map_sector(start+i), (count-i >= 64 ? 64 : count-i), (const void*)dest);
             if(ret != 0)
                 return ret;
 

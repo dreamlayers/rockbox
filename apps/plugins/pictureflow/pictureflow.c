@@ -33,7 +33,6 @@
 #include "lib/grey.h"
 #include "lib/mylcd.h"
 #include "lib/feature_wrappers.h"
-#include "lib/buflib.h"
 
 
 
@@ -62,7 +61,7 @@
 #define PF_TRACKLIST (LAST_ACTION_PLACEHOLDER + 2)
 
 #if defined(HAVE_SCROLLWHEEL) || CONFIG_KEYPAD == IRIVER_H10_PAD || \
-    CONFIG_KEYPAD == SAMSUNG_YH_PAD
+    CONFIG_KEYPAD == MPIO_HD300_PAD
 #define USE_CORE_PREVNEXT
 #endif
 
@@ -118,8 +117,12 @@ const struct button_mapping pf_context_buttons[] =
     CONFIG_KEYPAD == PHILIPS_HDD1630_PAD || CONFIG_KEYPAD == IAUDIO67_PAD || \
     CONFIG_KEYPAD == GIGABEAT_PAD || CONFIG_KEYPAD == GIGABEAT_S_PAD || \
     CONFIG_KEYPAD == MROBE100_PAD || CONFIG_KEYPAD == MROBE500_PAD || \
-    CONFIG_KEYPAD == PHILIPS_SA9200_PAD || CONFIG_KEYPAD == SANSA_CLIP_PAD
+    CONFIG_KEYPAD == PHILIPS_SA9200_PAD || CONFIG_KEYPAD == SANSA_CLIP_PAD || \
+    CONFIG_KEYPAD == SANSA_FUZEPLUS_PAD || CONFIG_KEYPAD == CREATIVE_ZENXFI3_PAD
     {PF_QUIT,         BUTTON_POWER,               BUTTON_NONE},
+#if CONFIG_KEYPAD == SANSA_FUZEPLUS_PAD
+    {PF_MENU,         BUTTON_SELECT|BUTTON_REPEAT,  BUTTON_SELECT},
+#endif
 #elif CONFIG_KEYPAD == SANSA_FUZE_PAD
     {PF_QUIT,         BUTTON_HOME|BUTTON_REPEAT,  BUTTON_NONE},
     {PF_TRACKLIST,    BUTTON_RIGHT,  BUTTON_NONE},
@@ -138,7 +141,8 @@ const struct button_mapping pf_context_buttons[] =
     {PF_QUIT,         BUTTON_EQ,                  BUTTON_NONE},
 #elif (CONFIG_KEYPAD == IPOD_1G2G_PAD) \
     || (CONFIG_KEYPAD == IPOD_3G_PAD) \
-    || (CONFIG_KEYPAD == IPOD_4G_PAD)
+    || (CONFIG_KEYPAD == IPOD_4G_PAD) \
+    || (CONFIG_KEYPAD == MPIO_HD300_PAD)
     {PF_QUIT,         BUTTON_MENU|BUTTON_REPEAT,  BUTTON_MENU},
 #elif CONFIG_KEYPAD == LOGIK_DAX_PAD
     {PF_QUIT,         BUTTON_POWERPLAY|BUTTON_REPEAT, BUTTON_POWERPLAY},
@@ -151,6 +155,13 @@ const struct button_mapping pf_context_buttons[] =
     {PF_QUIT,         BUTTON_OFF,                 BUTTON_NONE},
 #elif CONFIG_KEYPAD == PBELL_VIBE500_PAD
     {PF_QUIT,         BUTTON_REC,                 BUTTON_NONE},
+#elif CONFIG_KEYPAD == SAMSUNG_YH820_PAD || CONFIG_KEYPAD == SAMSUNG_YH920_PAD
+    {PF_QUIT,         BUTTON_REW|BUTTON_REPEAT,   BUTTON_REW},
+    {PF_MENU,         BUTTON_REW|BUTTON_REL,      BUTTON_REW},
+    {PF_SELECT,       BUTTON_PLAY|BUTTON_REL,     BUTTON_PLAY},
+    {PF_CONTEXT,      BUTTON_FFWD|BUTTON_REPEAT,  BUTTON_FFWD},
+    {PF_TRACKLIST,    BUTTON_FFWD|BUTTON_REL,     BUTTON_FFWD},
+    {PF_WPS,          BUTTON_PLAY|BUTTON_REPEAT,  BUTTON_PLAY},
 #endif
 #if CONFIG_KEYPAD == IAUDIO_M3_PAD
     LAST_ITEM_IN_LIST__NEXTLIST(CONTEXT_STD|CONTEXT_REMOTE)
@@ -228,7 +239,7 @@ typedef fb_data pix_t;
 #define MAX_SLIDES_COUNT 10
 
 #define THREAD_STACK_SIZE DEFAULT_STACK_SIZE + 0x200
-#define CACHE_PREFIX PLUGIN_DEMOS_DIR "/pictureflow"
+#define CACHE_PREFIX PLUGIN_DEMOS_DATA_DIR "/pictureflow"
 
 #define EV_EXIT 9999
 #define EV_WAKEUP 1337
@@ -465,7 +476,6 @@ static int pf_state;
 
 /** code */
 static bool free_slide_prio(int prio);
-static inline unsigned fade_color(pix_t c, unsigned a);
 bool load_new_slide(void);
 int load_surface(int);
 
@@ -641,10 +651,15 @@ static inline PFreal fcos(int iangle)
     return fsin(iangle + (IANGLE_MAX >> 2));
 }
 
-static inline unsigned scale_val(unsigned val, unsigned bits)
+/* scales the 8bit subpixel value to native lcd format, indicated by bits */
+static inline unsigned scale_subpixel_lcd(unsigned val, unsigned bits)
 {
+    (void) bits;
+#if LCD_PIXELFORMAT != RGB888
     val = val * ((1 << bits) - 1);
-    return ((val >> 8) + val + 128) >> 8;
+    val = ((val >> 8) + val + 128) >> 8;
+#endif
+    return val;
 }
 
 static void output_row_8_transposed(uint32_t row, void * row_in,
@@ -661,14 +676,16 @@ static void output_row_8_transposed(uint32_t row, void * row_in,
     unsigned r, g, b;
     for (; dest < end; dest += ctx->bm->height)
     {
-        r = scale_val(qp->red, 5);
-        g = scale_val(qp->green, 6);
-        b = scale_val((qp++)->blue, 5);
-        *dest = LCD_RGBPACK_LCD(r,g,b);
+        r = scale_subpixel_lcd(qp->red, 5);
+        g = scale_subpixel_lcd(qp->green, 6);
+        b = scale_subpixel_lcd((qp++)->blue, 5);
+        *dest = FB_RGBPACK_LCD(r,g,b);
     }
 #endif
 }
 
+/* read_image_file() is called without FORMAT_TRANSPARENT so
+ * it's safe to ignore alpha channel in the next two functions */
 static void output_row_32_transposed(uint32_t row, void * row_in,
                                        struct scaler_context *ctx)
 {
@@ -679,15 +696,15 @@ static void output_row_32_transposed(uint32_t row, void * row_in,
     for (; dest < end; dest += ctx->bm->height)
         *dest = SC_OUT(*qp++, ctx);
 #else
-    struct uint32_rgb *qp = (struct uint32_rgb*)row_in;
+    struct uint32_argb *qp = (struct uint32_argb*)row_in;
     int r, g, b;
     for (; dest < end; dest += ctx->bm->height)
     {
-        r = scale_val(SC_OUT(qp->r, ctx), 5);
-        g = scale_val(SC_OUT(qp->g, ctx), 6);
-        b = scale_val(SC_OUT(qp->b, ctx), 5);
+        r = scale_subpixel_lcd(SC_OUT(qp->r, ctx), 5);
+        g = scale_subpixel_lcd(SC_OUT(qp->g, ctx), 6);
+        b = scale_subpixel_lcd(SC_OUT(qp->b, ctx), 5);
         qp++;
-        *dest = LCD_RGBPACK_LCD(r,g,b);
+        *dest = FB_RGBPACK_LCD(r,g,b);
     }
 #endif
 }
@@ -698,7 +715,7 @@ static void output_row_32_transposed_fromyuv(uint32_t row, void * row_in,
 {
     pix_t *dest = (pix_t*)ctx->bm->data + row;
     pix_t *end = dest + ctx->bm->height * ctx->bm->width;
-    struct uint32_rgb *qp = (struct uint32_rgb*)row_in;
+    struct uint32_argb *qp = (struct uint32_argb*)row_in;
     for (; dest < end; dest += ctx->bm->height)
     {
         unsigned r, g, b, y, u, v;
@@ -707,10 +724,10 @@ static void output_row_32_transposed_fromyuv(uint32_t row, void * row_in,
         v = SC_OUT(qp->r, ctx);
         qp++;
         yuv_to_rgb(y, u, v, &r, &g, &b);
-        r = scale_val(r, 5);
-        g = scale_val(g, 6);
-        b = scale_val(b, 5);
-        *dest = LCD_RGBPACK_LCD(r, g, b);
+        r = scale_subpixel_lcd(r, 5);
+        g = scale_subpixel_lcd(g, 6);
+        b = scale_subpixel_lcd(b, 5);
+        *dest = FB_RGBPACK_LCD(r, g, b);
     }
 }
 #endif
@@ -807,7 +824,7 @@ static void update_scroll_lines(void)
 }
 
 /* Create the lookup table with the scaling values for the reflections */
-void init_reflect_table(void)
+static void init_reflect_table(void)
 {
     int i;
     for (i = 0; i < REFLECT_HEIGHT; i++)
@@ -820,7 +837,7 @@ void init_reflect_table(void)
   Create an index of all albums from the database.
   Also store the album names so we can access them later.
  */
-int create_album_index(void)
+static int create_album_index(void)
 {
     album = ((struct album_data *)(buf_size + (char *) buf)) - 1;
     rb->memset(&tcs, 0, sizeof(struct tagcache_search) );
@@ -859,7 +876,7 @@ int create_album_index(void)
 /**
  Return a pointer to the album name of the given slide_index
  */
-char* get_album_name(const int slide_index)
+static char* get_album_name(const int slide_index)
 {
     return album_names + album[slide_index].name_idx;
 }
@@ -868,14 +885,14 @@ char* get_album_name(const int slide_index)
  Return a pointer to the track name of the active album
  create_track_index has to be called first.
  */
-char* get_track_name(const int track_index)
+static char* get_track_name(const int track_index)
 {
     if ( track_index < track_count )
         return track_names + tracks[track_index].name_idx;
     return 0;
 }
 #if PF_PLAYBACK_CAPABLE
-char* get_track_filename(const int track_index)
+static char* get_track_filename(const int track_index)
 {
     if ( track_index < track_count )
         return track_names + tracks[track_index].filename_idx;
@@ -883,7 +900,7 @@ char* get_track_filename(const int track_index)
 }
 #endif
 
-int get_wps_current_index(void)
+static int get_wps_current_index(void)
 {
     struct mp3entry *id3 = rb->audio_current_track();
     if(id3 && id3->album) {
@@ -900,7 +917,7 @@ int get_wps_current_index(void)
 /**
   Compare two unsigned ints passed via pointers.
  */
-int compare_tracks (const void *a_v, const void *b_v)
+static int compare_tracks (const void *a_v, const void *b_v)
 {
     uint32_t a = ((struct track_data *)a_v)->sort;
     uint32_t b = ((struct track_data *)b_v)->sort;
@@ -910,7 +927,7 @@ int compare_tracks (const void *a_v, const void *b_v)
 /**
   Create the track index of the given slide_index.
  */
-void create_track_index(const int slide_index)
+static void create_track_index(const int slide_index)
 {
     if ( slide_index == track_index )
         return;
@@ -924,7 +941,7 @@ void create_track_index(const int slide_index)
     int string_index = 0, track_num;
     int disc_num;
     size_t out = 0;
-    track_names = (char *)buflib_buffer_out(&buf_ctx, &out);
+    track_names = rb->buflib_buffer_out(&buf_ctx, &out);
     borrowed += out;
     int avail = borrowed;
     tracks = (struct track_data*)(track_names + borrowed);
@@ -980,7 +997,7 @@ retry:
                 if (!free_slide_prio(0))
                     goto fail;
                 out = 0;
-                buflib_buffer_out(&buf_ctx, &out);
+                rb->buflib_buffer_out(&buf_ctx, &out);
                 avail += out;
                 borrowed += out;
 
@@ -1021,7 +1038,7 @@ fail:
   The algorithm looks for the first track of the given album uses
   find_albumart to find the filename.
  */
-bool get_albumart_for_index_from_db(const int slide_index, char *buf,
+static bool get_albumart_for_index_from_db(const int slide_index, char *buf,
                                     int buflen)
 {
     if ( slide_index == -1 )
@@ -1068,7 +1085,7 @@ bool get_albumart_for_index_from_db(const int slide_index, char *buf,
 /**
   Draw the PictureFlow logo
  */
-void draw_splashscreen(void)
+static void draw_splashscreen(void)
 {
     unsigned char * buf_tmp = buf;
     size_t buf_tmp_size = buf_size;
@@ -1115,7 +1132,7 @@ void draw_splashscreen(void)
 /**
   Draw a simple progress bar
  */
-void draw_progressbar(int step)
+static void draw_progressbar(int step)
 {
     int txt_w, txt_h;
     const int bar_height = 22;
@@ -1148,7 +1165,7 @@ void draw_progressbar(int step)
 /* Calculate modified FNV hash of string 
  * has good avalanche behaviour and uniform distribution
  * see http://home.comcast.net/~bretm/hash/ */
-unsigned int mfnv(char *str)
+static unsigned int mfnv(char *str)
 {
     const unsigned int p = 16777619;
     unsigned int hash = 0x811C9DC5; // 2166136261;
@@ -1166,7 +1183,7 @@ unsigned int mfnv(char *str)
 /**
  Save the given bitmap as filename in the pfraw format
  */
-bool save_pfraw(char* filename, struct bitmap *bm)
+static bool save_pfraw(char* filename, struct bitmap *bm)
 {
     struct pfraw_header bmph;
     bmph.width = bm->width;
@@ -1189,7 +1206,7 @@ bool save_pfraw(char* filename, struct bitmap *bm)
  Precomupte the album art images and store them in CACHE_PREFIX.
  Use the "?" bitmap if image is not found.
  */
-bool create_albumart_cache(void)
+static bool create_albumart_cache(void)
 {
     int ret;
 
@@ -1253,18 +1270,17 @@ bool create_albumart_cache(void)
   Create the "?" slide, that is shown while loading
   or when no cover was found.
  */
-int create_empty_slide(bool force)
+static int create_empty_slide(bool force)
 {
     if ( force || ! rb->file_exists( EMPTY_SLIDE ) )  {
         struct bitmap input_bmp;
-        int ret;
         input_bmp.width = DISPLAY_WIDTH;
         input_bmp.height = DISPLAY_HEIGHT;
 #if LCD_DEPTH > 1
         input_bmp.format = FORMAT_NATIVE;
 #endif
         input_bmp.data = (char*)buf;
-        ret = scaled_read_bmp_file(EMPTY_SLIDE_BMP, &input_bmp,
+        scaled_read_bmp_file(EMPTY_SLIDE_BMP, &input_bmp,
                                 buf_size,
                                 FORMAT_NATIVE|FORMAT_RESIZE|FORMAT_KEEP_ASPECT,
                                 &format_transposed);
@@ -1278,7 +1294,7 @@ int create_empty_slide(bool force)
 /**
  Thread used for loading and preparing bitmaps in the background
  */
-void thread(void)
+static void thread(void)
 {
     long sleep_time = 5 * HZ;
     struct queue_event ev;
@@ -1306,7 +1322,7 @@ void thread(void)
 /**
  End the thread by posting the EV_EXIT event
  */
-void end_pf_thread(void)
+static void end_pf_thread(void)
 {
     if ( thread_is_running ) {
         rb->queue_post(&thread_q, EV_EXIT, 0);
@@ -1321,7 +1337,7 @@ void end_pf_thread(void)
 /**
  Create the thread an setup the event queue
  */
-bool create_pf_thread(void)
+static bool create_pf_thread(void)
 {
     /* put the thread's queue in the bcast list */
     rb->queue_init(&thread_q, true);
@@ -1331,8 +1347,7 @@ bool create_pf_thread(void)
                            sizeof(thread_stack),
                             0,
                            "Picture load thread"
-                               IF_PRIO(, MAX(PRIORITY_USER_INTERFACE / 2,
-                                       PRIORITY_REALTIME + 1))
+                               IF_PRIO(, PRIORITY_BUFFERING)
                                IF_COP(, CPU)
                                       )
         ) == 0) {
@@ -1459,7 +1474,7 @@ static inline void lla_insert_before(int *head, int i, int p)
 static inline void free_slide(int i)
 {
     if (cache[i].hid != empty_slide_hid)
-        buflib_free(&buf_ctx, cache[i].hid);
+        rb->buflib_free(&buf_ctx, cache[i].hid);
     cache[i].index = -1;
     lla_pop_item(&cache_used, i);
     lla_insert_tail(&cache_free, i);
@@ -1508,7 +1523,7 @@ static bool free_slide_prio(int prio)
 /**
  Read the pfraw image given as filename and return the hid of the buffer
  */
-int read_pfraw(char* filename, int prio)
+static int read_pfraw(char* filename, int prio)
 {
     struct pfraw_header bmph;
     int fh = rb->open(filename, O_RDONLY);
@@ -1523,15 +1538,17 @@ int read_pfraw(char* filename, int prio)
                 sizeof( pix_t ) * bmph.width * bmph.height;
 
     int hid;
-    while (!(hid = buflib_alloc(&buf_ctx, size)) && free_slide_prio(prio));
+    do {
+        hid = rb->buflib_alloc(&buf_ctx, size);
+    } while (hid < 0 && free_slide_prio(prio));
 
-    if (!hid) {
+    if (hid < 0) {
         rb->close( fh );
         return 0;
     }
 
     rb->yield(); /* allow audio to play when fast scrolling */
-    struct dim *bm = buflib_get_data(&buf_ctx, hid);
+    struct dim *bm = rb->buflib_get_data(&buf_ctx, hid);
 
     bm->width = bmph.width;
     bm->height = bmph.height;
@@ -1696,7 +1713,7 @@ static inline struct dim *get_slide(const int hid)
 
     struct dim *bmp;
 
-    bmp = buflib_get_data(&buf_ctx, hid);
+    bmp = rb->buflib_get_data(&buf_ctx, hid);
 
     return bmp;
 }
@@ -1726,7 +1743,7 @@ static inline struct dim *surface(const int slide_index)
 /**
  adjust slides so that they are in "steady state" position
  */
-void reset_slides(void)
+static void reset_slides(void)
 {
     center_slide.angle = 0;
     center_slide.cx = 0;
@@ -1767,7 +1784,7 @@ void reset_slides(void)
  *                                    z
  * TODO: support moving the side slides toward or away from the camera
  */
-void recalc_offsets(void)
+static void recalc_offsets(void)
 {
     PFreal xs = PFREAL_HALF - DISPLAY_WIDTH * PFREAL_HALF;
     PFreal zo;
@@ -1786,14 +1803,13 @@ void recalc_offsets(void)
     offsetY = DISPLAY_WIDTH / 2 * (fsin(itilt) + PFREAL_ONE / 2);
 }
 
-
 /**
-   Fade the given color by spreading the fb_data (ushort)
-   to an uint, multiply and compress the result back to a ushort.
+   Fade the given color by spreading the fb_data
+   to an uint, multiply and compress the result back to a fb_data.
  */
-#if (LCD_PIXELFORMAT == RGB565SWAPPED)
-static inline unsigned fade_color(pix_t c, unsigned a)
+static inline pix_t fade_color(pix_t c, unsigned a)
 {
+#if (LCD_PIXELFORMAT == RGB565SWAPPED)
     unsigned int result;
     c = swap16(c);
     a = (a + 2) & 0x1fc;
@@ -1801,24 +1817,29 @@ static inline unsigned fade_color(pix_t c, unsigned a)
     result |= ((c & 0x7e0) * a) & 0x7e000;
     result >>= 8;
     return swap16(result);
-}
+
 #elif LCD_PIXELFORMAT == RGB565
-static inline unsigned fade_color(pix_t c, unsigned a)
-{
     unsigned int result;
     a = (a + 2) & 0x1fc;
     result = ((c & 0xf81f) * a) & 0xf81f00;
     result |= ((c & 0x7e0) * a) & 0x7e000;
     result >>= 8;
     return result;
-}
+
+#elif LCD_PIXELFORMAT == RGB888
+    unsigned int pixel = FB_UNPACK_SCALAR_LCD(c);
+    unsigned int result;
+    a = (a + 2) & 0x1fc;
+    result  = ((pixel & 0xff00ff) * a) & 0xff00ff00;
+    result |= ((pixel & 0x00ff00) * a) & 0x00ff0000;
+    result >>= 8;
+    return FB_SCALARPACK(result);
+
 #else
-static inline unsigned fade_color(pix_t c, unsigned a)
-{
     unsigned val = c;
     return MULUQ(val, a) >> 8;
-}
 #endif
+}
 
 /**
  * Render a single slide
@@ -1843,7 +1864,7 @@ static inline unsigned fade_color(pix_t c, unsigned a)
  * optimized by saving the numerator and denominator of the fraction, which can
  * then be incremented by (z + zo) and sin(r) respectively.
  */
-void render_slide(struct slide_data *slide, const int alpha)
+static void render_slide(struct slide_data *slide, const int alpha)
 {
     struct dim *bmp = surface(slide->slide_index);
     if (!bmp) {
@@ -1929,10 +1950,6 @@ void render_slide(struct slide_data *slide, const int alpha)
                 pixel -= PIXELSTEP_Y;
             }
         }
-        rb->yield(); /* allow audio to play when fast scrolling */
-        bmp = surface(slide->slide_index); /* resync surface due to yield */
-        src = (pix_t*)(sizeof(struct dim) + (char *)bmp);
-        ptr = &src[column * bmp->height];
         p = (bmp->height-DISPLAY_OFFS) * PFREAL_ONE;
         plim = MIN(sh * PFREAL_ONE, p + (LCD_HEIGHT/2) * dy);
         int plim2 = MIN(MIN(sh + REFLECT_HEIGHT, sh * 2) * PFREAL_ONE,
@@ -1992,7 +2009,7 @@ static inline void set_current_slide(const int slide_index)
 /**
   Start the animation for changing slides
  */
-void start_animation(void)
+static void start_animation(void)
 {
     step = (target < center_slide.slide_index) ? -1 : 1;
     pf_state = pf_scrolling;
@@ -2001,7 +2018,7 @@ void start_animation(void)
 /**
   Go to the previous slide
  */
-void show_previous_slide(void)
+static void show_previous_slide(void)
 {
     if (step == 0) {
         if (center_index > 0) {
@@ -2020,7 +2037,7 @@ void show_previous_slide(void)
 /**
   Go to the next slide
  */
-void show_next_slide(void)
+static void show_next_slide(void)
 {
     if (step == 0) {
         if (center_index < number_of_slides - 1) {
@@ -2039,7 +2056,7 @@ void show_next_slide(void)
 /**
   Render the slides. Updates only the offscreen buffer.
 */
-void render_all_slides(void)
+static void render_all_slides(void)
 {
     mylcd_set_background(G_BRIGHT(0));
     /* TODO: Optimizes this by e.g. invalidating rects */
@@ -2094,7 +2111,7 @@ void render_all_slides(void)
 /**
   Updates the animation effect. Call this periodically from a timer.
 */
-void update_scroll_animation(void)
+static void update_scroll_animation(void)
 {
     if (step == 0)
         return;
@@ -2196,14 +2213,14 @@ void update_scroll_animation(void)
 /**
   Cleanup the plugin
 */
-void cleanup(void)
+static void cleanup(void)
 {
 #ifdef HAVE_ADJUSTABLE_CPU_FREQ
     rb->cpu_boost(false);
 #endif
     end_pf_thread();
     /* Turn on backlight timeout (revert to settings) */
-    backlight_use_settings(); /* backlight control in lib/helper.c */
+    backlight_use_settings();
 
 #ifdef USEGSLIB
     grey_release();
@@ -2213,7 +2230,7 @@ void cleanup(void)
 /**
   Shows the settings menu
  */
-int settings_menu(void)
+static int settings_menu(void)
 {
     int selection = 0;
     bool old_val;
@@ -2323,7 +2340,7 @@ enum {
     PF_MENU_QUIT,
 };
 
-int main_menu(void)
+static int main_menu(void)
 {
     int selection = 0;
     int result;
@@ -2374,7 +2391,7 @@ int main_menu(void)
 /**
    Animation step for zooming into the current cover
  */
-void update_cover_in_animation(void)
+static void update_cover_in_animation(void)
 {
     cover_animation_keyframe++;
     if( cover_animation_keyframe < 20 ) {
@@ -2394,7 +2411,7 @@ void update_cover_in_animation(void)
 /**
    Animation step for zooming out the current cover
  */
-void update_cover_out_animation(void)
+static void update_cover_out_animation(void)
 {
     cover_animation_keyframe++;
     if( cover_animation_keyframe <= 15 ) {
@@ -2484,7 +2501,7 @@ void reset_track_list(void)
 /**
   Display the list of tracks
  */
-void show_track_list(void)
+static void show_track_list(void)
 {
     mylcd_clear_display();
     if ( center_slide.slide_index != track_index ) {
@@ -2521,7 +2538,7 @@ void show_track_list(void)
     }
 }
 
-void select_next_track(void)
+static void select_next_track(void)
 {
     if (  selected_track < track_count - 1 ) {
         selected_track++;
@@ -2530,7 +2547,7 @@ void select_next_track(void)
     }
 }
 
-void select_prev_track(void)
+static void select_prev_track(void)
 {
     if (selected_track > 0 ) {
         if (selected_track==start_index_track_list) start_index_track_list--;
@@ -2542,7 +2559,7 @@ void select_prev_track(void)
 /*
  * Puts the current tracklist into a newly created playlist and starts playling
  */
-void start_playback(bool append)
+static void start_playback(bool append)
 {
     static int old_playlist = -1, old_shuffle = 0;
     int count = 0;
@@ -2578,7 +2595,7 @@ play:
      * if shuffle, we can't predict the playing track easily, and for either
      * case the track list doesn't get auto scrolled*/
     if(!append)
-        rb->playlist_start(position, 0);
+        rb->playlist_start(position, 0, 0);
     old_playlist = center_slide.slide_index;
     old_shuffle = shuffle;
 }
@@ -2587,7 +2604,7 @@ play:
 /**
    Draw the current album name
  */
-void draw_album_text(void)
+static void draw_album_text(void)
 {
     if (show_album_name == ALBUM_NAME_HIDE)
         return;
@@ -2636,7 +2653,7 @@ void draw_album_text(void)
 /**
   Display an error message and wait for input.
 */
-void error_wait(const char *message)
+static void error_wait(const char *message)
 {
     rb->splashf(0, "%s. Press any button to continue.", message);
     while (rb->get_action(CONTEXT_STD, 1) == ACTION_NONE)
@@ -2648,7 +2665,7 @@ void error_wait(const char *message)
   Main function that also contain the main plasma
   algorithm.
  */
-int main(void)
+static int pictureflow_main(void)
 {
     int ret;
 
@@ -2666,7 +2683,7 @@ int main(void)
         draw_splashscreen();
     if(backlight_mode == 0) {
         /* Turn off backlight timeout */
-        backlight_force_on();     /* backlight control in lib/helper.c */
+        backlight_ignore_timeout();
     }
 
     init_scroll_lines();
@@ -2703,7 +2720,7 @@ int main(void)
         configfile_save(CONFIG_FILE, config, CONFIG_NUM_ITEMS, CONFIG_VERSION);
     }
 
-    buflib_init(&buf_ctx, (void *)buf, buf_size);
+    rb->buflib_init(&buf_ctx, (void *)buf, buf_size);
 
     if (!(empty_slide_hid = read_pfraw(EMPTY_SLIDE, 0)))
     {
@@ -2838,7 +2855,7 @@ int main(void)
         case PF_BACK:
             if ( pf_state == pf_show_tracks )
             {
-                buflib_buffer_in(&buf_ctx, borrowed);
+                rb->buflib_buffer_in(&buf_ctx, borrowed);
                 borrowed = 0;
                 track_index = -1;
                 pf_state = pf_cover_out;
@@ -2966,7 +2983,7 @@ enum plugin_status plugin_start(const void *parameter)
     buf = (void*)(grey_buf_used + (char*)buf);
 #endif
 
-    ret = main();
+    ret = pictureflow_main();
     if ( ret == PLUGIN_OK || ret == PLUGIN_GOTO_WPS) {
         if (configfile_save(CONFIG_FILE, config, CONFIG_NUM_ITEMS,
                             CONFIG_VERSION))

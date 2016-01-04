@@ -171,7 +171,7 @@ default_interrupt (ADC);  /* A/D converter */
 #endif
 
 static void system_display_exception_info(unsigned long format,
-                                          unsigned long pc) __attribute__ ((noreturn, used));
+    unsigned long pc) NORETURN_ATTR USED_ATTR;
 static void system_display_exception_info(unsigned long format,
                                           unsigned long pc)
 {
@@ -268,7 +268,7 @@ void system_init(void)
        will do. */
     coldfire_set_macsr(EMAC_FRACTIONAL | EMAC_SATURATE);
     
-    IMR = 0x3ffff;
+    coldfire_imr_mod(0x3ffff, 0x3ffff);
     INTPRI1 = 0;
     INTPRI2 = 0;
     INTPRI3 = 0;
@@ -365,6 +365,16 @@ void coldfire_set_pllcr_audio_bits(long bits)
     PLLCR = (PLLCR & ~0x70400000) | (bits & 0x70400000);
 }
 
+/* Safely modify the interrupt mask register as the core interrupt level is
+   required to be at least as high as the level interrupt being
+   masked/unmasked */
+void coldfire_imr_mod(unsigned long bits, unsigned long mask)
+{
+    unsigned long oldlevel = set_irq_level(DISABLE_INTERRUPTS);
+    IMR = (IMR & ~mask) | (bits & mask);
+    restore_irq(oldlevel);
+}
+
 /* Set DATAINCONTROL without disturbing FIFO reset state */
 void coldfire_set_dataincontrol(unsigned long value)
 {
@@ -374,12 +384,10 @@ void coldfire_set_dataincontrol(unsigned long value)
     restore_irq(level);
 }
 
-void cpucache_commit_discard(void)
+void commit_discard_idcache(void)
 {
    asm volatile ("move.l #0x01000000,%d0\n"
                  "movec.l %d0,%cacr\n"
                  "move.l #0x80000000,%d0\n"
                  "movec.l %d0,%cacr");
 }
-
-void cpucache_invalidate(void) __attribute__((alias("cpucache_commit_discard")));

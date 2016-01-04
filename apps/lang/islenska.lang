@@ -1692,20 +1692,20 @@
   </voice>
 </phrase>
 <phrase>
-  id: LANG_RECORDING_FREQUENCY
-  desc: in the recording settings
+  id: LANG_FREQUENCY
+  desc: in recording and playback settings
   user: core
   <source>
     *: none
-    recording: "Frequency"
+    recording,play_frequency: "Frequency"
   </source>
   <dest>
     *: none
-    recording: "Tíðni"
+    recording,play_frequency: "Tíðni"
   </dest>
   <voice>
     *: none
-    recording: "Frequency"
+    recording,play_frequency: "Frequency"
   </voice>
 </phrase>
 <phrase>
@@ -3134,19 +3134,19 @@
   <source>
     *: none
     multivolume: "HD1"
-    sansae200*,sansac200*,sansafuze*: "mSD:"
+    sansae200*,sansac200*,sansafuze*,sansaclipplus: "mSD:"
     archosondio*: "MMC:"
   </source>
   <dest>
     *: none
     multivolume: "HD1"
-    sansae200*,sansac200*,sansafuze*: "mSD:"
+    sansae200*,sansac200*,sansafuze*,sansaclipplus: "mSD:"
     archosondio*: "MMC:"
   </dest>
   <voice>
     *: none
     multivolume: "H D 1"
-    sansae200*,sansac200*,sansafuze*: "micro S D"
+    sansae200*,sansac200*,sansafuze*,sansaclipplus: "micro S D"
     archosondio*: "M M C"
   </voice>
 </phrase>
@@ -3284,10 +3284,12 @@
     iaudiox5,iaudiom5: "RECORD = Revert"
     iriverh10,iriverh10_5gb,sansae200*,sansafuze*: "PREV = Revert"
     gigabeatfx: "POWER = Revert"
+    sansafuzeplus: "BACK = Revert"
     mrobe100: "DISPLAY = Revert"
     gigabeats: "BACK = Revert"
     gogearsa9200: "LEFT = Revert"
     vibe500: "CANCEL = Revert"
+    samsungyh*: "REW = Revert"
   </source>
   <dest>
     *: none
@@ -3298,10 +3300,12 @@
     iaudiox5,iaudiom5: "RECORD = Revert"
     iriverh10,iriverh10_5gb,sansae200*,sansafuze*: "PREV = Revert"
     gigabeatfx: "POWER = Revert"
+    sansafuzeplus: "BACK = Revert"
     mrobe100: "DISPLAY = Revert"
     gigabeats: "BACK = Revert"
     gogearsa9200: "LEFT = Revert"
     vibe500: "CANCEL = Revert"
+    samsungyh*: "REW = Revert"
   </dest>
   <voice>
     *: none
@@ -3369,6 +3373,7 @@
     iriverh100,iriverh120,iriverh300: "The disk is full. Press STOP to continue."
     iaudiom5,iaudiox5: "The disk is full. Press POWER to continue."
     sansae200*,sansac200*,vibe500: "The disk is full. Press PREV to continue."
+    samsungyh*: "Disk full. Press LEFT to continue."
   </source>
   <dest>
     *: none
@@ -3376,6 +3381,7 @@
     iriverh100,iriverh120,iriverh300: "Harði diskurinn er fullur. Ýtið á STOP til að halda áfram."
     iaudiom5,iaudiox5: "Harði diskurinn er fullur. Ýtið á POWER til að halda áfram."
     sansae200*,sansac200*,vibe500: "Harði diskurinn er fullur. Ýtið á PREV til að halda áfram."
+    samsungyh*: "Harði diskurinn er fullur. Ýtið á LEFT til að halda áfram."
   </dest>
   <voice>
     *: none
@@ -3547,6 +3553,7 @@
     gigabeats: "SELECT=Set POWER=Cancel"
     vibe500: "OK=Set C=Cancel"
     mpiohd300: "ENTER=Set MENU=Cancel"
+    sansafuzeplus: "SELECT=Set  BACK=Cancel"
   </source>
   <dest>
     *: none
@@ -3556,6 +3563,7 @@
     gigabeats: "SELECT=Vista POWER=Hætta við"
     vibe500: "OK=Vista C=Hætta við"
     mpiohd300: "ENTER=Vista MENU=Hætta við"
+    sansafuzeplus: "SELECT=Vista  BACK=Hætta við"
   </dest>
   <voice>
     *: none
@@ -5809,6 +5817,7 @@
     iriverh10,iriverh10_5gb,sansae200*,sansac200*,vibe500: "PREV to abort"
     gigabeats: "BACK to abort"
     gigabeatfx: "POWER to abort"
+    sansafuzeplus: "BACK to abort"
     *: "OFF to abort"
   <dest>
     *: "OFF til að slíta vinnslu"
@@ -5818,6 +5827,7 @@
     iriverh10,iriverh10_5gb,sansae200*,sansac200*,vibe500: "PREV til að slíta vinnslu"
     gigabeats: "BACK til að slíta vinnslu"
     gigabeatfx: "POWER til að slíta vinnslu"
+    sansafuzeplus: "BACK til að slíta vinnslu"
   </dest>
   <voice>
     *: ""
@@ -6194,19 +6204,19 @@
 </phrase>
 <phrase>
   id: LANG_FM_SAVE_CHANGES
-  desc: When you try to exit radio to confirm save
+  desc: deprecated
   user: core
   <source>
     *: none
-    radio: "Save Changes?"
+    radio: ""
   </source>
   <dest>
     *: none
-    radio: "Vista breytingar?"
+    radio: ""
   </dest>
   <voice>
     *: none
-    radio: "Save Changes?"
+    radio: ""
   </voice>
 </phrase>
 <phrase>

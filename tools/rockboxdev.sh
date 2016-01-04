@@ -30,11 +30,11 @@ else
 fi
 
 if [ -z $GNU_MIRROR ] ; then
-    GNU_MIRROR=ftp://gcc.gnu.org/pub
+    GNU_MIRROR=http://mirrors.kernel.org/gnu
 fi
 
 # These are the tools this script requires and depends upon.
-reqtools="gcc bzip2 gzip make patch makeinfo"
+reqtools="gcc bzip2 gzip make patch makeinfo automake libtool autoconf flex bison"
 
 ##############################################################################
 # Functions:
@@ -61,13 +61,17 @@ input() {
 #$1 file
 #$2 URL"root
 getfile() {
+  if test -f $dlwhere/$1; then
+    echo "ROCKBOXDEV: Skipping download of $2/$1: File already exists"
+    return
+  fi
   tool=`findtool curl`
   if test -z "$tool"; then
     tool=`findtool wget`
     if test -n "$tool"; then
       # wget download
       echo "ROCKBOXDEV: Downloading $2/$1 using wget"
-      $tool -O $dlwhere/$1 $2/$1
+      $tool -T 60 -O $dlwhere/$1 $2/$1
     fi
   else
      # curl download
@@ -102,14 +106,18 @@ build() {
     case $toolname in
         gcc)
             file="gcc-core-$version.tar.bz2"
-            url="$GNU_MIRROR/gcc/releases/gcc-$version"
+            url="$GNU_MIRROR/gcc/gcc-$version"
             ;;
 
         binutils)
             file="binutils-$version.tar.bz2"
-            url="$GNU_MIRROR/binutils/releases"
+            url="$GNU_MIRROR/binutils"
             ;;
 
+        crosstool-ng)
+            file="crosstool-ng-$version.tar.bz2"
+            url="http://crosstool-ng.org/download/crosstool-ng"
+            ;;
         *)
             echo "ROCKBOXDEV: Bad toolname $toolname"
             exit
@@ -132,11 +140,11 @@ build() {
     fi
 
     # download patch
-    if test -n "$patch"; then
-        if test ! -f "$dlwhere/$patch"; then
-            getfile "$patch" "$patch_url"
+    for p in $patch; do
+        if test ! -f "$dlwhere/$p"; then
+            getfile "$p" "$patch_url"
         fi
-    fi
+    done
 
     cd $builddir
 
@@ -144,18 +152,18 @@ build() {
     tar xjf $dlwhere/$file
 
     # do we have a patch?
-    if test -n "$patch"; then
-        echo "ROCKBOXDEV: applying patch $patch"
+    for p in $patch; do
+        echo "ROCKBOXDEV: applying patch $p"
 
         # apply the patch
-        (cd $builddir/$toolname-$version && patch -p1 < "$dlwhere/$patch")
+        (cd $builddir/$toolname-$version && patch -p1 < "$dlwhere/$p")
 
         # check if the patch applied cleanly
         if [ $? -gt 0 ]; then
-            echo "ROCKBOXDEV: failed to apply patch $patch"
+            echo "ROCKBOXDEV: failed to apply patch $p"
             exit
         fi
-    fi
+    done
 
     # kludge to avoid having to install GMP, MPFR and MPC, for new gcc
     if test -n "$needs_libs"; then
@@ -163,7 +171,7 @@ build() {
         if (echo $needs_libs | grep -q gmp && test ! -d gmp); then
             echo "ROCKBOXDEV: Getting GMP"
             if test ! -f $dlwhere/gmp-4.3.2.tar.bz2; then
-                getfile "gmp-4.3.2.tar.bz2" "$GNU_MIRROR/gcc/infrastructure"
+                getfile "gmp-4.3.2.tar.bz2" "$GNU_MIRROR/gmp"
             fi
             tar xjf $dlwhere/gmp-4.3.2.tar.bz2
             ln -s gmp-4.3.2 gmp
@@ -172,7 +180,7 @@ build() {
         if (echo $needs_libs | grep -q mpfr && test ! -d mpfr); then
             echo "ROCKBOXDEV: Getting MPFR"
             if test ! -f $dlwhere/mpfr-2.4.2.tar.bz2; then
-                getfile "mpfr-2.4.2.tar.bz2" "$GNU_MIRROR/gcc/infrastructure"
+                getfile "mpfr-2.4.2.tar.bz2" "$GNU_MIRROR/mpfr"
             fi
             tar xjf $dlwhere/mpfr-2.4.2.tar.bz2
             ln -s mpfr-2.4.2 mpfr
@@ -181,7 +189,7 @@ build() {
         if (echo $needs_libs | grep -q mpc && test ! -d mpc); then
             echo "ROCKBOXDEV: Getting MPC"
             if test ! -f $dlwhere/mpc-0.8.1.tar.gz; then
-                getfile "mpc-0.8.1.tar.gz" "$GNU_MIRROR/gcc/infrastructure"
+                getfile "mpc-0.8.1.tar.gz" "http://www.multiprecision.org/mpc/download"
             fi
             tar xzf $dlwhere/mpc-0.8.1.tar.gz
             ln -s mpc-0.8.1 mpc
@@ -196,7 +204,16 @@ build() {
     cd build-$toolname
 
     echo "ROCKBOXDEV: $toolname/configure"
-    CFLAGS=-U_FORTIFY_SOURCE ../$toolname-$version/configure --target=$target --prefix=$prefix --enable-languages=c --disable-libssp --disable-docs $configure_params
+    case $toolname in
+        crosstool-ng) # ct-ng doesnt support out-of-tree build and the src folder is named differently
+            toolname="crosstool-ng"
+            cp -r ../$toolname-$version/* ../$toolname-$version/.version .
+            ./configure --prefix=$prefix $configure_params
+        ;;
+        *)
+            CFLAGS=-U_FORTIFY_SOURCE ../$toolname-$version/configure --target=$target --prefix=$prefix --enable-languages=c --disable-libssp --disable-docs $configure_params
+        ;;
+    esac
 
     echo "ROCKBOXDEV: $toolname/make"
     $make
@@ -209,6 +226,69 @@ build() {
     rm -rf build-$toolname $toolname-$version
 }
 
+
+make_ctng() {
+    if test -f "`which ct-ng 2>/dev/null`"; then
+        ctng="ct-ng"
+    else
+        ctng=""
+    fi
+
+    if test ! -n "$ctng"; then
+        if test ! -f "$prefix/bin/ct-ng"; then # look if we build it already
+            build "crosstool-ng" "" "1.13.2" "crosstool-ng-1.13.2.diff"
+        fi
+    fi
+    ctng=`PATH=$prefix/bin:$PATH which ct-ng`
+}
+
+build_ctng() {
+    ctng_target="$1"
+    extra="$2"
+    tc_arch="$3"
+    tc_host="$4"
+
+    make_ctng
+
+    dlurl="http://www.rockbox.org/gcc/$ctng_target"
+
+    # download 
+    getfile "ct-ng-config" "$dlurl"
+
+    test -n "$extra" && getfile "$extra" "$dlurl"
+    
+    # create build directory
+    if test -d $builddir; then
+        if test ! -w $builddir; then
+            echo "ROCKBOXDEV: No write permission for $builddir"
+            exit
+        fi
+    else
+        mkdir -p $builddir
+    fi
+
+    # copy config and cd to $builddir
+    mkdir $builddir/build-$ctng_target
+    ctng_config="$builddir/build-$ctng_target/.config"
+    cat "$dlwhere/ct-ng-config" | sed -e "s,\(CT_PREFIX_DIR=\).*,\1$prefix," > $ctng_config
+    cd $builddir/build-$ctng_target
+
+    $ctng "build"
+
+    # install extras
+    if test -e "$dlwhere/$extra"; then
+        # verify the toolchain has sysroot support
+        if test -n `cat $ctng_config | grep CT_USE_SYSROOT\=y`; then
+            sysroot=`cat $ctng_config | grep CT_SYSROOT_NAME | sed -e 's,CT_SYSROOT_NAME\=\"\([a-zA-Z0-9]*\)\",\1,'`
+            tar xf "$dlwhere/$extra" -C "$prefix/$tc_arch-$ctng_target-$tc_host/$sysroot"
+        fi
+    fi
+    
+    # cleanup
+    cd $builddir
+    rm -rf $builddir/build-$ctng_target
+}
+    
 ##############################################################################
 # Code:
 
@@ -242,6 +322,7 @@ else
   fi
 fi
 
+
 # Verify the prefix dir
 if test ! -d $prefix; then
   mkdir -p $prefix
@@ -258,9 +339,9 @@ fi
 echo "Select target arch:"
 echo "s   - sh       (Archos models)"
 echo "m   - m68k     (iriver h1x0/h3x0, iaudio m3/m5/x5 and mpio hd200)"
-echo "e   - arm-eabi (ipods, iriver H10, Sansa, D2, Gigabeat, etc)"
-echo "a   - arm      (older ARM toolchain, deprecated) "
+echo "a   - arm      (ipods, iriver H10, Sansa, D2, Gigabeat, etc)"
 echo "i   - mips     (Jz4740 and ATJ-based players)"
+echo "r   - arm-app  (Samsung ypr0)"
 echo "separate multiple targets with spaces"
 echo "(Example: \"s m a\" will build sh, m68k and arm)"
 echo ""
@@ -276,7 +357,11 @@ do
     echo ""
     case $arch in
         [Ss])
-            build "binutils" "sh-elf" "2.16.1"
+            # For binutils 2.16.1 builtin rules conflict on some systems with a
+            # default rule for Objective C. Disable the builtin make rules. See
+            # http://sourceware.org/ml/binutils/2005-12/msg00259.html
+            export MAKEFLAGS="-r $MAKEFLAGS"
+            build "binutils" "sh-elf" "2.16.1" "binutils-2.16.1-texinfo-fix.diff" "--disable-werror"
             build "gcc" "sh-elf" "4.0.3" "gcc-4.0.3-rockbox-1.diff"
             ;;
 
@@ -290,40 +375,25 @@ do
             ;;
 
         [Mm])
-            build "binutils" "m68k-elf" "2.16.1"
-            patch=""
-            case $system in
-                CYGWIN* | Darwin | FreeBSD | Interix | SunOS)
-                    patch="gcc-3.4.6.patch"
-                    ;;
-                Linux)
-                    machine=`uname -m`
-                    if [ "$machine" = "x86_64" ]; then
-                        patch="gcc-3.4.6-amd64.patch"
-                    fi
-                    ;;
-            esac
-            build "gcc" "m68k-elf" "3.4.6" "$patch"
+            build "binutils" "m68k-elf" "2.20.1" "binutils-2.20.1-texinfo-fix.diff" "--disable-werror"
+            build "gcc" "m68k-elf" "4.5.2" "" "--with-arch=cf MAKEINFO=missing" "gmp mpfr mpc"
             ;;
 
         [Aa])
-            build "binutils" "arm-elf" "2.16.1"
-            build "gcc" "arm-elf" "4.0.3" "rockbox-multilibs-arm-elf-gcc-4.0.3_3.diff"
-            ;;
-
-        [Ee])
             binopts=""
             gccopts=""
             case $system in
                 Darwin)
-                    binopts="--disable-nls --disable-werror"
+                    binopts="--disable-nls"
                     gccopts="--disable-nls"
                     ;;
             esac
-            build "binutils" "arm-elf-eabi" "2.20.1" "binutils-2.20.1-ld-thumb-interwork-long-call.diff" "$binopts"
-            build "gcc" "arm-elf-eabi" "4.4.4" "rockbox-multilibs-noexceptions-arm-elf-eabi-gcc-4.4.2_1.diff" "$gccopts" "gmp mpfr"
+            build "binutils" "arm-elf-eabi" "2.20.1" "binutils-2.20.1-ld-thumb-interwork-long-call.diff binutils-2.20.1-texinfo-fix.diff" "$binopts --disable-werror"
+            build "gcc" "arm-elf-eabi" "4.4.4" "rockbox-multilibs-noexceptions-arm-elf-eabi-gcc-4.4.2_1.diff" "$gccopts MAKEINFO=missing" "gmp mpfr"
             ;;
-
+        [Rr])
+            build_ctng "ypr0" "alsalib.tar.gz" "arm" "linux-gnueabi"
+            ;;
         *)
             echo "ROCKBOXDEV: Unsupported architecture option: $arch"
             exit

@@ -7,7 +7,6 @@
  *                     \/            \/     \/    \/            \/
  *
  *   Copyright (C) 2008 by Dominik Riebeling
- *   $Id$
  *
  * All files in this archive are subject to the GNU General Public License.
  * See the file COPYING in the source tree root for full license agreement.
@@ -21,16 +20,10 @@
 #include <QtCore>
 
 #include "bootloaderinstallbase.h"
-#include "bootloaderinstallmi4.h"
-#include "bootloaderinstallhex.h"
-#include "bootloaderinstallipod.h"
-#include "bootloaderinstallsansa.h"
-#include "bootloaderinstallfile.h"
-#include "bootloaderinstallchinachip.h"
-#include "bootloaderinstallams.h"
-#include "bootloaderinstalltcc.h"
-#include "bootloaderinstallmpio.h"
 #include "utils.h"
+#include "ziputil.h"
+#include "mspackutil.h"
+#include "Logger.h"
 
 #if defined(Q_OS_MACX)
 #include <sys/param.h>
@@ -38,41 +31,6 @@
 #include <sys/mount.h>
 #endif
 
-
-BootloaderInstallBase* BootloaderInstallBase::createBootloaderInstaller(QObject* parent,QString type)
-{
-    if(type == "mi4") {
-        return new BootloaderInstallMi4(parent);
-    }
-    else if(type == "hex") {
-        return new BootloaderInstallHex(parent);
-    }
-    else if(type == "sansa") {
-        return new BootloaderInstallSansa(parent);
-    }
-    else if(type == "ipod") {
-        return new BootloaderInstallIpod(parent);
-    }
-    else if(type == "file") {
-        return new BootloaderInstallFile(parent);
-    }
-    else if(type == "chinachip") {
-        return new BootloaderInstallChinaChip(parent);
-    }
-    else if(type == "ams") {
-        return new BootloaderInstallAms(parent);
-    }
-    else if(type == "tcc") {
-        return new BootloaderInstallTcc(parent);
-    }
-    else if(type == "mpio") {
-        return new BootloaderInstallMpio(parent);
-    }
-    else {
-        return NULL;
-    }
-
-}
 
 BootloaderInstallBase::BootloaderType BootloaderInstallBase::installed(void)
 {
@@ -101,8 +59,8 @@ void BootloaderInstallBase::downloadBlStart(QUrl source)
 
 void BootloaderInstallBase::downloadReqFinished(int id, bool error)
 {
-    qDebug() << "[BootloaderInstallBase] Download Request" << id
-             << "finished, error:" << m_http.errorString();
+    LOG_INFO() << "Download Request" << id
+               << "finished, error:" << m_http.errorString();
 
     downloadBlFinish(error);
 }
@@ -110,8 +68,8 @@ void BootloaderInstallBase::downloadReqFinished(int id, bool error)
 
 void BootloaderInstallBase::downloadBlFinish(bool error)
 {
-    qDebug() << "[BootloaderInstallBase] Downloading bootloader finished, error:"
-             << error;
+    LOG_INFO() << "Downloading bootloader finished, error:"
+               << error;
 
     // update progress bar
     emit logProgress(100, 100);
@@ -124,7 +82,7 @@ void BootloaderInstallBase::downloadBlFinish(bool error)
     }
     if(error) {
         emit logItem(tr("Download error: %1")
-                .arg(m_http.error()), LOGERROR);
+                .arg(m_http.errorString()), LOGERROR);
         emit done(true);
         return;
     }
@@ -138,19 +96,19 @@ void BootloaderInstallBase::downloadBlFinish(bool error)
     emit downloadDone();
 }
 
+
 void BootloaderInstallBase::installBlfile(void)
 {
-    qDebug() << "[BootloaderInstallBase]" << __func__;
+    LOG_INFO() << "installBlFile(void)";
 }
 
 
 //! @brief backup OF file.
 //! @param to folder to write backup file to. Folder will get created.
 //! @return true on success, false on error.
-
 bool BootloaderInstallBase::backup(QString to)
 {
-    qDebug() << "[BootloaderInstallBase] Backing up bootloader file";
+    LOG_INFO() << "Backing up bootloader file";
     QDir targetDir(".");
     emit logItem(tr("Creating backup of original firmware file."), LOGINFO);
     if(!targetDir.mkpath(to)) {
@@ -158,7 +116,7 @@ bool BootloaderInstallBase::backup(QString to)
         return false;
     }
     QString tofile = to + "/" + QFileInfo(m_blfile).fileName();
-    qDebug() << "[BootloaderInstallBase] trying to backup" << m_blfile << "to" << tofile;
+    LOG_INFO() << "trying to backup" << m_blfile << "to" << tofile;
     if(!QFile::copy(Utils::resolvePathCase(m_blfile), tofile)) {
         emit logItem(tr("Creating backup copy failed."), LOGERROR);
         return false;
@@ -180,8 +138,8 @@ int BootloaderInstallBase::logInstall(LogMode mode)
 
     if(mode == LogAdd) {
         s.setValue("Bootloader/" + section, m_blversion.toString(Qt::ISODate));
-        qDebug() << "[BootloaderInstallBase] Writing log, version:"
-                 << m_blversion.toString(Qt::ISODate);
+        LOG_INFO() << "Writing log, version:"
+                   << m_blversion.toString(Qt::ISODate);
     }
     else {
         s.remove("Bootloader/" + section);
@@ -191,51 +149,6 @@ int BootloaderInstallBase::logInstall(LogMode mode)
     emit logItem(tr("Installation log created"), LOGOK);
 
     return result;
-}
-
-
-//! @brief Return post install hints string.
-//! @param model model string
-//! @return hints.
-QString BootloaderInstallBase::postinstallHints(QString model)
-{
-    bool hint = false;
-    QString msg = tr("Bootloader installation is almost complete. "
-            "Installation <b>requires</b> you to perform the "
-            "following steps manually:");
-
-    msg += "<ol>";
-    msg += tr("<li>Safely remove your player.</li>");
-    if(model == "h100" || model == "h120" || model == "h300" ||
-       model == "ondavx747") {
-        hint = true;
-        msg += tr("<li>Reboot your player into the original firmware.</li>"
-                "<li>Perform a firmware upgrade using the update functionality "
-                "of the original firmware. Please refer to your player's manual "
-                "on details.</li>"
-                "<li>After the firmware has been updated reboot your player.</li>");
-    }
-    if(model == "iaudiox5" || model == "iaudiom5"
-            || model == "iaudiox5v" || model == "iaudiom3" || model == "mpioh200") {
-        hint = true;
-        msg += tr("<li>Turn the player off</li>"
-                "<li>Insert the charger</li>");
-    }
-    if(model == "gigabeatf") {
-        hint = true;
-        msg += tr("<li>Unplug USB and power adaptors</li>"
-                "<li>Hold <i>Power</i> to turn the player off</li>"
-                "<li>Toggle the battery switch on the player</li>"
-                "<li>Hold <i>Power</i> to boot into Rockbox</li>");
-    }
-    msg += "</ol>";
-    msg += tr("<p><b>Note:</b> You can safely install other parts first, but "
-            "the above steps are <b>required</b> to finish the installation!</p>");
-
-    if(hint)
-        return msg;
-    else
-        return QString("");
 }
 
 
@@ -270,7 +183,7 @@ void BootloaderInstallBase::checkRemount()
         if(!status) {
             // still not remounted, restart timer.
             QTimer::singleShot(500, this, SLOT(checkRemount()));
-            qDebug() << "[BootloaderInstallBase] Player not remounted yet" << m_remountDevice;
+            LOG_INFO() << "Player not remounted yet" << m_remountDevice;
         }
         else {
             emit logItem(tr("Player remounted"), LOGINFO);
@@ -298,5 +211,76 @@ void BootloaderInstallBase::setBlFile(QStringList sl)
     if(m_blfile.isEmpty()) {
         m_blfile = sl.at(0);
     }
+}
+
+
+bool BootloaderInstallBase::setOfFile(QString of, QStringList blfile)
+{
+    bool found = false;
+    ArchiveUtil *util = 0;
+
+    // try ZIP first
+    ZipUtil *zu = new ZipUtil(this);
+    if(zu->open(of))
+    {
+        emit logItem(tr("Zip file format detected"), LOGINFO);
+        util = zu;
+    }
+    else
+        delete zu;
+
+    // if ZIP failed, try CAB
+    if(util == 0)
+    {
+        MsPackUtil *msu = new MsPackUtil(this);
+        if(msu->open(of))
+        {
+            emit logItem(tr("CAB file format detected"), LOGINFO);
+            util = msu;
+        }
+        else
+            delete msu;
+    }
+
+    // check if the file set is in zip format
+    if(util) {
+        QStringList contents = util->files();
+        LOG_INFO() << "archive contains:" << contents;
+        for(int i = 0; i < blfile.size(); ++i) {
+            // strip any path, we don't know the structure in the zip
+            QString f = QFileInfo(blfile.at(i)).fileName();
+            LOG_INFO() << "searching archive for" << f;
+            // contents.indexOf() works case sensitive. Since the filename
+            // casing is unknown (and might change) do this manually.
+            // FIXME: support files in folders
+            for(int j = 0; j < contents.size(); ++j) {
+                if(contents.at(j).compare(f, Qt::CaseInsensitive) == 0) {
+                    found = true;
+                    emit logItem(tr("Extracting firmware %1 from archive")
+                            .arg(f), LOGINFO);
+                    // store in class temporary file
+                    m_tempof.open();
+                    m_offile = m_tempof.fileName();
+                    m_tempof.close();
+                    if(!util->extractArchive(m_offile, contents.at(j))) {
+                        emit logItem(tr("Error extracting firmware from archive"), LOGERROR);
+                        found = false;
+                        break;
+                    }
+                    break;
+                }
+            }
+        }
+        if(!found) {
+            emit logItem(tr("Could not find firmware in archive"), LOGERROR);
+        }
+        delete util;
+    }
+    else {
+        m_offile = of;
+        found = true;
+    }
+
+    return found;
 }
 

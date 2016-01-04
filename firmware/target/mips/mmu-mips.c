@@ -121,7 +121,7 @@ void mmu_init(void)
     local_flush_tlb_all();
 /*
     map_address(0x80000000, 0x80000000, 0x4000, K_CacheAttrC);
-    map_address(0x80004000, 0x80004000, MEM * 0x100000, K_CacheAttrC);
+    map_address(0x80004000, 0x80004000, MEMORYSIZE * 0x100000, K_CacheAttrC);
 */
 }
 
@@ -168,12 +168,6 @@ void __icache_invalidate_all(void)
         :
         : "r" (i));
 }
-
-void cpucache_commit_discard(void)
-{
-    __icache_invalidate_all();
-}
-void cpucache_invalidate(void) __attribute__((alias("cpucache_commit_discard")));
 
 void __dcache_invalidate_all(void)
 {

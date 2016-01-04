@@ -30,7 +30,7 @@ my @dirs = split(/\//, $builddir);
 my $test = pop(@dirs);
 
 sub doconfigure {
-	my ($target, $type) = @_;
+	my ($target, $type, $width, $height) = @_;
 	if (!exists($builds{$target})) {
 		for $key (keys(%builds)) {
 			if ($key =~ $target) {
@@ -40,16 +40,32 @@ sub doconfigure {
 		}
 	}
 	$command = "${srcdir}/configure --type=${type} --target=${target}";
+    if (defined $width) {
+        $command .= " --lcdwidth=${width}";
+    }
+    if (defined $height) {
+        $command .= " --lcdheight=${height}";
+    }
 	%typenames = ("n" => "Normal", "s" => "Simulator", "b" => "Bootloader" );
-	print "Rockbox autoconf: \n\tTarget: $target \n\tType: $typenames{$type} \nCorrect? [Y/n] ";
-	chomp($response = <>);
-	if ($response eq "") {
-		$response = "y";
-	}
-	if ($response ne "y" && $response ne "Y") {
-		print "autoconf: Aborting\n";
-		exit(0);
-	}
+    unless (@ARGV[0] eq "-y") {
+        $prompt = "Rockbox autoconf: \n\tTarget: $target \n\tType: $typenames{$type} \n";
+        if (defined $width) {
+            $prompt .= "\tLCD width: $width\n";
+        }
+        if (defined $height) {
+            $prompt .= "\tLCD height: $height\n";
+        }
+        print $prompt . "Correct? [Y/n] ";
+	
+        chomp($response = <>);
+        if ($response eq "") {
+            $response = "y";
+        }
+        if ($response ne "y" && $response ne "Y") {
+            print "autoconf: Aborting\n";
+            exit(0);
+        }
+    }
 	system($command);
 }
 
@@ -59,18 +75,30 @@ sub buildtype {
 		$build = "s";
 	} elsif ($text eq "boot") {
 		$build = "b";
-	} else {
+    } elsif ($text eq "build") {
 		$build = "n";
-	}
+	} else {
+        $build = "";
+    }
 	return $build;
 }
 
-if ($test =~ /(.*)-(.*)/)
+if ($test =~ /(.*)-(.*)-([0-9]+)x([0-9]+)/)
 {
-	$target = $1;
-	$build = buildtype($2);
-	doconfigure($target, $build);
-} 
+    if (buildtype($2)) {
+        doconfigure($1, buildtype($2), $3, $4);
+    } elsif (buildtype($1)) {
+        doconfigure($2, buildtype($1), $3, $4);
+    }
+}
+elsif ($test =~ /(.*)-(.*)/)
+{
+    if (buildtype($2)) {
+        doconfigure($1, buildtype($2));
+    } elsif (buildtype($1)) {
+        doconfigure($2, buildtype($1));
+    }
+}
 elsif ($test =~ /(.*)/)
 {
 	$target = $1;

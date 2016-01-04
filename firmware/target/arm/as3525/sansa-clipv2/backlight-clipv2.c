@@ -22,15 +22,15 @@
 #include "backlight-target.h"
 #include "lcd.h"
 #include "as3525v2.h"
-#include "ascodec-target.h"
+#include "ascodec.h"
 
-void _backlight_on(void)
+void backlight_hw_on(void)
 {
     ascodec_write_pmu(AS3543_BACKLIGHT, 1, 0x90);
     lcd_enable(true);
 }
 
-void _backlight_off(void)
+void backlight_hw_off(void)
 {
     lcd_enable(false);
     ascodec_write_pmu(AS3543_BACKLIGHT, 1, 0x0);

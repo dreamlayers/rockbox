@@ -42,11 +42,11 @@
 
 #define AS3525_UNCACHED_ADDR(a) ((typeof(a)) ((uintptr_t)(a) + 0x10000000))
 #define AS3525_PHYSICAL_ADDR(a) \
-    ((typeof(a)) ((((uintptr_t)(a)) & (MEM*0x100000)) \
+    ((typeof(a)) ((((uintptr_t)(a)) & (MEMORYSIZE*0x100000)) \
         ? (((uintptr_t)(a)) - IRAM_ORIG) \
         : ((uintptr_t)(a))))
 
-#if defined(SANSA_FUZEV2) || defined(SANSA_CLIPPLUS)
+#if defined(SANSA_FUZEV2) || defined(SANSA_CLIPPLUS) || defined(SANSA_CLIPZIP)
 extern int amsv2_variant;
 #endif
 
@@ -64,4 +64,8 @@ static inline void mdelay(unsigned msecs)
 {
     udelay(1000 * msecs);
 }
+
+void usb_insert_int(void);
+void usb_remove_int(void);
+
 #endif /* SYSTEM_TARGET_H */

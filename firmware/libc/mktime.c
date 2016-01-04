@@ -23,7 +23,6 @@
 #include <time.h>
 #include "config.h"
 
-#if CONFIG_RTC
 /* mktime() code taken from lynx-2.8.5 source, written
  by Philippe De Muyter <phdm@macqel.be> */
 time_t mktime(struct tm *t)
@@ -41,7 +40,6 @@ time_t mktime(struct tm *t)
         year -= 1;
         month += 12;
     }
-    result = (year - 1970) * 365 + (year - 1969) / 4 + m_to_d[month];
     result = (year - 1970) * 365 + m_to_d[month];
     if (month <= 1)
         year -= 1;
@@ -58,4 +56,3 @@ time_t mktime(struct tm *t)
     result += t->tm_sec;
     return(result);
 }
-#endif

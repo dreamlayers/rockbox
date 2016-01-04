@@ -25,6 +25,7 @@
 #include "audio.h"
 #include "sound.h"
 #include "file.h"
+#include "pcm-internal.h"
 
 /* PCM interrupt routine lockout */
 static struct
@@ -93,7 +94,7 @@ void pcm_play_dma_init(void)
     bitset32(&INTMOD, DMA2_MASK);
 }
 
-void pcm_postinit(void)
+void pcm_play_dma_postinit(void)
 {
     audiohw_postinit();
 }
@@ -110,7 +111,7 @@ static void play_start_pcm(void)
     SRCPND = DMA2_MASK;
 
     /* Flush any pending writes */
-    clean_dcache_range((char*)DISRC2-0x30000000, (DCON2 & 0xFFFFF) * 2);
+    commit_dcache_range((char*)DISRC2-0x30000000, (DCON2 & 0xFFFFF) * 2);
 
     /* unmask DMA interrupt when unlocking */
     dma_play_lock.state = DMA2_MASK;
@@ -214,20 +215,18 @@ void pcm_play_dma_pause(bool pause)
 
 void fiq_handler(void)
 {
-    static void *start;
+    static const void *start;
     static size_t size;
 
     /* clear any pending interrupt */
     SRCPND = DMA2_MASK;
 
     /* Buffer empty.  Try to get more. */
-    pcm_play_get_more_callback(&start, &size);
-
-    if (size == 0)
+    if (!pcm_play_dma_complete_callback(PCM_DMAST_OK, &start, &size))
         return;
 
     /* Flush any pending cache writes */
-    clean_dcache_range(start, size);
+    commit_dcache_range(start, size);
 
     /* set the new DMA values */
     DCON2 = DMA_CONTROL_SETUP | (size >> 1);
@@ -235,6 +234,8 @@ void fiq_handler(void)
 
     /* Re-Activate the channel */
     DMASKTRIG2 = 0x2;
+
+    pcm_play_dma_status_callback(PCM_DMAST_STARTED);
 }
 
 size_t pcm_get_bytes_waiting(void)

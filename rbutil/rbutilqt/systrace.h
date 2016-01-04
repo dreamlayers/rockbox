@@ -7,7 +7,6 @@
  *                     \/            \/     \/    \/            \/
  *
  *   Copyright (C) 2007 by Dominik Riebeling
- *   $Id$
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -22,7 +21,7 @@
 #ifndef SYSTRACE_H
 #define SYSTRACE_H
 
-#include <QtGui>
+#include <QDialog>
 #include "ui_systracefrm.h"
 
 class SysTrace : public QDialog
@@ -30,21 +29,18 @@ class SysTrace : public QDialog
     Q_OBJECT
     public:
         SysTrace(QWidget *parent);
-        static void debug(QtMsgType type, const char* msg);
-        static QString getTrace() {return debugbuffer;}
+        static QString getTrace(void);
         static void save(QString filename = "");
+        static void rotateTrace(void);
     private:
-        static void flush(void);
+        void changeEvent(QEvent *event);
         Ui::SysTraceFrm ui;
-        static QString debugbuffer;
-        static QString lastmessage;
-        static unsigned int repeat;
 
     private slots:
         void saveCurrentTrace(void);
         void savePreviousTrace(void);
         void refresh(void);
-        
+
 };
 
 #endif

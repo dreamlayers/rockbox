@@ -28,10 +28,8 @@
 #include "lang.h"
 #include "action.h"
 #include "settings.h"
-#include "powermgmt.h"
 #include "menu.h"
 #include "misc.h"
-#include "exported_menus.h"
 #include "keyboard.h"
 #include "talk.h"
 #include "time.h"
@@ -80,10 +78,6 @@ static int timedate_set(void)
 MENUITEM_FUNCTION(time_set, 0, ID2P(LANG_SET_TIME), 
                   timedate_set, NULL, NULL, Icon_NOICON);
 MENUITEM_SETTING(timeformat, &global_settings.timeformat, NULL);
-
-/* in main_menu.c */
-extern const struct menu_item_ex sleep_timer_call;
-
 #ifdef HAVE_RTC_ALARM
 MENUITEM_FUNCTION(alarm_screen_call, 0, ID2P(LANG_ALARM_MOD_ALARM_MENU),
                   (menu_function)alarm_screen, NULL, NULL, Icon_NOICON);
@@ -140,7 +134,8 @@ MENUITEM_FUNCTION(alarm_wake_up_screen, 0, ID2P(LANG_ALARM_WAKEUP_SCREEN),
 #endif /* CONFIG_TUNER || defined(HAVE_RECORDING) */
 
 #endif /* HAVE_RTC_ALARM */
-static void talk_timedate(void)
+
+void talk_timedate(void)
 {
     struct tm *tm = get_time();
     if (!global_settings.talk_menu)
@@ -206,7 +201,6 @@ static int time_menu_callback(int action,
                        const struct menu_item_ex *this_item)
 {
     (void)this_item;
-    int i;
     static int last_redraw = 0;
     bool redraw = false;
 
@@ -239,7 +233,7 @@ static int time_menu_callback(int action,
 
 
 MAKE_MENU(time_menu, ID2P(LANG_TIME_MENU), time_menu_callback, Icon_NOICON,
-          &time_set, &sleep_timer_call,
+          &time_set,
 #ifdef HAVE_RTC_ALARM
           &alarm_screen_call,
 #if defined(HAVE_RECORDING) || CONFIG_TUNER
@@ -251,8 +245,10 @@ MAKE_MENU(time_menu, ID2P(LANG_TIME_MENU), time_menu_callback, Icon_NOICON,
 int time_screen(void* ignored)
 {
     (void)ignored;
-    int i, nb_lines, font_h, ret;
+    int nb_lines, font_h, ret;
     menu_was_pressed = false;
+
+    push_current_activity(ACTIVITY_TIMEDATESCREEN);
 
     FOR_NB_SCREENS(i)
     {
@@ -265,7 +261,7 @@ int time_screen(void* ignored)
 #endif
         nb_lines = viewport_get_nb_lines(&clock_vps[i]);
 
-        menu[i] = clock_vps[i];
+        gui_synclist_set_viewport_defaults(&menu[i], i);
         /* force time to be drawn centered */
         clock_vps[i].flags |= VP_FLAG_ALIGN_CENTER;
 
@@ -283,6 +279,7 @@ int time_screen(void* ignored)
     }
 
     ret = do_menu(&time_menu, NULL, menu, false);
+    pop_current_activity();
     /* see comments above in the button callback */
     if (!menu_was_pressed && ret == GO_TO_PREVIOUS)
         return 0;

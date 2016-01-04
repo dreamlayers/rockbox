@@ -93,14 +93,14 @@ struct jackpot
 };
 
 #ifdef HAVE_LCD_CHARCELLS
-void patterns_init(struct screen* display)
+static void patterns_init(struct screen* display)
 {
     int i;
     for(i=0;i<NB_SLOTS;i++)
         char_patterns[i]=display->get_locked_pattern();
 }
 
-void patterns_deinit(struct screen* display)
+static void patterns_deinit(struct screen* display)
 {
     /* Restore the old pattern */
     int i;
@@ -110,25 +110,24 @@ void patterns_deinit(struct screen* display)
 #endif /* HAVE_LCD_CHARCELLS */
 
 /*Call when the program exit*/
-void jackpot_exit(void)
+static void jackpot_exit(void)
 {
 #ifdef HAVE_LCD_CHARCELLS
     patterns_deinit(rb->screens[SCREEN_MAIN]);
 #endif /* HAVE_LCD_CHARCELLS */
 }
 
-void jackpot_init(struct jackpot* game)
+static void jackpot_init(struct jackpot* game)
 {
-    int i,j;
     game->money=20;
-    for(i=0;i<NB_SLOTS;i++){
+    for(int i=0;i<NB_SLOTS;i++){
         game->slot_state[i]=(rb->rand()%NB_PICTURES)*PICTURE_ROTATION_STEPS;
         FOR_NB_SCREENS(j)
             game->state_y[j][i]=-1;
     }
 }
 
-int jackpot_get_result(struct jackpot* game)
+static int jackpot_get_result(struct jackpot* game)
 {
     int i=NB_SLOTS-1;
     int multiple=1;
@@ -141,7 +140,7 @@ int jackpot_get_result(struct jackpot* game)
     return(result);
 }
 
-int jackpot_get_gain(struct jackpot* game)
+static int jackpot_get_gain(struct jackpot* game)
 {
     switch (jackpot_get_result(game))
     {
@@ -164,7 +163,7 @@ int jackpot_get_gain(struct jackpot* game)
     return(0);
 }
 
-void jackpot_display_slot_machine(struct jackpot* game, struct screen* display)
+static void jackpot_display_slot_machine(struct jackpot* game, struct screen* display)
 {
     char str[20];
     int i;
@@ -215,7 +214,7 @@ void jackpot_display_slot_machine(struct jackpot* game, struct screen* display)
 }
 
 
-void jackpot_info_message(struct screen* display, char* message)
+static void jackpot_info_message(struct screen* display, char* message)
 {
 #ifdef HAVE_LCD_CHARCELLS
     display->puts_scroll(0,1,message);
@@ -232,7 +231,7 @@ void jackpot_info_message(struct screen* display, char* message)
 #endif /* HAVE_LCD_CHARCELLS */
 }
 
-void jackpot_print_turn_result(struct jackpot* game,
+static void jackpot_print_turn_result(struct jackpot* game,
                                int gain, struct screen* display)
 {
     char str[20];
@@ -250,15 +249,15 @@ void jackpot_print_turn_result(struct jackpot* game,
     display->update();
 }
 
-void jackpot_play_turn(struct jackpot* game)
+static void jackpot_play_turn(struct jackpot* game)
 {
     /* How many pattern? */
     int nb_turns[NB_SLOTS];
-    int i,d,gain,turns_remaining=0;
+    int gain,turns_remaining=0;
     if(game->money<=0)
         return;
     game->money--;
-    for(i=0;i<NB_SLOTS;i++)
+    for(int i=0;i<NB_SLOTS;i++)
     {
         nb_turns[i]=(rb->rand()%15+5)*PICTURE_ROTATION_STEPS;
         turns_remaining+=nb_turns[i];
@@ -271,7 +270,7 @@ void jackpot_play_turn(struct jackpot* game)
     /* Jackpot Animation */
     while(turns_remaining>0)
     {
-        for(i=0;i<NB_SLOTS;i++)
+        for(int i=0;i<NB_SLOTS;i++)
         {
             if(nb_turns[i]>0)
             {
@@ -295,7 +294,7 @@ void jackpot_play_turn(struct jackpot* game)
 
 enum plugin_status plugin_start(const void* parameter)
 {
-    int action, i;
+    int action;
     struct jackpot game;
     (void)parameter;
     atexit(jackpot_exit);

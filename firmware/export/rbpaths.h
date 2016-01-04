@@ -30,11 +30,7 @@
 /* name of directory where configuration, fonts and other data
  * files are stored */
 #ifdef __PCTOOL__
-#undef ROCKBOX_DIR
-#undef ROCKBOX_DIR_LEN
 #undef WPS_DIR
-#define ROCKBOX_DIR "."
-#define ROCKBOX_DIR_LEN 1
 #else
 
 /* ROCKBOX_DIR is now defined in autoconf.h for flexible build types */
@@ -44,7 +40,16 @@
 #define ROCKBOX_DIR_LEN (sizeof(ROCKBOX_DIR)-1)
 #endif /* def __PCTOOL__ */
 
-#ifndef APPLICATION
+#if !defined(APPLICATION) || defined(SAMSUNG_YPR0) || defined(SAMSUNG_YPR1) || defined(DX50) || defined(DX90)
+
+#if defined(SAMSUNG_YPR0) || defined(SAMSUNG_YPR1)
+#define HOME_DIR "/mnt/media0"
+#elif defined(DX50) || defined(DX90)
+/* Where to put save files like recordings, playlists, screen dumps ...*/
+#define HOME_DIR "/mnt/sdcard"
+#else
+#define HOME_DIR "/"
+#endif
 
 /* make sure both are the same for native builds */
 #undef ROCKBOX_LIBRARY_PATH
@@ -53,21 +58,23 @@
 #define PLUGIN_DIR          ROCKBOX_DIR "/rocks"
 #define CODECS_DIR          ROCKBOX_DIR "/codecs"
 
-#define REC_BASE_DIR        "/"
-#define PLAYLIST_CATALOG_DEFAULT_DIR "/Playlists"
+#else /* APPLICATION */
 
-#define paths_init()
-#else /* application */
+#define HOME_DIR "<HOME>" /* replaced at runtime */
 
 #define PLUGIN_DIR          ROCKBOX_LIBRARY_PATH "/rockbox/rocks"
+#if (CONFIG_PLATFORM & PLATFORM_ANDROID)
+#define CODECS_DIR          ROCKBOX_BINARY_PATH
+#else
 #define CODECS_DIR          ROCKBOX_LIBRARY_PATH "/rockbox/codecs"
+#endif
 
-#define REC_BASE_DIR        ROCKBOX_DIR  "/"
-#define PLAYLIST_CATALOG_DEFAULT_DIR ROCKBOX_DIR "/Playlists"
+#endif /* !APPLICATION || SAMSUNG_YPR0 */
 
-extern void paths_init(void);
+#define HOME_DIR_LEN (sizeof(HOME_DIR)-1)
 
-#endif /* APPLICATION */
+#define REC_BASE_DIR        HOME_DIR
+#define PLAYLIST_CATALOG_DEFAULT_DIR HOME_DIR "/Playlists"
 
 #define LANG_DIR            ROCKBOX_DIR "/langs"
 
@@ -76,6 +83,19 @@ extern void paths_init(void);
 #define PLUGIN_DEMOS_DIR    PLUGIN_DIR "/demos"
 #define VIEWERS_DIR         PLUGIN_DIR "/viewers"
 
+#if defined(APPLICATION) && !(defined(SAMSUNG_YPR0) || defined(SAMSUNG_YPR1) || defined(DX50) || defined(DX90))
+#define PLUGIN_DATA_DIR          ROCKBOX_DIR "/rocks.data"
+#define PLUGIN_GAMES_DATA_DIR    PLUGIN_DATA_DIR
+#define PLUGIN_APPS_DATA_DIR     PLUGIN_DATA_DIR
+#define PLUGIN_DEMOS_DATA_DIR    PLUGIN_DATA_DIR
+#define VIEWERS_DATA_DIR         PLUGIN_DATA_DIR
+#else
+#define PLUGIN_DATA_DIR          PLUGIN_DIR
+#define PLUGIN_GAMES_DATA_DIR    PLUGIN_DIR "/games"
+#define PLUGIN_APPS_DATA_DIR     PLUGIN_DIR "/apps"
+#define PLUGIN_DEMOS_DATA_DIR    PLUGIN_DIR "/demos"
+#define VIEWERS_DATA_DIR         PLUGIN_DIR "/viewers"
+#endif
 
 #define WPS_DIR             ROCKBOX_DIR "/wps"
 #define SBS_DIR             WPS_DIR
@@ -100,4 +120,5 @@ extern void paths_init(void);
 #define PLAYLIST_CONTROL_FILE   ROCKBOX_DIR "/.playlist_control"
 #define NVRAM_FILE              ROCKBOX_DIR "/nvram.bin"
 #define GLYPH_CACHE_FILE        ROCKBOX_DIR "/.glyphcache"
+
 #endif /* __PATHS_H__ */

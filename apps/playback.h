@@ -26,9 +26,20 @@
 #include <stdlib.h>
 #include "config.h"
 
+#if CONFIG_CODEC == SWCODEC
+/* Including the code for fast previews is entirely optional since it
+   does add two more mp3entry's - for certain targets it may be less
+   beneficial such as flash-only storage */
+#if MEMORYSIZE > 2
+#define AUDIO_FAST_SKIP_PREVIEW
+#endif
+
+#endif /* CONFIG_CODEC == SWCODEC */
+
 #ifdef HAVE_ALBUMART
 
 #include "bmp.h"
+#include "metadata.h"
 /*
  * Returns the handle id of the buffered albumart for the given slot id
  **/
@@ -47,69 +58,30 @@ int playback_claim_aa_slot(struct dim *dim);
 
 /*
  * Releases the albumart slot with given id
- * 
+ *
  * Save to call from other threads */
 void playback_release_aa_slot(int slot);
+
+struct bufopen_bitmap_data {
+    struct dim *dim;
+    struct mp3_albumart *embedded_albumart;
+};
+
 #endif
 
 /* Functions */
-void voice_wait(void);
-bool audio_is_thread_ready(void);
 int audio_track_count(void);
 long audio_filebufused(void);
 void audio_pre_ff_rewind(void);
 void audio_skip(int direction);
-void audio_hard_stop(void); /* Stops audio from serving playback */
+
+void audio_set_cuesheet(bool enable);
 #ifdef HAVE_CROSSFADE
 void audio_set_crossfade(int enable);
 #endif
 
-enum
-{
-    AUDIO_WANT_PLAYBACK = 0,
-    AUDIO_WANT_VOICE,
-};
-bool audio_restore_playback(int type); /* Restores the audio buffer to handle the requested playback */
 size_t audio_get_filebuflen(void);
-void audio_pcmbuf_position_callback(unsigned int time) ICODE_ATTR;
-void audio_post_track_change(bool pcmbuf);
-int get_audio_hid(void);
-int *get_codec_hid(void);
-void audio_set_prev_elapsed(unsigned long setting);
-bool audio_buffer_state_trashed(void);
 
-/* Define one constant that includes recording related functionality */
-#if defined(HAVE_RECORDING) && !defined(SIMULATOR)
-#define AUDIO_HAVE_RECORDING
-#endif
+unsigned int playback_status(void);
 
-enum {
-    Q_NULL = 0,
-    Q_AUDIO_PLAY = 1,
-    Q_AUDIO_STOP,
-    Q_AUDIO_PAUSE,
-    Q_AUDIO_SKIP,
-    Q_AUDIO_PRE_FF_REWIND,
-    Q_AUDIO_FF_REWIND,
-    Q_AUDIO_CHECK_NEW_TRACK,
-    Q_AUDIO_FLUSH,
-    Q_AUDIO_TRACK_CHANGED,
-    Q_AUDIO_DIR_SKIP,
-    Q_AUDIO_POSTINIT,
-    Q_AUDIO_FILL_BUFFER,
-    Q_AUDIO_FINISH_LOAD,
-    Q_CODEC_REQUEST_COMPLETE,
-    Q_CODEC_REQUEST_FAILED,
-
-    Q_CODEC_LOAD,
-    Q_CODEC_LOAD_DISK,
-
-#ifdef AUDIO_HAVE_RECORDING
-    Q_ENCODER_LOAD_DISK,
-    Q_ENCODER_RECORD,
-#endif
-
-    Q_CODEC_DO_CALLBACK,
-};
-
-#endif
+#endif /* _PLAYBACK_H */

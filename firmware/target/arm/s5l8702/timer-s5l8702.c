@@ -26,13 +26,11 @@
 #include "system.h"
 #include "timer.h"
 
-//TODO: This needs calibration once we figure out the clocking
-
-void INT_TIMERC(void)
+void INT_TIMERF(void)
 {
     /* clear interrupt */
-    TCCON = TCCON;
-    
+    TSTAT = (0x07 << 16);
+
     if (pfn_timer != NULL) {
         pfn_timer();
     }
@@ -40,12 +38,10 @@ void INT_TIMERC(void)
 
 bool timer_set(long cycles, bool start)
 {
-    static const int cs_table[] = {1, 2, 4, 6};
-    int prescale, cs;
-    long count;
+    int tf_en = TFCMD & (1 << 0);   /* save TF_EN status */
 
-    /* stop and clear timer */
-    TCCMD = (1 << 1);   /* TD_CLR */
+    /* stop timer */
+    TFCMD = (0 << 0);       /* TF_EN = disable */
 
     /* optionally unregister any previously registered timer user */
     if (start) {
@@ -55,40 +51,34 @@ bool timer_set(long cycles, bool start)
         }
     }
 
-    /* scale the count down with the clock select */
-    for (cs = 0; cs < 4; cs++) {
-        count = cycles >> cs_table[cs];
-        if ((count < 65536) || (cs == 3)) {
-            break;
-        }
-    }
-    
-    /* scale the count down with the prescaler */
-    prescale = 1;
-    while (count >= 65536) {
-        count >>= 1;
-        prescale <<= 1;
-    }
-
     /* configure timer */
-    TCCON = (1 << 12) |     /* TD_INT0_EN */
-            (cs << 8) |     /* TS_CS */
-            (0 << 4);       /* TD_MODE_SEL, 0 = interval mode */
-    TCPRE = prescale - 1;
-    TCDATA0 = count;
-    TCCMD = (1 << 0);       /* TD_ENABLE */
-    
+    TFCON = (1 << 12) |     /* TF_INT0_EN */
+            (4 << 8) |      /* TF_CS = ECLK / 1 */
+            (1 << 6) |      /* select ECLK (12 MHz) */
+            (0 << 4);       /* TF_MODE_SEL = interval mode */
+    TFPRE = 0;              /* no prescaler */
+    TFDATA0 = cycles;       /* set interval period */
+
+    /* After the configuration, we must write '1' in TF_CLR to
+     * initialize the timer (s5l8700 DS):
+     *  - Clear the counter register.
+     *  - The value of TF_START is set to TF_OUT.
+     *  - TF_DATA0 and TF_DATA1 are updated to the internal buffers.
+     *  - Initialize the state of the previously captured signal.
+     */
+    TFCMD = (1 << 1) |      /* TF_CLR = initialize timer */
+            (tf_en << 0);   /* TF_EN = restore previous status */
+
     return true;
 }
 
 bool timer_start(void)
 {
-    TCCMD = (1 << 0);       /* TD_ENABLE */
+    TFCMD = (1 << 0);       /* TF_EN = enable */
     return true;
 }
 
 void timer_stop(void)
 {
-    TCCMD = (0 << 0);       /* TD_ENABLE */
+    TFCMD = (0 << 0);       /* TF_EN = disable */
 }
-

@@ -22,8 +22,8 @@
 /*
  * This config file is for the M:Robe 500i
  */
-#define TARGET_TREE /* this target is using the target tree system */
 
+/* This is the absolute address on the bus */
 #define CONFIG_SDRAM_START 0x00900000
 
 #define OLYMPUS_MROBE_500 1
@@ -58,9 +58,6 @@
 
 /* define this if you have access to the quickscreen */
 #define HAVE_QUICKSCREEN
-
-/* define this if you have access to the pitchscreen */
-#define HAVE_PITCHSCREEN
 
 /* define this if you would like tagcache to build on this target */
 #define HAVE_TAGCACHE
@@ -110,9 +107,6 @@
 
 #define LCD_DEPTH  16   /* 65k colours */
 #define LCD_PIXELFORMAT RGB565 /* rgb565 */
-
-#define MAX_ICON_HEIGHT 35
-#define MAX_ICON_WIDTH 35
 
 /* Define this if your LCD can be put to sleep. HAVE_LCD_ENABLE
    should be defined as well. */
@@ -199,9 +193,11 @@
 #define BATTERY_CAPACITY_INC 100         /* capacity increment */
 #define BATTERY_TYPES_COUNT  1          /* only one type */
 
+#define CONFIG_BATTERY_MEASURE VOLTAGE_MEASURE
+
 /* define current usage levels */
-#define CURRENT_NORMAL     100 /* Measured */
-#define CURRENT_BACKLIGHT  100 /* Over 200 mA total measured when on */
+#define CURRENT_NORMAL     85 /* Measured */
+#define CURRENT_BACKLIGHT  200 /* Over 200 mA total measured when on */
 #define CURRENT_RECORD     0  /* no recording */
 
 /* Hardware controlled charging with monitoring */
@@ -215,7 +211,6 @@
 
 /* enable these for the usb stack */
 #define CONFIG_USBOTG       USBOTG_M66591
-#define USE_ROCKBOX_USB
 
 #define HAVE_USBSTACK
 //#define HAVE_USB_POWER

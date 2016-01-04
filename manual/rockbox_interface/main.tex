@@ -3,19 +3,36 @@
 \section{Basic Overview}
 \subsection{The \daps{} controls}
 
-\begin{center}
 % include the front image. Using \specimg makes this fairly easy,
 % but requires to use the exact value of \specimg in the filename!
 % The extension is selected in the preamble, so no further \ifpdfoutput
 % is necessary.
-\includegraphics[height=8cm,width=10cm,keepaspectratio=true]{rockbox_interface/images/\specimg-front}
-\opt{iaudiom3,h100}{% replace with HAVEREMOTEKEYMAP when all images exist or change specimg
-  \end{center}
+%
+% The check looks for a png file -- we use png for the HTML manual, so that
+% format needs to be present. It can also be used for the pdf manual, but
+% usually we provide a pdf version of the file for that. Picking the correct
+% one is done by LaTeX automatically, but for checking the filename we need to
+% specify the extension.
+\begin{center}
+\IfFileExists{rockbox_interface/images/\specimg-front.png}
+   {\includegraphics[height=8cm,width=10cm,keepaspectratio=true]%
+    {rockbox_interface/images/\specimg-front}
+   }
+   {\color{red}{\textbf{WARNING!} Image not found}%
+    \typeout{Warning: missing front image}
+   }
+\end{center}
+\opt{HAVEREMOTEKEYMAP}{
   % spacing between the two pictures, could possibly be improved
   \begin{center}
-    \includegraphics[height=5.6cm,width=10cm,keepaspectratio=true]{rockbox_interface/images/\specimg-remote}
+  \IfFileExists{rockbox_interface/images/\specimg-remote.png}
+    {\includegraphics[height=5.6cm,width=10cm,keepaspectratio=true]{rockbox_interface/images/\specimg-remote}
+    }
+    {\color{red}{\textbf{WARNING!} Image not found}%
+     \typeout{Warning: missing remote image}
+    }
+  \end{center}
 }
-\end{center}
 
 Throughout this manual, the buttons on the \dap{} are labelled according to the
 picture above.
@@ -42,7 +59,7 @@ detail in the following paragraph.
   \wikilink{BlindFAQ}.
   
   %
-  \opt{h100}{
+  \opt{iriverh100}{
   Hold or lay the \dap{} so that the side with the joystick and LCD is facing
   towards you, and the curved side is at the top. The joystick functions as
   the \ButtonUp{}, \ButtonRight{}, \ButtonLeft{}, and \ButtonDown{} buttons when
@@ -63,7 +80,7 @@ detail in the following paragraph.
   \dap{} hard locks, you can reset it by inserting a paper clip into the hole
   where the reset switch is.}
   % 
-  \opt{h300}{
+  \opt{iriverh300}{
   Hold or lay the \dap{} so that the side with the button pad and
   LCD is facing towards you.  The buttons on the button pad are as follows:  top 
   left corner: \ButtonOn{}, bottom left corner: \ButtonOff{}, top right corner: 
@@ -231,7 +248,7 @@ detail in the following paragraph.
   round crosspad is labelled \ButtonMenu{}.
   }
   %
-  \opt{h10,h10_5gb}{
+  \opt{iriverh10,iriverh10_5gb}{
   Hold or lay the \dap{} so that the side with the scroll pad and
   LCD is facing towards you. In the centre below the lcd is the scroll pad. It
   is oriented vertically. Touching the top and bottom half of it acts as the 
@@ -244,8 +261,8 @@ detail in the following paragraph.
   hand side is the \ButtonPower{} button.
 
   On the top panel of the \dap{}, from left to right, you can find the 
-  following: \ButtonHold{} switch, \opt{h10}{reset pin hole, }remote port and
-  headphone mini jack plug. 
+  following: \ButtonHold{} switch, \opt{iriverh10}{reset pin hole, }remote port
+  and headphone mini jack plug. 
   
   On the bottom panel of the \dap{} is the data cable port.}
   %
@@ -406,16 +423,17 @@ detail in the following paragraph.
   \ButtonHold{} switch is on, none of the other buttons have any effect.
   }
   %
-  \opt{clipplus,clipv1,clipv2}{
+  \opt{clipplus,clipv1,clipv2,clipzip}{
   Hold the \dap{} with the controls on the bottom and the screen on the top. The main
   controls are a four-way pad with a button in the centre; pressing this centre button
   functions as \ButtonSelect{}. Going clockwise from the top, the four-way pad contains
-  the \ButtonUp{}, \ButtonRight{}, \ButtonDown{}, and \ButtonLeft{} buttons. 
-  Immediately above and to the right of the four-way pad is the \ButtonHome{} button.
+  the \ButtonUp{}, \ButtonRight{}, \ButtonDown{}, and \ButtonLeft{} buttons.
+  Immediately above and to the \nopt{clipzip}{right}\opt{clipzip}{left} of the four-way
+  pad is the \ButtonHome{} button.
   }
   %
-  \opt{clipplus}{
-  The \ButtonPower{} button is on the top of the \dap{}, towards the right side.
+  \opt{clipplus,clipzip}{
+  The \ButtonPower{} button is on the top of the \dap{}\opt{clipplus}{, towards the right side.}
 
   At the bottom of the right side of the \dap{} is a slot for microSD cards.
   Above this slot on the right side is the headphone socket.
@@ -457,6 +475,49 @@ detail in the following paragraph.
 
   On the top on the \dap{} is the internal microphone on the left and the line-in socket on the 
   right, near the headphone socket.}
+  %
+  \opt{samsungyh820}{
+  Hold or lay the \dap{} so that the side with the controls and
+  LCD is facing towards you. Directly below the bottom edge of the screen are three buttons:
+  \ButtonRew{} on the left, \ButtonPlay{} in the middle and \ButtonFF{} on the right. Below them
+  is a four-way pad which contains the \ButtonDown{}, \ButtonUp{}, \ButtonLeft{} and 
+  \ButtonRight{} controls.
+
+  At the top of the right hand side of the \dap{} is the \ButtonRec{} button.
+
+  On the top panel of the \dap{}, from left to right, you can find the following: headphone 
+  socket, line-in socket, internal microphone, and the \ButtonHold{} switch. Note that when the 
+  \ButtonHold{} switch is moved towards the center of the \dap{}, hold is turned on and all the 
+  other controls are disabled. Be sure \ButtonHold{} is off before trying to use your player. 
+
+  At the top of the back side of the player, just under the \ButtonHold{} button is the reset 
+  hole, if you need to perform a hardware reset. 
+
+  The USB/dock connector that is used to connect your \dap{} to your computer is on 
+  the bottom panel of the \dap{}.
+  }
+  %
+  \opt{samsungyh920,samsungyh925}{
+  Hold or lay the \dap{} so that the side with the controls and
+  LCD is facing towards you. Below the LCD is a four-way pad with the \ButtonDown{}, 
+  \ButtonUp{}, \ButtonLeft{} and \ButtonRight{} buttons.
+
+  There are three buttons at the top of the right hand side of the \dap{}: \ButtonFF{} on the top, 
+  \ButtonPlay{} in the middle and \ButtonRew{} underneath. Below these buttons is the \ButtonRec{}
+  switch. Rockbox doesn't take note of the actual \emph{position} of the switch, but reacts to a 
+  \emph{switching movement} like pressing a regular button.
+
+  On the top panel of the \dap{}, from left to right, you can find the following: headphone/remote 
+  socket, line-in socket, internal microphone, and the \ButtonHold{} switch. Note that when the 
+  \ButtonHold{} switch is moved towards the center of the \dap{}, hold is turned on and all the 
+  other controls are disabled. Be sure \ButtonHold{} is off before trying to use your player. 
+
+  At the top of the back side of the player, just under the \ButtonHold{} button is the reset hole,
+  if you need to perform a hardware reset. 
+
+  The USB/dock connector that is used to connect your \dap{} to your computer is on 
+  the bottom panel of the \dap{}.
+  }
   %
   \opt{player}{
   The main controls of this player are a four-way button on the right below
@@ -519,15 +580,18 @@ detail in the following paragraph.
 To turn on and off your Rockbox enabled \dap{} use the following keys:
     \begin{btnmap}
       \opt{IRIVER_H100_PAD,IRIVER_H300_PAD}{\ButtonOn}%
-      \opt{MPIO_HD200_PAD}{Long \ButtonPlay}%
+      \opt{MPIO_HD200_PAD,MPIO_HD300_PAD,SAMSUNG_YH92X_PAD,SAMSUNG_YH820_PAD}%
+          {Long \ButtonPlay}%
       \opt{IPOD_4G_PAD}{\ButtonMenu{} / \ButtonSelect}%
       \opt{IPOD_3G_PAD}{\ButtonMenu{} / \ButtonPlay}%
       \opt{ONDIO_PAD}{\ButtonOff}\opt{RECORDER_PAD,PLAYER_PAD}%
           {Long \ButtonOn}%
       \opt{IAUDIO_X5_PAD,IRIVER_H10_PAD,SANSA_E200_PAD,SANSA_C200_PAD,ONDA_VX777_PAD%
           ,GIGABEAT_PAD,MROBE100_PAD,GIGABEAT_S_PAD,sansaAMS,PBELL_VIBE500_PAD%
+          ,SANSA_FUZEPLUS_PAD%
           }{\ButtonPower}%
       \opt{COWON_D2_PAD} {\ButtonPower{}, then \ButtonHold}%
+      \opt{ONDA_VX777_PAD} {\ButtonPower{}}%
           &
       \opt{HAVEREMOTEKEYMAP}{
           \opt{IRIVER_RC_H100_PAD}{\ButtonRCOn}%
@@ -537,14 +601,16 @@ To turn on and off your Rockbox enabled \dap{} use the following keys:
           \\
 
       \opt{IRIVER_H100_PAD,IRIVER_H300_PAD}{Long \ButtonOff}%
-      \opt{MPIO_HD200_PAD}{Long \ButtonPlay}%
+      \opt{MPIO_HD200_PAD,MPIO_HD300_PAD,SAMSUNG_YH92X_PAD,SAMSUNG_YH820_PAD}%
+          {Long \ButtonPlay}%
       \opt{IPOD_4G_PAD,IPOD_3G_PAD}{Long \ButtonPlay}%
       \opt{ONDIO_PAD,recorderv2fm}{Long \ButtonOff}%
       \opt{recorder}{Double tap \ButtonOff\ when playback is stopped}%
       \opt{PLAYER_PAD}{From the Main Menu, select \textbf{Shutdown}}%
       \opt{IAUDIO_X5_PAD,IRIVER_H10_PAD,SANSA_E200_PAD,SANSA_C200_PAD%
           ,GIGABEAT_PAD,MROBE100_PAD,GIGABEAT_S_PAD,sansaAMS,COWON_D2_PAD%
-          ,PBELL_VIBE500_PAD,ONDA_VX777_PAD}{Long \ButtonPower}%
+          ,PBELL_VIBE500_PAD,ONDA_VX777_PAD,SANSA_FUZEPLUS_PAD%
+          }{Long \ButtonPower}%
           &
       \opt{HAVEREMOTEKEYMAP}{ 
           \opt{IRIVER_RC_H100_PAD}{Long \ButtonRCStop}%
@@ -574,7 +640,8 @@ To turn on and off your Rockbox enabled \dap{} use the following keys:
   {\ButtonPower} until the \dap{} shuts off or reboots.
 }%
 \opt{IRIVER_H100_PAD,IRIVER_H300_PAD,IAUDIO_M3_PAD,IRIVER_H10_PAD,MROBE100_PAD
-,PBELL_VIBE500_PAD,MPIO_HD200_PAD}{%
+    ,PBELL_VIBE500_PAD,MPIO_HD200_PAD,MPIO_HD300_PAD,SAMSUNG_YH92X_PAD%
+    ,SAMSUNG_YH820_PAD}{%
   In the unlikely event of a software failure, a hardware reset can be
   performed by inserting a paperclip gently into the Reset hole.
 }%
@@ -615,14 +682,27 @@ To turn on and off your Rockbox enabled \dap{} use the following keys:
     simultaneously until the player hard resets.
     }
 
-  \opt{h100,h300}
+  \opt{iriverh100,iriverh300}
     {
     Rockbox has a dual-boot feature. To boot into the original firmware,
     when the \dap{} is turned off, press and hold the \ButtonRec{} button,
     and then press the \ButtonOn{} button.
     }
+  \opt{fuzeplus}
+    {
+    Rockbox has a dual-boot feature. To boot into the original firmware,
+    when the \dap{} is turned off, press and hold the \ButtonVolDown{} button,
+    and then press and hold the \ButtonPower{} button while keeping the
+    \ButtonVolDown{} button pressed. After 5 to 10 seconds the original
+    firmware should boot.
 
-  \opt{mpiohd200}
+    It is also possible to connect your \dap{} to your computer using the
+    original firmware. To do so you may press and hold the \ButtonVolDown{}
+    button and connect your device to the computer while keeping the
+    \ButtonVolDown{} button pressed. After 5 to 10 seconds the original
+    firmware should boot into USB mode.
+    }
+  \opt{mpiohd200,mpiohd300}
     {
     Rockbox has a dual-boot feature. To boot into the original firmware,
     when the \dap{} is turned off, press and hold the \ButtonRec{} button,
@@ -631,15 +711,16 @@ To turn on and off your Rockbox enabled \dap{} use the following keys:
     and Shutdown. Select the option you need with \ButtonRew{} and \ButtonFF{}
     and confirm with long \ButtonPlay{}.
     }
-  \opt{h10,h10_5gb}
+  \opt{iriverh10,iriverh10_5gb}
     {
     Rockbox has a dual-boot feature. It loads the original firmware from
     the file \fname{/System/OF.mi4}. To boot into the original firmware,
     press and hold the \ButtonLeft{} button while turning on the player.
     \note{The iriver firmware does not shut down properly when you turn it off,
     it only goes to sleep. To get back into Rockbox when exiting from the
-    iriver firmware, you will need to reset the player by \opt{h10}{inserting a
-    pin in the reset hole}\opt{h10_5gb}{removing and reinserting the battery}.}
+    iriver firmware, you will need to reset the player by \opt{iriverh10}{%
+    inserting a pin in the reset hole}\opt{iriverh10_5gb}{removing and
+    reinserting the battery}.}
     }
     
   \opt{sansa,sansaAMS}
@@ -650,11 +731,10 @@ To turn on and off your Rockbox enabled \dap{} use the following keys:
 
   \opt{clipv2,fuzev2,clipplus}
     {
-    The player will always boot into the original firmware if it is powered
-    by a USB connection, and additionally will do so if USB is inserted while
-    rockbox is running without holding \ActionStdUsbCharge{}. This feature may
-    be removed in the future when Rockbox is able to handle USB transfers 
-    natively.
+        \note{Rockbox does not boot into the original firmware when powered by
+        a USB connection. Older versions of Rockbox do not provide USB support.
+        If you have such a version installed you need to manually boot into the
+        original firmware for data transfer via USB.}
     }
 
   \opt{mrobe100}
@@ -688,6 +768,14 @@ To turn on and off your Rockbox enabled \dap{} use the following keys:
     button and keep it pressed until the original firmware starts.
     }
 
+  \opt{samsungyh}
+    {
+    Rockbox has a dual-boot feature. It loads the original firmware from
+    the file \fname{/System/OF.mi4}. To boot into the original firmware, press and hold 
+    for awhile the \ButtonPlay{} button and then immediately after the Samsung logo appears, 
+    press the \ButtonLeft{} button and keep it pressed until the original firmware starts.
+    }
+
   \opt{ondavx777}
     {
     Rockbox has a dual-boot feature where it is possible to load the original firmware from
@@ -708,8 +796,9 @@ To turn on and off your Rockbox enabled \dap{} use the following keys:
 With the \dap{} connected to the computer as an MSC/UMS device (like a
 USB Drive), music files can be put on the player via any standard file
 transfer method that you would use to copy files between drives (e.g. Drag-and-Drop).
-Files may be placed wherever you like on the \dap{}, but it is strongly suggested
-not to place them in the \fname{/.rockbox} folder.
+Files may be placed wherever you like on the \dap{}, but it is strongly
+suggested \emph{NOT} to put them in the \fname{/.rockbox} folder and instead 
+put them in any other folder, e.g. \fname{/}, \fname{/music} or \fname{/audio}.
 The default directory structure that is assumed by some parts of Rockbox
 \opt{albumart}{%
     (album art searching, and missing-tag fallback in some WPSes) uses the
@@ -807,11 +896,15 @@ properly.}
 \nopt{ondio}{
   \opt{usb_power}{
     \section{USB Charging}
-
-    To charge your \dap{} over USB, hold \ActionStdUsbCharge{} while plugging it
+    To charge your \dap{} over USB, hold any button while plugging it
     in. This will prevent it from connecting to your computer and let you
     continue to use it normally. Your \dap{} must already be in Rockbox for this
     to function.
+    \nopt{fuzeplus}{
+    \note{Be aware that this button may still perform its normal function, so
+    it is recommended to use a button without harmful side effects, such as
+    \ActionStdUsbCharge{}.}
+    }
   }
 }
 

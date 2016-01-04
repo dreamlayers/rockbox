@@ -26,6 +26,7 @@
 #include <android/log.h>
 #include <stdarg.h>
 #include <stdio.h>
+#include <string.h>
 
 #define LOG_TAG "Rockbox"
 
@@ -35,17 +36,17 @@ void debugf(const char *fmt, ...)
 {
     va_list ap;
     va_start(ap, fmt);
-	__android_log_vprint(ANDROID_LOG_DEBUG, LOG_TAG, fmt, ap);
+    __android_log_vprint(ANDROID_LOG_DEBUG, LOG_TAG, fmt, ap);
     va_end(ap);
 }
 
 void ldebugf(const char* file, int line, const char *fmt, ...)
 {
     va_list ap;
-    char buf[1024];
+    char buf[strlen(fmt) + 8];
     snprintf(buf, sizeof(buf), "%s:%d %s", file, line, fmt);
     va_start(ap, fmt);
-    __android_log_vprint(ANDROID_LOG_DEBUG, LOG_TAG " L", buf, ap);
+    __android_log_vprint(ANDROID_LOG_DEBUG, LOG_TAG, buf, ap);
     va_end(ap);
 }
 

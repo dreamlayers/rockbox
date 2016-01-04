@@ -27,11 +27,21 @@
 /* symbolic names for multiple choice configurations: */
 
 /* CONFIG_STORAGE (note these are combineable bit-flags) */
-#define STORAGE_ATA     0x01
-#define STORAGE_MMC     0x02
-#define STORAGE_SD      0x04
-#define STORAGE_NAND    0x08
-#define STORAGE_RAMDISK 0x10
+#define STORAGE_ATA_NUM     0
+#define STORAGE_MMC_NUM     1
+#define STORAGE_SD_NUM      2
+#define STORAGE_NAND_NUM    3
+#define STORAGE_RAMDISK_NUM 4
+#define STORAGE_HOSTFS_NUM  5
+#define STORAGE_NUM_TYPES   6
+
+#define STORAGE_ATA         (1 << STORAGE_ATA_NUM)
+#define STORAGE_MMC         (1 << STORAGE_MMC_NUM)
+#define STORAGE_SD          (1 << STORAGE_SD_NUM)
+#define STORAGE_NAND        (1 << STORAGE_NAND_NUM)
+#define STORAGE_RAMDISK     (1 << STORAGE_RAMDISK_NUM)
+ /* meant for APPLICATION targets (implicit for SIMULATOR) */
+#define STORAGE_HOSTFS      (1 << STORAGE_HOSTFS_NUM)
 
 /* CONFIG_TUNER (note these are combineable bit-flags) */
 #define S1A0903X01 0x01 /* Samsung */
@@ -42,6 +52,7 @@
 #define LV240000   0x20 /* Sanyo */
 #define IPOD_REMOTE_TUNER   0x40 /* Apple */
 #define RDA5802    0x80 /* RDA Microelectronics */
+#define STFM1000   0x100 /* Sigmatel */
 
 /* CONFIG_CODEC */
 #define MAS3587F 3587
@@ -74,6 +85,8 @@
 #define AS3525       3525
 #define AT91SAM9260  9260
 #define AS3525v2    35252
+#define IMX233        233
+#define RK27XX       2700
 
 /* platforms
  * bit fields to allow PLATFORM_HOSTED to be OR'ed e.g. with a
@@ -83,6 +96,10 @@
 #define PLATFORM_HOSTED  (1<<1)
 #define PLATFORM_ANDROID (1<<2)
 #define PLATFORM_SDL     (1<<3)
+#define PLATFORM_MAEMO4  (1<<4)
+#define PLATFORM_MAEMO5  (1<<5)
+#define PLATFORM_MAEMO   (PLATFORM_MAEMO4|PLATFORM_MAEMO5)
+#define PLATFORM_PANDORA (1<<6)
 
 /* CONFIG_KEYPAD */
 #define PLAYER_PAD          1
@@ -122,7 +139,7 @@
 #define SANSA_CLIP_PAD     35
 #define SANSA_FUZE_PAD     36
 #define LYRE_PROTO1_PAD    37
-#define SAMSUNG_YH_PAD     38
+#define SAMSUNG_YH820_PAD  38
 #define ONDAVX777_PAD      39
 #define SAMSUNG_YPS3_PAD   40
 #define MINI2440_PAD       41
@@ -132,6 +149,22 @@
 #define ANDROID_PAD        45
 #define SDL_PAD            46
 #define MPIO_HD300_PAD     47
+#define SANSA_FUZEPLUS_PAD 48
+#define RK27XX_GENERIC_PAD 49
+#define HM60X_PAD          50
+#define HM801_PAD          51
+#define SANSA_CONNECT_PAD  52
+#define SAMSUNG_YPR0_PAD   53
+#define CREATIVE_ZENXFI2_PAD 54
+#define CREATIVE_ZENXFI3_PAD 55
+#define MA_PAD            56
+#define SONY_NWZ_PAD       57
+#define CREATIVE_ZEN_PAD   58
+#define SAMSUNG_YPZ5_PAD   59
+#define IHIFI_PAD          60
+#define SAMSUNG_YPR1_PAD  61
+#define SAMSUNG_YH920_PAD  62
+#define DX50_PAD           63
 
 /* CONFIG_REMOTE_KEYPAD */
 #define H100_REMOTE   1
@@ -172,6 +205,15 @@
                             * charging or specific programming is required to
                             * use the charging hardware. */
 
+/* CONFIG_BATTERY_MEASURE bits */
+#define VOLTAGE_MEASURE     1 /* Target can report battery voltage
+                               * Usually native ports */
+#define PERCENTAGE_MEASURE  2 /* Target can report remaining capacity in %
+                               * Usually application/hosted ports */
+#define TIME_MEASURE        4 /* Target can report remaining time estimation
+                                 Usually application ports, and only
+                                 if the estimation is better that ours
+                                 (which it probably is) */
 /* CONFIG_LCD */
 #define LCD_SSD1815   1 /* as used by Archos Recorders and Ondios */
 #define LCD_SSD1801   2 /* as used by Archos Player/Studio */
@@ -215,6 +257,26 @@
 #define LCD_HDD6330   38 /* as used by the Philips HDD6330 */
 #define LCD_VIBE500   39 /* as used by the Packard Bell Vibe 500 */
 #define LCD_IPOD6G    40 /* as used by the iPod Nano 2nd Generation */
+#define LCD_FUZEPLUS  41
+#define LCD_SPFD5420A 42 /* rk27xx */
+#define LCD_CLIPZIP   43 /* as used by the Sandisk Sansa Clip Zip */
+#define LCD_HX8340B   44 /* as used by the HiFiMAN HM-601/HM-602/HM-801 */
+#define LCD_CONNECT   45 /* as used by the Sandisk Sansa Connect */
+#define LCD_GIGABEATS 46
+#define LCD_YPR0      47
+#define LCD_CREATIVEZXFI2 48 /* as used by the Creative Zen X-Fi2 */
+#define LCD_CREATIVEZXFI3 49 /* as used by the Creative Zen X-Fi3 */
+#define LCD_ILI9342   50 /* as used by HiFi E.T MA9/MA8 */
+#define LCD_NWZE370   51 /* as used by Sony NWZ-E370 series */
+#define LCD_NWZE360   52 /* as used by Sony NWZ-E360 series */
+#define LCD_CREATIVEZEN  55 /* as used by the Creative ZEN (X-Fi) (LMS250GF03-001(S6D0139)) */
+#define LCD_CREATIVEZENMOZAIC 56 /* as used by the Creative ZEN Mozaic (FGD0801) */
+#define LCD_ILI9342C   57 /* another type of lcd used by HiFi E.T MA9/MA8 */
+#define LCD_CREATIVEZENV  58 /* as used by the Creative Zen V (Plus) */
+#define LCD_SAMSUNGYPZ5   59 /* as used by Samsung YP-Z5 */
+#define LCD_IHIFI         60 /* as used by IHIFI 760/960 */
+#define LCD_CREATIVEZENXFISTYLE 61 /* as used by Creative Zen X-Fi Style */
+#define LCD_SAMSUNGYPR1   62 /* as used by Samsung YP-R1 */
 
 /* LCD_PIXELFORMAT */
 #define HORIZONTAL_PACKING 1
@@ -223,6 +285,7 @@
 #define VERTICAL_INTERLEAVED 4
 #define RGB565 565
 #define RGB565SWAPPED 3553
+#define RGB888 888
 
 /* LCD_STRIDEFORMAT */
 #define VERTICAL_STRIDE     1
@@ -252,6 +315,8 @@ Lyre prototype 1 */
 #define I2C_JZ47XX  14 /* Ingenic Jz47XX style */
 #define I2C_AS3525  15
 #define I2C_S5L8702 16 /* Same as S5L8700, but with two channels */
+#define I2C_IMX233  17
+#define I2C_RK27XX  18
 
 /* CONFIG_LED */
 #define LED_REAL     1 /* SW controlled LED (Archos recorders, player) */
@@ -263,6 +328,8 @@ Lyre prototype 1 */
 #define NAND_TCC     2
 #define NAND_SAMSUNG 3
 #define NAND_CC      4 /* ChinaChip */
+#define NAND_RK27XX  5
+#define NAND_IMX233  6
 
 /* CONFIG_RTC */
 #define RTC_M41ST84W 1 /* Archos Recorder */
@@ -283,22 +350,36 @@ Lyre prototype 1 */
 #define RTC_JZ47XX   16 /* Ingenic Jz47XX */
 #define RTC_NANO2G   17 /* This seems to be a PCF5063x */
 #define RTC_D2       18 /* Either PCF50606 or PCF50635 */
-#define RTC_S35380A  19 
+#define RTC_S35380A  19
+#define RTC_IMX233   20
+#define RTC_STM41T62 21 /* ST M41T62 */
 
 /* USB On-the-go */
 #define USBOTG_M66591   6591 /* M:Robe 500 */
 #define USBOTG_ISP1362  1362 /* iriver H300 */
 #define USBOTG_ISP1583  1583 /* Creative Zen Vision:M */
 #define USBOTG_M5636    5636 /* iAudio X5 */
-#define USBOTG_ARC      5020 /* PortalPlayer 502x */
+#define USBOTG_ARC      5020 /* PortalPlayer 502x and IMX233 */
 #define USBOTG_JZ4740   4740 /* Ingenic Jz4740/Jz4732 */
 #define USBOTG_AS3525   3525 /* AMS AS3525 */
-#define USBOTG_AS3525v2 3535 /* AMS AS3525v2 FIXME : same as S3C6400X */
 #define USBOTG_S3C6400X 6400 /* Samsung S3C6400X, also used in the S5L8701/S5L8702/S5L8720 */
+#define USBOTG_RK27XX   2700 /* Rockchip rk27xx */
+#define USBOTG_TNETV105 105  /* TI TNETV105 */
 
 /* Multiple cores */
 #define CPU 0
 #define COP 1
+
+/* imx233 specific: IMX233_PACKAGE */
+#define IMX233_BGA100   0
+#define IMX233_BGA169   1
+#define IMX233_TQFP100  2
+#define IMX233_TQFP128  3
+#define IMX233_LQFP100  4
+
+/* IMX233_PARTITIONS */
+#define IMX233_FREESCALE    (1 << 0) /* Freescale I.MX233 nonstandard two-level MBR */
+#define IMX233_CREATIVE     (1 << 1) /* Creative MBLK windowing */
 
 /* now go and pick yours */
 #if defined(ARCHOS_PLAYER)
@@ -381,6 +462,10 @@ Lyre prototype 1 */
 #include "config/zenvisionm60gb.h"
 #elif defined(CREATIVE_ZV)
 #include "config/zenvision.h"
+#elif defined(CREATIVE_ZENXFI2)
+#include "config/creativezenxfi2.h"
+#elif defined(CREATIVE_ZENXFI3)
+#include "config/creativezenxfi3.h"
 #elif defined(PHILIPS_SA9200)
 #include "config/gogearsa9200.h"
 #elif defined(PHILIPS_HDD1630)
@@ -415,6 +500,10 @@ Lyre prototype 1 */
 #include "config/sansafuze.h"
 #elif defined(SANSA_FUZEV2)
 #include "config/sansafuzev2.h"
+#elif defined(SANSA_FUZEPLUS)
+#include "config/sansafuzeplus.h"
+#elif defined(SANSA_CLIPZIP)
+#include "config/sansaclipzip.h"
 #elif defined(SANSA_C200V2)
 #include "config/sansac200v2.h"
 #elif defined(SANSA_VIEW)
@@ -437,13 +526,74 @@ Lyre prototype 1 */
 #include "config/mpiohd200.h"
 #elif defined(MPIO_HD300)
 #include "config/mpiohd300.h"
-
-#elif defined(APPLICATION)
-#include "config/application.h"
-#define CONFIG_CPU 0
-#define CONFIG_STORAGE 0
+#elif defined(RK27_GENERIC)
+#include "config/rk27generic.h"
+#elif defined(HM60X)
+#include "config/hifimanhm60x.h"
+#elif defined(HM801)
+#include "config/hifimanhm801.h"
+#elif defined(SANSA_CONNECT)
+#include "config/sansaconnect.h"
+#elif defined(SDLAPP)
+#include "config/sdlapp.h"
+#elif defined(ANDROID)
+#include "config/android.h"
+#elif defined(NOKIAN8XX)
+#include "config/nokian8xx.h"
+#elif defined(NOKIAN900)
+#include "config/nokian900.h"
+#elif defined(PANDORA)
+#include "config/pandora.h"
+#elif defined(SAMSUNG_YPR0)
+#include "config/samsungypr0.h"
+#elif defined(CREATIVE_ZENXFI)
+#include "config/creativezenxfi.h"
+#elif defined(CREATIVE_ZENMOZAIC)
+#include "config/creativezenmozaic.h"
+#elif defined(CREATIVE_ZEN)
+#include "config/creativezen.h"
+#elif defined(CREATIVE_ZENV)
+#include "config/creativezenv.h"
+#elif defined(MA9)
+#include "config/hifietma9.h"
+#elif defined(MA9C)
+#include "config/hifietma9c.h"
+#elif defined(MA8)
+#include "config/hifietma8.h"
+#elif defined(MA8C)
+#include "config/hifietma8c.h"
+#elif defined(SONY_NWZE370)
+#include "config/sonynwze370.h"
+#elif defined(SONY_NWZE360)
+#include "config/sonynwze360.h"
+#elif defined(SAMSUNG_YPZ5)
+#include "config/samsungypz5.h"
+#elif defined(IHIFI760)
+#include "config/ihifi760.h"
+#elif defined(IHIFI960)
+#include "config/ihifi960.h"
+#elif defined(CREATIVE_ZENXFISTYLE)
+#include "config/creativezenxfistyle.h"
+#elif defined(SAMSUNG_YPR1)
+#include "config/samsungypr1.h"
+#elif defined(DX50)
+#include "config/ibassodx50.h"
+#elif defined(DX90)
+#include "config/ibassodx90.h"
 #else
 /* no known platform */
+#endif
+
+#ifdef __PCTOOL__
+#undef CONFIG_CPU
+#define CONFIG_CPU 0
+#undef HAVE_MULTIVOLUME
+#undef HAVE_MULTIDRIVE
+#undef CONFIG_STORAGE
+#endif
+
+#ifdef APPLICATION
+#define CONFIG_CPU 0
 #endif
 
 /* keep this include after the target configs */
@@ -460,13 +610,15 @@ Lyre prototype 1 */
 
 /* setup CPU-specific defines */
 
+#ifndef __PCTOOL__
+
 /* define for all cpus from SH family */
-#if (CONFIG_CPU == SH7034)
+#if (ARCH == ARCH_SH) && (CONFIG_CPU == SH7034)
 #define CPU_SH
 #endif
 
 /* define for all cpus from coldfire family */
-#if (CONFIG_CPU == MCF5249) || (CONFIG_CPU == MCF5250)
+#if (ARCH == ARCH_M68K) && ((CONFIG_CPU == MCF5249) || (CONFIG_CPU == MCF5250))
 #define CPU_COLDFIRE
 #endif
 
@@ -500,31 +652,26 @@ Lyre prototype 1 */
 #endif
 
 /* define for all cpus from ARM family */
-#if (CONFIG_CPU == IMX31L)
+#if ARCH == ARCH_ARM
 #define CPU_ARM
-#define ARM_ARCH 6 /* ARMv6 */
-
-#elif defined(CPU_TCC77X) || defined(CPU_TCC780X) || (CONFIG_CPU == DM320) \
-  || (CONFIG_CPU == AT91SAM9260) || (CONFIG_CPU == AS3525v2) \
-  || (CONFIG_CPU == S5L8702) || (CONFIG_PLATFORM & PLATFORM_ANDROID)
-#define CPU_ARM
-#define ARM_ARCH 5 /* ARMv5 */
-
-#elif defined(CPU_PP) || (CONFIG_CPU == PNX0101) || (CONFIG_CPU == S3C2440) \
-  || (CONFIG_CPU == DSC25) || defined(CPU_S5L870X) || (CONFIG_CPU == AS3525)
-#define CPU_ARM
-#define ARM_ARCH 4 /* ARMv4 */
+#define ARM_ARCH ARCH_VERSION /* ARMv{4,5,6,7} */
 #endif
 
-#if (CONFIG_CPU == JZ4732)
-#define CPU_MIPS 32
+#if ARCH == ARCH_MIPS
+#define CPU_MIPS ARCH_VERSION /* 32, 64 */
 #endif
+
+#endif /*__PCTOOL__*/
 
 /* now set any CONFIG_ defines correctly if they are not used,
    No need to do this on CONFIG_'s which are compulsory (e.g CONFIG_CODEC ) */
 
 #if !defined(CONFIG_BACKLIGHT_FADING)
 #define CONFIG_BACKLIGHT_FADING BACKLIGHT_NO_FADING
+#endif
+
+#ifndef CONFIG_I2C
+#define CONFIG_I2C I2C_NONE
 #endif
 
 #ifndef CONFIG_TUNER
@@ -543,8 +690,25 @@ Lyre prototype 1 */
 #define CONFIG_CHARGING 0
 #endif
 
+#ifndef CONFIG_BATTERY_MEASURE
+#define CONFIG_BATTERY_MEASURE 0
+#define NO_LOW_BATTERY_SHUTDOWN
+#endif
+
 #ifndef CONFIG_RTC
 #define CONFIG_RTC 0
+#endif
+
+#ifndef BATTERY_TYPES_COUNT
+#define BATTERY_TYPES_COUNT 0
+#endif
+
+#ifndef BATTERY_CAPACITY_DEFAULT
+#define BATTERY_CAPACITY_DEFAULT 0
+#endif
+
+#ifndef BATTERY_CAPACITY_INC
+#define BATTERY_CAPACITY_INC 0
 #endif
 
 #ifndef CONFIG_ORIENTATION
@@ -601,6 +765,10 @@ Lyre prototype 1 */
 #endif
 #ifndef CONFIG_REMOTE_DEFAULT_ICON_WIDTH
 #define CONFIG_REMOTE_DEFAULT_ICON_WIDTH 6
+#endif
+
+#if LCD_DEPTH > 1 || defined(HAVE_REMOTE_LCD) && LCD_REMOTE_DEPTH > 1
+#define HAVE_BACKDROP_IMAGE
 #endif
 
 #if (CONFIG_TUNER & (CONFIG_TUNER - 1)) != 0
@@ -671,13 +839,20 @@ Lyre prototype 1 */
 #undef HAVE_ADJUSTABLE_CPU_FREQ
 #endif
 
+#if defined(__PCTOOL__) && defined(HAVE_ADJUSTABLE_CPU_FREQ)
+/* PCTOOLs don't use CPU frequency adjustment */
+#undef HAVE_ADJUSTABLE_CPU_FREQ
+#endif
+
 /* Enable the directory cache and tagcache in RAM if we have
  * plenty of RAM. Both features can be enabled independently. */
 #if (MEMORYSIZE >= 8) && !defined(BOOTLOADER) && !defined(__PCTOOL__) \
     && !defined(APPLICATION)
+#ifndef SIMULATOR
 #define HAVE_DIRCACHE
+#endif
 #ifdef HAVE_TAGCACHE
-#define HAVE_TC_RAMCACHE
+//#define HAVE_TC_RAMCACHE
 #endif
 #endif
 
@@ -693,11 +868,15 @@ Lyre prototype 1 */
 #if (CONFIG_CODEC == SWCODEC)
 #ifdef BOOTLOADER
 
-#if CONFIG_CPU == IMX31L
+#ifdef HAVE_BOOTLOADER_USB_MODE
 /* Priority in bootloader is wanted */
 #define HAVE_PRIORITY_SCHEDULING
 #define USB_STATUS_BY_EVENT
-#define USB_DETECT_BY_DRV
+#define USB_DETECT_BY_REQUEST
+#if defined(HAVE_USBSTACK) && CONFIG_USBOTG == USBOTG_ARC
+#define INCLUDE_TIMEOUT_API
+#define USB_DRIVER_CLOSE
+#endif
 #endif
 
 #else /* !BOOTLOADER */
@@ -706,7 +885,9 @@ Lyre prototype 1 */
 #define HAVE_WAKEUP_EXT_CB
 
 
-#if (CONFIG_PLATFORM & PLATFORM_ANDROID)
+#if defined(ASSEMBLER_THREADS) \
+    || defined(HAVE_WIN32_FIBER_THREADS) \
+    || defined(HAVE_SIGALTSTACK_THREADS)
 #define HAVE_PRIORITY_SCHEDULING
 #endif
 
@@ -716,27 +897,31 @@ Lyre prototype 1 */
 #endif /* PLATFORM_NATIVE */
 
 
-#define HAVE_SEMAPHORE_OBJECTS
-
-#if defined(HAVE_USBSTACK) && CONFIG_USBOTG == USBOTG_ARC
+#ifdef HAVE_USBSTACK
+#if CONFIG_USBOTG == USBOTG_ARC
 #define USB_STATUS_BY_EVENT
-#define USB_DETECT_BY_DRV
-#if CONFIG_CPU != IMX31L
+#define USB_DETECT_BY_REQUEST
 #define INCLUDE_TIMEOUT_API
-#endif
-#endif /* HAVE_USBSTACK && USBOTG_ARC */
-
-#if defined(HAVE_USBSTACK) && CONFIG_USBOTG == USBOTG_AS3525
-#define USB_DETECT_BY_DRV
-#endif /* HAVE_USBSTACK && USBOTG_AS3525 */
+#elif CONFIG_USBOTG == USBOTG_AS3525
+#define USB_STATUS_BY_EVENT
+#define USB_DETECT_BY_REQUEST
+#elif CONFIG_USBOTG == USBOTG_S3C6400X /* FIXME */ && CONFIG_CPU == AS3525v2
+#define USB_STATUS_BY_EVENT
+#define USB_DETECT_BY_REQUEST
+#elif CONFIG_USBOTG == USBOTG_RK27XX
+#define USB_STATUS_BY_EVENT
+#define USB_DETECT_BY_REQUEST
+#endif /* CONFIG_USB == */
+#endif /* HAVE_USBSTACK */
 
 #endif /* BOOTLOADER */
 
 #if defined(HAVE_USBSTACK) || (CONFIG_CPU == JZ4732) \
     || (CONFIG_CPU == AS3525) || (CONFIG_CPU == AS3525v2) \
     || defined(CPU_S5L870X) || (CONFIG_CPU == S3C2440) \
-    || defined(APPLICATION)
-#define HAVE_WAKEUP_OBJECTS
+    || defined(APPLICATION) || (CONFIG_CPU == PP5002) \
+    || (CONFIG_CPU == RK27XX) || (CONFIG_CPU == IMX233)
+#define HAVE_SEMAPHORE_OBJECTS
 #endif
 
 /*include support for crossfading - requires significant PCM buffer space*/
@@ -771,6 +956,17 @@ Lyre prototype 1 */
 .endm
 #endif
 
+#if defined(CPU_COLDFIRE) && defined(__ASSEMBLER__)
+/* Assembler doesn't support these as mnemonics but does tpf */
+.macro tpf.w
+.word 0x51fa
+.endm
+
+.macro tpf.l
+.word 0x51fb
+.endm
+#endif
+
 #ifndef CODEC_SIZE
 #define CODEC_SIZE 0
 #endif
@@ -793,6 +989,7 @@ Lyre prototype 1 */
     (CONFIG_CPU == AS3525v2 && !defined(PLUGIN) && !defined(CODEC) && !defined(BOOTLOADER)) || /* AS3525v2: core only */ \
     (CONFIG_CPU == PNX0101) || \
     (CONFIG_CPU == TCC7801) || \
+    (CONFIG_CPU == IMX233 && !defined(PLUGIN) && !defined(CODEC)) || /* IMX233: core only */ \
     defined(CPU_S5L870X)) || /* Samsung S5L8700: core, plugins, codecs */ \
     (CONFIG_CPU == JZ4732 && !defined(PLUGIN) && !defined(CODEC)) /* Jz4740: core only */
 #define ICODE_ATTR      __attribute__ ((section(".icode")))
@@ -801,28 +998,19 @@ Lyre prototype 1 */
 #define IBSS_ATTR       __attribute__ ((section(".ibss")))
 #define USE_IRAM
 #if CONFIG_CPU != SH7034 && (CONFIG_CPU != AS3525 || MEMORYSIZE > 2) \
-    && CONFIG_CPU != JZ4732 && CONFIG_CPU != AS3525v2
+    && CONFIG_CPU != JZ4732 && CONFIG_CPU != AS3525v2 && CONFIG_CPU != IMX233
 #define PLUGIN_USE_IRAM
-#endif
-#if defined(CPU_ARM) && !defined(__ARM_EABI__)
-/* GCC quirk workaround: arm-elf-gcc treats static functions as short_call
- * when not compiling with -ffunction-sections, even when the function has
- * a section attribute.
- * This is fixed with eabi since all calls are short ones by default */
-#define STATICIRAM
-#else
-#define STATICIRAM static
 #endif
 #else
 #define ICODE_ATTR
 #define ICONST_ATTR
 #define IDATA_ATTR
 #define IBSS_ATTR
-#define STATICIRAM static
 #endif
 
 #if (defined(CPU_PP) || (CONFIG_CPU == AS3525) || (CONFIG_CPU == AS3525v2) || \
-    (CONFIG_CPU == IMX31L)) \
+    (CONFIG_CPU == IMX31L) || (CONFIG_CPU == IMX233) || \
+    (CONFIG_CPU == RK27XX) || defined(CPU_COLDFIRE)) \
     && (CONFIG_PLATFORM & PLATFORM_NATIVE) && !defined(BOOTLOADER)
 /* Functions that have INIT_ATTR attached are NOT guaranteed to survive after
  * root_menu() has been called. Their code may be overwritten by other data or
@@ -840,6 +1028,16 @@ Lyre prototype 1 */
 #else
 #define INIT_ATTR
 #define INITDATA_ATTR
+#endif
+
+/* We need to call storage_init more than once only if USB storage mode is
+ * handled in hardware:
+ * Deinit storage -> let hardware handle USB mode -> storage_init() again
+ */
+#if defined(HAVE_USBSTACK) || defined(USB_NONE)
+#define STORAGE_INIT_ATTR INIT_ATTR
+#else
+#define STORAGE_INIT_ATTR
 #endif
 
 #if (CONFIG_PLATFORM & PLATFORM_HOSTED) && defined(__APPLE__)
@@ -887,7 +1085,7 @@ Lyre prototype 1 */
 
 #endif /* CPU_PP */
 
-#if CONFIG_CPU == IMX31L
+#if CONFIG_CPU == IMX31L || CONFIG_CPU == IMX233
 #define NOCACHEBSS_ATTR     __attribute__((section(".ncbss"),nocommon))
 #define NOCACHEDATA_ATTR    __attribute__((section(".ncdata"),nocommon))
 #endif
@@ -912,26 +1110,30 @@ Lyre prototype 1 */
 
 #ifdef HAVE_HEADPHONE_DETECTION
 /* Timeout objects required if headphone detection is enabled */
-#ifndef INCLUDE_TIMEOUT_API
 #define INCLUDE_TIMEOUT_API
-#endif
 #endif /* HAVE_HEADPHONE_DETECTION */
 
 #ifdef HAVE_TOUCHSCREEN
 /* Timeout objects required for kinetic list scrolling */
-#undef  INCLUDE_TIMEOUT_API
 #define INCLUDE_TIMEOUT_API
+/* Enable skin variable system, may not be the best place for this #define. */
+#define HAVE_SKIN_VARIABLES
 #endif /* HAVE_TOUCHSCREEN */
 
 #if defined(HAVE_USB_CHARGING_ENABLE) && defined(HAVE_USBSTACK)
 /* USB charging support in the USB stack requires timeout objects */
-#ifndef INCLUDE_TIMEOUT_API
 #define INCLUDE_TIMEOUT_API
-#endif
 #endif /* HAVE_USB_CHARGING_ENABLE && HAVE_USBSTACK */
 
+#if defined(HAVE_GUI_BOOST) && defined(HAVE_ADJUSTABLE_CPU_FREQ)
+/* Timeout objects required if GUI boost is enabled */
+#define INCLUDE_TIMEOUT_API
+#endif /* HAVE_GUI_BOOST && HAVE_ADJUSTABLE_CPU_FREQ */
+
+#ifndef SIMULATOR
 #if defined(HAVE_USBSTACK) || (CONFIG_STORAGE & STORAGE_NAND)
 #define STORAGE_GET_INFO
+#endif
 #endif
 
 #ifdef CPU_MIPS
@@ -962,25 +1164,16 @@ Lyre prototype 1 */
 #  define USB_HAS_ISOCHRONOUS
 #  define USB_HAS_BULK
 #  define USB_HAS_INTERRUPT
-#elif CONFIG_USBOTG == USBOTG_AS3525v2
-/* keep coherent with usb-drv-as3525v2.c */
-#  define USB_DRV_SLOT_ATTR   __attribute__ ((aligned(32))) USB_DEVBSS_ATTR
-#  define USB_DRV_SLOT_SIZE   /* sizeof(struct usb_transfer_descriptor) */8
-#  define HAVE_NEW_USB_API
-//#  define USB_HAS_ISOCHRONOUS
-#  define USB_HAS_BULK
-//#  define USB_HAS_INTERRUPT
 #endif
 
 /* define the class drivers to enable */
 #ifdef BOOTLOADER
 
 /* enable usb storage for targets that do bootloader usb */
-#if  (defined(TOSHIBA_GIGABEAT_S) || \
-     (defined(CREATIVE_ZVx) || \
-     defined(CPU_TCC77X) || defined(CPU_TCC780X))) || \
-     (CONFIG_USBOTG == USBOTG_JZ4740) || defined(IPOD_NANO2G) || \
-     CONFIG_USBOTG == USBOTG_AS3525
+#if defined(HAVE_BOOTLOADER_USB_MODE) || \
+     defined(CREATIVE_ZVx) || defined(CPU_TCC77X) || defined(CPU_TCC780X) || \
+     CONFIG_USBOTG == USBOTG_JZ4740 || CONFIG_USBOTG == USBOTG_AS3525 || \
+     CONFIG_USBOTG == USBOTG_S3C6400X
 #define USB_ENABLE_STORAGE
 #endif
 
@@ -989,9 +1182,7 @@ Lyre prototype 1 */
 #if (CONFIG_PLATFORM & PLATFORM_NATIVE)
 #ifdef USB_HAS_BULK
 //#define USB_ENABLE_SERIAL
-#ifdef USE_ROCKBOX_USB
 #define USB_ENABLE_STORAGE
-#endif /* USE_ROCKBOX_USB */
 #endif /* USB_HAS_BULK */
 
 #ifdef USB_HAS_INTERRUPT
@@ -1013,12 +1204,45 @@ Lyre prototype 1 */
 /* This attribute can be used to enable to detection of plugin file handles leaks.
  * When enabled, the plugin core will monitor open/close/creat and when the plugin exits
  * will display an error message if the plugin leaked some file handles */
-#if (CONFIG_PLATFORM & PLATFORM_NATIVE)
+#if (CONFIG_PLATFORM & PLATFORM_NATIVE) || defined (SIMULATOR)
 #define HAVE_PLUGIN_CHECK_OPEN_CLOSE
 #endif
 
-#if defined(HAVE_DIRCACHE) && (CONFIG_PLATFORM & PLATFORM_NATIVE)
-#define HAVE_IO_PRIORITY
+#if defined(CPU_COLDIRE) || CONFIG_CPU == IMX31L
+/* Can record and play simultaneously */
+#define HAVE_PCM_FULL_DUPLEX
 #endif
+
+#if (CONFIG_CODEC == SWCODEC) || (CONFIG_CODEC == MAS3587F) || \
+    (CONFIG_CODEC == MAS3539F)
+#define HAVE_PITCHCONTROL
+#endif
+
+/* enable logging messages to disk*/
+#if !defined(BOOTLOADER) && !defined(__PCTOOL__) && (CONFIG_CODEC == SWCODEC)
+#define ROCKBOX_HAS_LOGDISKF
+#endif
+
+#if defined(HAVE_SDL_AUDIO) \
+    && !(CONFIG_PLATFORM & PLATFORM_MAEMO5) \
+    && !defined(HAVE_SW_VOLUME_CONTROL) \
+    && CONFIG_CODEC == SWCODEC
+/* SW volume is needed for accurate control and no double buffering should be
+ * required. If target uses SW volume, then its definitions are used instead
+ * so things are as on target. */
+#define HAVE_SW_VOLUME_CONTROL
+#define PCM_SW_VOLUME_UNBUFFERED /* pcm driver itself is buffered */
+#ifdef SIMULATOR
+/* For sim, nice res for ~ -127dB..+36dB that so far covers all targets */
+#define PCM_SW_VOLUME_FRACBITS  (24)
+#else
+/* For app, use fractional-only setup for -79..+0, no large-integer math */
+#define PCM_SW_VOLUME_FRACBITS  (16)
+#endif /* SIMULATOR */
+#endif /* default SDL SW volume conditions */
+
+/* null audiohw setting macro for when codec header is included for reasons
+   other than audio support */
+#define AUDIOHW_SETTING(name, us, nd, st, minv, maxv, defv, expr...)
 
 #endif /* __CONFIG_H__ */

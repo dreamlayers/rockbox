@@ -253,7 +253,7 @@
     *: "PLAY = Yes"
     cowond2*: "MENU = Yes"
     iriverh100,iriverh120,iriverh300: "NAVI = Yes"
-    samsungyh*,ipod*,iaudiox5,iaudiom5,gigabeat*,sansae200*,sansac200*,iriverh10,iriverh10_5gb,mrobe100,sansaclip*,sansafuze*: "SELECT = Yes"
+    ipod*,iaudiox5,iaudiom5,gigabeat*,sansae200*,sansac200*,iriverh10,iriverh10_5gb,mrobe100,sansaclip*,sansafuze*,sansaconnect: "SELECT = Yes"
     archosplayer: "(PLAY/STOP)"
     vibe500: "OK = Yes"
   </source>
@@ -261,7 +261,7 @@
     *: "PLAY = Oyi"
     cowond2*: "MENU = Oyi"
     iriverh100,iriverh120,iriverh300: "NAVI = Oyi"
-    samsungyh*,ipod*,iaudiox5,iaudiom5,gigabeat*,sansae200*,sansac200*,iriverh10,iriverh10_5gb,mrobe100,sansaclip*,sansafuze*: "SELECT = Oyi"
+    ipod*,iaudiox5,iaudiom5,gigabeat*,sansae200*,sansac200*,iriverh10,iriverh10_5gb,mrobe100,sansaclip*,sansafuze*,sansaconnect: "SELECT = Oyi"
     mrobe500: "PLAY or POWER = Oyi"
     archosplayer: "(PLAY/STOP)"
     vibe500: "OK = Oyi"
@@ -2238,7 +2238,7 @@
     *: "Building database... %d found (OFF to return)"
     iriverh100,iriverh120,iriverh300: "Building database... %d found (STOP to return)"
     ipod*: "Building database... %d found (PREV to return)"
-    iaudiox5,iaudiom5,gigabeat*,mrobe100: "Building database... %d found (LEFT to return)"
+    iaudiox5,iaudiom5,gigabeat*,mrobe100,samsungyh*: "Building database... %d found (LEFT to return)"
     iriverh10,iriverh10_5gb,sansae200*,sansac200*,sansafuze*,vibe500: "Building database... %d found (PREV to return)"
     gogearsa9200: "Building database... %d found (REW to return)"
   </source>
@@ -2246,7 +2246,7 @@
     *: "Bastixhaedje del båze di dnêyes... %d di trovés (OFF po-z eraler en erî)"
     iriverh100,iriverh120,iriverh300: "Bastixhaedje del båze di dnêyes... %d di trovés (STOP po-z eraler en erî)"
     ipod*: "Bastixhaedje del båze di dnêyes... %d di trovés (PREV po-z eraler en erî)"
-    iaudiox5,iaudiom5,gigabeat*,mrobe100: "Bastixhaedje del båze di dnêyes... %d di trovés (LEFT po-z eraler en erî)"
+    iaudiox5,iaudiom5,gigabeat*,mrobe100,samsungyh*: "Bastixhaedje del båze di dnêyes... %d di trovés (LEFT po-z eraler en erî)"
     iriverh10,iriverh10_5gb,sansae200*,sansac200*,sansafuze*,vibe500: "Bastixhaedje del båze di dnêyes... %d di trovés (PREV po-z eraler en erî)"
     gogearsa9200: "Bastixhaedje del båze di dnêyes... %d di trovés (REW po-z eraler en erî)"
   </dest>
@@ -3951,8 +3951,8 @@
     rtc: "ON = Set"
     mrobe500: "HEART = Set"
     iriverh100,iriverh120,iriverh300: "NAVI = Set"
-    ipod*,iaudiox5,iaudiom5,iriverh10,iriverh10_5gb,sansae200*,sansac200*,gigabeat*,mrobe100,sansaclip*,sansafuze*: "SELECT = Set"
-    gogearsa9200: "PLAY = Set"
+    ipod*,iaudiox5,iaudiom5,iriverh10,iriverh10_5gb,sansae200*,sansac200*,gigabeat*,mrobe100,sansaclip*,sansafuze*,sansaconnect: "SELECT = Set"
+    gogearsa9200,samsungyh*: "PLAY = Set"
     vibe500: "OK = Set"
     mpiohd300: "ENTER = Set"
   </source>
@@ -3961,14 +3961,14 @@
     rtc: "ON = Eployî"
     mrobe500: "HEART = Eployî"
     iriverh100,iriverh120,iriverh300: "NAVI = Eployî"
-    ipod*,iaudiox5,iaudiom5,iriverh10,iriverh10_5gb,sansae200*,sansac200*,gigabeat*,mrobe100,sansaclip*,sansafuze*: "SELECT = Eployî"
-    gogearsa9200: "PLAY = Eployî"
+    ipod*,iaudiox5,iaudiom5,iriverh10,iriverh10_5gb,sansae200*,sansac200*,gigabeat*,mrobe100,sansaclip*,sansafuze*,sansaconnect: "SELECT = Eployî"
+    gogearsa9200,samsungyh*: "PLAY = Eployî"
     vibe500: "OK = Eployî"
     mpiohd300: "ENTER = Eployî"
   </dest>
   <voice>
     *: none
-    rtc,iriverh100,iriverh120,iriverh300,iriverh10,iriverh10_5gb,iaudiox5,iaudiom5,ipod*,sansae200*,sansac200*,gigabeat*,mrobe100,gogearsa9200: ""
+    rtc,iriverh100,iriverh120,iriverh300,iriverh10,iriverh10_5gb,iaudiox5,iaudiom5,ipod*,sansae200*,sansac200*,gigabeat*,mrobe100,gogearsa9200,samsungyh*: ""
   </voice>
 </phrase>
 <phrase>
@@ -3984,10 +3984,12 @@
     iaudiox5,iaudiom5: "RECORD = Revert"
     iriverh10,iriverh10_5gb,sansae200*,sansafuze*: "PREV = Revert"
     gigabeatfx: "POWER = Revert"
+    sansafuzeplus: "BACK = Revert"
     mrobe100: "DISPLAY = Revert"
     gigabeats: "BACK = Revert"
     gogearsa9200: "LEFT = Revert"
     vibe500: "CANCEL = Revert"
+    samsungyh*: "REW = Revert"
   </source>
   <dest>
     *: none
@@ -3998,10 +4000,12 @@
     iaudiox5,iaudiom5: "RECORD = Rinoncî"
     iriverh10,iriverh10_5gb,sansae200*,sansafuze*: "PREV = Rinoncî"
     gigabeatfx: "POWER = Rinoncî"
+    sansafuzeplus: "BACK = Rinoncî"
     mrobe100: "DISPLAY = Rinoncî"
     gigabeats: "BACK = Rinoncî"
     gogearsa9200: "LEFT = Rinoncî"
     vibe500: "C = Rinoncî"
+    samsungyh*: "REW = Rinoncî"
   </dest>
   <voice>
     *: none
@@ -4532,6 +4536,7 @@
     gigabeats: "SELECT=Set POWER=Cancel"
     vibe500: "OK=Set C=Cancel"
     mpiohd300: "ENTER=Set MENU=Cancel"
+    sansafuzeplus: "SELECT=Set  BACK=Cancel"
   </source>
   <dest>
     *: none
@@ -4541,6 +4546,7 @@
     gigabeats: "SELECT=Defini POWER=Rinoncî"
     vibe500: "OK=Set C=Rinoncî"
     mpiohd300: "ENTER=Defini MENU=Rinoncî"
+    sansafuzeplus: "SELECT=Defini  BACK=Rinoncî"
   </dest>
   <voice>
     *: none
@@ -5386,19 +5392,19 @@
 </phrase>
 <phrase>
   id: LANG_FM_SAVE_CHANGES
-  desc: When you try to exit radio to confirm save
+  desc: deprecated
   user: core
   <source>
     *: none
-    radio: "Save Changes?"
+    radio: ""
   </source>
   <dest>
     *: none
-    radio: "Schaper les candjmints ?"
+    radio: ""
   </dest>
   <voice>
     *: none
-    radio: "Schaper les candjmints ?"
+    radio: ""
   </voice>
 </phrase>
 <phrase>
@@ -5640,20 +5646,20 @@
   </voice>
 </phrase>
 <phrase>
-  id: LANG_RECORDING_FREQUENCY
-  desc: in the recording settings
+  id: LANG_FREQUENCY
+  desc: in recording and playback settings
   user: core
   <source>
     *: none
-    recording: "Frequency"
+    recording,play_frequency: "Frequency"
   </source>
   <dest>
     *: none
-    recording: "Frécwince"
+    recording,play_frequency: "Frécwince"
   </dest>
   <voice>
     *: none
-    recording: "Frécwince"
+    recording,play_frequency: "Frécwince"
   </voice>
 </phrase>
 <phrase>
@@ -5878,20 +5884,6 @@
   <voice>
     *: none
     recording: "Pårti sorlon l' grandeu do fitchî"
-  </voice>
-</phrase>
-<phrase>
-  id: LANG_REC_SIZE
-  desc: deprecated
-  user:
-  <source>
-    *: none
-  </source>
-  <dest>
-    *: none
-  </dest>
-  <voice>
-    *: none
   </voice>
 </phrase>
 <phrase>
@@ -6481,7 +6473,7 @@
   desc: in onplay menu
   user: core
   <source>
-    *: "Playlist Catalog"
+    *: "Playlist Catalogue"
   </source>
   <dest>
     *: "Catalogue del djivêye di boket"
@@ -6663,19 +6655,19 @@
   <source>
     *: none
     multivolume: "HD1"
-    sansae200*,sansac200*,sansafuze*: "mSD:"
+    sansae200*,sansac200*,sansafuze*,sansaclipplus: "mSD:"
     archosondio*: "MMC:"
   </source>
   <dest>
     *: none
     multivolume: "DP1"
-    sansae200*,sansac200*,sansafuze*: "MSD:"
+    sansae200*,sansac200*,sansafuze*,sansaclipplus: "MSD:"
     archosondio*: "MMC:"
   </dest>
   <voice>
     *: none
     multivolume: "D P 1"
-    sansae200*,sansac200*,sansafuze*: "micro S D"
+    sansae200*,sansac200*,sansafuze*,sansaclipplus: "micro S D"
     archosondio*: "M M C"
   </voice>
 </phrase>
@@ -6975,10 +6967,10 @@
 </phrase>
 <phrase>
   id: LANG_CATALOG_VIEW
-  desc: in onplay playlist catalog submenu
+  desc: in onplay playlist catalogue submenu
   user: core
   <source>
-    *: "View Catalog"
+    *: "View Catalogue"
   </source>
   <dest>
     *: "Vey li catalogue"
@@ -6989,7 +6981,7 @@
 </phrase>
 <phrase>
   id: LANG_CATALOG_ADD_TO
-  desc: in onplay playlist catalog submenu
+  desc: in onplay playlist catalogue submenu
   user: core
   <source>
     *: "Add to Playlist"
@@ -7003,7 +6995,7 @@
 </phrase>
 <phrase>
   id: LANG_CATALOG_ADD_TO_NEW
-  desc: in onplay playlist catalog submenu
+  desc: in onplay playlist catalogue submenu
   user: core
   <source>
     *: "Add to New Playlist"
@@ -7017,7 +7009,7 @@
 </phrase>
 <phrase>
   id: LANG_CATALOG_NO_DIRECTORY
-  desc: error message when playlist catalog directory doesn't exist
+  desc: error message when playlist catalogue directory doesn't exist
   user: core
   <source>
     *: "%s doesn't exist"
@@ -7031,7 +7023,7 @@
 </phrase>
 <phrase>
   id: LANG_CATALOG_NO_PLAYLISTS
-  desc: error message when no playlists for playlist catalog
+  desc: error message when no playlists for playlist catalogue
   user: core
   <source>
     *: "No Playlists"
@@ -7580,15 +7572,15 @@
 </phrase>
 <phrase>
   id: LANG_BACKDROP_LOADED
-  desc: text for splash to indicate a new backdrop has been loaded successfully
+  desc: deprecated
   user: core
   <source>
     *: none
-    lcd_non-mono: "Backdrop Loaded"
+    lcd_non-mono: ""
   </source>
   <dest>
     *: none
-    lcd_non-mono: "Fond tcherdjî"
+    lcd_non-mono: ""
   </dest>
   <voice>
     *: none
@@ -7597,15 +7589,15 @@
 </phrase>
 <phrase>
   id: LANG_BACKDROP_FAILED
-  desc: text for splash to indicate a failure to load a bitmap as backdrop
+  desc: deprecated
   user: core
   <source>
     *: none
-    lcd_non-mono: "Backdrop Failed"
+    lcd_non-mono: ""
   </source>
   <dest>
     *: none
-    lcd_non-mono: "Berwete"
+    lcd_non-mono: ""
   </dest>
   <voice>
     *: none
@@ -7906,7 +7898,7 @@
     *: "Môde:"
   </dest>
   <voice>
-    *: ""
+    *: "Môde:"
   </voice>
 </phrase>
 <phrase>
@@ -7995,6 +7987,7 @@
     iriverh100,iriverh120,iriverh300: "The disk is full. Press STOP to continue."
     iaudiom5,iaudiox5: "The disk is full. Press POWER to continue."
     sansae200*,sansac200*,vibe500: "The disk is full. Press PREV to continue."
+    samsungyh*: "Disk full. Press LEFT to continue."
   </source>
   <dest>
     *: none
@@ -8002,6 +7995,7 @@
     iriverh100,iriverh120,iriverh300: "Li plake est plinne. Tchôkîz STOP et tcheryî pus lon."
     iaudiom5,iaudiox5: "Li plake est plinne. Tchôkîz POWER et tcheryî pus lon."
     sansae200*,sansac200*,vibe500: "Li plake est plinne. Tchôkîz PREV et tcheryî pus lon."
+    samsungyh*: "Li plake est plinne. Tchôkîz LEFT et tcheryî pus lon."
   </dest>
   <voice>
     *: none
@@ -8099,6 +8093,7 @@
     iriverh10,iriverh10_5gb,sansae200*,sansac200*,vibe500: "PREV to abort"
     gigabeats: "BACK to abort"
     gigabeatfx: "POWER to abort"
+    sansafuzeplus: "BACK to abort"
   </source>
   <dest>
     *: "OFF po-z abandner"
@@ -10436,15 +10431,15 @@
   user: core
   <source>
     *: none
-    ipodvideo: "Bass Cutoff"
+    ipodvideo,ipod6g,mpiohd200,mpiohd300,gigabeatfx,mrobe100: "Bass Cutoff"
   </source>
   <dest>
     *: none
-    ipodvideo: "Frécwince di côpaedje des basses"
+    ipodvideo,ipod6g,mpiohd200,mpiohd300,gigabeatfx,mrobe100: "Frécwince di côpaedje des basses"
   </dest>
   <voice>
     *: none
-    ipodvideo: "Frécwince di côpaedje des basses"
+    ipodvideo,ipod6g,mpiohd200,mpiohd300,gigabeatfx,mrobe100: "Frécwince di côpaedje des basses"
   </voice>
 </phrase>
 <phrase>
@@ -10453,15 +10448,15 @@
   user: core
   <source>
     *: none
-    ipodvideo: "Treble Cutoff"
+    ipodvideo,ipod6g,mpiohd200,mpiohd300,gigabeatfx,mrobe100: "Treble Cutoff"
   </source>
   <dest>
     *: none
-    ipodvideo: "Frécwince di côpaedje des hôts sons"
+    ipodvideo,ipod6g,mpiohd200,mpiohd300,gigabeatfx,mrobe100: "Frécwince di côpaedje des hôts sons"
   </dest>
   <voice>
     *: none
-    ipodvideo: "Frécwince di côpaedje des hôts sons"
+    ipodvideo,ipod6g,mpiohd200,mpiohd300,gigabeatfx,mrobe100: "Frécwince di côpaedje des hôts sons"
   </voice>
 </phrase>
 <phrase>
@@ -10608,15 +10603,15 @@
   user: core
   <source>
     *: none
-    gigabeatfx: "Touchpad Sensitivity"
+    gigabeatfx,sansafuzeplus: "Touchpad Sensitivity"
   </source>
   <dest>
     *: none
-    gigabeatfx: "Tinrûlisté do pavé-taprece"
+    gigabeatfx,sansafuzeplus: "Tinrûlisté do pavé-taprece"
   </dest>
   <voice>
     *: none
-    gigabeatfx: "Tinrûlisté do pavé-taprece"
+    gigabeatfx,sansafuzeplus: "Tinrûlisté do pavé-taprece"
   </voice>
 </phrase>
 <phrase>
@@ -11519,16 +11514,16 @@
 </phrase>
 <phrase>
   id: LANG_SKIN_RAM_USAGE
-  desc: how much RAM the skins are using
+  desc: deprecated
   user: core
   <source>
-    *: "Skin RAM usage:"
+    *: ""
   </source>
   <dest>
-    *: "Memwere eployeye pol pea:"
+    *: ""
   </dest>
   <voice>
-    *: "Memwere eployeye pol pea"
+    *: ""
   </voice>
 </phrase>
 <phrase>

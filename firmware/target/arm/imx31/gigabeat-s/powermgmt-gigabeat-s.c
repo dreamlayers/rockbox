@@ -18,9 +18,11 @@
  * KIND, either express or implied.
  *
  ****************************************************************************/
+
 #include <stdlib.h>
 #include "config.h"
 #include "system.h"
+#include "kernel.h"
 #include "thread.h"
 #include "mc13783.h"
 #include "adc.h"
@@ -53,7 +55,7 @@ const unsigned short percent_to_volt_charge[11] =
 };
 
 /* Returns battery voltage from ADC [millivolts] */
-unsigned int battery_adc_voltage(void)
+int _battery_voltage(void)
 {
     /* ADC reading 0-1023 = 2400mV-4700mV */
     return ((adc_read(ADC_BATTERY) * 2303) >> 10) + 2400;
@@ -193,16 +195,6 @@ static enum
     TEMP_HIGH_LIMIT = 1,   /* Max temp */
 } temp_state = TEMP_STATE_NORMAL;
 
-/* Set power thread priority for charging mode or not */
-static inline void charging_set_thread_priority(bool charging)
-{
-#ifdef HAVE_PRIORITY_SCHEDULING
-    thread_set_priority(THREAD_ID_CURRENT,
-                        charging ? PRIORITY_REALTIME : PRIORITY_SYSTEM);
-#endif
-    (void)charging;
-}
-
 /* Update filtered charger current - exponential moving average */
 static bool charger_current_filter_step(void)
 {
@@ -226,7 +218,7 @@ static bool main_charger_connected(void)
 /* Return the voltage level which should automatically trigger
  * another recharge cycle based upon which power source is available.
  * Assumes at least one is. */
-static unsigned int auto_recharge_voltage(void)
+static int auto_recharge_voltage(void)
 {
     if (main_charger_connected())
         return BATT_VAUTO_RECHARGE;
@@ -259,7 +251,7 @@ static int stat_battery_reading(int type)
         switch (type)
         {
         case ADC_BATTERY:
-            reading = battery_adc_voltage();
+            reading = _battery_voltage();
             break;
 
         case ADC_CHARGER_CURRENT:
@@ -411,8 +403,6 @@ static bool adjust_charger_current(void)
 
             if (i != MC13783_DATA_ERROR)
             {
-                charging_set_thread_priority(true);
-
                 /* Turn regulator logically ON. Hardware may still override.
                  */
                 i = mc13783_write_masked(MC13783_CHARGER, charger_setting,
@@ -467,7 +457,6 @@ static bool adjust_charger_current(void)
 
     adc_enable_channel(ADC_CHARGER_CURRENT, false);
     update_filtered_battery_voltage();
-    charging_set_thread_priority(false);
 
     return success;
 }
@@ -614,6 +603,10 @@ void INIT_ATTR powermgmt_init_target(void)
     const uint32_t regval_w =
         MC13783_VCHRG_4_050V | MC13783_ICHRG_0MA |
         MC13783_ICHRGTR_0MA | MC13783_OVCTRL_6_90V;
+
+    /* Must maintain watchdog timer and charger thus must always be able to
+       run even if playback is starved. */
+    thread_set_priority(thread_self(), PRIORITY_REALTIME);
 
     /* Use watchdog to shut system down if we lose control of the charging
      * hardware. */
@@ -789,7 +782,7 @@ static void charger_control(void)
         /* Battery voltage may have dropped and a charge cycle should
          * start again. Debounced. */
         if (autorecharge_counter < 0 &&
-            battery_adc_voltage() < BATT_FULL_VOLTAGE)
+            _battery_voltage() < BATT_FULL_VOLTAGE)
         {
             /* Try starting a cycle now if battery isn't already topped
              * off to allow user to ensure the battery is full. */
@@ -808,8 +801,6 @@ static void charger_control(void)
         }
 
         autorecharge_counter = 0;
-
-        charging_set_thread_priority(true);
 
         if (stat_battery_reading(ADC_BATTERY) < BATT_VTRICKLE_CHARGE)
         {

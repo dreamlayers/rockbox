@@ -490,16 +490,16 @@ void receive_timeout_isr(void)
 /* generate the checksum */
 unsigned char calc_checksum(unsigned char* p_msg, int digits)
 {
-	int chk = 0;
-	int i;
-	
-	for (i=0; i<digits; i++)
-	{
-		chk ^= p_msg[i];
-	}
-	chk = (chk+1) % 16;
-	
-	return chk;
+    int chk = 0;
+    int i;
+    
+    for (i=0; i<digits; i++)
+    {
+        chk ^= p_msg[i];
+    }
+    chk = (chk+1) % 16;
+    
+    return chk;
 }
 
 
@@ -997,8 +997,8 @@ void set_play(void)
     }
     else
     {
-        print_scroll("audio_play(0)");
-        rb->audio_play(0);
+        print_scroll("audio_play(0, 0)");
+        rb->audio_play(0, 0);
     }
 }
 
@@ -1112,7 +1112,7 @@ void thread(void)
 }
 
 /* callback to end the TSR plugin, called before a new one gets loaded */
-bool exit_tsr(bool reenter)
+static bool exit_tsr(bool reenter)
 {
     if (reenter)
         return false; /* dont let it start again */

@@ -21,15 +21,28 @@
  * KIND, either express or implied.
  *
  ****************************************************************************/
+
 #include "cpu.h"
+#include "kernel.h"
 #include "debug.h"
 #include "system.h"
+#include "kernel.h"
 #include "audio.h"
 #include "sound.h"
 
 #include "audiohw.h"
 #include "i2s.h"
 #include "ascodec.h"
+
+#if CONFIG_CPU == AS3525v2 
+/* Headphone volume goes from -81.0 ... +6dB */
+#define VOLUME_MIN -820
+#define VOLUME_MAX   60
+#else
+/* Headphone volume goes from -73.5 ... +6dB */
+#define VOLUME_MIN -740
+#define VOLUME_MAX   60
+#endif
 
 /*
  * This drivers supports:
@@ -63,27 +76,12 @@
 
 #endif
 
-const struct sound_settings_info audiohw_settings[] = {
-    [SOUND_VOLUME]        = {"dB",   0,   1, VOLUME_MIN/10,   6, -25},
-    /* HAVE_SW_TONE_CONTROLS */
-    [SOUND_BASS]          = {"dB",   0,   1, -24,  24,   0},
-    [SOUND_TREBLE]        = {"dB",   0,   1, -24,  24,   0},
-    [SOUND_BALANCE]       = {"%",    0,   1,-100, 100,   0},
-    [SOUND_CHANNELS]      = {"",     0,   1,   0,   5,   0},
-    [SOUND_STEREO_WIDTH]  = {"%",    0,   5,   0, 250, 100},
-#ifdef HAVE_RECORDING
-    [SOUND_MIC_GAIN]      = {"dB",   1,   1,   0,  39,  23},
-    [SOUND_LEFT_GAIN]     = {"dB",   1,   1,   0,  31,  23},
-    [SOUND_RIGHT_GAIN]    = {"dB",   1,   1,   0,  31,  23},
-#endif
-};
-
 /* Shadow registers */
 static uint8_t as3514_regs[AS3514_NUM_AUDIO_REGS]; /* 8-bit registers */
 
 /*
  * little helper method to set register values.
- * With the help of as3514_regs, we minimize i2c
+ * With the help of as3514_regs, we minimize i2c/syscall
  * traffic.
  */
 static void as3514_write(unsigned int reg, unsigned int value)
@@ -112,31 +110,14 @@ static void as3514_write_masked(unsigned int reg, unsigned int bits,
 }
 
 /* convert tenth of dB volume to master volume register value */
-int tenthdb2master(int db)
+static int vol_tenthdb2hw(int db)
 {
-    /* +6 to -73.5dB (or -81.0 dB) in 1.5dB steps == 53 (or 58) levels */
-    if (db < VOLUME_MIN) {
+    if (db <= VOLUME_MIN) {
         return 0x0;
     } else if (db > VOLUME_MAX) {
-        return (VOLUME_MAX-VOLUME_MIN)/15;
+        return (VOLUME_MAX - VOLUME_MIN) / 15;
     } else {
-        return((db-VOLUME_MIN)/15); /* VOLUME_MIN is negative */
-    }
-}
-
-int sound_val2phys(int setting, int value)
-{
-    switch(setting)
-    {
-#if defined(HAVE_RECORDING)
-    case SOUND_LEFT_GAIN:
-    case SOUND_RIGHT_GAIN:
-    case SOUND_MIC_GAIN:
-        return (value - 23) * 15;
-#endif
-
-    default:
-        return value;
+        return  (db - VOLUME_MIN) / 15;
     }
 }
 
@@ -150,16 +131,21 @@ void audiohw_preinit(void)
 
 #ifdef HAVE_AS3543
 
-    as3514_write(AS3514_AUDIOSET1, AUDIOSET1_DAC_on | AUDIOSET1_DAC_GAIN_on);
-    as3514_write(AS3514_AUDIOSET2, AUDIOSET2_HPH_QUALITY_LOW_POWER);
+    as3514_write(AS3514_AUDIOSET1, AUDIOSET1_DAC_on);
+    as3514_write(AS3514_AUDIOSET2, AUDIOSET2_SUM_off | AUDIOSET2_AGC_off | AUDIOSET2_HPH_QUALITY_LOW_POWER);
     /* common ground on, delay playback unmuting when inserting headphones */
     as3514_write(AS3514_AUDIOSET3, AUDIOSET3_HPCM_on | AUDIOSET3_HP_LONGSTART);
 
     as3514_write(AS3543_DAC_IF, AS3543_DAC_INT_PLL);
+#ifdef SAMSUNG_YPR0
+    /* Select Line 1 for FM radio */
+    as3514_clear(AS3514_LINE_IN1_R, LINE_IN_R_LINE_SELECT);
+#else
     /* Select Line 2 for FM radio */
     as3514_set(AS3514_LINE_IN1_R, LINE_IN_R_LINE_SELECT);
-    /* Output SUM of microphone/line/DAC */
-    as3514_write(AS3514_HPH_OUT_R, HPH_OUT_R_HEADPHONES | HPH_OUT_R_HP_OUT_SUM);
+#endif
+    /* Set LINEOUT to minimize pop-click noise in headphone on init stage  */
+    as3514_write(AS3514_HPH_OUT_R, HPH_OUT_R_LINEOUT | HPH_OUT_R_HP_OUT_DAC);
 
 #else
     /* as3514/as3515 */
@@ -230,6 +216,11 @@ void audiohw_preinit(void)
 
     /* DAC_Mute_off */
     as3514_set(AS3514_DAC_L, DAC_L_DAC_MUTE_off);
+
+#ifdef HAVE_AS3543
+    /* DAC direct - gain, mixer and limitter bypassed */
+    as3514_write(AS3514_HPH_OUT_R, HPH_OUT_R_HEADPHONES | HPH_OUT_R_HP_OUT_DAC);
+#endif
 }
 
 static void audiohw_mute(bool mute)
@@ -252,8 +243,9 @@ void audiohw_postinit(void)
     /* wait until outputs have stabilized */
     sleep(HZ/4);
 
-#ifdef CPU_PP
-    ascodec_suppressor_on(false);
+#ifdef SANSA_E200 /* check C200 */
+    /* Release pop prevention */
+    GPIO_CLEAR_BITWISE(GPIOG_OUTPUT_VAL, 0x08);
 #endif
 
 #if defined(SANSA_E200V2) || defined(SANSA_FUZE) || defined(SANSA_C200)
@@ -265,10 +257,13 @@ void audiohw_postinit(void)
     audiohw_mute(false);
 }
 
-void audiohw_set_master_vol(int vol_l, int vol_r)
+void audiohw_set_volume(int vol_l, int vol_r)
 {
     unsigned int hph_r, hph_l;
     unsigned int mix_l, mix_r;
+
+    vol_l = vol_tenthdb2hw(vol_l);
+    vol_r = vol_tenthdb2hw(vol_r);
 
     if (vol_l == 0 && vol_r == 0) {
         audiohw_mute(true);
@@ -301,8 +296,22 @@ void audiohw_set_master_vol(int vol_l, int vol_r)
     } else {
         mix_l = MIXER_MAX_VOLUME;
         hph_l = vol_l - MIXER_MAX_VOLUME;
-    }    
+    }
 
+#ifdef HAVE_AS3543
+    /*if not radio or recording*/
+    if (!(as3514_regs[AS3514_AUDIOSET1] & (AUDIOSET1_ADC_on | AUDIOSET1_LIN1_on))) {
+        if (!hph_l || !hph_r) { /*if volume higher, disable the mixer to slightly improve noise*/
+            as3514_write(AS3514_AUDIOSET1, AUDIOSET1_DAC_on | AUDIOSET1_DAC_GAIN_on);
+            as3514_write(AS3514_AUDIOSET2, AUDIOSET2_AGC_off | AUDIOSET2_HPH_QUALITY_LOW_POWER);
+            as3514_write_masked(AS3514_HPH_OUT_R, HPH_OUT_R_HP_OUT_SUM, HPH_OUT_R_HP_OUT_MASK);
+        } else {
+            as3514_write(AS3514_AUDIOSET1, AUDIOSET1_DAC_on);
+            as3514_write(AS3514_AUDIOSET2, AUDIOSET2_SUM_off | AUDIOSET2_AGC_off | AUDIOSET2_HPH_QUALITY_LOW_POWER);
+            as3514_write_masked(AS3514_HPH_OUT_R, HPH_OUT_R_HP_OUT_DAC, HPH_OUT_R_HP_OUT_MASK);
+        }
+    }
+#endif
 
     as3514_write_masked(AS3514_DAC_R, mix_r, AS3514_VOL_MASK);
     as3514_write_masked(AS3514_DAC_L, mix_l, AS3514_VOL_MASK);
@@ -317,12 +326,14 @@ void audiohw_set_master_vol(int vol_l, int vol_r)
 }
 
 #if 0 /* unused */
-void audiohw_set_lineout_vol(int vol_l, int vol_r)
+void audiohw_set_lineout_volume(int vol_l, int vol_r)
 {
 #ifdef HAVE_AS3543
     /* line out volume is set in the same registers */
-    audiohw_set_master_vol(vol_l, vol_r);
+    audiohw_set_volume(vol_l, vol_r);
 #else
+    vol_l = vol_tenthdb2hw(vol_l);
+    vol_r = vol_tenthdb2hw(vol_r);
     as3514_write_masked(AS3514_LINE_OUT_R, vol_r, AS3514_VOL_MASK);
     as3514_write_masked(AS3514_LINE_OUT_L, vol_l, AS3514_VOL_MASK);
 #endif
@@ -335,8 +346,9 @@ void audiohw_close(void)
     /* mute headphones */
     audiohw_mute(true);
 
-#ifdef CPU_PP
-    ascodec_suppressor_on(true);
+#ifdef SANSA_E200 /* check C200 */
+    /* Set pop prevention */
+    GPIO_SET_BITWISE(GPIOG_OUTPUT_VAL, 0x08);
 #endif
 
     /* turn on common */
@@ -472,6 +484,9 @@ void audiohw_set_recvol(int left, int right, int type)
 void audiohw_set_monitor(bool enable)
 {
     if (enable) {
+#ifdef HAVE_AS3543
+        as3514_write_masked(AS3514_HPH_OUT_R, HPH_OUT_R_HP_OUT_SUM, HPH_OUT_R_HP_OUT_MASK);
+#endif
         /* select either LIN1 or LIN2 */
         as3514_write_masked(AS3514_AUDIOSET1, AUDIOSET1_LIN_on,
                             AUDIOSET1_LIN1_on | AUDIOSET1_LIN2_on);
@@ -479,6 +494,9 @@ void audiohw_set_monitor(bool enable)
         as3514_set(AS3514_LINE_IN_L, LINE_IN1_L_LI1L_MUTE_off);
     }
     else {
+#ifdef HAVE_AS3543
+        as3514_write_masked(AS3514_HPH_OUT_R, HPH_OUT_R_HP_OUT_DAC, HPH_OUT_R_HP_OUT_MASK);
+#endif
         /* turn off both LIN1 and LIN2 (if present) */
         as3514_clear(AS3514_LINE_IN1_R, LINE_IN1_R_LI1R_MUTE_off);
         as3514_clear(AS3514_LINE_IN1_L, LINE_IN1_L_LI1L_MUTE_off);

@@ -29,9 +29,9 @@
 #include "lcd.h"
 #include "lcd-remote.h"
 #include "scroll_engine.h"
-#include "kernel.h"
-#include "thread.h"
+#include "../kernel-internal.h"
 #include "storage.h"
+#include "file_internal.h"
 #include "usb.h"
 #include "disk.h"
 #include "font.h"
@@ -46,6 +46,8 @@
 #include "eeprom_settings.h"
 #include "rbunicode.h"
 #include "common.h"
+#include "rb-loader.h"
+#include "loader_strerror.h"
 #include "version.h"
 
 #include <stdarg.h>
@@ -156,9 +158,9 @@ void shutdown(void)
     sleep(HZ*2);
     
     /* Backlight OFF */
-    _backlight_off();
+    backlight_hw_off();
 #ifdef HAVE_REMOTE_LCD
-    _remote_backlight_off();
+    remote_backlight_hw_off();
 #endif
     
     __reset_cookie();
@@ -170,7 +172,7 @@ void check_battery(void)
 {
     int battery_voltage, batt_int, batt_frac;
     
-    battery_voltage = battery_adc_voltage();
+    battery_voltage = _battery_voltage();
     batt_int = battery_voltage / 1000;
     batt_frac = (battery_voltage % 1000) / 10;
 
@@ -253,7 +255,7 @@ void failsafe_menu(void)
     extern int line;
     
     reset_screen();
-    printf("Bootloader " RBVERSION);
+    printf("Bootloader %s", rbversion);
     check_battery();
     printf("=========================");
     line += FAILSAFE_OPTIONS;
@@ -416,12 +418,12 @@ void main(void)
     __uda1380_reset_hi();
     
     /* Start with the main backlight OFF. */
-    _backlight_init();
-    _backlight_off();
+    backlight_hw_init();
+    backlight_hw_off();
     
     /* Remote backlight ON */
 #ifdef HAVE_REMOTE_LCD
-    _remote_backlight_on();
+    remote_backlight_hw_on();
 #endif
 
     system_init();
@@ -501,7 +503,7 @@ void main(void)
     lcd_setfont(FONT_SYSFIXED);
     
     printf("Rockbox boot loader");
-    printf("Version " RBVERSION);
+    printf("Version %s", rbversion);
 
     /* No need to wait here more because lcd_init and others already do that. */
     // sleep(HZ/50); /* Allow the button driver to check the buttons */
@@ -574,7 +576,7 @@ void main(void)
             sleep(HZ);
 
             /* Backlight OFF */
-            _backlight_off();
+            backlight_hw_off();
         }
 
         cpu_idle_mode(false);
@@ -595,7 +597,7 @@ void main(void)
     }
 
 
-    disk_init();
+    filesystem_init();
 
     rc = disk_mount_all();
     if (rc<=0)
@@ -608,9 +610,9 @@ void main(void)
     printf("Loading firmware");
     i = load_firmware((unsigned char *)DRAM_START, BOOTFILE, MAX_LOADSIZE);
     if(i < 0)
-        printf("Error: %s", strerror(i));
+        printf("Error: %s", loader_strerror(i));
 
-    if (i == EOK)
+    if (i > 0)
         start_firmware();
 
     if (!detect_original_firmware())

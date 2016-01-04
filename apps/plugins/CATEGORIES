@@ -1,3 +1,4 @@
+2048,games
 alpine_cdc,apps
 alarmclock,apps
 autostart,apps
@@ -48,6 +49,7 @@ logo,demos
 lrcplayer,apps
 lua,viewers
 fractals,demos
+main_menu_config,apps
 matrix,demos
 maze,games
 mazezam,games
@@ -66,10 +68,12 @@ oscilloscope,demos
 pacbox,games
 pdbox,viewers
 pegbox,games
+periodic_table,apps
 pictureflow,demos
 pitch_detector,apps
 plasma,demos
 png,viewers
+gif,viewers
 pong,games
 ppm,viewers
 properties,viewers
@@ -82,7 +86,7 @@ rockblox,games
 rockblox1d,games
 rockbox_flash,viewers
 rockboy,viewers
-rocklife,games
+rocklife,demos
 rockpaint,apps
 search,viewers
 searchengine,viewers
@@ -110,6 +114,8 @@ test_codec,viewers
 test_disk,apps
 test_fps,apps
 test_grey,apps
+test_gfx,apps
+test_resize,apps
 test_sampr,apps
 test_scanrate,apps
 test_touchscreen,apps
@@ -128,4 +134,5 @@ wavrecord,apps
 wavview,viewers
 wormlet,games
 xobox,games
+xworld,games
 zxbox,viewers

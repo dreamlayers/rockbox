@@ -139,7 +139,8 @@
 
 #elif CONFIG_KEYPAD == SANSA_C200_PAD || \
 CONFIG_KEYPAD == SANSA_CLIP_PAD || \
-CONFIG_KEYPAD == SANSA_M200_PAD
+CONFIG_KEYPAD == SANSA_M200_PAD || \
+CONFIG_KEYPAD == SANSA_CONNECT_PAD
 #define QUIT     BUTTON_POWER
 #define LEFT     BUTTON_LEFT
 #define RIGHT    BUTTON_RIGHT
@@ -157,7 +158,8 @@ CONFIG_KEYPAD == SANSA_M200_PAD
 #define UP BUTTON_SCROLL_UP
 #define DOWN BUTTON_SCROLL_DOWN
 
-#elif CONFIG_KEYPAD == GIGABEAT_S_PAD
+#elif CONFIG_KEYPAD == GIGABEAT_S_PAD \
+   || CONFIG_KEYPAD == SAMSUNG_YPR0_PAD
 #define QUIT BUTTON_BACK
 #define LEFT BUTTON_LEFT
 #define RIGHT BUTTON_RIGHT
@@ -188,6 +190,14 @@ CONFIG_KEYPAD == SANSA_M200_PAD
 #define LEFT BUTTON_LEFT
 #define RIGHT BUTTON_RIGHT
 #define SELECT BUTTON_SELECT
+#define UP BUTTON_UP
+#define DOWN BUTTON_DOWN
+
+#elif CONFIG_KEYPAD == CREATIVE_ZENXFI3_PAD
+#define QUIT BUTTON_POWER
+#define LEFT BUTTON_BACK
+#define RIGHT BUTTON_MENU
+#define SELECT BUTTON_PLAY
 #define UP BUTTON_UP
 #define DOWN BUTTON_DOWN
 
@@ -233,8 +243,9 @@ CONFIG_KEYPAD == SANSA_M200_PAD
 #elif CONFIG_KEYPAD == MROBE500_PAD
 #define QUIT    BUTTON_POWER
 
-#elif CONFIG_KEYPAD == SAMSUNG_YH_PAD
-#define QUIT   BUTTON_FFWD
+#elif (CONFIG_KEYPAD == SAMSUNG_YH820_PAD) || \
+      (CONFIG_KEYPAD == SAMSUNG_YH920_PAD)
+#define QUIT   BUTTON_REW
 #define SELECT BUTTON_PLAY
 #define LEFT   BUTTON_LEFT
 #define RIGHT  BUTTON_RIGHT
@@ -260,12 +271,53 @@ CONFIG_KEYPAD == SANSA_M200_PAD
 #define DOWN BUTTON_FF
 
 #elif CONFIG_KEYPAD == MPIO_HD300_PAD
-#define QUIT (BUTTON_REC|BUTTON_REPEAT)
+#define QUIT (BUTTON_MENU|BUTTON_REPEAT)
 #define LEFT BUTTON_REW
 #define RIGHT BUTTON_FF
 #define SELECT BUTTON_ENTER
 #define UP BUTTON_UP
 #define DOWN BUTTON_DOWN
+
+#elif CONFIG_KEYPAD == SANSA_FUZEPLUS_PAD
+#define QUIT BUTTON_POWER
+#define LEFT BUTTON_LEFT
+#define RIGHT BUTTON_RIGHT
+#define SELECT BUTTON_SELECT
+#define UP BUTTON_UP
+#define DOWN BUTTON_DOWN
+
+#elif (CONFIG_KEYPAD == HM60X_PAD) || \
+    (CONFIG_KEYPAD == HM801_PAD)
+#define QUIT BUTTON_POWER
+#define LEFT BUTTON_LEFT
+#define RIGHT BUTTON_RIGHT
+#define SELECT BUTTON_SELECT
+#define UP BUTTON_UP
+#define DOWN BUTTON_DOWN
+
+#elif CONFIG_KEYPAD == SONY_NWZ_PAD
+#define QUIT      BUTTON_BACK
+#define LEFT      BUTTON_LEFT
+#define RIGHT     BUTTON_RIGHT
+#define SELECT    BUTTON_PLAY
+#define UP        BUTTON_UP
+#define DOWN      BUTTON_DOWN
+
+#elif CONFIG_KEYPAD == CREATIVE_ZEN_PAD
+#define QUIT      BUTTON_BACK
+#define LEFT      BUTTON_LEFT
+#define RIGHT     BUTTON_RIGHT
+#define SELECT    BUTTON_SELECT
+#define UP        BUTTON_UP
+#define DOWN      BUTTON_DOWN
+
+#elif CONFIG_KEYPAD == DX50_PAD
+#define QUIT      BUTTON_POWER
+#define LEFT      BUTTON_LEFT
+#define RIGHT     BUTTON_RIGHT
+#define SELECT    BUTTON_PLAY
+#define UP        BUTTON_VOL_UP
+#define DOWN      BUTTON_VOL_DOWN
 
 #else
 #error No keymap defined!
@@ -450,8 +502,8 @@ CONFIG_KEYPAD == SANSA_M200_PAD
  */
 
 #define CONFIG_FILE_NAME "brickmania.cfg"
-#define SAVE_FILE  PLUGIN_GAMES_DIR "/brickmania.save"
-#define SCORE_FILE PLUGIN_GAMES_DIR "/brickmania.score"
+#define SAVE_FILE  PLUGIN_GAMES_DATA_DIR "/brickmania.save"
+#define SCORE_FILE PLUGIN_GAMES_DATA_DIR "/brickmania.score"
 #define NUM_SCORES 5
 
 
@@ -1587,27 +1639,34 @@ static int brickmania_game_loop(void)
                 rb->lcd_putsxy(LCD_WIDTH/2-2, INT3(STRINGPOS_FLIP), s);
             }
 
-            /* write life num */
-#if (LCD_WIDTH == 112) && (LCD_HEIGHT == 64)
-    #define LIFE_STR "L:%d"
-#else
-    #define LIFE_STR "Life: %d"
-#endif
-            rb->lcd_putsxyf(0, 0, LIFE_STR, life);
-
-#if (LCD_WIDTH == 112) && (LCD_HEIGHT == 64)
-            rb->snprintf(s, sizeof(s), "L%d", level+1);
-#else
-            rb->snprintf(s, sizeof(s), "Level %d", level+1);
-#endif
-
-            rb->lcd_getstringsize(s, &sw, NULL);
-            rb->lcd_putsxy(LCD_WIDTH-sw, 0, s);
 
             if (vscore<score) vscore++;
             rb->snprintf(s, sizeof(s), "%d", vscore);
             rb->lcd_getstringsize(s, &sw, NULL);
             rb->lcd_putsxy(LCD_WIDTH/2-sw/2, 0, s);
+
+            /* write life num */
+            rb->snprintf(s, sizeof(s), "Life: %d", life);
+
+            /* hijack i */
+            i = sw;
+            rb->lcd_getstringsize(s, &sw, NULL);
+            if (sw >= (LCD_WIDTH/2-i/2))
+                rb->snprintf(s, sizeof(s), "L: %d", life);
+            rb->lcd_putsxy(0, 0, s);
+
+            /* write level */
+            rb->snprintf(s, sizeof(s), "Level %d", level+1);
+            rb->lcd_getstringsize(s, &sw, NULL);
+
+            if (LCD_WIDTH-sw <= (LCD_WIDTH/2+i/2)+1)
+            {
+                rb->snprintf(s, sizeof(s), "Lvl %d", level+1);
+                rb->lcd_getstringsize(s, &sw, NULL);
+            }
+
+            rb->lcd_putsxy(LCD_WIDTH-sw, 0, s);
+            i = 0;
 
             /* continue game */
             if (game_state == ST_PAUSE)
@@ -2235,10 +2294,9 @@ static int brickmania_game_loop(void)
             if( move_button & BUTTON_TOUCHSCREEN)
             {
                 int data;
-                short touch_x, touch_y;
+                short touch_x;
                 rb->button_status_wdata(&data);
                 touch_x = FIXED3(data >> 16);
-                touch_y = FIXED3(data & 0xffff);
 
                 if(flip_sides)
                 {
@@ -2382,6 +2440,12 @@ static int brickmania_game_loop(void)
         }
         else
         {
+            resume = false;
+            if(resume_file)
+            {
+                rb->remove(SAVE_FILE);
+                resume_file = false;
+            }
 #ifdef HAVE_LCD_COLOR
             rb->lcd_bitmap_transparent(brickmania_gameover,
                            (LCD_WIDTH - INT3(GAMEOVER_WIDTH))/2,
@@ -2427,7 +2491,7 @@ enum plugin_status plugin_start(const void* parameter)
     rb->lcd_set_backdrop(NULL);
 #endif
     /* Turn off backlight timeout */
-    backlight_force_on(); /* backlight control in lib/helper.c */
+    backlight_ignore_timeout();
 
     /* now go ahead and have fun! */
     rb->srand( *rb->current_tick );
@@ -2458,7 +2522,7 @@ enum plugin_status plugin_start(const void* parameter)
     /* Restore user's original backlight setting */
     rb->lcd_setfont(FONT_UI);
     /* Turn on backlight timeout (revert to settings) */
-    backlight_use_settings(); /* backlight control in lib/helper.c */
+    backlight_use_settings();
 
     return PLUGIN_OK;
 }

@@ -22,16 +22,13 @@
 #ifndef _BUTTON_TARGET_H_
 #define _BUTTON_TARGET_H_
 
-#include <stdbool.h>
-#include "config.h"
-
 #define HAS_BUTTON_HOLD
 
-bool button_hold(void);
-void button_init_device(void);
-int button_read_device(void);
-
 /* Button codes for Samsung YH-820, 920, 925 */
+
+#if defined(SAMSUNG_YH920) || defined(SAMSUNG_YH925)
+void remote_int(void);
+#endif /* (SAMSUNG_YH920) || (SAMSUNG_YH925) */
 
 /* Main unit's buttons */
 /* Left = Menu, Right = Sel */
@@ -42,12 +39,28 @@ int button_read_device(void);
 #define BUTTON_PLAY         0x00000010
 #define BUTTON_REW          0x00000020
 #define BUTTON_FFWD         0x00000040
+#if defined(SAMSUNG_YH820) /* YH820 has record button */
 #define BUTTON_REC          0x00000080
+#else /* virtual buttons for record switch state change on YH92x */
+#define BUTTON_REC_SW_ON    0x00000080
+#define BUTTON_REC_SW_OFF   0x00000100
+/* TODO: most of the plugin keymaps rely on the REC button,
+   so I kept the following line to prevent compile errors.
+   This line has to be removed as soon as all plugin keymaps are fixed! */
+#define BUTTON_REC          0x00000200
+#endif
 
+#if defined(SAMSUNG_YH820)
 #define BUTTON_MAIN         0x000000ff
+#else
+#define BUTTON_MAIN         0x000001ff
+#endif
 
-/* No Remote control */
-#define BUTTON_REMOTE 0
+#define BUTTON_RC_PLUS      BUTTON_UP
+#define BUTTON_RC_MINUS     BUTTON_DOWN
+#define BUTTON_RC_PLAY      BUTTON_PLAY
+#define BUTTON_RC_REW       BUTTON_REW
+#define BUTTON_RC_FFWD      BUTTON_FFWD
 
 #define POWEROFF_BUTTON BUTTON_PLAY
 #define POWEROFF_COUNT  15

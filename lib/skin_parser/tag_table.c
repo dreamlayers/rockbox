@@ -22,7 +22,7 @@
 #include "tag_table.h"
 
 #include <string.h>
-#define BAR_PARAMS "*iiii|sN"
+#define BAR_PARAMS "?[iP][iP][iP][iP]|s*"
 /* The tag definition table */
 static const struct tag_info legal_tags[] = 
 {
@@ -34,6 +34,8 @@ static const struct tag_info legal_tags[] =
     { SKIN_TOKEN_ALIGN_LANGDIRECTION,   "ax", "", 0 },
     
     { SKIN_TOKEN_LOGICAL_IF,            "if", "TS[ITS]|D", SKIN_REFRESH_DYNAMIC },
+    { SKIN_TOKEN_LOGICAL_AND,           "and", "T*", SKIN_REFRESH_DYNAMIC },
+    { SKIN_TOKEN_LOGICAL_OR,            "or", "T*", SKIN_REFRESH_DYNAMIC },
     
     { SKIN_TOKEN_BATTERY_PERCENT,       "bl" , BAR_PARAMS, SKIN_REFRESH_DYNAMIC },
     { SKIN_TOKEN_BATTERY_VOLTS,         "bv", "", SKIN_REFRESH_DYNAMIC },
@@ -41,7 +43,7 @@ static const struct tag_info legal_tags[] =
     { SKIN_TOKEN_BATTERY_SLEEPTIME,     "bs", "", SKIN_REFRESH_DYNAMIC },
     { SKIN_TOKEN_BATTERY_CHARGING,      "bc", "", SKIN_REFRESH_DYNAMIC },
     { SKIN_TOKEN_BATTERY_CHARGER_CONNECTED, "bp", "", SKIN_REFRESH_DYNAMIC },
-    { SKIN_TOKEN_USB_POWERED,           "bu", "", SKIN_REFRESH_DYNAMIC },
+    { SKIN_TOKEN_USB_INSERTED,          "bu", "", SKIN_REFRESH_DYNAMIC },
     
     
     { SKIN_TOKEN_RTC_PRESENT,           "cc", "", FEATURE_TAG },
@@ -125,6 +127,9 @@ static const struct tag_info legal_tags[] =
     { SKIN_TOKEN_BUTTON_VOLUME,         "mv", "|D", SKIN_REFRESH_DYNAMIC },
     
     { SKIN_TOKEN_PEAKMETER,             "pm", "", SKIN_REFRESH_PEAK_METER },
+    { SKIN_TOKEN_PEAKMETER_LEFT,        "pL", BAR_PARAMS, SKIN_REFRESH_PEAK_METER },
+    { SKIN_TOKEN_PEAKMETER_RIGHT,       "pR", BAR_PARAMS, SKIN_REFRESH_PEAK_METER },
+    
     { SKIN_TOKEN_PLAYER_PROGRESSBAR,    "pf", "", SKIN_REFRESH_DYNAMIC|SKIN_REFRESH_PLAYER_PROGRESS },
     { SKIN_TOKEN_PROGRESSBAR,           "pb" , BAR_PARAMS, SKIN_REFRESH_PLAYER_PROGRESS },
     { SKIN_TOKEN_VOLUME,                "pv" , BAR_PARAMS, SKIN_REFRESH_DYNAMIC },
@@ -171,12 +176,13 @@ static const struct tag_info legal_tags[] =
     { SKIN_TOKEN_DISABLE_THEME,         "wd", "", 0|NOBREAK },
     { SKIN_TOKEN_DRAW_INBUILTBAR,       "wi", "", SKIN_REFRESH_STATIC|NOBREAK },
     
-    { SKIN_TOKEN_IMAGE_PRELOAD,         "xl", "SFII|I", 0|NOBREAK },
+    { SKIN_TOKEN_IMAGE_PRELOAD,         "xl", "SF|[IP][IP]I", 0|NOBREAK },
     { SKIN_TOKEN_IMAGE_PRELOAD_DISPLAY, "xd", "S|[IT]I", 0 },
-    { SKIN_TOKEN_IMAGE_DISPLAY,         "x", "SFII", 0|NOBREAK },
+    { SKIN_TOKEN_IMAGE_DISPLAY,         "x", "SF|II", SKIN_REFRESH_STATIC|NOBREAK },
+    { SKIN_TOKEN_IMAGE_DISPLAY_9SEGMENT, "x9", "S", 0 },
     
     { SKIN_TOKEN_LOAD_FONT,             "Fl" , "IF|I", 0|NOBREAK },
-    { SKIN_TOKEN_ALBUMART_LOAD,         "Cl" , "IIII|ss", 0|NOBREAK },
+    { SKIN_TOKEN_ALBUMART_LOAD,         "Cl" , "[iP][iP][iP][iP]|ss", 0|NOBREAK },
     { SKIN_TOKEN_ALBUMART_DISPLAY,      "Cd" , "", SKIN_REFRESH_STATIC },
     { SKIN_TOKEN_ALBUMART_FOUND,        "C" , "", SKIN_REFRESH_STATIC },
     
@@ -185,25 +191,43 @@ static const struct tag_info legal_tags[] =
     
     { SKIN_TOKEN_VIEWPORT_CUSTOMLIST,   "Vp" , "IC", SKIN_REFRESH_DYNAMIC|NOBREAK },
     { SKIN_TOKEN_LIST_TITLE_TEXT,       "Lt" , "", SKIN_REFRESH_DYNAMIC },
+    { SKIN_TOKEN_LIST_ITEM_TEXT,        "LT", "|IS",  SKIN_REFRESH_DYNAMIC },
+    { SKIN_TOKEN_LIST_ITEM_ROW,         "LR", "",  SKIN_REFRESH_DYNAMIC },
+    { SKIN_TOKEN_LIST_ITEM_COLUMN,      "LC", "",  SKIN_REFRESH_DYNAMIC },
+    { SKIN_TOKEN_LIST_ITEM_NUMBER,      "LN", "",  SKIN_REFRESH_DYNAMIC },
     { SKIN_TOKEN_LIST_TITLE_ICON,       "Li" , "", SKIN_REFRESH_DYNAMIC },
+    { SKIN_TOKEN_LIST_ITEM_ICON,        "LI", "|IS",  SKIN_REFRESH_DYNAMIC },
+    { SKIN_TOKEN_LIST_ITEM_CFG,         "Lb" , "Sii|S", SKIN_REFRESH_DYNAMIC},
+    { SKIN_TOKEN_LIST_ITEM_IS_SELECTED, "Lc" , "", SKIN_REFRESH_DYNAMIC },
+    { SKIN_TOKEN_LIST_NEEDS_SCROLLBAR,  "LB", BAR_PARAMS, SKIN_REFRESH_DYNAMIC },
     
     { SKIN_TOKEN_VIEWPORT_FGCOLOUR,       "Vf" , "s", SKIN_REFRESH_STATIC|NOBREAK },
     { SKIN_TOKEN_VIEWPORT_BGCOLOUR,       "Vb" , "s", SKIN_REFRESH_STATIC|NOBREAK },
+    { SKIN_TOKEN_VIEWPORT_TEXTSTYLE,      "Vs" , "S|s", SKIN_REFRESH_STATIC },
+    { SKIN_TOKEN_VIEWPORT_GRADIENT_SETUP, "Vg" , "SS|s", SKIN_REFRESH_STATIC|NOBREAK },
+    { SKIN_TOKEN_VIEWPORT_DRAWONBG,       "VB" , "", SKIN_REFRESH_STATIC|NOBREAK },
     
-    { SKIN_TOKEN_VIEWPORT_CONDITIONAL,  "Vl" , "SIIiii", 0 },
-    { SKIN_TOKEN_UIVIEWPORT_LOAD,       "Vi" , "sIIiii", 0 },
-    { SKIN_TOKEN_VIEWPORT_LOAD,         "V"  , "IIiii", 0 },
+    { SKIN_TOKEN_VIEWPORT_CONDITIONAL,  "Vl" , "S[IP][IP][ip][ip]i", 0 },
+    { SKIN_TOKEN_UIVIEWPORT_LOAD,       "Vi" , "s[IP][IP][ip][ip]i", 0 },
+    { SKIN_TOKEN_VIEWPORT_LOAD,         "V"  , "[IP][IP][ip][ip]i", 0 },
     
     { SKIN_TOKEN_IMAGE_BACKDROP,        "X"  , "f", SKIN_REFRESH_STATIC|NOBREAK },
-    
-    { SKIN_TOKEN_SETTING,               "St" , "S", SKIN_REFRESH_DYNAMIC },
+    /* This uses the bar tag params also but the first item can be a string
+     * and we don't allow no params. */
+    { SKIN_TOKEN_SETTING,               "St" , "[Sip]|[ip][ip][ip]s*", SKIN_REFRESH_DYNAMIC },
     { SKIN_TOKEN_TRANSLATEDSTRING,      "Sx" , "S", SKIN_REFRESH_STATIC },
     { SKIN_TOKEN_LANG_IS_RTL,           "Sr" , "", SKIN_REFRESH_STATIC },
     
-    { SKIN_TOKEN_LASTTOUCH,             "Tl" , "|D", SKIN_REFRESH_DYNAMIC },
-    { SKIN_TOKEN_CURRENT_SCREEN,        "cs", "", SKIN_REFRESH_DYNAMIC },
-    { SKIN_TOKEN_TOUCHREGION,           "T"  , "IIIIS|S", 0|NOBREAK },
+    /* HACK Alert (jdgordon): The next two tags have hacks so we could
+     * add a S param at the front without breaking old skins.
+     * [SD]D <- handled by the callback, allows SD or S or D params
+     * [SI]III[SI]|SN <- SIIIIS|S or IIIIS|S 
+     *  keep in sync with parse_touchregion() and parse_lasttouch() */
+    { SKIN_TOKEN_LASTTOUCH,             "Tl" , "|[SD]D", SKIN_REFRESH_DYNAMIC },
+    { SKIN_TOKEN_TOUCHREGION,           "T"  , "[Sip][ip][ip][ip][Sip]|S*", 0|NOBREAK },
     { SKIN_TOKEN_HAVE_TOUCH,            "Tp", "", FEATURE_TAG },
+    
+    { SKIN_TOKEN_CURRENT_SCREEN,        "cs", "", SKIN_REFRESH_DYNAMIC },
     
     { SKIN_TOKEN_HAVE_RECORDING,        "Rp"   , "", FEATURE_TAG },
     { SKIN_TOKEN_IS_RECORDING,          "Rr"   , "", SKIN_REFRESH_DYNAMIC },
@@ -215,6 +239,13 @@ static const struct tag_info legal_tags[] =
     { SKIN_TOKEN_REC_MINUTES,           "Rn"   , "", SKIN_REFRESH_DYNAMIC },
     { SKIN_TOKEN_REC_HOURS,             "Rh"   , "", SKIN_REFRESH_DYNAMIC },
     
+    /* Skin variables */
+    { SKIN_TOKEN_VAR_SET,               "vs",   "SSi|I", SKIN_REFRESH_DYNAMIC },
+    { SKIN_TOKEN_VAR_GETVAL,            "vg",   "S", SKIN_REFRESH_DYNAMIC },
+    { SKIN_TOKEN_VAR_TIMEOUT,           "vl",   "S|D", SKIN_REFRESH_DYNAMIC },
+
+    { SKIN_TOKEN_SUBSTRING,             "ss",   "IiT|s", SKIN_REFRESH_DYNAMIC },
+    { SKIN_TOKEN_DRAWRECTANGLE,         "dr",   "[IP][IP][ip][ip]|ss", SKIN_REFRESH_STATIC },
     { SKIN_TOKEN_UNKNOWN,                ""   , "", 0 }
     /* Keep this here to mark the end of the table */
 };

@@ -7,7 +7,6 @@
  *                     \/            \/     \/    \/            \/
  *
  *   Copyright (C) 2007 by Dominik Wenger
- *   $Id$
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -40,7 +39,9 @@ class UninstallWindow : public QDialog
     private slots:
         void selectionChanged();
         void UninstallMethodChanged(bool complete);
+
     private:
+        void changeEvent(QEvent *event);
         Uninstaller* uninstaller;
         Ui::UninstallFrm ui;
         ProgressLoggerGui* logger;

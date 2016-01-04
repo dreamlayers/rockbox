@@ -23,14 +23,16 @@
 #include <stdio.h>
 #include <stdbool.h>
 #include <stdlib.h>
+#include "system.h"
 #include "settings.h"
 #include "radio.h"
 #include "buffering.h"
+#include "playback.h" /* bufopen_user_data */
 #include "file.h"
 #include "kernel.h"
 #include "string-extra.h"
-#include "misc.h"
-#include "filefuncs.h"
+#include "pathfuncs.h"
+#include "core_alloc.h"
 
 #define MAX_RADIOART_IMAGES 10
 struct radioart {
@@ -40,29 +42,32 @@ struct radioart {
     char name[MAX_FMPRESET_LEN+1];
 };
 
+static char* buf;
 static struct radioart radioart[MAX_RADIOART_IMAGES];
-#ifdef HAVE_RECORDING
-static bool allow_buffer_access = true; /* If we are recording dont touch the buffers! */
-#endif
-static int find_oldest_image(void)
+
+static int find_oldest_image_index(void)
 {
-    int i;
-    long oldest_tick = radioart[0].last_tick;
-    int oldest_idx = 0;
-    for(i=1;i<MAX_RADIOART_IMAGES;i++)
+    unsigned i;
+    long oldest_tick = current_tick;
+    int oldest_idx = -1;
+    for(i = 0; i < ARRAYLEN(radioart); i++)
     {
-        if (radioart[i].last_tick < oldest_tick)
+        struct radioart *ra = &radioart[i];
+        /* last_tick is only valid if it's actually loaded, i.e. valid handle */
+        if (ra->handle >= 0 && TIME_BEFORE(ra->last_tick, oldest_tick))
         {
-            oldest_tick = radioart[i].last_tick;
+            oldest_tick = ra->last_tick;
             oldest_idx = i;
         }
     }
     return oldest_idx;
 }
+
 static int load_radioart_image(struct radioart *ra, const char* preset_name, 
                                struct dim *dim)
 {
     char path[MAX_PATH];
+    struct bufopen_bitmap_data user_data;
 #ifndef HAVE_NOISY_IDLE_MODE
     cpu_idle_mode(false);
 #endif
@@ -72,20 +77,25 @@ static int load_radioart_image(struct radioart *ra, const char* preset_name,
     if (!file_exists(path))
     {
 #ifndef HAVE_NOISY_IDLE_MODE
-		cpu_idle_mode(true);
+        cpu_idle_mode(true);
 #endif
         return -1;
-	}
+    }
     strlcpy(ra->name, preset_name, MAX_FMPRESET_LEN+1);
     ra->dim.height = dim->height;
     ra->dim.width = dim->width;
     ra->last_tick = current_tick;
-    ra->handle = bufopen(path, 0, TYPE_BITMAP, &ra->dim);
+    user_data.embedded_albumart = NULL;
+    user_data.dim = &ra->dim;
+    ra->handle = bufopen(path, 0, TYPE_BITMAP, &user_data);
     if (ra->handle == ERR_BUFFER_FULL)
     {
-        int i = find_oldest_image();
-        bufclose(i);
-        ra->handle = bufopen(path, 0, TYPE_BITMAP, &ra->dim);
+        int i = find_oldest_image_index();
+        if (i != -1)
+        {
+            bufclose(radioart[i].handle);
+            ra->handle = bufopen(path, 0, TYPE_BITMAP, &user_data);
+        }
     }
 #ifndef HAVE_NOISY_IDLE_MODE
     cpu_idle_mode(true);
@@ -95,16 +105,14 @@ static int load_radioart_image(struct radioart *ra, const char* preset_name,
 int radio_get_art_hid(struct dim *requested_dim)
 {
     int preset = radio_current_preset();
-    int i, free_idx = -1;
+    int free_idx = -1;
     const char* preset_name;
-    if (radio_scan_mode() || preset < 0)
+
+    if (!buf || radio_scan_mode() || preset < 0)
         return -1;
-#ifdef HAVE_RECORDING
-    if (!allow_buffer_access)
-        return -1;
-#endif
+
     preset_name = radio_get_preset_name(preset);
-    for(i=0;i<MAX_RADIOART_IMAGES;i++)
+    for (int i=0; i<MAX_RADIOART_IMAGES; i++)
     {
         if (radioart[i].handle < 0)
         {
@@ -125,57 +133,86 @@ int radio_get_art_hid(struct dim *requested_dim)
     }
     else
     {
-        int i = find_oldest_image();
-        bufclose(radioart[i].handle);
-        return load_radioart_image(&radioart[i],
-                                   preset_name, requested_dim);        
+        int i = find_oldest_image_index();
+        if (i != -1)
+        {
+            bufclose(radioart[i].handle);
+            return load_radioart_image(&radioart[i],
+                                       preset_name, requested_dim);
+        }
     }
         
     return -1;
 }
-static void playback_restarting_handler(void *data)
+
+static void buffer_reset_handler(unsigned short id, void *data, void *user_data)
 {
-    (void)data;
-    int i;
-    for(i=0;i<MAX_RADIOART_IMAGES;i++)
+    buf = NULL;
+    for(int i=0;i<MAX_RADIOART_IMAGES;i++)
     {
         if (radioart[i].handle >= 0)
             bufclose(radioart[i].handle);
         radioart[i].handle = -1;
         radioart[i].name[0] = '\0';
     }
-}
-#ifdef HAVE_RECORDING
-static void recording_started_handler(void *data)
-{
+
+    (void)id;
     (void)data;
-    allow_buffer_access = false;
-    playback_restarting_handler(NULL);
+    (void)user_data;
 }
-static void recording_stopped_handler(void *data)
+
+static int shrink_callback(int handle, unsigned hints, void* start, size_t old_size)
 {
-    (void)data;
-    allow_buffer_access = true;
+    (void)start;
+    (void)old_size;
+
+    ssize_t old_size_s = old_size;
+    size_t size_hint = (hints & BUFLIB_SHRINK_SIZE_MASK);
+    ssize_t wanted_size = old_size_s - size_hint;
+
+    if (wanted_size <= 0)
+    {
+        core_free(handle);
+        buffering_reset(NULL, 0);
+    }
+    else
+    {
+        if (hints & BUFLIB_SHRINK_POS_FRONT)
+            start += size_hint;
+
+        buffering_reset(start, wanted_size);
+        core_shrink(handle, start, wanted_size);
+        buf = start;
+
+        /* one-shot */
+        add_event_ex(BUFFER_EVENT_BUFFER_RESET, true, buffer_reset_handler, NULL);
+    }
+
+    return BUFLIB_CB_OK;
 }
-#endif
+
+static struct buflib_callbacks radioart_ops = {
+    .shrink_callback = shrink_callback,
+};
 
 void radioart_init(bool entering_screen)
 {
-    int i;
     if (entering_screen)
     {
-        for(i=0;i<MAX_RADIOART_IMAGES;i++)
+        /* grab control over buffering */
+        size_t bufsize;
+        int handle = core_alloc_maximum("radioart", &bufsize, &radioart_ops);
+        buffering_reset(core_get_data(handle), bufsize);
+        buf = core_get_data(handle);
+        /* one-shot */
+        add_event_ex(BUFFER_EVENT_BUFFER_RESET, true, buffer_reset_handler, NULL);
+    }
+    else /* init at startup */
+    {
+        for(int i=0;i<MAX_RADIOART_IMAGES;i++)
         {
             radioart[i].handle = -1;
             radioart[i].name[0] = '\0';
         }
-        add_event(PLAYBACK_EVENT_START_PLAYBACK, true, playback_restarting_handler);
-    }
-    else
-    {
-#if defined(HAVE_RECORDING)
-        add_event(RECORDING_EVENT_START, false, recording_started_handler);
-        add_event(RECORDING_EVENT_STOP, false, recording_stopped_handler);
-#endif
     }
 }

@@ -43,46 +43,21 @@ gitversion() {
 	version=`git log --pretty=format:'%b' --grep='git-svn-id: svn' -1 | tail -n 1 | perl -ne 'm/@(\d*)/; print "r" . $1;'`
 	mod=""
 	# Is this a git-svn commit?
-	if ! git log  HEAD^.. --pretty=format:"%b" | grep -q "git-svn-id: svn" ; then
-	    mod="M"
+	if ! git log -1 --pretty=format:"%b" | grep -q "git-svn-id: svn" ; then
+	    version="$head"
+	fi
 	# Are there uncommitted changes?
-	else
-	    export GIT_WORK_TREE="$1"
-	    if git diff --name-only HEAD | read dummy; then
-		mod="M"
-	    elif git diff --name-only --cached HEAD | read dummy; then
-		mod="M"
-	    fi
+	export GIT_WORK_TREE="$1"
+	if git diff --name-only HEAD | read dummy; then
+	    mod="M"
+	elif git diff --name-only --cached HEAD | read dummy; then
+	    mod="M"
 	fi
 
 	echo "${version}${mod}"
 	# All done with git
 	exit
     fi
-}
-
-# Work out the latest svn id and also the latest bzr revno
-bzrversion() {
-
-    # look for a svn revno in the current head
-    svnver=`LANG=C bzr log -l1 $1 | grep '^ *svn revno: ' | cut -d : -f2 | cut -d ' ' -f 2`
-
-    if [ -n "$svnver" ]; then
-        # current head is a svn version so we don't care about bzr
-        version="r$svnver"
-    else
-        # look for a svn revno anywhere in history including in merges
-        svnver=`LANG=C bzr log -n0 $1 | grep '^ *svn revno: ' | head -n 1 | cut -d : -f2 | cut -d ' ' -f 2`
-        if [ -n "$svnver" ]; then
-            version="r$svnver+bzr`bzr revno $1`"
-        else
-            version="bzr`bzr revno $1`"
-        fi
-    fi
-    if ! bzr diff $1 >/dev/null; then
-        mod="M"
-    fi
-    echo "${version}${mod}"
 }
 
 #
@@ -99,8 +74,6 @@ if [ -z $VERSION ]; then
         # Ok, we need to derive it from the Version Control system
         if [ -d "$TOP/.git" ]; then
 	    VER=`gitversion $TOP`
-        elif [ -d "$TOP/.bzr" ]; then
-	    VER=`bzrversion $TOP`
         else
 	    VER=`svnversion_safe $TOP`;
 	    if [ "$VER" = "unknown" ]; then

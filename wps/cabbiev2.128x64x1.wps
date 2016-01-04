@@ -1,5 +1,6 @@
-# cabbie 2.0 default rwps for Iriver Players by Johannes Voggenthaler (Zinc Alloy)
-# derived from cabbie 2.0 default rwps (C) 2007, Marc Guay
+# Cabbie v2.0
+# (C) 2007-2012 The Authors (see /rockbox/wps/AUTHORS)
+# Derived from "cabbie" (C) Yohann Misquitta
 #
 # Disable Status Bar
 %wd
@@ -11,12 +12,11 @@
 %xl(D,shuffle-128x64x1.bmp,0,1)
 %xl(E,repeat-128x64x1.bmp,0,0,4)
 %xl(F,playmode-128x64x1.bmp,0,0,5)
-%x(a,pbbackground-128x64x1.bmp,1,0)
 %xl(b,bar-128x64x1.bmp,2,0)
 #
 # Progress Bar
 %V(0,0,128,6,1)
-#%xd(a)
+%x(a,pbbackground-128x64x1.bmp,1,0)
 %pb(2,1,123,4,pb-128x64x1.bmp)
 #
 # Separator Bar

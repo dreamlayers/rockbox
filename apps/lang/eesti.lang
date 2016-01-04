@@ -2201,8 +2201,8 @@
   </voice>
 </phrase>
 <phrase>
-  id: LANG_RECORDING_FREQUENCY
-  desc: in the recording settings
+  id: LANG_FREQUENCY
+  desc: in recording and playback settings
   user: core
   <source>
     *: "Frequency"
@@ -4097,7 +4097,9 @@
     iaudiox5: "RECORD = Revert"
     iriverh10,iriverh10_5gb,sansae200*,sansafuze*: "PREV = Revert"
     gigabeatfx: "POWER = Revert"
+    sansafuzeplus: "BACK = Revert"
     vibe500: "CANCEL = Revert"
+    samsungyh*: "REW = Revert"
   </source>
   <dest>
     *: "OFF tagasi pöördumiseks"
@@ -4106,7 +4108,9 @@
     iaudiox5: "RECORD tagasi pöördumiseks"
     iriverh10,iriverh10_5gb,sansae200*,sansafuze*: "PREV tagasi pöördumiseks"
     gigabeatfx: "POWER tagasi pöördumiseks"
+    sansafuzeplus: "BACK tagasi pöördumiseks"
     vibe500: "C tagasi pöördumiseks"
+    samsungyh*: "REW tagasi pöördumiseks"
   </dest>
   <voice>
     *: ""
@@ -4190,11 +4194,13 @@
     *: "The disk is full. Press OFF to continue."
     iriverh100,iriverh120,iriverh300: "The disk is full. Press STOP to continue."
     vibe500: "The disk is full. Press PREV to continue."
+    samsungyh*: "Disk full. Press LEFT to continue."
   </source>
   <dest>
     *: "The disk is full. Press OFF to continue."
     iriverh100,iriverh120,iriverh300: "The disk is full. Press STOP to continue."
     vibe500: "The disk is full. Press PREV to continue."
+    samsungyh*: "Disk full. Press LEFT to continue."
   </dest>
   <voice>
     *: ""
@@ -4335,12 +4341,14 @@
     ipod*: "SELECT=Set MENU=Cancel"
     vibe500: "OK=Set C=Cancel"
     mpiohd300: "ENTER=Set MENU=Cancel"
+    sansafuzeplus: "SELECT=Set  BACK=Cancel"
   </source>
   <dest>
     *: "PLAY=Set OFF=Cancel"
     ipod*: "SELECT=Set MENU=Cancel"
     vibe500: "OK=Set C=Cancel"
     mpiohd300: "ENTER=Set MENU=Cancel"
+    sansafuzeplus: "SELECT=Set  BACK=Cancel"
   </dest>
   <voice>
     *: ""
@@ -6752,13 +6760,13 @@
 </phrase>
 <phrase>
   id: LANG_BACKDROP_LOADED
-  desc: text for splash to indicate a new backdrop has been loaded successfully
+  desc: deprecated
   user: core
   <source>
-    *: "Backdrop Loaded"
+    *: ""
   </source>
   <dest>
-    *: "Backdrop Loaded"
+    *: ""
   </dest>
   <voice>
     *: ""
@@ -6766,13 +6774,13 @@
 </phrase>
 <phrase>
   id: LANG_BACKDROP_FAILED
-  desc: text for splash to indicate a failure to load a bitmap as backdrop
+  desc: deprecated
   user: core
   <source>
-    *: "Backdrop Failed"
+    *: ""
   </source>
   <dest>
-    *: "Backdrop Failed"
+    *: ""
   </dest>
   <voice>
     *: ""
@@ -7046,13 +7054,13 @@
 </phrase>
 <phrase>
   id: LANG_FM_SAVE_CHANGES
-  desc: When you try to exit radio to confirm save
+  desc: deprecated
   user: core
   <source>
-    *: "Save Changes?"
+    *: ""
   </source>
   <dest>
-    *: "Save Changes?"
+    *: ""
   </dest>
   <voice>
     *: ""
@@ -7352,20 +7360,6 @@
   </voice>
 </phrase>
 <phrase>
-  id: LANG_REC_SIZE
-  desc: deprecated
-  user:
-  <source>
-    *: none
-  </source>
-  <dest>
-    *: none
-  </dest>
-  <voice>
-    *: none
-  </voice>
-</phrase>
-<phrase>
   id: LANG_SYSFONT_DIRBROWSE_F1
   desc: in dir browser, F1 button bar text
   user: core
@@ -7648,7 +7642,7 @@
   desc: in onplay menu
   user: core
   <source>
-    *: "Playlist catalog"
+    *: "Playlist Catalogue"
   </source>
   <dest>
     *: "Esitusloendi kaust"
@@ -7673,7 +7667,7 @@
 </phrase>
 <phrase>
   id: LANG_CATALOG_ADD_TO_NEW
-  desc: in onplay playlist catalog submenu
+  desc: in onplay playlist catalogue submenu
   user: core
   <source>
     *: "Add to new playlist"
@@ -7715,7 +7709,7 @@
 </phrase>
 <phrase>
   id: LANG_CATALOG_ADD_TO
-  desc: in onplay playlist catalog submenu
+  desc: in onplay playlist catalogue submenu
   user: core
   <source>
     *: "Add to playlist"
@@ -7785,10 +7779,10 @@
 </phrase>
 <phrase>
   id: LANG_CATALOG_VIEW
-  desc: in onplay playlist catalog submenu
+  desc: in onplay playlist catalogue submenu
   user: core
   <source>
-    *: "View catalog"
+    *: "View Catalogue"
   </source>
   <dest>
     *: "Vaata kausta"
@@ -7883,7 +7877,7 @@
 </phrase>
 <phrase>
   id: LANG_CATALOG_NO_DIRECTORY
-  desc: error message when playlist catalog directory doesn't exist
+  desc: error message when playlist catalogue directory doesn't exist
   user: core
   <source>
     *: "%s doesn't exist"
@@ -7897,7 +7891,7 @@
 </phrase>
 <phrase>
   id: LANG_CATALOG_NO_PLAYLISTS
-  desc: error message when no playlists for playlist catalog
+  desc: error message when no playlists for playlist catalogue
   user: core
   <source>
     *: "No playlists"

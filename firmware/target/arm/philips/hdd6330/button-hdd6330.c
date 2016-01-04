@@ -19,14 +19,16 @@
  *
  ****************************************************************************/
 
+#include "config.h"
 #include "system.h"
+#include "kernel.h"
 #include "button.h"
 #include "backlight.h"
 #include "powermgmt.h"
 #include "synaptics-mep.h"
 
 /*#define LOGF_ENABLE*/
-#include "logf.h"
+/*#include "logf.h"*/
 
 static int int_btn = BUTTON_NONE;
 #ifndef BOOTLOADER
@@ -34,18 +36,6 @@ static int old_pos = -1;
 static int scroll_repeat = BUTTON_NONE;
 #endif
 static int repeat = 0;
-
-/*
- * Generate a click sound from the player (not in headphones yet)
- * TODO: integrate this with the "key click" option
- */
-void button_click(void)
-{
-    GPO32_ENABLE |= 0x2000;
-    GPO32_VAL |= 0x2000;
-    udelay(1000);
-    GPO32_VAL &= ~0x2000;
-}
 
 #ifndef BOOTLOADER
 void button_init_device(void)
@@ -78,7 +68,11 @@ void button_int(void)
         if (data[1] & 0x8)
             int_btn |= BUTTON_VIEW;
     }
-    else if ((data[0] == MEP_ABSOLUTE_HEADER))
+    else if ((data[1] & MEP_GESTURE) && (data[3] >> 6) == 0) /* index = 0 */
+    {
+        int_btn |= BUTTON_TAP;
+    }
+    else if (data[0] == MEP_ABSOLUTE_HEADER)
     {
         if (data[1] & MEP_FINGER)
         {
@@ -136,7 +130,6 @@ bool button_hold(void)
  */
 int button_read_device(void)
 {
-    static int btn_old = BUTTON_NONE;
     int btn = int_btn;
 
     /* Hold */
@@ -160,11 +153,6 @@ int button_read_device(void)
         repeat = BUTTON_NONE;
         btn = BUTTON_NONE;
     }
-
-    if ((btn != btn_old) && (btn != BUTTON_NONE))
-        button_click();
-
-    btn_old = btn;
 
     return btn;
 }

@@ -2,8 +2,6 @@
  * This config file is for the Philips GoGear HDD63x0
  */
 
-#define TARGET_TREE /* this target is using the target tree system */
-
 /* For Rolo and boot loader */
 #define MODEL_NUMBER 65
 #define MODEL_NAME   "Philips GoGear HDD63x0"
@@ -47,21 +45,20 @@
 /* define this if you have access to the quickscreen */
 #define HAVE_QUICKSCREEN
 
-/* define this if you have access to the pitchscreen */
-#define HAVE_PITCHSCREEN
-
 /* define this if you would like tagcache to build on this target */
 #define HAVE_TAGCACHE
 
 /* LCD dimensions */
 #define LCD_WIDTH  220
 #define LCD_HEIGHT 176
+/* sqrt(220^2 + 176^2) / 2.0 = 140.9 */
+#define LCD_DPI 141
 #define LCD_DEPTH  16   /* 65536 colours */
 #define LCD_PIXELFORMAT RGB565SWAPPED /* rgb565 byte-swapped */
 
 #ifndef BOOTLOADER
 /* Define this if your LCD can be enabled/disabled */
-/* #define HAVE_LCD_ENABLE */
+#define HAVE_LCD_ENABLE
 
 /* Define this if your LCD can be put to sleep. HAVE_LCD_ENABLE
  * should be defined as well.
@@ -79,6 +76,8 @@
 /* #define IRAM_LCDFRAMEBUFFER IDATA_ATTR *//* put the lcd frame buffer in IRAM */
 
 #define CONFIG_KEYPAD PHILIPS_HDD6330_PAD
+
+#define HAVE_HARDWARE_CLICK
 
 /* Define this to enable morse code input */
 #define HAVE_MORSE_INPUT
@@ -111,7 +110,7 @@
 /* WM8731 has no tone controls, so we use the software ones */
 #define HAVE_SW_TONE_CONTROLS
 
-/* TODO: #define AB_REPEAT_ENABLE */
+#define AB_REPEAT_ENABLE
 
 /* FM Tuner */
 #define CONFIG_TUNER      TEA5767
@@ -124,7 +123,9 @@
 /* Define this for LCD backlight available */
 #define HAVE_BACKLIGHT
 #define HAVE_BACKLIGHT_BRIGHTNESS
-/* #define CONFIG_BACKLIGHT_FADING     BACKLIGHT_FADING_SW_SETTING */
+
+/* Which backlight fading type? */
+#define CONFIG_BACKLIGHT_FADING BACKLIGHT_FADING_SW_SETTING
 
 /* Main LCD backlight brightness range and defaults */
 #define MIN_BRIGHTNESS_SETTING      1
@@ -135,11 +136,16 @@
 #define HAVE_BUTTON_LIGHT
 #define HAVE_BUTTONLIGHT_BRIGHTNESS
 
+/* Define this if you can detect headphones */
+#define HAVE_HEADPHONE_DETECTION
+
 #define BATTERY_CAPACITY_DEFAULT 840 /* default battery capacity */
 #define BATTERY_CAPACITY_MIN     800 /* min. capacity selectable */
 #define BATTERY_CAPACITY_MAX    1200 /* max. capacity selectable */
 #define BATTERY_CAPACITY_INC      20 /* capacity increment */
 #define BATTERY_TYPES_COUNT        1 /* only one type */
+
+#define CONFIG_BATTERY_MEASURE VOLTAGE_MEASURE
 
 /* Hardware controlled charging */
 #define CONFIG_CHARGING CHARGING_SIMPLE
@@ -154,7 +160,7 @@
 #define CONFIG_I2C I2C_PP5020
 
 /* define this if the hardware can be powered off while charging */
-#define HAVE_POWEROFF_WHILE_CHARGING
+/* #define HAVE_POWEROFF_WHILE_CHARGING */
 
 /* The start address index for ROM builds */
 #define ROM_START 0x00000000
@@ -188,7 +194,6 @@
 
 /* enable these for the experimental usb stack */
 #define HAVE_USBSTACK
-#define USE_ROCKBOX_USB
 #define USB_VENDOR_ID 0x0471
 #define USB_PRODUCT_ID 0x014B
 #define HAVE_USB_HID_MOUSE

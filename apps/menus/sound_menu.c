@@ -34,11 +34,50 @@
 #include "menu_common.h"
 #include "splash.h"
 #include "kernel.h"
-#include "dsp.h"
+#include "talk.h"
+#include "option_select.h"
+#include "misc.h"
+
+static int32_t get_dec_talkid(int value, int unit)
+{
+    return TALK_ID_DECIMAL(value, 1, unit);
+}
+
+static int volume_limit_callback(int action,const struct menu_item_ex *this_item)
+{
+    (void)this_item;
+
+    static struct int_setting volume_limit_int_setting;
+    volume_limit_int_setting.option_callback = NULL;
+    volume_limit_int_setting.unit = UNIT_DB;
+    volume_limit_int_setting.min = sound_min(SOUND_VOLUME);
+    volume_limit_int_setting.max = sound_max(SOUND_VOLUME);
+    volume_limit_int_setting.step = sound_steps(SOUND_VOLUME);
+    volume_limit_int_setting.formatter = NULL;
+    volume_limit_int_setting.get_talk_id = get_dec_talkid;
+
+    struct settings_list setting;
+    setting.flags = F_BANFROMQS|F_INT_SETTING|F_T_INT|F_NO_WRAP;
+    setting.lang_id = LANG_VOLUME_LIMIT;
+    setting.default_val.int_ = sound_max(SOUND_VOLUME);
+    setting.int_setting = &volume_limit_int_setting;
+
+    switch (action)
+    {
+        case ACTION_ENTER_MENUITEM:
+            setting.setting = &global_settings.volume_limit;
+            option_screen(&setting, NULL, false, ID2P(LANG_VOLUME_LIMIT));
+        case ACTION_EXIT_MENUITEM: /* on exit */
+            setvol();
+            break;
+    }
+    return action;
+}
 
 /***********************************/
 /*    SOUND MENU                   */
 MENUITEM_SETTING(volume, &global_settings.volume, NULL);
+MENUITEM_SETTING(volume_limit, &global_settings.volume_limit, volume_limit_callback);
 #ifdef AUDIOHW_HAVE_BASS
 MENUITEM_SETTING(bass, &global_settings.bass,
 #ifdef HAVE_SW_TONE_CONTROLS
@@ -89,6 +128,10 @@ MENUITEM_SETTING(stereo_width, &global_settings.stereo_width,
 MENUITEM_SETTING(depth_3d, &global_settings.depth_3d, NULL);
 #endif
 
+#ifdef AUDIOHW_HAVE_FILTER_ROLL_OFF
+MENUITEM_SETTING(roll_off, &global_settings.roll_off, NULL);
+#endif
+
 #if CONFIG_CODEC == SWCODEC
     /* Crossfeed Submenu */
     MENUITEM_SETTING(crossfeed, &global_settings.crossfeed, lowlatency_callback);
@@ -104,7 +147,7 @@ MENUITEM_SETTING(depth_3d, &global_settings.depth_3d, NULL);
               &crossfeed, &crossfeed_direct_gain, &crossfeed_cross_gain,
               &crossfeed_hf_attenuation, &crossfeed_hf_cutoff);
 
-#ifdef HAVE_PITCHSCREEN
+#ifdef HAVE_PITCHCONTROL
 static int timestretch_callback(int action,const struct menu_item_ex *this_item)
 {
     switch (action)
@@ -123,21 +166,51 @@ static int timestretch_callback(int action,const struct menu_item_ex *this_item)
 
     MENUITEM_SETTING(dithering_enabled,
                      &global_settings.dithering_enabled, lowlatency_callback);
+    MENUITEM_SETTING(afr_enabled,
+                     &global_settings.afr_enabled, lowlatency_callback);
+    MENUITEM_SETTING(pbe,
+                     &global_settings.pbe, lowlatency_callback);
+    MENUITEM_SETTING(pbe_precut,
+                     &global_settings.pbe_precut, lowlatency_callback);
+    MAKE_MENU(pbe_menu,ID2P(LANG_PBE), NULL, Icon_NOICON,
+              &pbe,&pbe_precut);
+    MENUITEM_SETTING(surround_enabled,
+                     &global_settings.surround_enabled, lowlatency_callback);
+    MENUITEM_SETTING(surround_balance,
+                     &global_settings.surround_balance, lowlatency_callback);
+    MENUITEM_SETTING(surround_fx1,
+                     &global_settings.surround_fx1, lowlatency_callback);
+    MENUITEM_SETTING(surround_fx2,
+                     &global_settings.surround_fx2, lowlatency_callback);
+    MENUITEM_SETTING(surround_method2,
+                     &global_settings.surround_method2, lowlatency_callback);
+    MENUITEM_SETTING(surround_mix,
+                     &global_settings.surround_mix, lowlatency_callback);
+    MAKE_MENU(surround_menu,ID2P(LANG_SURROUND), NULL, Icon_NOICON,
+              &surround_enabled,&surround_balance,&surround_fx1,&surround_fx2,&surround_method2,&surround_mix);
 
     /* compressor submenu */
     MENUITEM_SETTING(compressor_threshold,
-                     &global_settings.compressor_threshold, lowlatency_callback);
+                     &global_settings.compressor_settings.threshold,
+                     lowlatency_callback);
     MENUITEM_SETTING(compressor_gain,
-                     &global_settings.compressor_makeup_gain, lowlatency_callback);
+                     &global_settings.compressor_settings.makeup_gain,
+                     lowlatency_callback);
     MENUITEM_SETTING(compressor_ratio,
-                     &global_settings.compressor_ratio, lowlatency_callback);
+                     &global_settings.compressor_settings.ratio,
+                     lowlatency_callback);
     MENUITEM_SETTING(compressor_knee,
-                     &global_settings.compressor_knee, lowlatency_callback);
+                     &global_settings.compressor_settings.knee,
+                     lowlatency_callback);
+    MENUITEM_SETTING(compressor_attack,
+                     &global_settings.compressor_settings.attack_time,
+                     lowlatency_callback);
     MENUITEM_SETTING(compressor_release,
-                     &global_settings.compressor_release_time, lowlatency_callback);
+                     &global_settings.compressor_settings.release_time,
+                     lowlatency_callback);
     MAKE_MENU(compressor_menu,ID2P(LANG_COMPRESSOR), NULL, Icon_NOICON,
               &compressor_threshold, &compressor_gain, &compressor_ratio,
-              &compressor_knee, &compressor_release);
+              &compressor_knee, &compressor_attack, &compressor_release);
 #endif
 
 #if (CONFIG_CODEC == MAS3587F) || (CONFIG_CODEC == MAS3539F)
@@ -160,6 +233,7 @@ static int timestretch_callback(int action,const struct menu_item_ex *this_item)
 
 MAKE_MENU(sound_settings, ID2P(LANG_SOUND_SETTINGS), NULL, Icon_Audio,
           &volume
+          ,&volume_limit
 #ifdef AUDIOHW_HAVE_BASS
           ,&bass
 #endif
@@ -179,9 +253,13 @@ MAKE_MENU(sound_settings, ID2P(LANG_SOUND_SETTINGS), NULL, Icon_Audio,
 #ifdef AUDIOHW_HAVE_DEPTH_3D
           ,&depth_3d
 #endif
+#ifdef AUDIOHW_HAVE_FILTER_ROLL_OFF
+          ,&roll_off
+#endif
 #if CONFIG_CODEC == SWCODEC
           ,&crossfeed_menu, &equalizer_menu, &dithering_enabled
-#ifdef HAVE_PITCHSCREEN
+          ,&surround_menu, &pbe_menu, &afr_enabled
+#ifdef HAVE_PITCHCONTROL
           ,&timestretch_enabled
 #endif
           ,&compressor_menu

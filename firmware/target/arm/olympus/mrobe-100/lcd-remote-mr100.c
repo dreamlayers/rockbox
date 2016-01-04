@@ -24,6 +24,7 @@
 #include "thread.h"
 #include "system.h"
 #include "lcd-remote.h"
+#include "lcd-remote-target.h"
 #include "button.h"
 #include "button-target.h"
 
@@ -67,9 +68,9 @@ unsigned char rc_buf[5];
 /* Remote thread functions                            */
 /*   These functions are private to the remote thread */
 /* ================================================== */
-static struct wakeup rc_thread_wakeup;
+static struct semaphore rc_thread_wakeup;
 static unsigned int remote_thread_id;
-static int remote_stack[256/sizeof(int)];
+static int remote_stack[512/sizeof(int)];
 static const char * const remote_thread_name = "remote";
 
 static bool remote_wait_ready(int ready_mask)
@@ -233,7 +234,7 @@ static void remote_dev_enable(bool enable)
     }
 }
 
-void remote_update_lcd(void)
+static void remote_update_lcd(void)
 {
     int x, y, draw_now;
     unsigned char data[RC_WIDTH + 7];
@@ -254,7 +255,7 @@ void remote_update_lcd(void)
         data[6] = (y + 1) << 3;     /* y2    */
 
         for (x = 0; x < RC_WIDTH; x++)
-            data[x + 7] = lcd_remote_framebuffer[y][x];
+            data[x + 7] = *FBREMOTEADDR(x,y);
 
         remote_tx(data, RC_WIDTH + 7);
 
@@ -368,7 +369,7 @@ static void remote_thread(void)
 
     while (1)
     {
-        wakeup_wait(&rc_thread_wakeup, rc_thread_wait_timeout);
+        semaphore_wait(&rc_thread_wakeup, rc_thread_wait_timeout);
 
         /* Error handling (most likely due to remote not present) */
         if (rc_status & RC_ERROR_MASK)
@@ -486,21 +487,11 @@ void lcd_remote_set_contrast(int val)
     rc_status |= RC_UPDATE_CONTROLLER;
 }
 
-void lcd_remote_backlight(bool on)
-{
-    if (on)
-        rc_status |= RC_BACKLIGHT_ON;
-    else
-        rc_status &= ~RC_BACKLIGHT_ON;
-
-    rc_status |= RC_UPDATE_CONTROLLER;
-}
-
 void lcd_remote_off(void)
 {
     /* should only be used to power off at shutdown */
     rc_status |= RC_POWER_OFF;
-    wakeup_signal(&rc_thread_wakeup);
+    semaphore_release(&rc_thread_wakeup);
 
     /* wait until the things are powered off */
     while (rc_status & RC_DEV_INIT)
@@ -509,14 +500,14 @@ void lcd_remote_off(void)
 
 void lcd_remote_on(void)
 {
-    /* Only wake the remote thread if it's in the blocked state. */
-    struct thread_entry *rc_thread = thread_id_entry(remote_thread_id);
-    if (rc_thread->state == STATE_BLOCKED || (rc_status & RC_FORCE_DETECT))
+    if (semaphore_wait(&rc_thread_wakeup, 0) == OBJ_WAIT_TIMEDOUT ||
+        (rc_status & RC_FORCE_DETECT))
     {
         rc_status &= ~RC_FORCE_DETECT;
         rc_status &= ~RC_POWER_OFF;
-        wakeup_signal(&rc_thread_wakeup);
     }
+
+    semaphore_release(&rc_thread_wakeup);
 }
 
 bool remote_detect(void)
@@ -536,7 +527,7 @@ void lcd_remote_init_device(void)
     GPIO_SET_BITWISE(GPIOL_OUTPUT_EN, 0x80);
 
     /* a thread is required to poll & update the remote */
-    wakeup_init(&rc_thread_wakeup);
+    semaphore_init(&rc_thread_wakeup, 1, 0);
     remote_thread_id = create_thread(remote_thread, remote_stack,
                             sizeof(remote_stack), 0, remote_thread_name
                             IF_PRIO(, PRIORITY_SYSTEM)
@@ -559,4 +550,16 @@ void lcd_remote_update_rect(int x, int y, int width, int height)
     (void)height;
 
     rc_status |= RC_UPDATE_LCD;
+}
+
+void remote_backlight_hw_on(void)
+{
+    rc_status |= RC_BACKLIGHT_ON;
+    rc_status |= RC_UPDATE_CONTROLLER;
+}
+
+void remote_backlight_hw_off(void)
+{
+    rc_status &= ~RC_BACKLIGHT_ON;
+    rc_status |= RC_UPDATE_CONTROLLER;
 }

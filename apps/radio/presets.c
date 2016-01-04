@@ -30,7 +30,7 @@
 #include "file.h"
 #include "string-extra.h"
 #include "misc.h"
-#include "filefuncs.h"
+#include "pathfuncs.h"
 #include "lang.h"
 #include "action.h"
 #include "list.h"
@@ -49,7 +49,6 @@ extern int curr_freq; /* from radio.c.. naughty but meh */
 extern int radio_mode;
 int snap_freq_to_grid(int freq);
 void remember_frequency(void);
-void talk_freq(int freq, bool enqueue);
 
 #define MAX_PRESETS 64
 static bool presets_loaded = false;
@@ -59,8 +58,6 @@ static struct fmstation presets[MAX_PRESETS];
 static char filepreset[MAX_PATH]; /* preset filename variable */
 
 static int num_presets = 0; /* The number of presets in the preset list */
-
-bool yesno_pop(const char* text); /* radio.c */
 
 int radio_current_preset(void)
 {
@@ -178,10 +175,9 @@ void preset_talk(int preset, bool fallback, bool enqueue)
         if(presets[preset].name[0])
             talk_spell(presets[preset].name, enqueue);
         else if(fallback)
-             talk_freq(presets[preset].frequency, enqueue);
+            talk_value_decimal(presets[preset].frequency, UNIT_INT, 6, enqueue);
     }
 }
-
 
 void radio_save_presets(void)
 {
@@ -543,7 +539,6 @@ int handle_radio_presets(void)
 int presets_scan(void *viewports)
 {
     bool do_scan = true;
-    int i;
     struct viewport *vp = (struct viewport *)viewports;
 
     FOR_NB_SCREENS(i)
@@ -622,6 +617,7 @@ void presets_save(void)
         radio_save_presets();
 }
 
+#if 0 /* disabled in draw_progressbar() */
 #ifdef HAVE_LCD_BITMAP
 static inline void draw_vertical_line_mark(struct screen * screen,
                                            int x, int y, int h)
@@ -647,4 +643,5 @@ void presets_draw_markers(struct screen *screen,
         draw_vertical_line_mark(screen, xi, y, h);
     }
 }
+#endif
 #endif

@@ -23,6 +23,7 @@
 #include "config.h"
 #include "logf.h"
 #include "system.h"
+#include "kernel.h"
 #include "audio.h"
 #include "debug.h"
 #include "udacodec.h"
@@ -40,22 +41,8 @@
 #define USE_WSPLL
 #endif
 
-const struct sound_settings_info audiohw_settings[] = {
-    [SOUND_VOLUME]        = {"dB", 0,  1, -84,   0, -25},
-    [SOUND_BASS]          = {"dB", 0,  2,   0,  24,   0},
-    [SOUND_TREBLE]        = {"dB", 0,  2,   0,   6,   0},
-    [SOUND_BALANCE]       = {"%",  0,  1,-100, 100,   0},
-    [SOUND_CHANNELS]      = {"",   0,  1,   0,   5,   0},
-    [SOUND_STEREO_WIDTH]  = {"%",  0,  5,   0, 250, 100},
-#ifdef HAVE_RECORDING
-    [SOUND_LEFT_GAIN]     = {"dB", 1,  1,-128,  96,   0},
-    [SOUND_RIGHT_GAIN]    = {"dB", 1,  1,-128,  96,   0},
-    [SOUND_MIC_GAIN]      = {"dB", 1,  1,-128, 108,  16},
-#endif
-};
-
 /* convert tenth of dB volume (-840..0) to master volume register value */
-int tenthdb2master(int db)
+static int vol_tenthdb2hw(int db)
 {
     if (db < -720)                  /* 1.5 dB steps */
         return (2940 - db) / 15;
@@ -68,7 +55,7 @@ int tenthdb2master(int db)
 }
 
 /* convert tenth of dB volume (-780..0) to mixer volume register value */
-int tenthdb2mixer(int db)
+static int mixer_tenthdb2hw(int db)
 {
     if (db < -660)                 /* 1.5 dB steps */
         return (2640 - db) / 15;
@@ -89,18 +76,34 @@ static unsigned short uda1380_regs[0x30];
 static short recgain_mic;
 static short recgain_line;
 
+#ifdef USE_WSPLL
+
+/* Internal control of WSPLL */
+static bool wspll_enable = false;
+
+static void wspll_on(bool on)
+{
+    uda1380_regs[REG_0] &= ~(ADC_CLK | DAC_CLK);
+    uda1380_regs[REG_PWR] &= ~PON_PLL;
+
+    unsigned short pll_ena = (on) ? (ADC_CLK | DAC_CLK) : 0;
+    unsigned short pll_pow = (on) ? PON_PLL : 0;
+
+    uda1380_write_reg(REG_0, uda1380_regs[REG_0] | pll_ena);
+    uda1380_write_reg(REG_PWR, uda1380_regs[REG_PWR] | pll_pow);
+
+    wspll_enable = on;
+}
+#endif
+
 /* Definition of a playback configuration to start with */
 
 #define NUM_DEFAULT_REGS 13
 static const unsigned short uda1380_defaults[2*NUM_DEFAULT_REGS] =
 {
-   REG_0,          EN_DAC | EN_INT | EN_DEC |
-#ifdef USE_WSPLL
-                   ADC_CLK | DAC_CLK | WSPLL_25_50 |
-#endif
-                   SYSCLK_256FS,
+   REG_0,          EN_DAC | EN_INT | EN_DEC | WSPLL_25_50 | SYSCLK_256FS,
    REG_I2S,        I2S_IFMT_IIS,
-   REG_PWR,        PON_PLL | PON_BIAS,
+   REG_PWR,        PON_BIAS,
                    /* PON_HP & PON_DAC is enabled later */
    REG_AMIX,       AMIX_RIGHT(0x3f) | AMIX_LEFT(0x3f),
                    /* 00=max, 3f=mute */
@@ -112,8 +115,8 @@ static const unsigned short uda1380_defaults[2*NUM_DEFAULT_REGS] =
                    /* Bass and treble = 0 dB */
    REG_MUTE,       MUTE_MASTER | MUTE_CH2,
                    /* Mute everything to start with */
-   REG_MIX_CTL,    MIX_CTL_MIX,
-                   /* Enable mixer */
+   REG_MIX_CTL,    MIX_CTL_MIX | OVERSAMPLE_MODE(3),
+                   /* Enable mixer and 4x oversampling */
    REG_DEC_VOL,    0,
    REG_PGA,        MUTE_ADC,
    REG_ADC,        SKIP_DCFIL,
@@ -138,19 +141,12 @@ static int uda1380_write_reg(unsigned char reg, unsigned short value)
 /**
  * Sets left and right master volume  (0(max) to 252(muted))
  */
-void audiohw_set_master_vol(int vol_l, int vol_r)
+void audiohw_set_volume(int vol_l, int vol_r)
 {
+    vol_l = vol_tenthdb2hw(vol_l);
+    vol_r = vol_tenthdb2hw(vol_r);
     uda1380_write_reg(REG_MASTER_VOL,
-                             MASTER_VOL_LEFT(vol_l) | MASTER_VOL_RIGHT(vol_r));
-}
-
-/**
- * Sets mixer volume for both channels (0(max) to 228(muted))
- */
-void audiohw_set_mixer_vol(int channel1, int channel2)
-{
-    uda1380_write_reg(REG_MIX_VOL,
-                             MIX_VOL_CH_1(channel1) | MIX_VOL_CH_2(channel2));
+                      MASTER_VOL_LEFT(vol_l) | MASTER_VOL_RIGHT(vol_r));
 }
 
 /**
@@ -245,6 +241,22 @@ void audiohw_set_frequency(int fsel)
 
     ent = values_reg[fsel];
 
+#ifdef USE_WSPLL
+    /* Enable WSPLL if needed (for Iriver H100 and H300 series) */
+    if (fsel == HW_FREQ_88)
+    {
+      /* Only at this case we need use WSPLL on DAC part for Iriver H100 and H300 series, because Coldfire work
+       at 11289600 Hz frequency and SYSCLK of UDA1380 can only be 256fs, 384fs, 512fs and 768fs. But in this case SYSCLK
+       is 128fs : 11289600 / 88200 = 128  */
+      if (!wspll_enable) wspll_on(true);
+    }
+    else
+    {
+      /* At this case WSPLL clock and SYSCLK has same value and we don't use WSPLL to avoid WSPLL errors */
+      if (wspll_enable) wspll_on(false);
+    }
+#endif
+
     /* Set WSPLL input frequency range or SYSCLK divider */
     uda1380_regs[REG_0] &= ~0xf;
     uda1380_write_reg(REG_0, uda1380_regs[REG_0] | ent[1]);
@@ -285,7 +297,9 @@ void audiohw_postinit(void)
 
 void audiohw_set_prescaler(int val)
 {
-    audiohw_set_mixer_vol(tenthdb2mixer(-val), tenthdb2mixer(-val));
+    val = mixer_tenthdb2hw(-val);
+    uda1380_write_reg(REG_MIX_VOL,
+                      MIX_VOL_CH_1(val) | MIX_VOL_CH_2(val));
 }
 
 /* Nice shutdown of UDA1380 codec */
@@ -310,7 +324,7 @@ void audiohw_close(void)
 void audiohw_enable_recording(bool source_mic)
 {
 #ifdef USE_WSPLL
-    uda1380_regs[REG_0] &= ~(ADC_CLK | DAC_CLK);
+    if (wspll_enable) uda1380_regs[REG_0] &= ~(ADC_CLK | DAC_CLK);
 #endif
     uda1380_write_reg(REG_0, uda1380_regs[REG_0] | EN_ADC);
 
@@ -357,7 +371,7 @@ void audiohw_disable_recording(void)
 
     uda1380_regs[REG_0] &= ~EN_ADC;
 #ifdef USE_WSPLL
-    uda1380_write_reg(REG_0,   uda1380_regs[REG_0] | ADC_CLK | DAC_CLK);
+    if (wspll_enable) uda1380_write_reg(REG_0,   uda1380_regs[REG_0] | ADC_CLK | DAC_CLK);
 #endif
 
     uda1380_write_reg(REG_ADC, SKIP_DCFIL);

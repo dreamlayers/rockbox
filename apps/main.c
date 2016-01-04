@@ -19,32 +19,33 @@
  *
  ****************************************************************************/
 #include "config.h"
+#include "system.h"
 
 #include "gcc_extensions.h"
 #include "storage.h"
 #include "disk.h"
-#include "fat.h"
+#include "file_internal.h"
 #include "lcd.h"
 #include "rtc.h"
 #include "debug.h"
 #include "led.h"
-#include "kernel.h"
+#include "../kernel-internal.h"
 #include "button.h"
 #include "tree.h"
 #include "filetypes.h"
 #include "panic.h"
 #include "menu.h"
-#include "system.h"
 #include "usb.h"
 #include "powermgmt.h"
+#if !defined(DX50) && !defined(DX90)
 #include "adc.h"
+#endif
 #include "i2c.h"
 #ifndef DEBUG
 #include "serial.h"
 #endif
 #include "audio.h"
 #include "mp3_playback.h"
-#include "thread.h"
 #include "settings.h"
 #include "backlight.h"
 #include "status.h"
@@ -53,7 +54,7 @@
 #include "language.h"
 #include "wps.h"
 #include "playlist.h"
-#include "buffer.h"
+#include "core_alloc.h"
 #include "rolo.h"
 #include "screens.h"
 #include "usb_screen.h"
@@ -76,15 +77,18 @@
 #include "skin_engine/skin_engine.h"
 #include "statusbar-skinned.h"
 #include "bootchart.h"
-#if defined(APPLICATION) && (CONFIG_PLATFORM & PLATFORM_ANDROID)
+#include "logdiskf.h"
+#if (CONFIG_PLATFORM & PLATFORM_ANDROID)
 #include "notification.h"
 #endif
+#include "shortcuts.h"
 
 #ifdef IPOD_ACCESSORY_PROTOCOL
 #include "iap.h"
 #endif
 
 #if (CONFIG_CODEC == SWCODEC)
+#include "audio_thread.h"
 #include "playback.h"
 #include "tdspeed.h"
 #endif
@@ -117,6 +121,10 @@
 #include "m5636.h"
 #endif
 
+#ifdef HAVE_HARDWARE_CLICK
+#include "piezo.h"
+#endif
+
 #if (CONFIG_PLATFORM & PLATFORM_NATIVE)
 #define MAIN_NORETURN_ATTR NORETURN_ATTR
 #else
@@ -125,8 +133,10 @@
 #define MAIN_NORETURN_ATTR
 #endif
 
-#if (CONFIG_PLATFORM & PLATFORM_SDL)
+#if (CONFIG_PLATFORM & (PLATFORM_SDL|PLATFORM_MAEMO|PLATFORM_PANDORA))
+#ifdef SIMULATOR
 #include "sim_tasks.h"
+#endif
 #include "system-sdl.h"
 #define HAVE_ARGV_MAIN
 /* Don't use SDL_main on windows -> no more stdio redirection */
@@ -152,7 +162,6 @@ int main(void) INIT_ATTR MAIN_NORETURN_ATTR;
 int main(void)
 {
 #endif
-    int i;
     CHART(">init");
     init();
     CHART("<init");
@@ -175,7 +184,7 @@ int main(void)
 #ifdef AUTOROCK
     {
         char filename[MAX_PATH];
-        const char *file = 
+        const char *file =
 #ifdef APPLICATION
                                 ROCKBOX_DIR
 #else
@@ -196,98 +205,71 @@ int main(void)
     root_menu();
 }
 
-static int init_dircache(bool preinit) INIT_ATTR;
-static int init_dircache(bool preinit)
-{
 #ifdef HAVE_DIRCACHE
-    int result = 0;
-    bool clear = false;
-    
+static int INIT_ATTR init_dircache(bool preinit)
+{
     if (preinit)
-        dircache_init();
-    
+        dircache_init(MAX(global_status.dircache_size, 0));
+
     if (!global_settings.dircache)
-        return 0;
-    
-# ifdef HAVE_EEPROM_SETTINGS
-    if (firmware_settings.initialized && firmware_settings.disk_clean 
-        && preinit)
+        return -1;
+
+    int result = -1;
+
+#ifdef HAVE_EEPROM_SETTINGS
+    if (firmware_settings.initialized &&
+        firmware_settings.disk_clean &&
+        preinit)
     {
         result = dircache_load();
-
         if (result < 0)
-        {
             firmware_settings.disk_clean = false;
-            if (global_status.dircache_size <= 0)
-            {
-                /* This will be in default language, settings are not
-                   applied yet. Not really any easy way to fix that. */
-                splash(0, str(LANG_SCANNING_DISK));
-                clear = true;
-            }
-            
-            dircache_build(global_status.dircache_size);
-        }
     }
     else
-# endif
+#endif /* HAVE_EEPROM_SETTINGS */
+    if (!preinit)
     {
-        if (preinit)
-            return -1;
-        
-        if (!dircache_is_enabled()
-            && !dircache_is_initializing())
+        result = dircache_enable();
+        if (result != 0)
         {
-            if (global_status.dircache_size <= 0)
+            if (result > 0)
             {
+                /* Print "Scanning disk..." to the display. */
                 splash(0, str(LANG_SCANNING_DISK));
-                clear = true;
+                dircache_wait();
+                backlight_on();
+                show_logo();
             }
-            result = dircache_build(global_status.dircache_size);
+
+            struct dircache_info info;
+            dircache_get_info(&info);
+            global_status.dircache_size = info.size;
+            status_save();
         }
-        
-        if (result < 0)
-        {
-            /* Initialization of dircache failed. Manual action is
-             * necessary to enable dircache again.
-             */
-            splashf(0, "Dircache failed, disabled. Result: %d", result);
-            global_settings.dircache = false;
-        }
+        /* else don't wait or already enabled by load */
     }
-    
-    if (clear)
-    {
-        backlight_on();
-        show_logo();
-        global_status.dircache_size = dircache_get_cache_size();
-        status_save();
-    }
-    
+
     return result;
-#else
-    (void)preinit;
-    return 0;
-#endif
 }
+#endif /* HAVE_DIRCACHE */
 
 #ifdef HAVE_TAGCACHE
 static void init_tagcache(void) INIT_ATTR;
 static void init_tagcache(void)
 {
     bool clear = false;
-#if CONFIG_CODEC == SWCODEC
+#if 0 /* CONFIG_CODEC == SWCODEC */
     long talked_tick = 0;
 #endif
     tagcache_init();
-    
+
     while (!tagcache_is_initialized())
     {
         int ret = tagcache_get_commit_step();
 
         if (ret > 0)
         {
-#if CONFIG_CODEC == SWCODEC
+#if 0 /* FIXME: Audio isn't even initialized yet! */ /* CONFIG_CODEC == SWCODEC */
             /* hwcodec can't use voice here, as the database commit
              * uses the audio buffer. */
             if(global_settings.talk_menu
@@ -314,7 +296,7 @@ static void init_tagcache(void)
             }
 #else
             lcd_double_height(false);
-            lcd_putsf(0, 1, " DB [%d/%d]", ret, 
+            lcd_putsf(0, 1, " DB [%d/%d]", ret,
                 tagcache_get_max_commit_step());
             lcd_update();
 #endif
@@ -337,30 +319,39 @@ static void init_tagcache(void)
 static void init(void)
 {
     system_init();
+    core_allocator_init();
     kernel_init();
 #ifdef APPLICATION
     paths_init();
 #endif
-    buffer_init();
     enable_irq();
     lcd_init();
 #ifdef HAVE_REMOTE_LCD
     lcd_remote_init();
 #endif
+#ifdef HAVE_LCD_BITMAP
+    FOR_NB_SCREENS(i)
+        global_status.font_id[i] = FONT_SYSFIXED;
     font_init();
+#endif
     show_logo();
     button_init();
+    powermgmt_init();
     backlight_init();
-#if (CONFIG_PLATFORM & PLATFORM_SDL)
+    unicode_init();
+#ifdef SIMULATOR
     sim_tasks_init();
 #endif
 #if (CONFIG_PLATFORM & PLATFORM_ANDROID)
     notification_init();
 #endif
-    lang_init(core_language_builtin, language_strings, 
+    lang_init(core_language_builtin, language_strings,
               LANG_LAST_INDEX_IN_ARRAY);
 #ifdef DEBUG
     debug_init();
+#endif
+#if CONFIG_TUNER
+    radio_init();
 #endif
     /* Keep the order of this 3 (viewportmanager handles statusbars)
      * Must be done before any code uses the multi-screen API */
@@ -370,19 +361,24 @@ static void init(void)
     viewportmanager_init();
 
     storage_init();
+#if CONFIG_CODEC == SWCODEC
+    pcm_init();
+    dsp_init();
+#endif
     settings_reset();
     settings_load(SETTINGS_ALL);
     settings_apply(true);
+#ifdef HAVE_DIRCACHE
     init_dircache(true);
     init_dircache(false);
+#endif
 #ifdef HAVE_TAGCACHE
     init_tagcache();
 #endif
-    sleep(HZ/2);
     tree_mem_init();
     filetype_init();
     playlist_init();
-    theme_init_buffer();
+    shortcuts_init();
 
 #if CONFIG_CODEC != SWCODEC
     mp3_init( global_settings.volume,
@@ -399,23 +395,19 @@ static void init(void)
               global_settings.mdb_shape,
               global_settings.mdb_enable,
               global_settings.superbass);
-
-    /* audio_init must to know the size of voice buffer so init voice first */
-    talk_init();
 #endif /* CONFIG_CODEC != SWCODEC */
 
-    scrobbler_init();
-#if CONFIG_CODEC == SWCODEC && defined (HAVE_PITCHSCREEN)
-    tdspeed_init();
-#endif /* CONFIG_CODEC == SWCODEC */
+    if (global_settings.audioscrobbler)
+        scrobbler_init();
 
     audio_init();
-    button_clear_queue(); /* Empty the keyboard buffer */
-    
+
     settings_apply_skins();
 }
 
 #else
+
+#include "errno.h"
 
 static void init(void) INIT_ATTR;
 static void init(void)
@@ -428,14 +420,11 @@ static void init(void)
 #endif
 
     system_init();
-#if defined(IPOD_VIDEO)
-    audiobufend=(unsigned char *)audiobufend_lds;
-    if(MEM==64 && probed_ramsize!=64)
-    {
-        audiobufend -= (32<<20);
-    }
-#endif
+    core_allocator_init();
     kernel_init();
+
+    /* early early early! */
+    filesystem_init();
 
 #ifdef HAVE_ADJUSTABLE_CPU_FREQ
     set_cpu_frequency(CPUFREQ_NORMAL);
@@ -444,13 +433,9 @@ static void init(void)
 #endif
     cpu_boost(true);
 #endif
-    
-    buffer_init();
-
-    settings_reset();
 
     i2c_init();
-    
+
     power_init();
 
     enable_irq();
@@ -460,16 +445,23 @@ static void init(void)
     /* current_tick should be ticking by now */
     CHART("ticking");
 
+    unicode_init();
     lcd_init();
 #ifdef HAVE_REMOTE_LCD
     lcd_remote_init();
 #endif
+#ifdef HAVE_LCD_BITMAP
+    FOR_NB_SCREENS(i)
+        global_status.font_id[i] = FONT_SYSFIXED;
     font_init();
+#endif
+
+    settings_reset();
 
     CHART(">show_logo");
     show_logo();
     CHART("<show_logo");
-    lang_init(core_language_builtin, language_strings, 
+    lang_init(core_language_builtin, language_strings,
               LANG_LAST_INDEX_IN_ARRAY);
 
 #ifdef DEBUG
@@ -502,10 +494,19 @@ static void init(void)
 
     button_init();
 
+    /* Don't initialize power management here if it could incorrectly
+     * measure battery voltage, and it's not needed for charging. */
+#if !defined(NEED_ATA_POWER_BATT_MEASURE) || \
+    (CONFIG_CHARGING > CHARGING_MONITOR)
     powermgmt_init();
+#endif
 
 #if CONFIG_TUNER
     radio_init();
+#endif
+
+#ifdef HAVE_HARDWARE_CLICK
+    piezo_init();
 #endif
 
     /* Keep the order of this 3 (viewportmanager handles statusbars)
@@ -541,8 +542,6 @@ static void init(void)
     }
 #endif
 
-
-    disk_init_subsystem();
     CHART(">storage_init");
     rc = storage_init();
     CHART("<storage_init");
@@ -559,6 +558,12 @@ static void init(void)
         panicf("ata: %d", rc);
     }
 
+#if defined(NEED_ATA_POWER_BATT_MEASURE) && \
+    (CONFIG_CHARGING <= CHARGING_MONITOR)
+    /* After storage_init(), ATA power must be on, so battery voltage
+     * can be measured. Initialize power management if it was delayed. */
+    powermgmt_init();
+#endif
 #ifdef HAVE_EEPROM_SETTINGS
     CHART(">eeprom_settings_init");
     eeprom_settings_init();
@@ -583,7 +588,8 @@ static void init(void)
                 mounted = true; /* mounting done @ end of USB mode */
             }
 #ifdef HAVE_USB_POWER
-        if (usb_powered())      /* avoid deadlock */
+        /* if there is no host or user requested no USB, skip this */
+        if (usb_powered_only())
             break;
 #endif
     }
@@ -611,6 +617,11 @@ static void init(void)
         }
     }
 
+#if CONFIG_CODEC == SWCODEC
+    pcm_init();
+    dsp_init();
+#endif
+
 #if defined(SETTINGS_RESET) || (CONFIG_KEYPAD == IPOD_4G_PAD) || \
     (CONFIG_KEYPAD == IRIVER_H10_PAD)
 #ifdef SETTINGS_RESET
@@ -633,22 +644,24 @@ static void init(void)
         CHART("<settings_load(ALL)");
     }
 
+#ifdef HAVE_DIRCACHE
     CHART(">init_dircache(true)");
     rc = init_dircache(true);
     CHART("<init_dircache(true)");
-    if (rc < 0)
-    {
 #ifdef HAVE_TAGCACHE
+    if (rc < 0)
         remove(TAGCACHE_STATEFILE);
-#endif
-    }
+#endif /* HAVE_TAGCACHE */
+#endif /* HAVE_DIRCACHE */
 
     CHART(">settings_apply(true)");
-    settings_apply(true);        
+    settings_apply(true);
     CHART("<settings_apply(true)");
+#ifdef HAVE_DIRCACHE
     CHART(">init_dircache(false)");
     init_dircache(false);
     CHART("<init_dircache(false)");
+#endif
 #ifdef HAVE_TAGCACHE
     CHART(">init_tagcache");
     init_tagcache();
@@ -668,11 +681,11 @@ static void init(void)
     playlist_init();
     tree_mem_init();
     filetype_init();
-    scrobbler_init();
-#if CONFIG_CODEC == SWCODEC && defined (HAVE_PITCHSCREEN)
-    tdspeed_init();
-#endif /* CONFIG_CODEC == SWCODEC */
-    theme_init_buffer();
+
+    if (global_settings.audioscrobbler)
+        scrobbler_init();
+
+    shortcuts_init();
 
 #if CONFIG_CODEC != SWCODEC
     /* No buffer allocation (see buffer.c) may take place after the call to
@@ -691,18 +704,11 @@ static void init(void)
               global_settings.mdb_shape,
               global_settings.mdb_enable,
               global_settings.superbass);
-
-     /* audio_init must to know the size of voice buffer so init voice first */
-    talk_init();
 #endif /* CONFIG_CODEC != SWCODEC */
 
     CHART(">audio_init");
     audio_init();
     CHART("<audio_init");
-
-#if (CONFIG_CODEC == SWCODEC) && defined(HAVE_RECORDING) && !defined(SIMULATOR)
-    pcm_rec_init();
-#endif
 
     /* runtime database has to be initialized after audio_init() */
     cpu_boost(false);

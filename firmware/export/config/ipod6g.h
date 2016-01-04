@@ -1,7 +1,6 @@
 /*
  * This config file is for iPod 6G / Classic
  */
-#define TARGET_TREE /* this target is using the target tree system */
 
 #define IPOD_ARCH 1
 
@@ -21,11 +20,13 @@
 #define HAVE_LBA48
 
 /* define this if you have recording possibility */
-//#define HAVE_RECORDING
+#define HAVE_RECORDING
+//#define HAVE_AGC
+//#define HAVE_HISTOGRAM
 
 /* Define bitmask of input sources - recordable bitmask can be defined
    explicitly if different */
-#define INPUT_SRC_CAPS (SRC_CAP_LINEIN)
+#define INPUT_SRC_CAPS (SRC_CAP_MIC | SRC_CAP_LINEIN)
 
 /* define the bitmask of hardware sample rates */
 #define HW_SAMPR_CAPS   (SAMPR_CAP_44 | SAMPR_CAP_22 | SAMPR_CAP_11 \
@@ -64,9 +65,6 @@
 /* define this if you have access to the quickscreen */
 #define HAVE_QUICKSCREEN
 
-/* define this if you have access to the pitchscreen */
-#define HAVE_PITCHSCREEN
-
 /* define this if you would like tagcache to build on this target */
 #define HAVE_TAGCACHE
 
@@ -82,6 +80,8 @@
 /* LCD dimensions */
 #define LCD_WIDTH  320
 #define LCD_HEIGHT 240
+/* sqrt(320^2 + 240^2) / 2.5 = 160.0 */
+#define LCD_DPI 160
 #define LCD_DEPTH  16   /* pseudo 262.144 colors */
 #define LCD_PIXELFORMAT RGB565 /* rgb565 */
 
@@ -94,14 +94,21 @@
 /* Define this if your LCD can be put to sleep. HAVE_LCD_ENABLE
    should be defined as well. */
 #ifndef BOOTLOADER
-//TODO: #define HAVE_LCD_SLEEP
-//TODO: #define HAVE_LCD_SLEEP_SETTING
+#define HAVE_LCD_SLEEP
+#define HAVE_LCD_SLEEP_SETTING
 #endif
 
 #define CONFIG_KEYPAD IPOD_4G_PAD
 
-//#define AB_REPEAT_ENABLE
-//#define ACTION_WPSAB_SINGLE ACTION_WPS_BROWSE
+/* Define this to have CPU boosted while scrolling in the UI */
+#define HAVE_GUI_BOOST
+
+#define AB_REPEAT_ENABLE
+#define ACTION_WPSAB_SINGLE ACTION_WPS_BROWSE
+
+/* define this if you have a disk storage, i.e. something
+   that needs spinups and can cause skips when shaked */
+#define HAVE_DISK_STORAGE
 
 /* Define this to enable morse code input */
 #define HAVE_MORSE_INPUT
@@ -135,19 +142,21 @@
 /* The number of bytes reserved for loadable plugins */
 #define PLUGIN_BUFFER_SIZE 0x80000
 
-// TODO: Figure out real values
-#define BATTERY_CAPACITY_DEFAULT 400 /* default battery capacity */
+/* 6g has a standard battery of 550mAh, except for the thick 6g (2007 160gb) which has a standard battery of 850mAh */
+#define BATTERY_CAPACITY_DEFAULT 550 /* default battery capacity */
 #define BATTERY_CAPACITY_MIN     300 /* min. capacity selectable */
-#define BATTERY_CAPACITY_MAX     500 /* max. capacity selectable */
+#define BATTERY_CAPACITY_MAX     1000 /* max. capacity selectable */
 #define BATTERY_CAPACITY_INC      10 /* capacity increment */
 #define BATTERY_TYPES_COUNT        1 /* only one type */
+
+#define CONFIG_BATTERY_MEASURE VOLTAGE_MEASURE
 
 /* Hardware controlled charging with monitoring */
 #define CONFIG_CHARGING CHARGING_MONITOR
 
 /* define current usage levels */
-//TODO: #define CURRENT_NORMAL     21  /* playback @48MHz clock, backlight off */
-//TODO: #define CURRENT_BACKLIGHT  23  /* maximum brightness */
+#define CURRENT_NORMAL     18  /* playback @48MHz clock, backlight off */
+#define CURRENT_BACKLIGHT  23  /* maximum brightness */
 
 /* define this if the unit can be powered or charged via USB */
 #define HAVE_USB_POWER
@@ -168,10 +177,9 @@
 #define HAVE_USB_CHARGING_ENABLE
 
 /* The size of the flash ROM */
-#define FLASH_SIZE 0x400000
+#define FLASH_SIZE 0x1000000
 
 /* Define this to the CPU frequency */
-//TODO: Figure out exact value
 #define CPU_FREQ        216000000
 
 /* define this if the hardware can be powered off while charging */
@@ -186,16 +194,27 @@
 /* Define this if you can read an absolute wheel position */
 #define HAVE_WHEEL_POSITION
 
+#define ATA_HAVE_BBT
+#define ATA_BBT_PAGES 4096
+
+#define SECTOR_SIZE 4096
+
+#define STORAGE_NEEDS_ALIGN
+
+#define HAVE_ATA_SMART
+
 /* define this if the device has larger sectors when accessed via USB */
 /* (only relevant in disk.c, fat.c now always supports large virtual sectors) */
-#define MAX_LOG_SECTOR_SIZE 4096
+//#define MAX_LOG_SECTOR_SIZE 4096
 
 /* define this if the hard drive uses large physical sectors (ATA-7 feature) */
 /* and doesn't handle them in the drive firmware */
-#define MAX_PHYS_SECTOR_SIZE 4096
+//#define MAX_PHYS_SECTOR_SIZE 4096
+
+#define HAVE_HARDWARE_CLICK
 
 /* Define this if you have adjustable CPU frequency */
-//TODO: #define HAVE_ADJUSTABLE_CPU_FREQ
+#define HAVE_ADJUSTABLE_CPU_FREQ
 
 #define BOOTFILE_EXT "ipod"
 #define BOOTFILE "rockbox." BOOTFILE_EXT
@@ -223,19 +242,21 @@
 
 /* USB defines */
 #define HAVE_USBSTACK
-//#define HAVE_USB_HID_MOUSE - broken?
+#define HAVE_USB_HID_MOUSE
 #define CONFIG_USBOTG USBOTG_S3C6400X
 #define USB_VENDOR_ID 0x05AC
-//TODO: This is still the Nano2G product ID. Figure out the real one.
-#define USB_PRODUCT_ID 0x1260
-#define USB_NUM_ENDPOINTS 5
-#define USE_ROCKBOX_USB
+#define USB_PRODUCT_ID 0x1261
+#define USB_NUM_ENDPOINTS 6
 #define USB_DEVBSS_ATTR __attribute__((aligned(16)))
+
+#define HAVE_SERIAL
+/* Disable iAP when LOGF_SERIAL is enabled to avoid conflicts */
+#ifndef LOGF_SERIAL
+#define IPOD_ACCESSORY_PROTOCOL
+#endif
 
 /* Define this if you can switch on/off the accessory power supply */
 #define HAVE_ACCESSORY_SUPPLY
-//#define IPOD_ACCESSORY_PROTOCOL
-//#define HAVE_SERIAL
 
 /* Define this, if you can switch on/off the lineout */
 #define HAVE_LINEOUT_POWEROFF

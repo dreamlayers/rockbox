@@ -22,6 +22,7 @@
 #ifndef __TUNER_H__
 #define __TUNER_H__
 
+#include "config.h"
 #include "hwcompat.h"
 
 /** Settings to the tuner layer **/
@@ -136,6 +137,11 @@ extern int (*tuner_get)(int setting);
 /* Apple remote tuner */
 #if (CONFIG_TUNER & IPOD_REMOTE_TUNER)
 #include "ipod_remote_tuner.h"
+#endif
+
+/* SigmaTel/Freescale STFM1000 */
+#if (CONFIG_TUNER & STFM1000)
+#include "stfm1000.h"
 #endif
 
 #if defined(SIMULATOR)

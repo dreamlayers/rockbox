@@ -7,7 +7,6 @@
  *                     \/            \/     \/    \/            \/
  *
  *   Copyright (C) 2007 by Dominik Wenger
- *   $Id$
  *
  * All files in this archive are subject to the GNU General Public License.
  * See the file COPYING in the source tree root for full license agreement.
@@ -40,11 +39,6 @@
 
 // Linux and Mac includes
 #if defined(Q_OS_LINUX) || defined(Q_OS_MACX)
-#if defined(LIBUSB1)
-#include <libusb-1.0/libusb.h>
-#else
-#include <usb.h>
-#endif
 #include <sys/utsname.h>
 #include <unistd.h>
 #include <pwd.h>
@@ -52,6 +46,11 @@
 
 // Linux includes
 #if defined(Q_OS_LINUX)
+#if defined(LIBUSB1)
+#include <libusb-1.0/libusb.h>
+#else
+#include <usb.h>
+#endif
 #include <mntent.h>
 #endif
 
@@ -70,6 +69,7 @@
 
 #include "utils.h"
 #include "rbsettings.h"
+#include "Logger.h"
 
 /** @brief detect permission of user (only Windows at moment).
  *  @return enum userlevel.
@@ -77,34 +77,34 @@
 #if defined(Q_OS_WIN32)
 enum System::userlevel System::userPermissions(void)
 {
-    LPUSER_INFO_1 buf;
-    NET_API_STATUS napistatus;
+    LPUSER_INFO_1 buf = NULL;
     wchar_t userbuf[UNLEN];
     DWORD usersize = UNLEN;
     BOOL status;
-    enum userlevel result;
+    enum userlevel result = ERR;
 
     status = GetUserNameW(userbuf, &usersize);
     if(!status)
         return ERR;
 
-    napistatus = NetUserGetInfo(NULL, userbuf, (DWORD)1, (LPBYTE*)&buf);
-
-    switch(buf->usri1_priv) {
-        case USER_PRIV_GUEST:
-            result = GUEST;
-            break;
-        case USER_PRIV_USER:
-            result = USER;
-            break;
-        case USER_PRIV_ADMIN:
-            result = ADMIN;
-            break;
-        default:
-            result = ERR;
-            break;
+    if(NetUserGetInfo(NULL, userbuf, (DWORD)1, (LPBYTE*)&buf) == NERR_Success) {
+        switch(buf->usri1_priv) {
+            case USER_PRIV_GUEST:
+                result = GUEST;
+                break;
+            case USER_PRIV_USER:
+                result = USER;
+                break;
+            case USER_PRIV_ADMIN:
+                result = ADMIN;
+                break;
+            default:
+                result = ERR;
+                break;
+        }
     }
-    NetApiBufferFree(buf);
+    if(buf != NULL)
+        NetApiBufferFree(buf);
 
     return result;
 }
@@ -143,9 +143,9 @@ QString System::userName(void)
 #if defined(Q_OS_WIN32)
     wchar_t userbuf[UNLEN];
     DWORD usersize = UNLEN;
-    BOOL status;
 
-    status = GetUserNameW(userbuf, &usersize);
+    if(GetUserNameW(userbuf, &usersize) == 0)
+        return QString();
 
     return QString::fromWCharArray(userbuf);
 #endif
@@ -190,9 +190,14 @@ QString System::osVersionString(void)
 #else
     long cores = sysconf(_SC_NPROCESSORS_ONLN);
 #endif
-    result = QString("CPU: %1, %2 processor(s)").arg(u.machine).arg(cores);
-    result += QString("<br/>System: %2<br/>Release: %3<br/>Version: %4")
-        .arg(u.sysname).arg(u.release).arg(u.version);
+    if(ret != -1) {
+        result = QString("CPU: %1, %2 processor(s)").arg(u.machine).arg(cores);
+        result += QString("<br/>System: %2<br/>Release: %3<br/>Version: %4")
+            .arg(u.sysname).arg(u.release).arg(u.version);
+    }
+    else {
+        result = QString("(Error when retrieving system information)");
+    }
 #if defined(Q_OS_MACX)
     SInt32 major;
     SInt32 minor;
@@ -238,15 +243,19 @@ QMap<uint32_t, QString> System::listUsbDevices(void)
 {
     QMap<uint32_t, QString> usbids;
     // usb pid detection
-    qDebug() << "[System] Searching for USB devices";
+    LOG_INFO() << "Searching for USB devices";
 #if defined(Q_OS_LINUX)
 #if defined(LIBUSB1)
     libusb_device **devs;
-    int res;
-    ssize_t count;
-    res = libusb_init(NULL);
+    if(libusb_init(NULL) != 0) {
+        LOG_ERROR() << "Initializing libusb-1 failed.";
+        return usbids;
+    }
 
-    count = libusb_get_device_list(NULL, &devs);
+    if(libusb_get_device_list(NULL, &devs) < 1) {
+        LOG_ERROR() << "Error getting device list.";
+        return usbids;
+    }
     libusb_device *dev;
     int i = 0;
     while((dev = devs[i++]) != NULL) {
@@ -260,16 +269,16 @@ QMap<uint32_t, QString> System::listUsbDevices(void)
             libusb_device_handle *dh;
             if(libusb_open(dev, &dh) == 0) {
                 libusb_get_string_descriptor_ascii(dh, descriptor.iManufacturer, buf, 256);
-                name += QString::fromAscii((char*)buf) + " ";
+                name += QString::fromLatin1((char*)buf) + " ";
                 libusb_get_string_descriptor_ascii(dh, descriptor.iProduct, buf, 256);
-                name += QString::fromAscii((char*)buf);
+                name += QString::fromLatin1((char*)buf);
                 libusb_close(dh);
             }
             if(name.isEmpty())
                 name = tr("(no description available)");
             if(id) {
-                usbids.insert(id, name);
-                qDebug("[System] USB: 0x%08x, %s", id, name.toLocal8Bit().data());
+                usbids.insertMulti(id, name);
+                LOG_INFO("USB: 0x%08x, %s", id, name.toLocal8Bit().data());
             }
         }
     }
@@ -301,21 +310,21 @@ QMap<uint32_t, QString> System::listUsbDevices(void)
                         res = usb_get_string_simple(dev, u->descriptor.iManufacturer,
                                                     string, sizeof(string));
                         if(res > 0)
-                            name += QString::fromAscii(string) + " ";
+                            name += QString::fromLatin1(string) + " ";
                     }
                     if(u->descriptor.iProduct) {
                         res = usb_get_string_simple(dev, u->descriptor.iProduct,
                                                     string, sizeof(string));
                         if(res > 0)
-                            name += QString::fromAscii(string);
+                            name += QString::fromLatin1(string);
                     }
                     usb_close(dev);
                 }
                 if(name.isEmpty()) name = tr("(no description available)");
 
                 if(id) {
-                    usbids.insert(id, name);
-                    qDebug() << "[System] USB:" << QString("0x%1").arg(id, 8, 16) << name;
+                    usbids.insertMulti(id, name);
+                    LOG_INFO() << "USB:" << QString("0x%1").arg(id, 8, 16) << name;
                 }
                 u = u->next;
             }
@@ -333,7 +342,7 @@ QMap<uint32_t, QString> System::listUsbDevices(void)
     result = IOServiceGetMatchingServices(kIOMasterPortDefault, usb_matching_dictionary,
                                           &usb_iterator);
     if(result) {
-        qDebug() << "[System] USB: IOKit: Could not get matching services.";
+        LOG_ERROR() << "USB: IOKit: Could not get matching services.";
         return usbids;
     }
 
@@ -395,8 +404,8 @@ QMap<uint32_t, QString> System::listUsbDevices(void)
         }
 
         if(id) {
-            usbids.insert(id, name);
-            qDebug() << "[System] USB:" << QString("0x%1").arg(id, 8, 16) << name;
+            usbids.insertMulti(id, name);
+            LOG_INFO() << "USB:" << QString("0x%1").arg(id, 8, 16) << name;
         }
 
     }
@@ -423,7 +432,7 @@ QMap<uint32_t, QString> System::listUsbDevices(void)
         DWORD buffersize = 0;
         QString description;
 
-        // get device desriptor first
+        // get device descriptor first
         // for some reason not doing so results in bad things (tm)
         while(!SetupDiGetDeviceRegistryProperty(deviceInfo, &infoData,
             SPDRP_DEVICEDESC, &data, (PBYTE)buffer, buffersize, &buffersize)) {
@@ -435,6 +444,11 @@ QMap<uint32_t, QString> System::listUsbDevices(void)
             else {
                 break;
             }
+        }
+        if(!buffer) {
+            LOG_WARNING() << "Got no device description"
+                          << "(SetupDiGetDeviceRegistryProperty), item" << i;
+            continue;
         }
         description = QString::fromWCharArray(buffer);
 
@@ -451,18 +465,20 @@ QMap<uint32_t, QString> System::listUsbDevices(void)
             }
         }
 
-        unsigned int vid, pid;
-        // convert buffer text to upper case to avoid depending on the case of
-        // the keys (W7 uses different casing than XP at least).
-        int len = _tcslen(buffer);
-        while(len--) buffer[len] = _totupper(buffer[len]);
-        if(_stscanf(buffer, _TEXT("USB\\VID_%x&PID_%x"), &vid, &pid) == 2) {
-            uint32_t id;
-            id = vid << 16 | pid;
-            usbids.insert(id, description);
-            qDebug("[System] USB VID: %04x, PID: %04x", vid, pid);
+        if(buffer) {
+            // convert buffer text to upper case to avoid depending on the case of
+            // the keys (W7 uses different casing than XP at least), in addition
+            // XP may use "Vid_" and "Pid_".
+            QString data = QString::fromWCharArray(buffer).toUpper();
+            QRegExp rex("USB\\\\VID_([0-9A-F]{4})&PID_([0-9A-F]{4}).*");
+            if(rex.indexIn(data) >= 0) {
+                uint32_t id;
+                id = rex.cap(1).toUInt(0, 16) << 16 | rex.cap(2).toUInt(0, 16);
+                usbids.insert(id, description);
+                LOG_INFO() << "USB:" << QString("0x%1").arg(id, 8, 16);
+            }
+            free(buffer);
         }
-        if(buffer) free(buffer);
     }
     SetupDiDestroyDeviceInfoList(deviceInfo);
 
@@ -499,7 +515,7 @@ QUrl System::systemProxy(void)
 
     RegCloseKey(hk);
 
-    //qDebug() << QString::fromWCharArray(proxyval) << QString("%1").arg(enable);
+    //LOG_INFO() << QString::fromWCharArray(proxyval) << QString("%1").arg(enable);
     if(enable != 0)
         return QUrl("http://" + QString::fromWCharArray(proxyval));
     else
@@ -529,7 +545,7 @@ QUrl System::systemProxy(void)
             bufsize = CFStringGetLength(stringref) * 2 + 1;
             buf = (char*)malloc(sizeof(char) * bufsize);
             if(buf == NULL) {
-                qDebug() << "[System] can't allocate memory for proxy string!";
+                LOG_ERROR() << "can't allocate memory for proxy string!";
                 CFRelease(dictref);
                 return QUrl("");
             }

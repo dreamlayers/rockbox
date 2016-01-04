@@ -19,6 +19,7 @@
  *
  ****************************************************************************/
 
+#include <stdio.h>
 #include <stdbool.h>
 #include <stddef.h>
 #include <limits.h>
@@ -29,20 +30,20 @@
 #include "menu.h"
 #include "tree.h"
 #include "list.h"
-#ifdef HAVE_LCD_BITMAP
-#include "peakmeter.h"
-#endif
 #include "color_picker.h"
 #include "lcd.h"
+#ifdef HAVE_REMOTE_LCD
 #include "lcd-remote.h"
+#endif
 #include "backdrop.h"
 #include "exported_menus.h"
 #include "appevents.h"
 #include "viewport.h"
 #include "statusbar-skinned.h"
 #include "skin_engine/skin_engine.h"
+#include "icons.h"
 
-#if LCD_DEPTH > 1
+#ifdef HAVE_BACKDROP_IMAGE
 /**
 * Menu to clear the backdrop image
  */
@@ -67,6 +68,7 @@ enum Colors {
     COLOR_LSS,
     COLOR_LSE,
     COLOR_LST,
+    COLOR_SEP,
     COLOR_COUNT
 };
 static struct colour_info
@@ -79,6 +81,7 @@ static struct colour_info
     [COLOR_LSS] = {&global_settings.lss_color, LANG_SELECTOR_START_COLOR},
     [COLOR_LSE] = {&global_settings.lse_color, LANG_SELECTOR_END_COLOR},
     [COLOR_LST] = {&global_settings.lst_color, LANG_SELECTOR_TEXT_COLOR},
+    [COLOR_SEP] = {&global_settings.list_separator_color, LANG_LIST_SEPARATOR_COLOR},
 };
 
 /**
@@ -90,7 +93,7 @@ static int set_color_func(void* color)
     /* Don't let foreground be set the same as background and vice-versa */
     if (c == COLOR_BG)
         banned_color = *colors[COLOR_FG].setting;
-    else if (c == COLOR_FG)
+    else if (c == COLOR_FG || c == COLOR_SEP)
         banned_color = *colors[COLOR_BG].setting;
 
     old_color = *colors[c].setting;
@@ -112,6 +115,7 @@ static int reset_color(void)
     global_settings.lss_color = LCD_DEFAULT_LS;
     global_settings.lse_color = LCD_DEFAULT_BG;
     global_settings.lst_color = LCD_DEFAULT_FG;
+    global_settings.list_separator_color = LCD_DARKGRAY;
     
     settings_save();
     settings_apply(false);
@@ -128,6 +132,8 @@ MENUITEM_FUNCTION(set_lse_col, MENU_FUNC_USEPARAM, ID2P(LANG_SELECTOR_END_COLOR)
                   set_color_func, (void*)COLOR_LSE, NULL, Icon_NOICON);
 MENUITEM_FUNCTION(set_lst_col, MENU_FUNC_USEPARAM, ID2P(LANG_SELECTOR_TEXT_COLOR),
                   set_color_func, (void*)COLOR_LST, NULL, Icon_NOICON);
+MENUITEM_FUNCTION(set_sep_col, MENU_FUNC_USEPARAM, ID2P(LANG_LIST_SEPARATOR_COLOR),
+                  set_color_func, (void*)COLOR_SEP, NULL, Icon_NOICON);
 MENUITEM_FUNCTION(reset_colors, 0, ID2P(LANG_RESET_COLORS),
                     reset_color, NULL, NULL, Icon_NOICON);
 
@@ -139,7 +145,7 @@ MAKE_MENU(lss_settings, ID2P(LANG_SELECTOR_COLOR_MENU),
 /* now the actual menu */
 MAKE_MENU(colors_settings, ID2P(LANG_COLORS_MENU),
             NULL, Icon_Display_menu,
-            &lss_settings,
+            &lss_settings,  &set_sep_col,
             &set_bg_col, &set_fg_col, &reset_colors
          );
          
@@ -220,7 +226,11 @@ MAKE_MENU(bars_menu, ID2P(LANG_BARS_MENU), 0, Icon_NOICON,
 #if CONFIG_KEYPAD == RECORDER_PAD
           &buttonbar,
 #endif
-          &volume_type, &battery_display);
+          &volume_type
+#if (CONFIG_BATTERY_MEASURE != 0)
+          , &battery_display
+#endif
+          );
 #endif /* HAVE_LCD_BITMAP */
 
 /*                                  */
@@ -358,12 +368,33 @@ MENUITEM_FUNCTION(browse_rfms, MENU_FUNC_USEPARAM,
 #endif
 #endif
 
-MENUITEM_SETTING(show_icons, &global_settings.show_icons, NULL);
+
+static int showicons_callback(int action, const struct menu_item_ex *this_item)
+{
+    (void)this_item;
+    static bool old_icons;
+    switch (action)
+    {
+        case ACTION_ENTER_MENUITEM:
+            old_icons = global_settings.show_icons;
+            break;
+        case ACTION_EXIT_MENUITEM:
+            if (old_icons != global_settings.show_icons)
+                icons_init();
+            break;
+    }
+    return ACTION_REDRAW;
+}
+
+MENUITEM_SETTING(show_icons, &global_settings.show_icons, showicons_callback);
 MENUITEM_FUNCTION(browse_themes, MENU_FUNC_USEPARAM, 
         ID2P(LANG_CUSTOM_THEME), 
         browse_folder, (void*)&themes, NULL, Icon_Config);
 #ifdef HAVE_LCD_BITMAP
 MENUITEM_SETTING(cursor_style, &global_settings.cursor_style, NULL);
+#endif
+#if LCD_DEPTH > 1
+MENUITEM_SETTING(sep_menu, &global_settings.list_separator_height, NULL);
 #endif
 
 MAKE_MENU(theme_menu, ID2P(LANG_THEME_MENU),
@@ -389,14 +420,17 @@ MAKE_MENU(theme_menu, ID2P(LANG_THEME_MENU),
             &browse_rsbs,
 #endif
             &show_icons,
-#if LCD_DEPTH > 1
+#ifdef HAVE_BACKDROP_IMAGE
             &clear_main_bd,
 #endif
 #ifdef HAVE_LCD_BITMAP
             &bars_menu,
             &cursor_style,
+#if LCD_DEPTH > 1
+            &sep_menu,
 #endif
 #ifdef HAVE_LCD_COLOR
             &colors_settings,
 #endif
-            );
+#endif /* HAVE_LCD_BITMAP */
+);

@@ -7,7 +7,6 @@
  *                     \/            \/     \/    \/            \/
  *
  *   Copyright (C) 2009 by Maurus Cuelenaere
- *   $Id$
  *
  * All files in this archive are subject to the GNU General Public License.
  * See the file COPYING in the source tree root for full license agreement.
@@ -34,7 +33,6 @@ class BootloaderInstallChinaChip : public BootloaderInstallBase
         BootloaderInstallBase::BootloaderType installed(void);
         Capabilities capabilities(void);
         QString ofHint();
-        void logString(char* buffer, va_list args, int type);
 
     private slots:
         void installStage2(void);

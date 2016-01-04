@@ -7,7 +7,6 @@
  *                     \/            \/     \/    \/            \/
  *
  *   Copyright (C) 2008 by Dominik Riebeling
- *   $Id$
  *
  * All files in this archive are subject to the GNU General Public License.
  * See the file COPYING in the source tree root for full license agreement.
@@ -20,6 +19,8 @@
 #include <QtCore>
 #include "bootloaderinstallbase.h"
 #include "bootloaderinstallhex.h"
+#include "utils.h"
+#include "Logger.h"
 
 #include "../../tools/iriver.h"
 #include "../../tools/mkboot.h"
@@ -74,7 +75,7 @@ bool BootloaderInstallHex::install(void)
     file.close();
     QString hash = QCryptographicHash::hash(filedata,
             QCryptographicHash::Md5).toHex();
-    qDebug() << "[BootloaderInstallHex] hexfile hash:" << hash;
+    LOG_INFO() << "hexfile hash:" << hash;
     if(file.error() != QFile::NoError) {
         emit logItem(tr("Could not verify original firmware file"), LOGERROR);
         emit done(true);
@@ -87,7 +88,7 @@ bool BootloaderInstallHex::install(void)
     while(i--) {
         if(md5sums[i].orig == 0)
             m_model--;
-        if(!qstrcmp(md5sums[i].orig, hash.toAscii()))
+        if(!qstrcmp(md5sums[i].orig, hash.toLatin1()))
             break;
     }
     if(i < 0) {
@@ -110,9 +111,9 @@ bool BootloaderInstallHex::install(void)
     emit logItem(tr("Descrambling file"), LOGINFO);
     m_descrambled.open();
     int result;
-    result = iriver_decode(m_offile.toAscii().data(),
-        m_descrambled.fileName().toAscii().data(), FALSE, STRIP_NONE);
-    qDebug() << "[BootloaderInstallHex] iriver_decode" << result;
+    result = iriver_decode(m_offile.toLatin1().data(),
+        m_descrambled.fileName().toLatin1().data(), FALSE, STRIP_NONE);
+    LOG_INFO() << "iriver_decode():" << result;
 
     if(result < 0) {
         emit logItem(tr("Error in descramble: %1").arg(scrambleError(result)), LOGERROR);
@@ -162,7 +163,7 @@ void BootloaderInstallHex::installStage2(void)
 
     // iriver decode already done in stage 1
     int result;
-    if((result = mkboot(descrambledName.toLocal8Bit().constData(),
+    if((result = mkboot_iriver(descrambledName.toLocal8Bit().constData(),
                     tempfileName.toLocal8Bit().constData(),
                     tempbinName.toLocal8Bit().constData(), origin)) < 0)
     {
@@ -200,7 +201,7 @@ void BootloaderInstallHex::installStage2(void)
     targethex.close();
     QString hash = QCryptographicHash::hash(filedata,
             QCryptographicHash::Md5).toHex();
-    qDebug() << "[BootloaderInstallHex] created hexfile hash:" << hash;
+    LOG_INFO() << "created hexfile hash:" << hash;
 
     emit logItem(tr("Checking modified firmware file"), LOGINFO);
     if(hash != QString(md5sums[m_hashindex].patched)) {
@@ -210,9 +211,20 @@ void BootloaderInstallHex::installStage2(void)
         return;
     }
     // finally copy file to player
-    targethex.copy(m_blfile);
+    if(!Utils::resolvePathCase(m_blfile).isEmpty()) {
+        emit logItem(tr("A firmware file is already present on player"), LOGERROR);
+        emit done(true);
+        return;
+    }
+    if(targethex.copy(m_blfile)) {
+        emit logItem(tr("Success: modified firmware file created"), LOGINFO);
+    }
+    else {
+        emit logItem(tr("Copying modified firmware file failed"), LOGERROR);
+        emit done(true);
+        return;
+    }
 
-    emit logItem(tr("Success: modified firmware file created"), LOGINFO);
     logInstall(LogAdd);
     emit done(false);
 

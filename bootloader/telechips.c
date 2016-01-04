@@ -28,9 +28,9 @@
 #include "cpu.h"
 #include "system.h"
 #include "lcd.h"
-#include "kernel.h"
-#include "thread.h"
+#include "../kernel-internal.h"
 #include "storage.h"
+#include "file_internal.h"
 #include "fat.h"
 #include "disk.h"
 #include "font.h"
@@ -43,10 +43,12 @@
 #include "power.h"
 #include "file.h"
 #include "common.h"
+#include "rb-loader.h"
+#include "loader_strerror.h"
 #include "version.h"
 
 /* Show the Rockbox logo - in show_logo.c */
-extern int show_logo(void);
+extern void show_logo(void);
 
 /* Address to load main Rockbox image to */
 #define LOAD_ADDRESS 0x20000000 /* DRAM_START */
@@ -80,10 +82,10 @@ void show_debug_screen(void)
         }
 #if 0
         if (button & BUTTON_SELECT){
-            _backlight_off();
+            backlight_hw_off();
         }
         else{
-            _backlight_on();
+            backlight_hw_on();
         }
 #endif
         printf("Btn: 0x%08x",button);
@@ -145,13 +147,13 @@ void* main(void)
     
     show_logo();
 
-    _backlight_on();
+    backlight_hw_on();
 
 /* Only load the firmware if TCCBOOT is defined - this ensures SDRAM_START is
    available for loading the firmware. Otherwise display the debug screen. */
 #ifdef TCCBOOT
     printf("Rockbox boot loader");
-    printf("Version " RBVERSION);
+    printf("Version %s", rbversion);
 
     printf("ATA");
     rc = storage_init();
@@ -160,6 +162,8 @@ void* main(void)
         reset_screen();
         error(EATA, rc, true);
     }
+
+    filesystem_init();
 
     printf("mount");
     rc = disk_mount_all();
@@ -170,11 +174,11 @@ void* main(void)
 
     rc = load_firmware(loadbuffer, BOOTFILE, MAX_LOAD_SIZE);
 
-    if (rc < 0)
+    if (rc <= EFILE_EMPTY)
     {
         error(EBOOTFILE,rc, true);
     }
-    else if (rc == EOK)
+    else
     {
         int(*kernel_entry)(void) = (void *) loadbuffer;
 

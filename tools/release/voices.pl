@@ -1,6 +1,6 @@
 #!/usr/bin/perl
 
-$version="3.0";
+$version="3.11.1";
 
 require "tools/builds.pm";
 
@@ -62,7 +62,7 @@ sub buildit {
     `$c`;
 
     print "Run 'make voice'\n" if($verbose);
-    print `make voice 2>/dev/null`;
+    print `make voice VERSION=$version 2>/dev/null`;
 }
 
 # run make in tools first to make sure they're up-to-date

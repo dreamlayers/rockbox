@@ -19,38 +19,28 @@
  *
  ****************************************************************************/
 
-#include "config.h"
 #include <stdio.h>
 #include <stdbool.h>
 #include <stdlib.h>
-#include "settings.h"
-#include "button.h"
-#include "status.h"
-#include "thread.h"
-#include "audio.h"
-#include "mp3_playback.h"
-#include "ctype.h"
-#include "file.h"
-#include "general.h"
-#include "errno.h"
-#include "string-extra.h"
+#include "config.h"
 #include "system.h"
+#include "settings.h"
+#include "status.h"
+#include "audio.h"
+#include "general.h"
 #include "radio.h"
 #include "menu.h"
+#include "menus/exported_menus.h"
 #include "misc.h"
-#include "keyboard.h"
 #include "screens.h"
 #include "peakmeter.h"
 #include "lang.h"
-#include "font.h"
-#include "sound_menu.h"
 #ifdef HAVE_RECORDING
 #include "recording.h"
 #endif
 #ifdef IPOD_ACCESSORY_PROTOCOL
 #include "iap.h"
 #endif
-#include "appevents.h"
 #include "talk.h"
 #include "tuner.h"
 #include "power.h"
@@ -58,17 +48,12 @@
 #include "screen_access.h"
 #include "splash.h"
 #include "yesno.h"
-#include "buttonbar.h"
 #include "tree.h"
 #include "dir.h"
 #include "action.h"
-#include "list.h"
-#include "menus/exported_menus.h"
-#include "root_menu.h"
 #include "viewport.h"
 #include "skin_engine/skin_engine.h"
 #include "statusbar-skinned.h"
-#include "buffering.h"
 #if CONFIG_CODEC == SWCODEC
 #include "playback.h"
 #endif
@@ -89,7 +74,7 @@
 #define FM_NEXT_PRESET
 #define FM_PREV_PRESET
 
-#elif CONFIG_KEYPAD == IRIVER_H10_PAD
+#elif (CONFIG_KEYPAD == IRIVER_H10_PAD) || (CONFIG_KEYPAD == GIGABEAT_S_PAD)
 #define FM_PRESET
 #define FM_MODE
 
@@ -106,19 +91,10 @@
 #define FM_RECORD
 
 #elif (CONFIG_KEYPAD == SANSA_E200_PAD) || (CONFIG_KEYPAD == SANSA_C200_PAD) ||\
-      (CONFIG_KEYPAD == SANSA_FUZE_PAD) || (CONFIG_KEYPAD == SANSA_CLIP_PAD)
-#define FM_MENU
-#define FM_PRESET
-#define FM_STOP
-#define FM_MODE
-#define FM_EXIT
-#define FM_PLAY
-
-#elif (CONFIG_KEYPAD == GIGABEAT_S_PAD)
-#define FM_PRESET
-#define FM_MODE
-
-#elif (CONFIG_KEYPAD == COWON_D2_PAD)
+      (CONFIG_KEYPAD == SANSA_FUZE_PAD) || (CONFIG_KEYPAD == SANSA_CLIP_PAD) ||\
+      (CONFIG_KEYPAD == PHILIPS_HDD1630_PAD)||(CONFIG_KEYPAD == COWON_D2_PAD)||\
+      (CONFIG_KEYPAD == SAMSUNG_YH920_PAD)||(CONFIG_KEYPAD == MPIO_HD200_PAD)||\
+      (CONFIG_KEYPAD == PHILIPS_HDD6330_PAD)
 #define FM_MENU
 #define FM_PRESET
 #define FM_STOP
@@ -127,31 +103,43 @@
 #define FM_PLAY
 
 #elif (CONFIG_KEYPAD == IPOD_4G_PAD) || (CONFIG_KEYPAD == IPOD_3G_PAD) || \
-    (CONFIG_KEYPAD == IPOD_1G2G_PAD)
+      (CONFIG_KEYPAD == IPOD_1G2G_PAD)
 #define FM_MENU
 #define FM_STOP
 #define FM_EXIT
 #define FM_PLAY
 #define FM_MODE
 
-#elif (CONFIG_KEYPAD == MPIO_HD200_PAD)
+#elif (CONFIG_KEYPAD == SAMSUNG_YPR0_PAD)
 #define FM_MENU
+#define FM_PRESET
 #define FM_STOP
+#define FM_MODE
 #define FM_EXIT
 #define FM_PLAY
-#define FM_MODE
+#define FM_PREV_PRESET
+#define FM_NEXT_PRESET
+
+#elif (CONFIG_KEYPAD == SANSA_FUZEPLUS_PAD)
+#define FM_PRESET_ADD
+#define FM_PRESET_ACTION
+#define FM_MENU
+#define FM_PRESET
 #define FM_STOP
+#define FM_MODE
+#define FM_EXIT
+#define FM_PLAY
+#define FM_RECORD
+#define FM_PREV_PRESET
+#define FM_NEXT_PRESET
 
 #endif
 
 /* presets.c needs these so keep unstatic or redo the whole thing! */
 int curr_freq; /* current frequency in Hz */
-
-static bool radio_menu(void);
-
 int radio_mode = RADIO_SCAN_MODE;
-static int search_dir = 0;
 
+static int search_dir = 0;
 static int radio_status = FMRADIO_OFF;
 static bool in_screen = false;
 
@@ -170,19 +158,6 @@ bool radio_is_stereo(void)
 int radio_current_frequency(void)
 {
     return curr_freq;
-}
-
-/* Function to manipulate all yesno dialogues.
-   This function needs the output text as an argument. */
-bool yesno_pop(const char* text)
-{
-    int i;
-    const char *lines[]={text};
-    const struct text_message message={lines, 1};
-    bool ret = (gui_syncyesno_run(&message,NULL,NULL)== YESNO_YES);
-    FOR_NB_SCREENS(i)
-        screens[i].clear_viewport();
-    return ret;
 }
 
 void radio_init(void)
@@ -222,9 +197,6 @@ void radio_start(void)
     start_paused = radio_status & FMRADIO_START_PAUSED;
     /* clear flag before any yielding */
     radio_status &= ~FMRADIO_START_PAUSED;
-
-    if(radio_status == FMRADIO_OFF)
-        tuner_power(true);
 
     curr_freq = global_status.last_frequency * fmr->freq_step + fmr->freq_min;
 
@@ -277,9 +249,6 @@ void radio_pause(void)
     }
 
     tuner_set(RADIO_MUTE, 1);
-    /* For si4700: 2==this is really 'pause'. other tuners treat it
-     * like 'bool'. */
-    tuner_set(RADIO_SLEEP, 2);
 
     radio_status = FMRADIO_PAUSED;
 } /* radio_pause */
@@ -289,7 +258,6 @@ static void radio_off(void)
     tuner_set(RADIO_MUTE, 1);
     tuner_set(RADIO_SLEEP, 1); /* low power mode, if available */
     radio_status = FMRADIO_OFF;
-    tuner_power(false); /* status update, power off if avail. */
 }
 
 void radio_stop(void)
@@ -382,23 +350,10 @@ static void end_search(void)
     search_dir = 0;
 }
 
-/* Speak a frequency. */
-void talk_freq(int freq, bool enqueue)
-{
-    freq /= 10000;
-    talk_number(freq / 100, enqueue);
-    talk_id(LANG_POINT, true);
-    talk_number(freq % 100 / 10, true);
-    if (freq % 10)
-        talk_number(freq % 10, true);
-}
-
-
 void radio_screen(void)
 {
     bool done = false;
     int button;
-    int i;
     bool stereo = false, last_stereo = false;
     int update_type = 0;
     bool screen_freeze = false;
@@ -410,8 +365,8 @@ void radio_screen(void)
 #endif
 #if CONFIG_CODEC != SWCODEC
     int timeout = current_tick + HZ/10;
-    unsigned int last_seconds = 0;
 #if !defined(SIMULATOR)
+    unsigned int last_seconds = 0;
     unsigned int seconds = 0;
     struct audio_recording_options rec_options;
 #endif /* SIMULATOR */
@@ -421,6 +376,7 @@ void radio_screen(void)
 #endif
 
     /* change status to "in screen" */
+    push_current_activity(ACTIVITY_FM);
     in_screen = true;
 
     if(radio_preset_count() <= 0)
@@ -434,12 +390,14 @@ void radio_screen(void)
 
     if(radio_status == FMRADIO_OFF)
         audio_stop();
-    
+
+    fms_fix_displays(FMS_ENTER);
+
 #ifndef SIMULATOR
 
 #if CONFIG_CODEC != SWCODEC
     rec_create_directory();
-    audio_init_recording(talk_get_bufsize());
+    audio_init_recording();
 
     sound_settings_apply();
     /* Yes, we use the D/A for monitoring */
@@ -456,11 +414,10 @@ void radio_screen(void)
 
 #endif /* CONFIG_CODEC != SWCODEC */
 #endif /* ndef SIMULATOR */
-
     /* turn on radio */
 #if CONFIG_CODEC == SWCODEC
     /* This should be done before touching audio settings */
-    while (!audio_is_thread_ready())
+    while (!pcm_is_initialized())
        sleep(0);
 
     audio_set_input_source(AUDIO_SRC_FMRADIO,
@@ -474,13 +431,14 @@ void radio_screen(void)
     if(radio_preset_count() < 1 && yesno_pop(ID2P(LANG_FM_FIRST_AUTOSCAN)))
         presets_scan(NULL);
 
-    fms_fix_displays(FMS_ENTER);
-    FOR_NB_SCREENS(i)
-        skin_update(FM_SCREEN, i, SKIN_REFRESH_ALL);
-
     preset_set_current(preset_find(curr_freq));
     if(radio_current_preset() != -1)
          radio_mode = RADIO_PRESET_MODE;
+
+    /* Load/update the skin at last, when fully initialzed, so that it can
+     * display the right content from the beginning */
+    FOR_NB_SCREENS(i)
+        skin_update(FM_SCREEN, i, SKIN_REFRESH_ALL);
 
 #ifndef HAVE_NOISY_IDLE_MODE
     cpu_idle_mode(true);
@@ -531,7 +489,7 @@ void radio_screen(void)
                     done = true;
                     if(presets_have_changed())
                     {
-                        if(yesno_pop(ID2P(LANG_FM_SAVE_CHANGES)))
+                        if(yesno_pop(ID2P(LANG_SAVE_CHANGES)))
                         {
                             presets_save();
                         }
@@ -565,8 +523,10 @@ void radio_screen(void)
                     rec_command(RECORDING_CMD_START);
                     update_type = SKIN_REFRESH_ALL;
                 }
-#endif /* SIMULATOR */
+#if CONFIG_CODEC != SWCODEC
                 last_seconds = 0;
+#endif
+#endif /* SIMULATOR */
                 break;
 #endif /* #ifdef FM_RECORD */
 
@@ -579,7 +539,7 @@ void radio_screen(void)
                 done = true;
                 if(presets_have_changed())
                 {
-                    if(yesno_pop(ID2P(LANG_FM_SAVE_CHANGES)))
+                    if(yesno_pop(ID2P(LANG_SAVE_CHANGES)))
                     {
                         presets_save();
                     }
@@ -642,7 +602,7 @@ void radio_screen(void)
 
             case ACTION_FM_MENU:
                 fms_fix_displays(FMS_EXIT);
-                radio_menu();
+                do_menu(&radio_settings_menu, NULL, NULL, false);
                 preset_set_current(preset_find(curr_freq));
                 fms_fix_displays(FMS_ENTER);
                 update_type = SKIN_REFRESH_ALL;
@@ -728,6 +688,11 @@ void radio_screen(void)
             case ACTION_NONE:
                 update_type = SKIN_REFRESH_NON_STATIC;
                 break;
+             /* this case is used by the softlock feature
+              * it requests a full update here */
+            case ACTION_REDRAW:
+                skin_request_full_update(FM_SCREEN);
+                break;
 
             default:
                 default_event_handler(button);
@@ -745,7 +710,7 @@ void radio_screen(void)
                     done = true;
                     if(presets_have_changed())
                     {
-                        if(yesno_pop(ID2P(LANG_FM_SAVE_CHANGES)))
+                        if(yesno_pop(ID2P(LANG_SAVE_CHANGES)))
                         {
                             radio_save_presets();
                         }
@@ -802,6 +767,8 @@ void radio_screen(void)
 #endif
                 FOR_NB_SCREENS(i)
                     skin_update(FM_SCREEN, i, update_type);
+                if (update_type == (int)SKIN_REFRESH_ALL)
+                    skin_request_full_update(CUSTOM_STATUSBAR);
             }
         }
         update_type = 0;
@@ -813,7 +780,7 @@ void radio_screen(void)
             bool enqueue = false;
             if (radio_mode == RADIO_SCAN_MODE)
             {
-                talk_freq(curr_freq, enqueue);
+                talk_value_decimal(curr_freq, UNIT_INT, 6, enqueue);
                 enqueue = true;
             }
             if (radio_current_preset() >= 0)
@@ -845,7 +812,7 @@ void radio_screen(void)
 
         while(1)
         {
-            button = get_action(CONTEXT_FM, TIMEOUT_BLOCK);
+            button = get_action(CONTEXT_FM|ALLOW_SOFTLOCK, TIMEOUT_BLOCK);
             if(button == ACTION_FM_STOP)
                 break;
         }
@@ -884,6 +851,7 @@ void radio_screen(void)
     cpu_idle_mode(false);
 #endif
     fms_fix_displays(FMS_EXIT);
+    pop_current_activity();
     in_screen = false;
 } /* radio_screen */
 
@@ -900,130 +868,6 @@ void set_radio_region(int region)
     next_station(0);
     remember_frequency();
     (void)region;
-}
-
-MENUITEM_SETTING(set_region, &global_settings.fm_region, NULL);
-MENUITEM_SETTING(force_mono, &global_settings.fm_force_mono, NULL);
-
-#ifndef FM_MODE
-static char* get_mode_text(int selected_item, void * data, char *buffer)
-{
-    (void)selected_item;
-    (void)data;
-    snprintf(buffer, MAX_PATH, "%s %s", str(LANG_MODE),
-             radio_mode ? str(LANG_PRESET) :
-                          str(LANG_RADIO_SCAN_MODE));
-    return buffer;
-}
-static int toggle_radio_mode(void)
-{
-    radio_mode = (radio_mode == RADIO_SCAN_MODE) ?
-                 RADIO_PRESET_MODE : RADIO_SCAN_MODE;
-    return 0;
-}
-MENUITEM_FUNCTION_DYNTEXT(radio_mode_item, 0,
-                                 toggle_radio_mode, NULL, 
-                                 get_mode_text, NULL, NULL, NULL, Icon_NOICON);
-#endif
-
-
-
-#ifdef HAVE_RECORDING
-
-#if defined(HAVE_FMRADIO_REC) && CONFIG_CODEC == SWCODEC
-#define FM_RECORDING_SCREEN
-static int fm_recording_screen(void)
-{
-    bool ret;
-
-    /* switch recording source to FMRADIO for the duration */
-    int rec_source = global_settings.rec_source;
-    global_settings.rec_source = AUDIO_SRC_FMRADIO;
-    ret = recording_screen(true);
-
-    /* safe to reset as changing sources is prohibited here */
-    global_settings.rec_source = rec_source;
-
-    return ret;
-}
-
-#endif /* defined(HAVE_FMRADIO_REC) && CONFIG_CODEC == SWCODEC */
-
-#if defined(HAVE_FMRADIO_REC) || CONFIG_CODEC != SWCODEC
-#define FM_RECORDING_SETTINGS
-static int fm_recording_settings(void)
-{
-    bool ret = recording_menu(true);
-
-#if CONFIG_CODEC != SWCODEC
-    if (!ret)
-    {
-        struct audio_recording_options rec_options;
-        rec_init_recording_options(&rec_options);
-        rec_options.rec_source = AUDIO_SRC_LINEIN;
-        rec_set_recording_options(&rec_options);
-    }
-#endif
-
-    return ret;
-}
-
-#endif /* defined(HAVE_FMRADIO_REC) || CONFIG_CODEC != SWCODEC */
-#endif /* HAVE_RECORDING */
-
-#ifdef FM_RECORDING_SCREEN
-MENUITEM_FUNCTION(recscreen_item, 0, ID2P(LANG_RECORDING),
-                    fm_recording_screen, NULL, NULL, Icon_Recording);
-#endif
-#ifdef FM_RECORDING_SETTINGS
-MENUITEM_FUNCTION(recsettings_item, 0, ID2P(LANG_RECORDING_SETTINGS),
-                    fm_recording_settings, NULL, NULL, Icon_Recording);
-#endif
-#ifndef FM_PRESET
-MENUITEM_FUNCTION(radio_presets_item, 0, ID2P(LANG_PRESET),
-                    handle_radio_presets, NULL, NULL, Icon_NOICON);
-#endif
-#ifndef FM_PRESET_ADD
-MENUITEM_FUNCTION(radio_addpreset_item, 0, ID2P(LANG_FM_ADD_PRESET),
-                    handle_radio_add_preset, NULL, NULL, Icon_NOICON);
-#endif
-
-MENUITEM_FUNCTION(presetload_item, 0, ID2P(LANG_FM_PRESET_LOAD),
-                    preset_list_load, NULL, NULL, Icon_NOICON);
-MENUITEM_FUNCTION(presetsave_item, 0, ID2P(LANG_FM_PRESET_SAVE),
-                    preset_list_save, NULL, NULL, Icon_NOICON);
-MENUITEM_FUNCTION(presetclear_item, 0, ID2P(LANG_FM_PRESET_CLEAR),
-                    preset_list_clear, NULL, NULL, Icon_NOICON);
-MENUITEM_FUNCTION(scan_presets_item, MENU_FUNC_USEPARAM,
-                    ID2P(LANG_FM_SCAN_PRESETS),
-                    presets_scan, NULL, NULL, Icon_NOICON);
-
-MAKE_MENU(radio_settings_menu, ID2P(LANG_FM_MENU), NULL,
-            Icon_Radio_screen,
-#ifndef FM_PRESET
-            &radio_presets_item,
-#endif
-#ifndef FM_PRESET_ADD
-            &radio_addpreset_item,
-#endif
-            &presetload_item, &presetsave_item, &presetclear_item,
-            &force_mono,
-#ifndef FM_MODE
-            &radio_mode_item,
-#endif
-            &set_region, &sound_settings,
-#ifdef FM_RECORDING_SCREEN
-            &recscreen_item,
-#endif
-#ifdef FM_RECORDING_SETTINGS
-            &recsettings_item,
-#endif
-            &scan_presets_item);
-/* main menu of the radio screen */
-static bool radio_menu(void)
-{
-    return do_menu(&radio_settings_menu, NULL, NULL, false) ==
-                                                            MENU_ATTACHED_USB;
 }
 
 #endif

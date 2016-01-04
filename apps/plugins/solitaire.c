@@ -373,6 +373,26 @@
 #   define HK_CUR2STACK    "PLAY.."
 #   define HK_REM2STACK    "PLAY+RIGHT"
 
+#elif (CONFIG_KEYPAD == CREATIVE_ZENXFI3_PAD)
+#   define SOL_QUIT          BUTTON_POWER
+#   define SOL_UP            BUTTON_UP
+#   define SOL_DOWN          BUTTON_DOWN
+#   define SOL_LEFT          BUTTON_BACK
+#   define SOL_RIGHT         BUTTON_MENU
+#   define SOL_MOVE          (BUTTON_PLAY|BUTTON_REL)
+#   define SOL_DRAW          (BUTTON_PLAY|BUTTON_REPEAT)
+#   define SOL_REM2CUR       BUTTON_VOL_DOWN
+#   define SOL_CUR2STACK_PRE (BUTTON_VOL_UP | BUTTON_REPEAT)
+#   define SOL_CUR2STACK     BUTTON_VOL_UP
+#   define SOL_REM2STACK     (BUTTON_VOL_DOWN|BUTTON_REPEAT)
+#   define SOL_REM2STACK_PRE BUTTON_VOL_DOWN
+
+#   define HK_MOVE           "SHORT PLAY"
+#   define HK_DRAW           "LONG PLAY"
+#   define HK_REM2CUR        "VOLUME-"
+#   define HK_CUR2STACK      "VOLUME+"
+#   define HK_REM2STACK      "LONG VOLUME-"
+
 #elif CONFIG_KEYPAD == PHILIPS_HDD1630_PAD
 #   define SOL_QUIT         BUTTON_POWER
 #   define SOL_UP           BUTTON_UP
@@ -432,26 +452,40 @@
 CONFIG_KEYPAD == MROBE500_PAD
 #   define SOL_QUIT          BUTTON_POWER
 
-#elif (CONFIG_KEYPAD == SAMSUNG_YH_PAD)
-#   define SOL_QUIT          BUTTON_REC
+#elif CONFIG_KEYPAD == SAMSUNG_YH820_PAD
+#   define SOL_QUIT          BUTTON_REW
 #   define SOL_UP            BUTTON_UP
 #   define SOL_DOWN          BUTTON_DOWN
-#   define SOL_LEFT_PRE      BUTTON_LEFT
-#   define SOL_LEFT          (BUTTON_LEFT | BUTTON_REW)
-#   define SOL_RIGHT_PRE     BUTTON_RIGHT
-#   define SOL_RIGHT         (BUTTON_RIGHT | BUTTON_REW)
+#   define SOL_LEFT          BUTTON_LEFT
+#   define SOL_RIGHT         BUTTON_RIGHT
 #   define SOL_MOVE          BUTTON_PLAY
-#   define SOL_DRAW_PRE      (BUTTON_PLAY | BUTTON_RIGHT)
-#   define SOL_DRAW          (BUTTON_PLAY | BUTTON_LEFT)
-#   define SOL_REM2CUR       BUTTON_FFWD
-#   define SOL_CUR2STACK     BUTTON_REW
-#   define SOL_REM2STACK_PRE (BUTTON_FFWD | BUTTON_RIGHT)
-#   define SOL_REM2STACK     (BUTTON_FFWD | BUTTON_LEFT)
+#   define SOL_DRAW          BUTTON_FFWD
+#   define SOL_REM2CUR       (BUTTON_REC | BUTTON_DOWN)
+#   define SOL_CUR2STACK     (BUTTON_REC | BUTTON_UP)
+#   define SOL_REM2STACK     (BUTTON_REC | BUTTON_RIGHT)
 #   define HK_MOVE           "PLAY"
-#   define HK_DRAW           "REW.."
-#   define HK_REM2CUR        "FFWD"
-#   define HK_CUR2STACK      "REW"
-#   define HK_REM2STACK      "FFWD.."
+#   define HK_DRAW           "FFWD"
+#   define HK_REM2CUR        "REC+DOWN"
+#   define HK_CUR2STACK      "REC+UP"
+#   define HK_REM2STACK      "REC+RIGHT"
+
+#elif CONFIG_KEYPAD == SAMSUNG_YH920_PAD
+#   define SOL_QUIT          BUTTON_REW
+#   define SOL_UP            BUTTON_UP
+#   define SOL_DOWN          BUTTON_DOWN
+#   define SOL_LEFT          BUTTON_LEFT
+#   define SOL_RIGHT         BUTTON_RIGHT
+#   define SOL_MOVE_PRE      BUTTON_PLAY
+#   define SOL_MOVE          (BUTTON_PLAY | BUTTON_REL)
+#   define SOL_DRAW          BUTTON_FFWD
+#   define SOL_REM2CUR       (BUTTON_PLAY | BUTTON_DOWN)
+#   define SOL_CUR2STACK     (BUTTON_PLAY | BUTTON_UP)
+#   define SOL_REM2STACK     (BUTTON_PLAY | BUTTON_RIGHT)
+#   define HK_MOVE           "PLAY"
+#   define HK_DRAW           "FFWD"
+#   define HK_REM2CUR        "PLAY+DOWN"
+#   define HK_CUR2STACK      "PLAY+UP"
+#   define HK_REM2STACK      "PLAY+RIGHT"
 
 #elif CONFIG_KEYPAD == PBELL_VIBE500_PAD
 #   define SOL_QUIT          BUTTON_REC
@@ -490,22 +524,148 @@ CONFIG_KEYPAD == MROBE500_PAD
 #   define HK_REM2STACK    "PLAY...."
 
 #elif CONFIG_KEYPAD == MPIO_HD300_PAD
-#   define SOL_QUIT         BUTTON_REC
+#   define SOL_QUIT         (BUTTON_MENU | BUTTON_REPEAT)
 #   define SOL_UP           BUTTON_UP
 #   define SOL_DOWN         BUTTON_DOWN
-#   define SOL_LEFT         BUTTON_MENU
-#   define SOL_RIGHT        BUTTON_ENTER
-#   define SOL_MOVE_PRE     BUTTON_REW
-#   define SOL_MOVE         BUTTON_FF
-#   define SOL_DRAW         (BUTTON_ENTER | BUTTON_PLAY)
-#   define SOL_REM2CUR      (BUTTON_MENU | BUTTON_REPEAT)
-#   define SOL_CUR2STACK    BUTTON_PLAY
+#   define SOL_LEFT         BUTTON_REW
+#   define SOL_RIGHT        BUTTON_FF
+#   define SOL_MOVE_PRE     BUTTON_ENTER
+#   define SOL_MOVE         (BUTTON_ENTER | BUTTON_REL)
+#   define SOL_DRAW         BUTTON_MENU
+#   define SOL_REM2CUR      (BUTTON_PLAY | BUTTON_REL)
+#   define SOL_CUR2STACK    BUTTON_REC
 #   define SOL_REM2STACK    (BUTTON_PLAY | BUTTON_REPEAT)
-#   define HK_MOVE         "FF"
-#   define HK_DRAW         "ENTER + PLAY"
-#   define HK_REM2CUR      "EMNU.."
-#   define HK_CUR2STACK    "PLAY"
+#   define HK_MOVE         "ENTER"
+#   define HK_DRAW         "MENU"
+#   define HK_REM2CUR      "PLAY"
+#   define HK_CUR2STACK    "ENTER..."
 #   define HK_REM2STACK    "PLAY...."
+
+#elif CONFIG_KEYPAD == SANSA_FUZEPLUS_PAD
+#   define SOL_QUIT          BUTTON_POWER
+#   define SOL_UP            BUTTON_UP
+#   define SOL_DOWN          BUTTON_DOWN
+#   define SOL_LEFT          BUTTON_LEFT
+#   define SOL_RIGHT         BUTTON_RIGHT
+#   define SOL_MOVE          BUTTON_SELECT
+#   define SOL_DRAW          BUTTON_BACK
+#   define SOL_REM2CUR       BUTTON_BOTTOMLEFT
+#   define SOL_CUR2STACK     BUTTON_PLAYPAUSE|BUTTON_REL
+#   define SOL_REM2STACK     BUTTON_PLAYPAUSE|BUTTON_REPEAT
+#   define HK_MOVE           "SELECT"
+#   define HK_DRAW           "BACK"
+#   define HK_REM2CUR        "BOTTOM-LEFT"
+#   define HK_CUR2STACK      "PLAY-PAUSE"
+#   define HK_REM2STACK      "BOTTOM-RIGHT"
+
+#elif (CONFIG_KEYPAD == SANSA_CONNECT_PAD)
+#   define SOL_QUIT          BUTTON_POWER
+#   define SOL_UP            BUTTON_UP
+#   define SOL_DOWN          BUTTON_DOWN
+#   define SOL_LEFT          BUTTON_SCROLL_BACK
+#   define SOL_RIGHT         BUTTON_SCROLL_FWD
+#   define SOL_MOVE          BUTTON_SELECT
+#   define SOL_DRAW          BUTTON_VOL_UP
+#   define SOL_REM2CUR       BUTTON_LEFT
+#   define SOL_CUR2STACK_PRE BUTTON_VOL_DOWN
+#   define SOL_CUR2STACK     BUTTON_NEXT
+#   define SOL_REM2STACK     BUTTON_PREV
+#   define HK_MOVE           "SELECT"
+#   define HK_DRAW           "Vol+"
+#   define HK_REM2CUR        "LEFT"
+#   define HK_CUR2STACK      "NEXT"
+#   define HK_REM2STACK      "PREV"
+
+#elif (CONFIG_KEYPAD == SAMSUNG_YPR0_PAD)
+#   define SOL_QUIT         BUTTON_BACK
+#   define SOL_UP           BUTTON_UP
+#   define SOL_DOWN         BUTTON_DOWN
+#   define SOL_LEFT         BUTTON_LEFT
+#   define SOL_RIGHT        BUTTON_RIGHT
+#   define SOL_MOVE_PRE     BUTTON_SELECT
+#   define SOL_MOVE         (BUTTON_SELECT | BUTTON_REL)
+#   define SOL_DRAW         BUTTON_MENU
+#   define SOL_REM2CUR      (BUTTON_USER | BUTTON_REPEAT)
+#   define SOL_CUR2STACK    (BUTTON_SELECT | BUTTON_REPEAT)
+#   define SOL_REM2STACK    BUTTON_POWER
+#   define HK_MOVE         "Select"
+#   define HK_DRAW         "Menu"
+#   define HK_REM2CUR      "Long User"
+#   define HK_CUR2STACK    "Long Select.."
+#   define HK_REM2STACK    "Power"
+
+#elif (CONFIG_KEYPAD == HM60X_PAD)
+#   define SOL_QUIT         BUTTON_POWER
+#   define SOL_UP           BUTTON_UP
+#   define SOL_DOWN         BUTTON_DOWN
+#   define SOL_LEFT         BUTTON_LEFT
+#   define SOL_RIGHT        BUTTON_RIGHT
+#   define SOL_MOVE_PRE     BUTTON_SELECT
+#   define SOL_MOVE         (BUTTON_POWER | BUTTON_SELECT)
+#   define SOL_DRAW         (BUTTON_POWER | BUTTON_UP)
+#   define SOL_REM2CUR      (BUTTON_POWER | BUTTON_DOWN)
+#   define SOL_CUR2STACK    (BUTTON_POWER | BUTTON_LEFT)
+#   define SOL_REM2STACK    (BUTTON_POWER | BUTTON_RIGHT)
+#   define HK_MOVE         "SELECT + POWER"
+#   define HK_DRAW         "UP + POWER"
+#   define HK_REM2CUR      "DOWN + POWER"
+#   define HK_CUR2STACK    "LEFT + POWER"
+#   define HK_REM2STACK    "RIGHT + POWER"
+
+#elif (CONFIG_KEYPAD == HM801_PAD)
+#   define SOL_QUIT         BUTTON_POWER
+#   define SOL_UP           BUTTON_UP
+#   define SOL_DOWN         BUTTON_DOWN
+#   define SOL_LEFT         BUTTON_LEFT
+#   define SOL_RIGHT        BUTTON_RIGHT
+#   define SOL_MOVE_PRE     BUTTON_PREV
+#   define SOL_MOVE         BUTTON_NEXT
+#   define SOL_DRAW         BUTTON_PLAY
+#   define SOL_REM2CUR      BUTTON_SELECT
+#   define SOL_CUR2STACK    (BUTTON_POWER | BUTTON_LEFT)
+#   define SOL_REM2STACK    (BUTTON_POWER | BUTTON_RIGHT)
+#   define HK_MOVE         "PREV"
+#   define HK_DRAW         "PLAY"
+#   define HK_REM2CUR      "SELECT"
+#   define HK_CUR2STACK    "POWER + LEFT"
+#   define HK_REM2STACK    "POWER + RIGHT"
+
+#elif (CONFIG_KEYPAD == SONY_NWZ_PAD)
+#define SOL_QUIT      BUTTON_BACK
+#define SOL_UP        BUTTON_UP
+#define SOL_DOWN      BUTTON_DOWN
+#define SOL_LEFT      BUTTON_LEFT
+#define SOL_RIGHT     BUTTON_RIGHT
+#define SOL_MOVE      BUTTON_PLAY
+#define SOL_DRAW      (BUTTON_POWER|BUTTON_UP)
+#define SOL_REM2CUR   (BUTTON_POWER|BUTTON_DOWN)
+#define SOL_CUR2STACK (BUTTON_POWER|BUTTON_LEFT)
+#define SOL_REM2STACK (BUTTON_POWER|BUTTON_RIGHT)
+#define HK_MOVE       "Play"
+#define HK_DRAW       "Option+Up"
+#define HK_REM2CUR    "Option+Down"
+#define HK_CUR2STACK  "Option+Left"
+#define HK_REM2STACK  "Option+Right"
+
+#elif (CONFIG_KEYPAD == CREATIVE_ZEN_PAD)
+#define SOL_QUIT      BUTTON_POWER
+#define SOL_UP        BUTTON_UP
+#define SOL_DOWN      BUTTON_DOWN
+#define SOL_LEFT      BUTTON_LEFT
+#define SOL_RIGHT     BUTTON_RIGHT
+#define SOL_MOVE      BUTTON_SELECT
+#define SOL_DRAW      BUTTON_PLAYPAUSE
+#define SOL_REM2CUR   BUTTON_BACK
+#define SOL_CUR2STACK BUTTON_MENU
+#define SOL_REM2STACK BUTTON_SHORTCUT
+#define HK_MOVE       "Select"
+#define HK_DRAW       "Play/pause"
+#define HK_REM2CUR    "Back"
+#define HK_CUR2STACK  "Menu"
+#define HK_REM2STACK  "Shortcut"
+
+#elif (CONFIG_KEYPAD == DX50_PAD)
+#   define SOL_QUIT          (BUTTON_POWER | BUTTON_REL)
 
 #else
 #error No keymap defined!
@@ -628,6 +788,14 @@ CONFIG_KEYPAD == MROBE500_PAD
 #define REM_COL (STACKS_COL + SUITS)
 
 #define NOT_A_COL -1
+
+#if defined(SOL_LEFT_PRE)      || defined(SOL_RIGHT_PRE)     || \
+    defined(SOL_DOWN_PRE)      || defined(SOL_UP_PRE)        || \
+    defined(SOL_CUR2STACK_PRE) || defined(SOL_MOVE_PRE)      || \
+    defined(SOL_REM2CUR_PRE)   || defined(SOL_REM2STACK_PRE) || \
+    defined(SOL_DRAW_PRE)
+#   define NEED_LASTBUTTON_VAR
+#endif
 
 typedef struct
 {
@@ -794,7 +962,7 @@ void solitaire_init(void);
 enum { MENU_RESUME, MENU_SAVE_AND_QUIT, MENU_QUIT, MENU_USB };
 
 static bool _ingame;
-int solitaire_menu_cb(int action, const struct menu_item_ex *this_item)
+static int solitaire_menu_cb(int action, const struct menu_item_ex *this_item)
 {
     int i = (intptr_t)this_item;
     if( action == ACTION_REQUEST_MENUITEM )
@@ -805,7 +973,7 @@ int solitaire_menu_cb(int action, const struct menu_item_ex *this_item)
     return action;
 }
 
-int solitaire_menu(bool in_game)
+static int solitaire_menu(bool in_game)
 {
     int selected = 0;
     int result = -1;
@@ -899,7 +1067,7 @@ int stacks[SUITS];
  * Card handling routines
  */
 
-int next_random_card( card_t *deck )
+static int next_random_card( card_t *deck )
 {
     int i,r;
 
@@ -1004,7 +1172,7 @@ void solitaire_init( void )
 }
 
 /* find the column number in which 'card' can be found */
-int find_card_col( int card )
+static int find_card_col( int card )
 {
     int i;
     int c;
@@ -1036,7 +1204,7 @@ int find_card_col( int card )
 
 /* find the card preceding 'card' */
 /* if it doesn't exist, return NOT_A_CARD */
-int find_prev_card( int card ){
+static int find_prev_card( int card ){
     int i;
 
     for( i=0; i < NUM_CARDS; i++ )
@@ -1048,7 +1216,7 @@ int find_prev_card( int card ){
 }
 
 /* find the last card of a given column */
-int find_last_card( int col )
+static int find_last_card( int col )
 {
     int c;
 
@@ -1077,7 +1245,7 @@ int find_last_card( int col )
 
 enum move { MOVE_OK, MOVE_NOT_OK };
 
-enum move move_card( int dest_col, int src_card )
+static enum move move_card( int dest_col, int src_card )
 {
     /* the column on which to take src_card */
     int src_col;
@@ -1230,7 +1398,7 @@ enum { SOLITAIRE_WIN, SOLITAIRE_SAVE_AND_QUIT, SOLITAIRE_QUIT, SOLITAIRE_USB };
 #define BC_MYSPEED (6*BC_ACCEL)
 #define BC_MXSPEED (6*LCD_HEIGHT/128)
 
-int bouncing_cards( void )
+static int bouncing_cards( void )
 {
     int i, j, x, vx, y, fp_y, fp_vy, button;
 
@@ -1291,23 +1459,27 @@ int bouncing_cards( void )
 /**
  * Game save/load routines
  */
-void get_save_filename( char *buf )
+static void get_save_filename( char *buf )
 {
+#ifdef APPLICATION
+    rb->snprintf(buf, sizeof(buf), PLUGIN_DATA_DIR "/sol.save");
+#else
     char *s;
     rb->strcpy( buf, rb->plugin_get_current_filename() );
     s = rb->strrchr( buf, '/' ) + 1;
     *s = '\0';
     rb->strcat( s, "sol.save" );
+#endif
 }
 
-int open_save_file( int flags )
+static int open_save_file( int flags )
 {
     char buf[MAX_PATH];
     get_save_filename( buf );
     return rb->open( buf, flags, 0666);
 }
 
-void delete_save_file( void )
+static void delete_save_file( void )
 {
     char buf[MAX_PATH];
     get_save_filename( buf );
@@ -1317,7 +1489,7 @@ void delete_save_file( void )
 #ifdef write
 #   undef write
 #endif
-int save_write( int fd, const void *buf, size_t count, int *checksum )
+static int save_write( int fd, const void *buf, size_t count, int *checksum )
 {
     size_t i;
     if( rb->write( fd, buf, count ) < (ssize_t)count )
@@ -1330,7 +1502,7 @@ int save_write( int fd, const void *buf, size_t count, int *checksum )
 #ifdef read
 #   undef read
 #endif
-int save_read( int fd, void *buf, size_t count, int *checksum )
+static int save_read( int fd, void *buf, size_t count, int *checksum )
 {
     size_t i;
     if( rb->read( fd, buf, count ) < (ssize_t)count )
@@ -1340,7 +1512,7 @@ int save_read( int fd, void *buf, size_t count, int *checksum )
     return 0;
 }
 
-int save_game( void )
+static int save_game( void )
 {
     int fd = open_save_file( O_CREAT|O_WRONLY|O_TRUNC );
     int checksum = 42;
@@ -1366,7 +1538,7 @@ int save_game( void )
     return 0;
 }
 
-int load_game( void )
+static int load_game( void )
 {
     int checksum, retval;
     
@@ -1410,11 +1582,14 @@ int load_game( void )
  * game will resume.
  */
 
-int solitaire( int skipmenu )
+static int solitaire( int skipmenu )
 {
 
     int i,j;
-    int button, lastbutton = 0;
+    int button;
+#ifdef NEED_LASTBUTTON_VAR
+    int lastbutton = 0;
+#endif
     int c,h,prevcard;
     int biggest_col_length;
 
@@ -1902,8 +2077,10 @@ int solitaire( int skipmenu )
                 break;
         }
 
+#ifdef NEED_LASTBUTTON_VAR
         if( button != BUTTON_NONE )
             lastbutton = button;
+#endif
 
         /* fix incoherences concerning cur_col and cur_card */
         c = find_card_col( cur_card );

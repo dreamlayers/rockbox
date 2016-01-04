@@ -19,12 +19,20 @@
  *
  ****************************************************************************/
 
-#ifndef _LCD_TARGET_H_
-#define _LCD_TARGET_H_
-
-extern void lcd_enable(bool state);
+#ifndef LCD_TARGET_H
+#define LCD_TARGET_H
 
 void lcd_set_direct_fb(bool yes);
 bool lcd_get_direct_fb(void);
 
-#endif
+/* Direct FB access disables regular updates */
+#define lcd_write_enabled() \
+    ({ lcd_on && !lcd_get_direct_fb(); })
+
+/* Very strange functions */
+#define LCD_OPTIMIZED_UPDATE
+#define LCD_OPTIMIZED_UPDATE_RECT
+
+#define LCD_FRAMEBUF_ADDR(col, row) ((fb_data *)FRAME + (row)*LCD_WIDTH + (col))
+
+#endif /* LCD_TARGET_H */

@@ -88,7 +88,6 @@
 #
 # Philips
 # GoGear SA9200     gogearsa9200
-
 <phrase>
   id: LANG_SET_BOOL_YES
   desc: bool true representation
@@ -320,14 +319,14 @@
   <source>
     *: "PLAY = Yes"
     iriverh100,iriverh120,iriverh300: "NAVI = Yes"
-    samsungyh*,ipod*,iaudiox5,iaudiom5,gigabeat*,sansae200*,sansac200*,iriverh10,iriverh10_5gb,mrobe100,gogearsa9200: "SELECT = Yes"
+    ipod*,iaudiox5,iaudiom5,gigabeat*,sansae200*,sansac200*,iriverh10,iriverh10_5gb,mrobe100,gogearsa9200: "SELECT = Yes"
     archosplayer: "(PLAY/STOP)"
     vibe500: "OK = Yes"
   </source>
   <dest>
     *: "PLAY = Taip"
     iriverh100,iriverh120,iriverh300: "NAVI = Taip"
-    samsungyh*,ipod*,iaudiox5,iaudiom5,gigabeat*,sansae200*,sansac200*,iriverh10,iriverh10_5gb,mrobe100,gogearsa9200: "SELECT = Taip"
+    ipod*,iaudiox5,iaudiom5,gigabeat*,sansae200*,sansac200*,iriverh10,iriverh10_5gb,mrobe100,gogearsa9200: "SELECT = Taip"
     archosplayer: "(PLAY/STOP)"
     vibe500: "OK = Taip"
   </dest>
@@ -2303,14 +2302,14 @@
     *: "Building database... %d found (OFF to return)"
     iriverh100,iriverh120,iriverh300: "Building database... %d found (STOP to return)"
     ipod*: "Building database... %d found (PREV to return)"
-    iaudiox5,iaudiom5,gigabeat*,mrobe100: "Building database... %d found (LEFT to return)"
+    iaudiox5,iaudiom5,gigabeat*,mrobe100,samsungyh*: "Building database... %d found (LEFT to return)"
     iriverh10,iriverh10_5gb,sansae200*,sansac200*,gogearsa9200,vibe500: "Building database... %d found (PREV to return)"
   </source>
   <dest>
     *: "Kuriama duomenų bazė... %d rasta (OFF grįžimui)"
     iriverh100,iriverh120,iriverh300: "Kuriama duomenų bazė... %d rasta (STOP grįžimui)"
     ipod*: "Kuriama duomenų bazė... %d rasta (PREV grįžimui)"
-    iaudiox5,iaudiom5,gigabeat*,mrobe100: "Kuriama duomenų bazė... %d rasta (LEFT grįžimui)"
+    iaudiox5,iaudiom5,gigabeat*,mrobe100,samsungyh*: "Kuriama duomenų bazė... %d rasta (LEFT grįžimui)"
     iriverh10,iriverh10_5gb,sansae200*,sansac200*,gogearsa9200,vibe500: "Kuriama duomenų bazė... %d rasta (PREV to grįžimui)"
   </dest>
   <voice>
@@ -4013,7 +4012,8 @@
     *: none
     rtc: "ON = Set"
     iriverh100,iriverh120,iriverh300: "NAVI = Set"
-    ipod*,iaudiox5,iaudiom5,iriverh10,iriverh10_5gb,sansae200*,sansac200*,gigabeat*,mrobe100,gogearsa9200: "SELECT = Set"
+    ipod*,iaudiox5,iaudiom5,iriverh10,iriverh10_5gb,sansae200*,sansac200*,gigabeat*,mrobe100: "SELECT = Set"
+    gogearsa9200,samsungyh*: "PLAY = Set"
     vibe500: "OK = Set"
     mpiohd300: "ENTER = Set"
   </source>
@@ -4021,7 +4021,8 @@
     *: none
     rtc: "ON = Nustatyti"
     iriverh100,iriverh120,iriverh300: "NAVI = Nustatyti"
-    ipod*,iaudiox5,iaudiom5,iriverh10,iriverh10_5gb,sansae200*,sansac200*,gigabeat*,mrobe100,gogearsa9200: "SELECT = Nustatyti"
+    ipod*,iaudiox5,iaudiom5,iriverh10,iriverh10_5gb,sansae200*,sansac200*,gigabeat*,mrobe100: "SELECT = Nustatyti"
+    gogearsa9200,samsungyh*: "PLAY = Nustatyti"
     vibe500: "OK = Nustatyti"
     mpiohd300: "ENTER = Nustatyti"
   </dest>
@@ -4042,9 +4043,11 @@
     iaudiox5,iaudiom5: "RECORD = Revert"
     iriverh10,iriverh10_5gb,sansae200*,sansafuze*: "PREV = Revert"
     gigabeatfx: "POWER = Revert"
+    sansafuzeplus: "BACK = Revert"
     mrobe100: "DISPLAY = Revert"
     gigabeats: "BACK = Revert"
     vibe500: "CANCEL = Revert"
+    samsungyh*: "REW = Revert"
   </source>
   <dest>
     *: none
@@ -4054,9 +4057,11 @@
     iaudiox5,iaudiom5: "RECORD = Atstatyti"
     iriverh10,iriverh10_5gb,sansae200*,sansafuze*: "PREV = Atstatyti"
     gigabeatfx: "POWER = Atstatyti"
+    sansafuzeplus: "BACK = Atstatyti"
     mrobe100: "DISPLAY = Atstatyti"
     gigabeats: "BACK = Atstatyti"
     vibe500: "CANCEL = Atstatyti"
+    samsungyh*: "REW = Atstatyti"
   </dest>
   <voice>
     *: none
@@ -4586,6 +4591,7 @@
     gigabeats: "SELECT=Set POWER=Cancel"
     vibe500: "OK=Set C=Cancel"
     mpiohd300: "ENTER=Set MENU=Cancel"
+    sansafuzeplus: "SELECT=Set  BACK=Cancel"
   </source>
   <dest>
     *: none
@@ -4595,6 +4601,7 @@
     gigabeats: "SELECT=Nustatyti POWER=Atšaukti"
     vibe500: "OK=Nustatyti C=Atšaukti"
     mpiohd300: "ENTER=Nustatyti MENU=Atšaukti"
+    sansafuzeplus: "SELECT=Nustatyti  BACK=Atšaukti"
   </dest>
   <voice>
     *: none
@@ -5440,19 +5447,19 @@
 </phrase>
 <phrase>
   id: LANG_FM_SAVE_CHANGES
-  desc: When you try to exit radio to confirm save
+  desc: deprecated
   user: core
   <source>
     *: none
-    radio: "Save Changes?"
+    radio: ""
   </source>
   <dest>
     *: none
-    radio: "Išsaugoti pakeitimus?"
+    radio: ""
   </dest>
   <voice>
     *: none
-    radio: "Išsaugoti pakeitimus?"
+    radio: ""
   </voice>
 </phrase>
 <phrase>
@@ -5694,20 +5701,20 @@
   </voice>
 </phrase>
 <phrase>
-  id: LANG_RECORDING_FREQUENCY
-  desc: in the recording settings
+  id: LANG_FREQUENCY
+  desc: in recording and playback settings
   user: core
   <source>
     *: none
-    recording: "Frequency"
+    recording,play_frequency: "Frequency"
   </source>
   <dest>
     *: none
-    recording: "Dažnis"
+    recording,play_frequency: "Dažnis"
   </dest>
   <voice>
     *: none
-    recording: "Dažnis"
+    recording,play_frequency: "Dažnis"
   </voice>
 </phrase>
 <phrase>
@@ -5932,20 +5939,6 @@
   <voice>
     *: none
     recording: "Dalyti failo dydį"
-  </voice>
-</phrase>
-<phrase>
-  id: LANG_REC_SIZE
-  desc: deprecated
-  user:
-  <source>
-    *: none
-  </source>
-  <dest>
-    *: none
-  </dest>
-  <voice>
-    *: none
   </voice>
 </phrase>
 <phrase>
@@ -6535,7 +6528,7 @@
   desc: in onplay menu
   user: core
   <source>
-    *: "Playlist Catalog"
+    *: "Playlist Catalogue"
   </source>
   <dest>
     *: "Grojaraščių katalogas"
@@ -6717,19 +6710,19 @@
   <source>
     *: none
     multivolume: "HD1"
-    sansae200*,sansac200*,sansafuze*: "mSD:"
+    sansae200*,sansac200*,sansafuze*,sansaclipplus: "mSD:"
     archosondio*: "MMC:"
   </source>
   <dest>
     *: none
     multivolume: "HD1"
-    sansae200*,sansac200*,sansafuze*: "MSD:"
+    sansae200*,sansac200*,sansafuze*,sansaclipplus: "MSD:"
     archosondio*: "MMC:"
   </dest>
   <voice>
     *: none
     multivolume: "H D 1"
-    sansae200*,sansac200*,sansafuze*: "micro S D"
+    sansae200*,sansac200*,sansafuze*,sansaclipplus: "micro S D"
     archosondio*: "M M C"
   </voice>
 </phrase>
@@ -7029,10 +7022,10 @@
 </phrase>
 <phrase>
   id: LANG_CATALOG_VIEW
-  desc: in onplay playlist catalog submenu
+  desc: in onplay playlist catalogue submenu
   user: core
   <source>
-    *: "View Catalog"
+    *: "View Catalogue"
   </source>
   <dest>
     *: "Žiūrėti katalogą"
@@ -7043,7 +7036,7 @@
 </phrase>
 <phrase>
   id: LANG_CATALOG_ADD_TO
-  desc: in onplay playlist catalog submenu
+  desc: in onplay playlist catalogue submenu
   user: core
   <source>
     *: "Add to Playlist"
@@ -7057,7 +7050,7 @@
 </phrase>
 <phrase>
   id: LANG_CATALOG_ADD_TO_NEW
-  desc: in onplay playlist catalog submenu
+  desc: in onplay playlist catalogue submenu
   user: core
   <source>
     *: "Add to New Playlist"
@@ -7071,7 +7064,7 @@
 </phrase>
 <phrase>
   id: LANG_CATALOG_NO_DIRECTORY
-  desc: error message when playlist catalog directory doesn't exist
+  desc: error message when playlist catalogue directory doesn't exist
   user: core
   <source>
     *: "%s doesn't exist"
@@ -7085,7 +7078,7 @@
 </phrase>
 <phrase>
   id: LANG_CATALOG_NO_PLAYLISTS
-  desc: error message when no playlists for playlist catalog
+  desc: error message when no playlists for playlist catalogue
   user: core
   <source>
     *: "No Playlists"
@@ -7634,15 +7627,15 @@
 </phrase>
 <phrase>
   id: LANG_BACKDROP_LOADED
-  desc: text for splash to indicate a new backdrop has been loaded successfully
+  desc: deprecated
   user: core
   <source>
     *: none
-    lcd_non-mono: "Backdrop Loaded"
+    lcd_non-mono: ""
   </source>
   <dest>
     *: none
-    lcd_non-mono: "Paveikslėlis užkrautas"
+    lcd_non-mono: ""
   </dest>
   <voice>
     *: none
@@ -7651,15 +7644,15 @@
 </phrase>
 <phrase>
   id: LANG_BACKDROP_FAILED
-  desc: text for splash to indicate a failure to load a bitmap as backdrop
+  desc: deprecated
   user: core
   <source>
     *: none
-    lcd_non-mono: "Backdrop Failed"
+    lcd_non-mono: ""
   </source>
   <dest>
     *: none
-    lcd_non-mono: "Užkrauti nepavyko"
+    lcd_non-mono: ""
   </dest>
   <voice>
     *: none
@@ -7960,7 +7953,7 @@
     *: "Rėžimas:"
   </dest>
   <voice>
-    *: ""
+    *: "Rėžimas:"
   </voice>
 </phrase>
 <phrase>
@@ -8049,6 +8042,7 @@
     iriverh100,iriverh120,iriverh300: "The disk is full. Press STOP to continue."
     iaudiom5,iaudiox5: "The disk is full. Press POWER to continue."
     sansae200*,sansac200*,vibe500: "The disk is full. Press PREV to continue."
+    samsungyh*: "Disk full. Press LEFT to continue."
   </source>
   <dest>
     *: none
@@ -8056,6 +8050,7 @@
     iriverh100,iriverh120,iriverh300: "Diskas pilnas. Spauskite STOP."
     iaudiom5,iaudiox5: "Diskas pilnas. Spauskite POWER."
     sansae200*,sansac200*,vibe500: "Diskas pilnas. Spauskite PREV."
+    samsungyh*: "Diskas pilnas. Spauskite LEFT."
   </dest>
   <voice>
     *: none
@@ -8153,6 +8148,7 @@
     iriverh10,iriverh10_5gb,sansae200*,sansac200*,vibe500: "PREV to abort"
     gigabeats: "BACK to abort"
     gigabeatfx: "POWER to abort"
+    sansafuzeplus: "BACK to abort"
   </source>
   <dest>
     *: "OFF atšaukimui"
@@ -8162,6 +8158,7 @@
     iriverh10,iriverh10_5gb,sansae200*,sansac200*,vibe500: "PREV atšaukimui"
     gigabeats: "BACK atšaukimui"
     gigabeatfx: "POWER atšaukimui"
+    sansafuzeplus: "BACK atšaukimui"
   </dest>
   <voice>
     *: ""
@@ -10490,15 +10487,15 @@
   user: core
   <source>
     *: none
-    ipodvideo: "Bass Cutoff"
+    ipodvideo,ipod6g,mpiohd200,mpiohd300,gigabeatfx,mrobe100: "Bass Cutoff"
   </source>
   <dest>
     *: none
-    ipodvideo: "Bosų nukirpimas"
+    ipodvideo,ipod6g,mpiohd200,mpiohd300,gigabeatfx,mrobe100: "Bosų nukirpimas"
   </dest>
   <voice>
     *: none
-    ipodvideo: "Bosų nukirpimas"
+    ipodvideo,ipod6g,mpiohd200,mpiohd300,gigabeatfx,mrobe100: "Bosų nukirpimas"
   </voice>
 </phrase>
 <phrase>
@@ -10507,15 +10504,15 @@
   user: core
   <source>
     *: none
-    ipodvideo: "Treble Cutoff"
+    ipodvideo,ipod6g,mpiohd200,mpiohd300,gigabeatfx,mrobe100: "Treble Cutoff"
   </source>
   <dest>
     *: none
-    ipodvideo: "Aukštų daž. Nukirpimas"
+    ipodvideo,ipod6g,mpiohd200,mpiohd300,gigabeatfx,mrobe100: "Aukštų daž. Nukirpimas"
   </dest>
   <voice>
     *: none
-    ipodvideo: "Aukštų daž. Nukirpimas"
+    ipodvideo,ipod6g,mpiohd200,mpiohd300,gigabeatfx,mrobe100: "Aukštų daž. Nukirpimas"
   </voice>
 </phrase>
 <phrase>
@@ -10662,15 +10659,15 @@
   user: core
   <source>
     *: none
-    gigabeatfx: "Touchpad Sensitivity"
+    gigabeatfx,sansafuzeplus: "Touchpad Sensitivity"
   </source>
   <dest>
     *: none
-    gigabeatfx: "Jautrumas lietimui"
+    gigabeatfx,sansafuzeplus: "Jautrumas lietimui"
   </dest>
   <voice>
     *: none
-    gigabeatfx: "Jautrumas lietimui"
+    gigabeatfx,sansafuzeplus: "Jautrumas lietimui"
   </voice>
 </phrase>
 <phrase>

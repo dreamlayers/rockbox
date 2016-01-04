@@ -195,6 +195,28 @@
 #define FLIPIT_STEP_BY_STEP (BUTTON_SELECT | BUTTON_UP)
 #define FLIPIT_TOGGLE       (BUTTON_SELECT | BUTTON_REL)
 
+#elif CONFIG_KEYPAD == SONY_NWZ_PAD
+#define FLIPIT_LEFT         BUTTON_LEFT
+#define FLIPIT_RIGHT        BUTTON_RIGHT
+#define FLIPIT_UP           BUTTON_UP
+#define FLIPIT_DOWN         BUTTON_DOWN
+#define FLIPIT_QUIT         (BUTTON_BACK|BUTTON_REPEAT)
+#define FLIPIT_SHUFFLE      BUTTON_BACK
+#define FLIPIT_SOLVE        (BUTTON_PLAY|BUTTON_REPEAT)
+#define FLIPIT_STEP_BY_STEP BUTTON_POWER
+#define FLIPIT_TOGGLE       BUTTON_PLAY
+
+#elif CONFIG_KEYPAD == CREATIVE_ZEN_PAD
+#define FLIPIT_LEFT         BUTTON_LEFT
+#define FLIPIT_RIGHT        BUTTON_RIGHT
+#define FLIPIT_UP           BUTTON_UP
+#define FLIPIT_DOWN         BUTTON_DOWN
+#define FLIPIT_QUIT         BUTTON_BACK
+#define FLIPIT_SHUFFLE      BUTTON_SHORTCUT
+#define FLIPIT_SOLVE        BUTTON_PLAYPAUSE
+#define FLIPIT_STEP_BY_STEP BUTTON_MENU
+#define FLIPIT_TOGGLE       BUTTON_SELECT
+
 #elif CONFIG_KEYPAD == IRIVER_H10_PAD
 
 #define FLIPIT_LEFT         BUTTON_LEFT
@@ -264,6 +286,20 @@
 #define FLIPIT_STEP_BY_STEP BUTTON_MENU
 #define FLIPIT_TOGGLE       BUTTON_SELECT
 
+#elif CONFIG_KEYPAD == CREATIVE_ZENXFI3_PAD
+#define FLIPIT_LEFT         BUTTON_BACK
+#define FLIPIT_RIGHT        BUTTON_MENU
+#define FLIPIT_UP           BUTTON_UP
+#define FLIPIT_DOWN         BUTTON_DOWN
+#define FLIPIT_NEXT         BUTTON_VOL_UP
+#define FLIPIT_PREV         BUTTON_VOL_DOWN
+#define FLIPIT_QUIT         BUTTON_POWER
+#define FLIPIT_SHUFFLE      (BUTTON_PLAY | BUTTON_BACK)
+#define FLIPIT_SOLVE        (BUTTON_PLAY | BUTTON_DOWN)
+#define FLIPIT_STEP_BY_STEP (BUTTON_PLAY | BUTTON_MENU)
+#define FLIPIT_TOGGLE_PRE   BUTTON_PLAY
+#define FLIPIT_TOGGLE       (BUTTON_PLAY | BUTTON_REL)
+
 #elif CONFIG_KEYPAD == PHILIPS_HDD1630_PAD
 
 #define FLIPIT_LEFT         BUTTON_LEFT
@@ -308,17 +344,18 @@
 
 #define FLIPIT_QUIT         BUTTON_POWER
 
-#elif CONFIG_KEYPAD == SAMSUNG_YH_PAD
+#elif (CONFIG_KEYPAD == SAMSUNG_YH820_PAD) || \
+      (CONFIG_KEYPAD == SAMSUNG_YH920_PAD)
 
 #define FLIPIT_LEFT         BUTTON_LEFT
 #define FLIPIT_RIGHT        BUTTON_RIGHT
 #define FLIPIT_UP           BUTTON_UP
 #define FLIPIT_DOWN         BUTTON_DOWN
-#define FLIPIT_QUIT         BUTTON_REC
-#define FLIPIT_SHUFFLE      BUTTON_PLAY
-#define FLIPIT_SOLVE        BUTTON_FFWD
-#define FLIPIT_STEP_BY_STEP (BUTTON_PLAY|BUTTON_UP)
-#define FLIPIT_TOGGLE       (BUTTON_PLAY|BUTTON_DOWN)
+#define FLIPIT_QUIT         (BUTTON_REW|BUTTON_REPEAT)
+#define FLIPIT_SHUFFLE      (BUTTON_REW|BUTTON_REL)
+#define FLIPIT_SOLVE        (BUTTON_FFWD|BUTTON_REPEAT)
+#define FLIPIT_STEP_BY_STEP (BUTTON_FFWD|BUTTON_REL)
+#define FLIPIT_TOGGLE       BUTTON_PLAY
 
 #elif CONFIG_KEYPAD == PBELL_VIBE500_PAD
 
@@ -350,11 +387,83 @@
 #define FLIPIT_RIGHT        BUTTON_FF
 #define FLIPIT_UP           BUTTON_UP
 #define FLIPIT_DOWN         BUTTON_DOWN
-#define FLIPIT_QUIT         (BUTTON_REC|BUTTON_REPEAT)
+#define FLIPIT_QUIT         (BUTTON_MENU|BUTTON_REPEAT)
 #define FLIPIT_SHUFFLE      BUTTON_PLAY
 #define FLIPIT_SOLVE        BUTTON_MENU
 #define FLIPIT_STEP_BY_STEP BUTTON_REC
 #define FLIPIT_TOGGLE       BUTTON_ENTER
+
+#elif CONFIG_KEYPAD == SANSA_FUZEPLUS_PAD
+
+#define FLIPIT_LEFT         BUTTON_LEFT
+#define FLIPIT_RIGHT        BUTTON_RIGHT
+#define FLIPIT_UP           BUTTON_UP
+#define FLIPIT_DOWN         BUTTON_DOWN
+#define FLIPIT_QUIT         BUTTON_POWER
+#define FLIPIT_SHUFFLE      BUTTON_PLAYPAUSE
+#define FLIPIT_SOLVE        BUTTON_BACK
+#define FLIPIT_STEP_BY_STEP BUTTON_BOTTOMLEFT
+#define FLIPIT_TOGGLE       BUTTON_SELECT
+
+#elif CONFIG_KEYPAD == SANSA_CONNECT_PAD
+
+#define FLIPIT_LEFT         BUTTON_LEFT
+#define FLIPIT_RIGHT        BUTTON_RIGHT
+#define FLIPIT_UP           BUTTON_UP
+#define FLIPIT_DOWN         BUTTON_DOWN
+#define FLIPIT_QUIT         BUTTON_POWER
+#define FLIPIT_SHUFFLE      BUTTON_VOL_UP
+#define FLIPIT_SOLVE        BUTTON_PREV
+#define FLIPIT_STEP_BY_STEP BUTTON_NEXT
+#define FLIPIT_TOGGLE       BUTTON_SELECT
+
+#elif CONFIG_KEYPAD == SAMSUNG_YPR0_PAD
+
+#define FLIPIT_LEFT         BUTTON_LEFT
+#define FLIPIT_RIGHT        BUTTON_RIGHT
+#define FLIPIT_UP           BUTTON_UP
+#define FLIPIT_DOWN         BUTTON_DOWN
+#define FLIPIT_QUIT         BUTTON_BACK
+#define FLIPIT_SHUFFLE      BUTTON_MENU
+#define FLIPIT_SOLVE        BUTTON_USER
+#define FLIPIT_STEP_BY_STEP BUTTON_POWER
+#define FLIPIT_TOGGLE       BUTTON_SELECT
+
+#elif CONFIG_KEYPAD == HM60X_PAD
+
+#define FLIPIT_LEFT         BUTTON_LEFT
+#define FLIPIT_RIGHT        BUTTON_RIGHT
+#define FLIPIT_UP           BUTTON_UP
+#define FLIPIT_DOWN         BUTTON_DOWN
+#define FLIPIT_QUIT         BUTTON_POWER
+#define FLIPIT_SHUFFLE      (BUTTON_UP|BUTTON_POWER)
+#define FLIPIT_SOLVE        (BUTTON_DOWN|BUTTON_POWER)
+#define FLIPIT_STEP_BY_STEP (BUTTON_LEFT|BUTTON_POWER)
+#define FLIPIT_TOGGLE       BUTTON_SELECT
+
+#elif CONFIG_KEYPAD == HM801_PAD
+
+#define FLIPIT_LEFT         BUTTON_LEFT
+#define FLIPIT_RIGHT        BUTTON_RIGHT
+#define FLIPIT_UP           BUTTON_UP
+#define FLIPIT_DOWN         BUTTON_DOWN
+#define FLIPIT_QUIT         BUTTON_POWER
+#define FLIPIT_SHUFFLE      BUTTON_PREV
+#define FLIPIT_SOLVE        BUTTON_NEXT
+#define FLIPIT_STEP_BY_STEP BUTTON_PLAY
+#define FLIPIT_TOGGLE       BUTTON_SELECT
+
+#elif CONFIG_KEYPAD == DX50_PAD
+
+#define FLIPIT_LEFT         BUTTON_LEFT
+#define FLIPIT_RIGHT        BUTTON_RIGHT
+#define FLIPIT_UP           BUTTON_VOL_UP
+#define FLIPIT_DOWN         BUTTON_VOL_DOWN
+#define FLIPIT_QUIT         (BUTTON_POWER|BUTTON_REL)
+#define FLIPIT_SHUFFLE      (BUTTON_VOL_UP|BUTTON_POWER)
+#define FLIPIT_SOLVE        (BUTTON_VOL_DOWN|BUTTON_POWER)
+#define FLIPIT_STEP_BY_STEP (BUTTON_LEFT|BUTTON_POWER)
+#define FLIPIT_TOGGLE       BUTTON_PLAY
 
 #else
 #error No keymap defined!
@@ -615,7 +724,10 @@ static bool flipit_loop(void)
 {
     int i;
     int button;
+#if defined(FLIPIT_SOLVE_PRE) || defined(FLIPIT_STEP_PRE) || \
+    defined(FLIPIT_TOGGLE_PRE) || defined(FLIPIT_UP_PRE)
     int lastbutton = BUTTON_NONE;
+#endif
 
     flipit_init();
     while(true) {
@@ -729,8 +841,11 @@ static bool flipit_loop(void)
                     return PLUGIN_USB_CONNECTED;
                 break;
         }
+#if defined(FLIPIT_SOLVE_PRE) || defined(FLIPIT_STEP_PRE) || \
+    defined(FLIPIT_TOGGLE_PRE) || defined(FLIPIT_UP_PRE)
         if (button != BUTTON_NONE)
             lastbutton = button;
+#endif
     }
 }
 
@@ -820,6 +935,19 @@ enum plugin_status plugin_start(const void* parameter)
     rb->lcd_putsxy(2, 28, "[MODE] shuffle");
     rb->lcd_putsxy(2, 38, "[MENU..] solution");
     rb->lcd_putsxy(2, 48, "[MENU] step by step");
+#elif CONFIG_KEYPAD == SANSA_CONNECT_PAD
+    rb->lcd_putsxy(2, 8, "[POWER] to stop");
+    rb->lcd_putsxy(2, 18, "[SELECT] toggle");
+    rb->lcd_putsxy(2, 28, "[VOL+] shuffle");
+    rb->lcd_putsxy(2, 38, "[PREV] solution");
+    rb->lcd_putsxy(2, 48, "[NEXT] step by step");
+#elif (CONFIG_KEYPAD == SAMSUNG_YH920_PAD) || \
+      (CONFIG_KEYPAD == SAMSUNG_YH820_PAD)
+    rb->lcd_putsxy(2, 8, "Long [REW] to stop");
+    rb->lcd_putsxy(2, 18, "[PLAY] toggle");
+    rb->lcd_putsxy(2, 28, "[REW] shuffle");
+    rb->lcd_putsxy(2, 38, "Long [FFWD] solution");
+    rb->lcd_putsxy(2, 48, "[FFWD] step by step");
 #endif
 
 #ifdef HAVE_TOUCHSCREEN

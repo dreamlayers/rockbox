@@ -26,6 +26,10 @@
 #include "config.h" /* for HAVE_MULTIDRIVE or not */
 #include "mv.h"
 
+#if (CONFIG_STORAGE & STORAGE_HOSTFS) || defined(SIMULATOR)
+#define HAVE_HOSTFS
+#endif
+
 #if (CONFIG_STORAGE & STORAGE_SD)
 #include "sd.h"
 #endif
@@ -51,19 +55,20 @@ struct storage_info
     char *revision;
 };
 
-#if (CONFIG_STORAGE == 0)
+#ifdef HAVE_HOSTFS
+#include "hostfs.h"
 /* stubs for the plugin api */
 static inline void stub_storage_sleep(void) {}
 static inline void stub_storage_spin(void) {}
 static inline void stub_storage_spindown(int timeout) { (void)timeout; }
 #endif
 
-#if defined(CONFIG_STORAGE) && !defined(CONFIG_STORAGE_MULTI)
+#if !defined(CONFIG_STORAGE_MULTI) || defined(HAVE_HOSTFS)
 /* storage_spindown, storage_sleep and storage_spin are passed as
  * pointers, which doesn't work with argument-macros.
  */
     #define storage_num_drives() NUM_DRIVES
-    #if (CONFIG_STORAGE == 0) /* application */
+    #if defined(HAVE_HOSTFS)
         #define STORAGE_FUNCTION(NAME) (stub_## NAME)
         #define storage_spindown stub_storage_spindown
         #define storage_sleep stub_storage_sleep
@@ -71,10 +76,24 @@ static inline void stub_storage_spindown(int timeout) { (void)timeout; }
 
         #define storage_enable(on)
         #define storage_sleepnow()
-        #define storage_disk_is_active()
+        #define storage_disk_is_active() 0
         #define storage_soft_reset()
-        #define storage_init()
-        #define storage_close()
+        #define storage_init() hostfs_init()
+        #ifdef HAVE_STORAGE_FLUSH
+            #define storage_flush() hostfs_flush()
+        #endif
+        #define storage_last_disk_activity() (-1)
+        #define storage_spinup_time() 0
+        #define storage_get_identify() (NULL) /* not actually called anywher */
+
+        #ifdef STORAGE_GET_INFO
+            #error storage_get_info not implemented
+        #endif
+        #ifdef HAVE_HOTSWAP
+            #define storage_removable(drive) hostfs_removable(IF_MD(drive))
+            #define storage_present(drive) hostfs_present(IF_MD(drive))
+        #endif
+        #define storage_driver_type(drive) hostfs_driver_type(IF_MV(drive))
     #elif (CONFIG_STORAGE & STORAGE_ATA)
         #define STORAGE_FUNCTION(NAME) (ata_## NAME)
         #define storage_spindown ata_spindown
@@ -95,12 +114,13 @@ static inline void stub_storage_spindown(int timeout) { (void)timeout; }
         #define storage_get_identify() ata_get_identify()
 
         #ifdef STORAGE_GET_INFO
-            #define storage_get_info(drive, info) ata_get_info(IF_MD2(drive,) info)
+            #define storage_get_info(drive, info) ata_get_info(IF_MD(drive,) info)
         #endif
         #ifdef HAVE_HOTSWAP
             #define storage_removable(drive) ata_removable(IF_MD(drive))
             #define storage_present(drive) ata_present(IF_MD(drive))
         #endif
+        #define storage_driver_type(drive) (STORAGE_ATA_NUM)
     #elif (CONFIG_STORAGE & STORAGE_SD)
         #define STORAGE_FUNCTION(NAME) (sd_## NAME)
         #define storage_spindown sd_spindown
@@ -112,6 +132,7 @@ static inline void stub_storage_spindown(int timeout) { (void)timeout; }
         #define storage_disk_is_active() 0
         #define storage_soft_reset() (void)0
         #define storage_init() sd_init()
+        #define storage_close() sd_close()
         #ifdef HAVE_STORAGE_FLUSH
             #define storage_flush() (void)0
         #endif
@@ -120,12 +141,13 @@ static inline void stub_storage_spindown(int timeout) { (void)timeout; }
         #define storage_get_identify() sd_get_identify()
 
         #ifdef STORAGE_GET_INFO
-            #define storage_get_info(drive, info) sd_get_info(IF_MD2(drive,) info)
+            #define storage_get_info(drive, info) sd_get_info(IF_MD(drive,) info)
         #endif
         #ifdef HAVE_HOTSWAP
             #define storage_removable(drive) sd_removable(IF_MD(drive))
             #define storage_present(drive) sd_present(IF_MD(drive))
         #endif
+        #define storage_driver_type(drive) (STORAGE_SD_NUM)
      #elif (CONFIG_STORAGE & STORAGE_MMC)
         #define STORAGE_FUNCTION(NAME) (mmc_## NAME)
         #define storage_spindown mmc_spindown
@@ -145,12 +167,13 @@ static inline void stub_storage_spindown(int timeout) { (void)timeout; }
         #define storage_get_identify() mmc_get_identify()
        
         #ifdef STORAGE_GET_INFO
-            #define storage_get_info(drive, info) mmc_get_info(IF_MD2(drive,) info)
+            #define storage_get_info(drive, info) mmc_get_info(IF_MD(drive,) info)
         #endif
         #ifdef HAVE_HOTSWAP
             #define storage_removable(drive) mmc_removable(IF_MD(drive))
             #define storage_present(drive) mmc_present(IF_MD(drive))
         #endif
+        #define storage_driver_type(drive) (STORAGE_MMC_NUM)
     #elif (CONFIG_STORAGE & STORAGE_NAND)
         #define STORAGE_FUNCTION(NAME) (nand_## NAME)
         #define storage_spindown nand_spindown
@@ -170,12 +193,13 @@ static inline void stub_storage_spindown(int timeout) { (void)timeout; }
         #define storage_get_identify() nand_get_identify()
        
         #ifdef STORAGE_GET_INFO
-            #define storage_get_info(drive, info) nand_get_info(IF_MD2(drive,) info)
+            #define storage_get_info(drive, info) nand_get_info(IF_MD(drive,) info)
         #endif
         #ifdef HAVE_HOTSWAP
             #define storage_removable(drive) nand_removable(IF_MD(drive))
             #define storage_present(drive) nand_present(IF_MD(drive))
         #endif
+        #define storage_driver_type(drive) (STORAGE_NAND_NUM)
     #elif (CONFIG_STORAGE & STORAGE_RAMDISK)
         #define STORAGE_FUNCTION(NAME) (ramdisk_## NAME)
         #define storage_spindown ramdisk_spindown
@@ -195,25 +219,26 @@ static inline void stub_storage_spindown(int timeout) { (void)timeout; }
         #define storage_get_identify() ramdisk_get_identify()
        
         #ifdef STORAGE_GET_INFO
-            #define storage_get_info(drive, info) ramdisk_get_info(IF_MD2(drive,) info)
+            #define storage_get_info(drive, info) ramdisk_get_info(IF_MD(drive,) info)
         #endif
         #ifdef HAVE_HOTSWAP
             #define storage_removable(drive) ramdisk_removable(IF_MD(drive))
             #define storage_present(drive) ramdisk_present(IF_MD(drive))
         #endif
+        #define storage_driver_type(drive) (STORAGE_RAMDISK_NUM)
     #else
         //#error No storage driver!
     #endif
-#else /* NOT CONFIG_STORAGE_MULTI and PLATFORM_NATIVE*/
+#else /* CONFIG_STORAGE_MULTI || !HAVE_HOSTFS */
 
-/* Simulator and multi-driver use normal functions */
+/* Multi-driver use normal functions */
 
 void storage_enable(bool on);
 void storage_sleep(void);
 void storage_sleepnow(void);
 bool storage_disk_is_active(void);
 int storage_soft_reset(void);
-int storage_init(void);
+int storage_init(void) STORAGE_INIT_ATTR;
 int storage_flush(void);
 void storage_spin(void);
 void storage_spindown(int seconds);
@@ -227,9 +252,10 @@ void storage_get_info(int drive, struct storage_info *info);
 bool storage_removable(int drive);
 bool storage_present(int drive);
 #endif
+int storage_driver_type(int drive);
 
 #endif /* NOT CONFIG_STORAGE_MULTI and NOT SIMULATOR*/
 
-int storage_read_sectors(IF_MD2(int drive,) unsigned long start, int count, void* buf);
-int storage_write_sectors(IF_MD2(int drive,) unsigned long start, int count, const void* buf);
+int storage_read_sectors(IF_MD(int drive,) unsigned long start, int count, void* buf);
+int storage_write_sectors(IF_MD(int drive,) unsigned long start, int count, const void* buf);
 #endif

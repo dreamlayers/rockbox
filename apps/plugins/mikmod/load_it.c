@@ -181,7 +181,7 @@ static UBYTE portatable[10]= {0,1,4,8,16,32,64,96,128,255};
 
 /*========== Loader code */
 
-int IT_Test(void)
+static int IT_Test(void)
 {
 	UBYTE id[4];
 
@@ -190,7 +190,7 @@ int IT_Test(void)
 	return 0;
 }
 
-int IT_Init(void)
+static int IT_Init(void)
 {
 	if(!(mh=(ITHEADER*)MikMod_malloc(sizeof(ITHEADER)))) return 0;
 	if(!(poslookup=(UBYTE*)MikMod_malloc(256*sizeof(UBYTE)))) return 0;
@@ -201,7 +201,7 @@ int IT_Init(void)
 	return 1;
 }
 
-void IT_Cleanup(void)
+static void IT_Cleanup(void)
 {
 	FreeLinear();
 
@@ -238,10 +238,10 @@ static int IT_GetNumChannels(UWORD patrows)
 			ch=(flag-1)&63;
 			remap[ch]=0;
 			if(flag & 128) mask[ch]=_mm_read_UBYTE(modreader);
-			if(mask[ch]&1)   _mm_read_UBYTE(modreader);
-			if(mask[ch]&2)   _mm_read_UBYTE(modreader);
-			if(mask[ch]&4)   _mm_read_UBYTE(modreader);
-			if(mask[ch]&8) { _mm_read_UBYTE(modreader);_mm_read_UBYTE(modreader); }
+			if(mask[ch]&1)   (void)_mm_read_UBYTE(modreader);
+			if(mask[ch]&2)   (void)_mm_read_UBYTE(modreader);
+			if(mask[ch]&4)   (void)_mm_read_UBYTE(modreader);
+			if(mask[ch]&8) { (void)_mm_read_UBYTE(modreader);(void)_mm_read_UBYTE(modreader); }
 		}
 	} while(row<patrows);
 
@@ -441,12 +441,12 @@ static void IT_LoadMidiConfiguration(MREADER* modreader)
 	}
 }
 
-int IT_Load(int curious)
+static int IT_Load(int curious)
 {
 	int t,u,lp;
 	INSTRUMENT *d;
 	SAMPLE *q;
-	int compressed=0;
+	/* int compressed=0; */
 
 	numtrk=0;
 	filters=0;
@@ -672,7 +672,7 @@ int IT_Load(int curious)
 		if(s.flag&2) q->flags|=SF_16BITS;
 		if((s.flag&8)&&(mh->cwt>=0x214)) {
 			q->flags|=SF_ITPACKED;
-			compressed=1;
+			/* compressed=1; */
 		}
 		if(s.flag&16) q->flags|=SF_LOOP;
 		if(s.flag&64) q->flags|=SF_BIDI;
@@ -726,7 +726,7 @@ int IT_Load(int curious)
 
 			ih.trkvers   = _mm_read_I_UWORD(modreader);
 			ih.numsmp    = _mm_read_UBYTE(modreader);
-			_mm_read_UBYTE(modreader);
+			(void)_mm_read_UBYTE(modreader);
 			_mm_read_string(ih.name,26,modreader);
 			_mm_read_UBYTES(ih.blank01,6,modreader);
 			_mm_read_I_UWORDS(ih.samptable,ITNOTECNT,modreader);
@@ -751,7 +751,7 @@ int IT_Load(int curious)
 					ih. name##node[lp]=_mm_read_##type (modreader);		\
 					ih. name##tick[lp]=_mm_read_I_UWORD(modreader);		\
 				}														\
-				_mm_read_UBYTE(modreader)
+				(void)_mm_read_UBYTE(modreader)
 #else
 #define IT_LoadEnvelope(name,type) 										\
 				ih. name/**/flg   =_mm_read_UBYTE(modreader);			\
@@ -764,7 +764,7 @@ int IT_Load(int curious)
 					ih. name/**/node[lp]=_mm_read_/**/type (modreader);	\
 					ih. name/**/tick[lp]=_mm_read_I_UWORD(modreader);	\
 				}														\
-				_mm_read_UBYTE(modreader)
+				(void)_mm_read_UBYTE(modreader)
 #endif
 
 				IT_LoadEnvelope(vol,UBYTE);
@@ -963,8 +963,6 @@ int IT_Load(int curious)
 	if(!AllocTracks()) return 0;
 
 	for(t=0;t<of.numpat;t++) {
-		UWORD packlen;
-
 		/* seek to pattern position */
 		if(!paraptr[mh->insnum+mh->smpnum+t]) { /* 0 -> empty 64 row pattern */
 			of.pattrows[t]=64;
@@ -977,7 +975,7 @@ int IT_Load(int curious)
 			}
 		} else {
 			_mm_fseek(modreader,((long)paraptr[mh->insnum+mh->smpnum+t]),SEEK_SET);
-			packlen=_mm_read_I_UWORD(modreader);
+			(void)_mm_read_I_UWORD(modreader);
 			of.pattrows[t]=_mm_read_I_UWORD(modreader);
 			_mm_read_I_ULONG(modreader);
 			if(!IT_ReadPattern(of.pattrows[t])) return 0;
@@ -987,7 +985,7 @@ int IT_Load(int curious)
 	return 1;
 }
 
-CHAR *IT_LoadTitle(void)
+static CHAR *IT_LoadTitle(void)
 {
 	CHAR s[26];
 

@@ -18,7 +18,7 @@
  *
  **************************************************************************/
 #include "plugin.h"
-#include "lib/fixedpoint.h"
+#include "fixedpoint.h"
 #include "lib/playback_control.h"
 
 
@@ -225,6 +225,17 @@
 #define LABEL_MENU "MENU"
 #define LABEL_VOLUME "UP/DOWN"
 
+#elif (CONFIG_KEYPAD == CREATIVE_ZENXFI3_PAD)
+#define VUMETER_QUIT        BUTTON_POWER
+#define VUMETER_HELP        BUTTON_MENU|BUTTON_REPEAT
+#define VUMETER_MENU        BUTTON_MENU|BUTTON_REL
+#define VUMETER_UP          BUTTON_VOL_UP
+#define VUMETER_DOWN        BUTTON_VOL_DOWN
+#define LABEL_HELP          "Hold Menu"
+#define LABEL_QUIT          "Power"
+#define LABEL_MENU          "Menu"
+#define LABEL_VOLUME        "Volume +/-"
+
 #elif CONFIG_KEYPAD == PHILIPS_HDD1630_PAD
 #define VUMETER_QUIT BUTTON_POWER
 #define VUMETER_HELP BUTTON_VIEW
@@ -272,14 +283,15 @@
 #define VUMETER_QUIT BUTTON_POWER
 #define LABEL_QUIT "POWER"
 
-#elif CONFIG_KEYPAD == SAMSUNG_YH_PAD
-#define VUMETER_QUIT       BUTTON_REC
+#elif (CONFIG_KEYPAD == SAMSUNG_YH820_PAD) || \
+      (CONFIG_KEYPAD == SAMSUNG_YH920_PAD)
+#define VUMETER_QUIT       BUTTON_REW
 #define VUMETER_HELP       BUTTON_PLAY
 #define VUMETER_MENU       BUTTON_LEFT
 #define VUMETER_UP         BUTTON_UP
 #define VUMETER_DOWN       BUTTON_DOWN
 #define LABEL_HELP "PLAY"
-#define LABEL_QUIT "REC"
+#define LABEL_QUIT "REW"
 #define LABEL_MENU "LEFT"
 #define LABEL_VOLUME "UP/DOWN"
 
@@ -301,20 +313,95 @@
 #define VUMETER_UP BUTTON_VOL_UP
 #define VUMETER_DOWN BUTTON_VOL_DOWN
 #define LABEL_HELP "PLAY"
-#define LABEL_QUIT "MENU"
+#define LABEL_QUIT "REC+PLAY"
 #define LABEL_MENU "FUNC"
 #define LABEL_VOLUME "UP/DOWN"
 
 #elif CONFIG_KEYPAD == MPIO_HD300_PAD
-#define VUMETER_QUIT (BUTTON_REC|BUTTON_REPEAT)
+#define VUMETER_QUIT (BUTTON_MENU|BUTTON_REPEAT)
 #define VUMETER_HELP BUTTON_PLAY
 #define VUMETER_MENU BUTTON_MENU
 #define VUMETER_UP BUTTON_UP
 #define VUMETER_DOWN BUTTON_DOWN
 #define LABEL_HELP "PLAY"
-#define LABEL_QUIT "REC..."
+#define LABEL_QUIT "LONG MENU"
 #define LABEL_MENU "MENU"
 #define LABEL_VOLUME "UP/DOWN"
+
+#elif CONFIG_KEYPAD == SANSA_FUZEPLUS_PAD
+#define VUMETER_QUIT BUTTON_BACK
+#define VUMETER_HELP BUTTON_PLAYPAUSE
+#define VUMETER_MENU (BUTTON_SELECT|BUTTON_REPEAT)
+#define VUMETER_UP BUTTON_VOL_UP
+#define VUMETER_DOWN BUTTON_VOL_DOWN
+#define LABEL_HELP "PLAY"
+#define LABEL_QUIT "BACK"
+#define LABEL_MENU "Long SELECT"
+#define LABEL_VOLUME "Vol+/Vol-"
+
+#elif CONFIG_KEYPAD == SANSA_CONNECT_PAD
+#define VUMETER_QUIT BUTTON_POWER
+#define VUMETER_HELP BUTTON_NEXT
+#define VUMETER_MENU BUTTON_PREV
+#define VUMETER_UP BUTTON_UP
+#define VUMETER_DOWN BUTTON_DOWN
+#define LABEL_HELP "NEXT"
+#define LABEL_QUIT "POWER"
+#define LABEL_MENU "PREV"
+#define LABEL_VOLUME "VOL+/VOL-"
+
+#elif (CONFIG_KEYPAD == SAMSUNG_YPR0_PAD)
+#define VUMETER_QUIT BUTTON_BACK
+#define VUMETER_HELP BUTTON_USER
+#define VUMETER_MENU BUTTON_MENU
+#define VUMETER_UP   BUTTON_UP
+#define VUMETER_DOWN BUTTON_DOWN
+#define LABEL_HELP   "User"
+#define LABEL_QUIT   "Back"
+#define LABEL_MENU   "Menu"
+#define LABEL_VOLUME "Up/Down"
+
+#elif (CONFIG_KEYPAD == HM60X_PAD) || \
+    (CONFIG_KEYPAD == HM801_PAD)
+#define VUMETER_QUIT       BUTTON_POWER
+#define VUMETER_HELP       BUTTON_RIGHT
+#define VUMETER_MENU       BUTTON_LEFT
+#define VUMETER_UP         BUTTON_UP
+#define VUMETER_DOWN       BUTTON_DOWN
+#define LABEL_HELP "RIGHT"
+#define LABEL_QUIT "POWER"
+#define LABEL_MENU "LEFT"
+#define LABEL_VOLUME "UP/DOWN"
+
+#elif CONFIG_KEYPAD == SONY_NWZ_PAD
+#define VUMETER_QUIT    BUTTON_BACK
+#define VUMETER_HELP    BUTTON_RIGHT
+#define VUMETER_MENU    BUTTON_LEFT
+#define VUMETER_UP      BUTTON_UP
+#define VUMETER_DOWN    BUTTON_DOWN
+#define LABEL_HELP      "Right"
+#define LABEL_QUIT      "Back"
+#define LABEL_MENU      "Left"
+#define LABEL_VOLUME    "Up/Down"
+
+#elif CONFIG_KEYPAD == CREATIVE_ZEN_PAD
+#define VUMETER_QUIT    BUTTON_BACK
+#define VUMETER_HELP    BUTTON_SELECT
+#define VUMETER_MENU    BUTTON_MENU
+#define VUMETER_UP      BUTTON_UP
+#define VUMETER_DOWN    BUTTON_DOWN
+#define LABEL_HELP      "Select"
+#define LABEL_QUIT      "Back"
+#define LABEL_MENU      "Menu"
+#define LABEL_VOLUME    "Up/Down"
+
+#elif CONFIG_KEYPAD == DX50_PAD
+#define VUMETER_QUIT    (BUTTON_POWER|BUTTON_REL)
+#define VUMETER_MENU    BUTTON_PLAY
+#define VUMETER_UP      BUTTON_RIGHT
+#define VUMETER_DOWN    BUTTON_LEFT
+#define LABEL_QUIT      "Power"
+#define LABEL_MENU      "Play"
 
 #else
 #error No keymap defined!
@@ -422,7 +509,7 @@ struct saved_settings {
     int digital_decay; 
 } vumeter_settings;
 
-void reset_settings(void) {
+static void reset_settings(void) {
     vumeter_settings.meter_type=ANALOG;
     vumeter_settings.analog_use_db_scale=true;
     vumeter_settings.digital_use_db_scale=true;
@@ -432,7 +519,7 @@ void reset_settings(void) {
     vumeter_settings.digital_decay=0; 
 }
 
-void calc_scales(void)
+static void calc_scales(void)
 {
     unsigned int fx_log_factor = E_POW_5/half_width;
     unsigned int y,z;
@@ -466,8 +553,8 @@ void calc_scales(void)
     }
 }
 
-void load_settings(void) {
-    int fp = rb->open(PLUGIN_DEMOS_DIR "/.vu_meter", O_RDONLY);
+static void load_settings(void) {
+    int fp = rb->open(PLUGIN_DEMOS_DATA_DIR "/.vu_meter", O_RDONLY);
     if(fp>=0) {
             rb->read(fp, &vumeter_settings, sizeof(struct saved_settings));
             rb->close(fp);
@@ -478,15 +565,15 @@ void load_settings(void) {
     }
 }
 
-void save_settings(void) {
-    int fp = rb->creat(PLUGIN_DEMOS_DIR "/.vu_meter", 0666);
+static void save_settings(void) {
+    int fp = rb->creat(PLUGIN_DEMOS_DATA_DIR "/.vu_meter", 0666);
     if(fp >= 0) {
         rb->write (fp, &vumeter_settings, sizeof(struct saved_settings));
         rb->close(fp);
     }
 }
 
-void change_volume(int delta) {
+static void change_volume(int delta) {
     int minvol = rb->sound_min(SOUND_VOLUME);
     int maxvol = rb->sound_max(SOUND_VOLUME);
     int vol = rb->global_settings->volume + delta;
@@ -591,7 +678,7 @@ static bool vu_meter_menu(void)
     return exit;
 }
 
-void draw_analog_minimeters(void) {
+static void draw_analog_minimeters(void) {
     rb->lcd_mono_bitmap(sound_speaker, quarter_width-28, 12, 4, 8);
     rb->lcd_set_drawmode(DRMODE_FG);
     if(analog_mini_1<left_needle_top_x)
@@ -617,7 +704,7 @@ void draw_analog_minimeters(void) {
     rb->lcd_set_drawmode(DRMODE_SOLID);
 }
 
-void draw_digital_minimeters(void) {
+static void draw_digital_minimeters(void) {
 #ifdef HAVE_LCD_COLOR
     rb->lcd_set_foreground(LCD_RGBPACK(255, 255 - 23 * num_left_leds, 0));
 #endif
@@ -653,14 +740,17 @@ void draw_digital_minimeters(void) {
 #endif
 }
 
-void analog_meter(void) {
+static void analog_meter(void) {
 
 #if (CONFIG_CODEC == MAS3587F) || (CONFIG_CODEC == MAS3539F)
     int left_peak = rb->mas_codec_readreg(0xC);
     int right_peak = rb->mas_codec_readreg(0xD);
 #elif (CONFIG_CODEC == SWCODEC)
-    int left_peak, right_peak;
-    rb->pcm_calculate_peaks(&left_peak, &right_peak);
+    static struct pcm_peaks peaks;
+    rb->mixer_channel_calculate_peaks(PCM_MIXER_CHAN_PLAYBACK,
+                                      &peaks);
+    #define left_peak peaks.left
+    #define right_peak peaks.right
 #endif
 
     if(vumeter_settings.analog_use_db_scale) {
@@ -711,13 +801,16 @@ void analog_meter(void) {
     }
 }
 
-void digital_meter(void) {
+static void digital_meter(void) {
 #if (CONFIG_CODEC == MAS3587F) || (CONFIG_CODEC == MAS3539F)
     int left_peak = rb->mas_codec_readreg(0xC);
     int right_peak = rb->mas_codec_readreg(0xD);
 #elif (CONFIG_CODEC == SWCODEC)
-    int left_peak, right_peak;
-    rb->pcm_calculate_peaks(&left_peak, &right_peak);
+    static struct pcm_peaks peaks;
+    rb->mixer_channel_calculate_peaks(PCM_MIXER_CHAN_PLAYBACK,
+                                      &peaks);
+    #define left_peak peaks.left
+    #define right_peak peaks.right
 #endif
 
     if(vumeter_settings.digital_use_db_scale) {
@@ -781,7 +874,9 @@ void digital_meter(void) {
 
 enum plugin_status plugin_start(const void* parameter) {
     int button;
+#if defined(VUMETER_HELP_PRE) || defined(VUMETER_MENU_PRE)
     int lastbutton = BUTTON_NONE;
+#endif
 
     (void) parameter;
 
@@ -859,7 +954,9 @@ enum plugin_status plugin_start(const void* parameter) {
                     return PLUGIN_USB_CONNECTED;
                 break;
         }
+#if defined(VUMETER_HELP_PRE) || defined(VUMETER_MENU_PRE)
         if (button != BUTTON_NONE)
             lastbutton = button;
+#endif
     }
 }

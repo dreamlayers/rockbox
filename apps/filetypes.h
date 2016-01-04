@@ -22,6 +22,7 @@
 #define _FILEHANDLE_H_
 
 #include <stdbool.h>
+#include "config.h"
 #include <tree.h>
 
 /* using attribute bits not used by FAT (FAT uses lower 7) */
@@ -51,14 +52,14 @@
 struct filetype {
     char* extension;
     int tree_attr;
-    int icon;
+    enum themable_icons icon;
     int voiceclip;
 };
-void tree_get_filetypes(const struct filetype**, int*);
+void tree_get_filetypes(const struct filetype**, int*) INIT_ATTR;
 
 /* init the filetypes structs.
    uses audio buffer for storage, so call early in init... */
-void  filetype_init(void) INIT_ATTR;
+void filetype_init(void) INIT_ATTR;
 void read_viewer_theme_file(void);
 #ifdef HAVE_LCD_COLOR
 void read_color_theme_file(void);
@@ -80,7 +81,7 @@ bool  filetype_supported(int attr);
 int filetype_list_viewers(const char* current_file);
 
 /* start a plugin with file as the argument (called from onplay.c) */
-int filetype_load_plugin(const char* plugin, char* file);
+int filetype_load_plugin(const char* plugin, const char* file);
 
 
 #endif

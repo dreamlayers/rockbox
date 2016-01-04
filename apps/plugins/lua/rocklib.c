@@ -28,6 +28,7 @@
 #include "lauxlib.h"
 #include "rocklib.h"
 #include "lib/helper.h"
+#include "lib/pluginlib_actions.h"
 
 /*
  * http://www.lua.org/manual/5.1/manual.html#lua_CFunction
@@ -137,14 +138,14 @@ static fb_data* rli_element(lua_State *L)
 
 static int rli_set(lua_State *L)
 {
-    fb_data newvalue = (fb_data) luaL_checknumber(L, 4);
+    fb_data newvalue = FB_SCALARPACK((unsigned)luaL_checknumber(L, 4));
     *rli_element(L) = newvalue;
     return 0;
 }
 
 static int rli_get(lua_State *L)
 {
-    lua_pushnumber(L, *rli_element(L));
+    lua_pushnumber(L, FB_UNPACK_SCALAR_LCD(*rli_element(L)));
     return 1;
 }
 
@@ -184,7 +185,7 @@ static inline void rli_init(lua_State *L)
  * -----------------------------
  */
 
-#define RB_WRAP(M) static int rock_##M(lua_State *L)
+#define RB_WRAP(M) static int rock_##M(lua_State UNUSED_ATTR *L)
 #define SIMPLE_VOID_WRAPPER(func) RB_WRAP(func) { (void)L; func(); return 0; }
 
 /* Helper function for opt_viewport */
@@ -239,11 +240,6 @@ static struct viewport* opt_viewport(lua_State *L, int narg, struct viewport* al
 #if LCD_DEPTH > 1
     check_tablevalue(L, "fg_pattern", tablepos, &vp->fg_pattern, true);
     check_tablevalue(L, "bg_pattern", tablepos, &vp->bg_pattern, true);
-#ifdef HAVE_LCD_COLOR
-    check_tablevalue(L, "lss_pattern", tablepos, &vp->lss_pattern, true);
-    check_tablevalue(L, "lse_pattern", tablepos, &vp->lse_pattern, true);
-    check_tablevalue(L, "lst_pattern", tablepos, &vp->lst_pattern, true);
-#endif
 #endif
 
     return vp;
@@ -425,6 +421,11 @@ RB_WRAP(touchscreen_set_mode)
     rb->touchscreen_set_mode(mode);
     return 0;
 }
+RB_WRAP(touchscreen_get_mode)
+{
+    lua_pushinteger(L, rb->touchscreen_get_mode());
+    return 1;
+}
 #endif
 
 RB_WRAP(font_getstringsize)
@@ -432,6 +433,11 @@ RB_WRAP(font_getstringsize)
     const unsigned char* str = luaL_checkstring(L, 1);
     int fontnumber = luaL_checkint(L, 2);
     int w, h;
+
+    if (fontnumber == FONT_UI)
+        fontnumber = rb->global_status->font_id[SCREEN_MAIN];
+    else
+        fontnumber = FONT_SYSFIXED;
 
     int result = rb->font_getstringsize(str, &w, &h, fontnumber);
     lua_pushinteger(L, result);
@@ -511,7 +517,7 @@ static void fill_text_message(lua_State *L, struct text_message * message,
     int i;
     luaL_checktype(L, pos, LUA_TTABLE);
     int n = luaL_getn(L, pos);
-    const char **lines = (const char**) dlmalloc(n * sizeof(const char*));
+    const char **lines = (const char**) tlsf_malloc(n * sizeof(const char*));
     if(lines == NULL)
         luaL_error(L, "Can't allocate %d bytes!", n * sizeof(const char*));
     for(i=1; i<=n; i++)
@@ -537,11 +543,11 @@ RB_WRAP(gui_syncyesno_run)
 
     enum yesno_res result = rb->gui_syncyesno_run(&main_message, yes, no);
 
-    dlfree(main_message.message_lines);
+    tlsf_free(main_message.message_lines);
     if(yes)
-        dlfree(yes_message.message_lines);
+        tlsf_free(yes_message.message_lines);
     if(no)
-        dlfree(no_message.message_lines);
+        tlsf_free(no_message.message_lines);
 
     lua_pushinteger(L, result);
     return 1;
@@ -560,7 +566,7 @@ RB_WRAP(do_menu)
     start_selected = luaL_optint(L, 3, 0);
 
     n = luaL_getn(L, 2);
-    items = (const char**) dlmalloc(n * sizeof(const char*));
+    items = (const char**) tlsf_malloc(n * sizeof(const char*));
     if(items == NULL)
         luaL_error(L, "Can't allocate %d bytes!", n * sizeof(const char*));
     for(i=1; i<=n; i++)
@@ -576,7 +582,60 @@ RB_WRAP(do_menu)
 
     int result = rb->do_menu(&menu, &start_selected, NULL, false);
 
-    dlfree(items);
+    tlsf_free(items);
+
+    lua_pushinteger(L, result);
+    return 1;
+}
+
+RB_WRAP(playlist_sync)
+{
+    /* just pass NULL to work with the current playlist */
+    rb->playlist_sync(NULL);
+    return 1;
+}
+
+RB_WRAP(playlist_remove_all_tracks)
+{
+    /* just pass NULL to work with the current playlist */
+    int result = rb->playlist_remove_all_tracks(NULL);
+    lua_pushinteger(L, result);
+    return 1;
+}
+
+RB_WRAP(playlist_insert_track)
+{
+    const char *filename;
+    int position, queue, sync;
+
+    /* for now don't take a playlist_info pointer, but just pass NULL to use
+	   the current playlist. If this changes later, all the other
+	   parameters can be shifted back. */
+    filename = luaL_checkstring(L, 1); /* only required parameter */
+    position = luaL_optint(L, 2, PLAYLIST_INSERT);
+    queue = lua_toboolean(L, 3); /* default to false */
+    sync = lua_toboolean(L, 4); /* default to false */
+
+    int result = rb->playlist_insert_track(NULL, filename, position,
+        queue, sync);
+
+    lua_pushinteger(L, result);
+    return 1;
+}
+
+RB_WRAP(playlist_insert_directory)
+{
+    const char* dirname;
+    int position, queue, recurse;
+
+    /* just like in playlist_insert_track, only works with current playlist. */
+    dirname = luaL_checkstring(L, 1); /* only required parameter */
+    position = luaL_optint(L, 2, PLAYLIST_INSERT);
+    queue = lua_toboolean(L, 3); /* default to false */
+    recurse = lua_toboolean(L, 4); /* default to false */
+
+    int result = rb->playlist_insert_directory(NULL, dirname, position,
+        queue, recurse);
 
     lua_pushinteger(L, result);
     return 1;
@@ -602,6 +661,24 @@ RB_WRAP(backlight_brightness_set)
 }
 SIMPLE_VOID_WRAPPER(backlight_brightness_use_setting);
 #endif
+
+RB_WRAP(get_plugin_action)
+{
+    static const struct button_mapping *m1[] = { pla_main_ctx };
+    int timeout = luaL_checkint(L, 1);
+    int btn;
+#ifdef HAVE_REMOTE_LCD
+    static const struct button_mapping *m2[] = { pla_main_ctx, pla_remote_ctx };
+    bool with_remote = luaL_optint(L, 2, 0);
+    if (with_remote)
+        btn = pluginlib_getaction(timeout, m2, 2);
+    else
+#endif
+        btn = pluginlib_getaction(timeout, m1, 1);
+
+    lua_pushinteger(L, btn);
+    return 1;
+}
 
 #define R(NAME) {#NAME, rock_##NAME}
 static const luaL_Reg rocklib[] =
@@ -633,6 +710,7 @@ static const luaL_Reg rocklib[] =
 #ifdef HAVE_TOUCHSCREEN
     R(action_get_touchscreen_press),
     R(touchscreen_set_mode),
+    R(touchscreen_get_mode),
 #endif
     R(kbd_input),
 
@@ -642,6 +720,10 @@ static const luaL_Reg rocklib[] =
     R(clear_viewport),
     R(current_path),
     R(gui_syncyesno_run),
+    R(playlist_sync),
+    R(playlist_remove_all_tracks),
+    R(playlist_insert_track),
+    R(playlist_insert_directory),
     R(do_menu),
 
     /* Backlight helper */
@@ -659,6 +741,7 @@ static const luaL_Reg rocklib[] =
     R(backlight_brightness_set),
     R(backlight_brightness_use_setting),
 #endif
+    R(get_plugin_action),
 
     {"new_image", rli_new},
 
@@ -668,7 +751,8 @@ static const luaL_Reg rocklib[] =
 extern const luaL_Reg rocklib_aux[];
 
 
-#define RB_CONSTANT(x) lua_pushinteger(L, x); lua_setfield(L, -2, #x);
+#define RB_CONSTANT(x)        lua_pushinteger(L, x); lua_setfield(L, -2, #x);
+#define RB_STRING_CONSTANT(x) lua_pushstring(L, x); lua_setfield(L, -2, #x);
 /*
  ** Open Rockbox library
  */
@@ -686,6 +770,14 @@ LUALIB_API int luaopen_rock(lua_State *L)
     RB_CONSTANT(FONT_SYSFIXED);
     RB_CONSTANT(FONT_UI);
 
+    RB_CONSTANT(PLAYLIST_PREPEND);
+    RB_CONSTANT(PLAYLIST_INSERT);
+    RB_CONSTANT(PLAYLIST_INSERT_LAST);
+    RB_CONSTANT(PLAYLIST_INSERT_FIRST);
+    RB_CONSTANT(PLAYLIST_INSERT_SHUFFLED);
+    RB_CONSTANT(PLAYLIST_REPLACE);
+    RB_CONSTANT(PLAYLIST_INSERT_LAST_SHUFFLED);
+
 #ifdef HAVE_TOUCHSCREEN
     RB_CONSTANT(TOUCHSCREEN_POINT);
     RB_CONSTANT(TOUCHSCREEN_BUTTON);
@@ -695,6 +787,15 @@ LUALIB_API int luaopen_rock(lua_State *L)
 #ifdef HAVE_REMOTE_LCD
     RB_CONSTANT(SCREEN_REMOTE);
 #endif
+
+    /* some useful paths constants */
+    RB_STRING_CONSTANT(ROCKBOX_DIR);
+    RB_STRING_CONSTANT(HOME_DIR);
+    RB_STRING_CONSTANT(PLUGIN_DIR);
+    RB_STRING_CONSTANT(PLUGIN_APPS_DATA_DIR);
+    RB_STRING_CONSTANT(PLUGIN_GAMES_DATA_DIR);
+    RB_STRING_CONSTANT(PLUGIN_DATA_DIR);
+    RB_STRING_CONSTANT(VIEWERS_DATA_DIR);
 
     rli_init(L);
 

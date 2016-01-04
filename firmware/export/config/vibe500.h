@@ -1,7 +1,6 @@
 /*
  * This config file is for Packard Bell Vibe 500
  */
-#define TARGET_TREE /* this target is using the target tree system */
 
 /* For Rolo and boot loader */
 #define MODEL_NUMBER 67
@@ -50,15 +49,14 @@
 /* define this if you have access to the quickscreen */
 #define HAVE_QUICKSCREEN
 
-/* define this if you have access to the pitchscreen */
-#define HAVE_PITCHSCREEN
-
 /* define this if you would like tagcache to build on this target */
 #define HAVE_TAGCACHE
 
 /* LCD dimensions */
 #define LCD_WIDTH  160
 #define LCD_HEIGHT 128
+/* sqrt(160^2 + 128^2) / 1.8 = 113.8 */
+#define LCD_DPI 114
 #define LCD_DEPTH  16   /* 65536 colors */
 #define LCD_PIXELFORMAT RGB565SWAPPED /* rgb565 */
 
@@ -126,6 +124,8 @@
 #define BATTERY_CAPACITY_INC    50    /* capacity increment */
 #define BATTERY_TYPES_COUNT     1     /* only one type */
 
+#define CONFIG_BATTERY_MEASURE VOLTAGE_MEASURE
+
 /* Hardware controlled charging, software can monitor plug and charge state */
 #define CONFIG_CHARGING CHARGING_SIMPLE
 
@@ -175,7 +175,6 @@
 
 /* enable these for the experimental usb stack */
 #define HAVE_USBSTACK
-#define USE_ROCKBOX_USB
 #define USB_VENDOR_ID 0x0409
 #define USB_PRODUCT_ID 0x8038
 #define HAVE_USB_HID_MOUSE
@@ -201,7 +200,9 @@
 /* DMA is used only for reading on PP502x because although reads are ~8x faster
  * writes appear to be ~25% slower.
  */
+#ifndef BOOTLOADER
 #define HAVE_ATA_DMA
+#endif
 
 /* Define this if a programmable hotkey is mapped */
 #define HAVE_HOTKEY

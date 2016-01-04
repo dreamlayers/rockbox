@@ -44,6 +44,11 @@
 /* MMU not present */
 #define CACHE_SIZE 4
 
+#elif CONFIG_CPU == IMX233
+#define HAVE_TEST_AND_CLEAN_CACHE
+#define USE_MMU
+#define CACHE_SIZE 16
+
 #else
 #error Cache settings unknown for this CPU !
 
@@ -81,7 +86,7 @@
 /*
  * void ttb_init(void);
  */
-    .section    .text, "ax", %progbits
+    .section    .text.ttb_init, "ax", %progbits
     .align      2
     .global     ttb_init
     .type       ttb_init, %function
@@ -96,7 +101,7 @@ ttb_init:
 /*
  * void map_section(unsigned int pa, unsigned int va, int mb, int flags);
  */
-    .section    .text, "ax", %progbits
+    .section    .text.map_section, "ax", %progbits
     .align      2
     .global     map_section
     .type       map_section, %function
@@ -144,7 +149,7 @@ map_section:
 /*
  * void enable_mmu(void);
  */
-    .section    .text, "ax", %progbits
+    .section    .text.enable_mmu, "ax", %progbits
     .align      2
     .global     enable_mmu
     .type       enable_mmu, %function
@@ -176,15 +181,13 @@ enable_mmu:
  * from DCache afterwards
  * void commit_discard_dcache_range(const void *base, unsigned int size);
  */
-    .section   .text, "ax", %progbits
+    .section   .text.commit_discard_dcache_range, "ax", %progbits
     .align      2
     .global     commit_discard_dcache_range
     .type       commit_discard_dcache_range, %function
-    .global     invalidate_dcache_range @ Alias, deprecated
 
     @ MVA format: 31:5 = Modified virtual address, 4:0 = SBZ
 commit_discard_dcache_range:
-invalidate_dcache_range:
     add     r1, r0, r1              @ size -> end
     cmp     r1, r0                  @ end <= start?
     bxls    lr                      @
@@ -224,15 +227,13 @@ invalidate_dcache_range:
  * Write DCache back to RAM for the given range
  * void commit_dcache_range(const void *base, unsigned int size);
  */
-    .section   .text, "ax", %progbits
+    .section   .text.commit_dcache_range, "ax", %progbits
     .align      2
     .global     commit_dcache_range
     .type       commit_dcache_range, %function
-    .global     clean_dcache_range  @ Alias, deprecated
 
     @ MVA format: 31:5 = Modified virtual address, 4:0 = SBZ
 commit_dcache_range:
-clean_dcache_range:
     add     r1, r0, r1              @ size -> end
     cmp     r1, r0                  @ end <= start?
     bxls    lr                      @
@@ -273,15 +274,13 @@ clean_dcache_range:
  * will *NOT* do write back except for buffer edges not on a line boundary
  * void discard_dcache_range(const void *base, unsigned int size);
  */
-    .section   .text, "ax", %progbits
+    .section   .text.discard_dcache_range, "ax", %progbits
     .align      2
     .global     discard_dcache_range
     .type       discard_dcache_range, %function
-    .global     dump_dcache_range   @ Alias, deprecated
 
     @ MVA format: 31:5 = Modified virtual address, 4:0 = SBZ
 discard_dcache_range:
-dump_dcache_range:
     add     r1, r0, r1              @ size -> end
     cmp     r1, r0                  @ end <= start?
     bxls    lr                      @
@@ -331,18 +330,12 @@ dump_dcache_range:
  * Write entire DCache back to RAM
  * void commit_dcache(void);
  */
-    .section   .text, "ax", %progbits
+    .section   .text.commit_dcache, "ax", %progbits
     .align      2
     .global     commit_dcache
     .type       commit_dcache, %function
-    .global     cpucache_commit     @ Alias
-    .global     clean_dcache        @ Alias, deprecated
-    .global     cpucache_flush      @ Alias, deprecated
 
 commit_dcache:
-cpucache_commit:
-clean_dcache:
-cpucache_flush:
 #ifdef HAVE_TEST_AND_CLEAN_CACHE
     mrc     p15, 0, r15, c7, c10, 3 @ test and clean dcache
     bne     commit_dcache
@@ -368,14 +361,12 @@ cpucache_flush:
  * Commit and discard entire DCache, will do writeback
  * void commit_discard_dcache(void);
  */
-    .section   .icode, "ax", %progbits
+    .section   .icode.commit_discard_dcache, "ax", %progbits
     .align      2
     .global     commit_discard_dcache
     .type       commit_discard_dcache, %function
-    .global     invalidate_dcache   @ Alias, deprecated
 
 commit_discard_dcache:
-invalidate_dcache:
 #ifdef HAVE_TEST_AND_CLEAN_CACHE
     mrc     p15, 0, r15, c7, c14, 3 @ test, clean and invalidate dcache
     bne     commit_discard_dcache
@@ -401,18 +392,12 @@ invalidate_dcache:
  * Discards the entire ICache, and commit+discards the entire DCache
  * void commit_discard_idcache(void);
  */
-    .section   .icode, "ax", %progbits
+    .section   .icode.commit_discard_idcache, "ax", %progbits
     .align      2
     .global     commit_discard_idcache
     .type       commit_discard_idcache, %function
-    .global     cpucache_commit_discard @ Alias
-    .global     invalidate_idcache      @ Alias, deprecated
-    .global     cpucache_invalidate     @ Alias, deprecated
 
 commit_discard_idcache:
-cpucache_commit_discard:
-invalidate_idcache:
-cpucache_invalidate:
     mov     r2, lr                  @ save lr to r1, call uses r0 only
     bl      commit_discard_dcache   @ commit and discard entire DCache
     mcr     p15, 0, r1, c7, c5, 0   @ Invalidate ICache (r1=0 from call)

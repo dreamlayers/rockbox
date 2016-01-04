@@ -7,7 +7,6 @@
  *                     \/            \/     \/    \/            \/
  *
  *   Copyright (C) 2007 by Dominik Riebeling
- *   $Id$
  *
  * All files in this archive are subject to the GNU General Public License.
  * See the file COPYING in the source tree root for full license agreement.
@@ -17,13 +16,14 @@
  *
  ****************************************************************************/
 
+#include <QMessageBox>
 #include "createvoicewindow.h"
 #include "ui_createvoicefrm.h"
 
-#include "browsedirtree.h"
 #include "configure.h"
 #include "rbsettings.h"
 #include "systeminfo.h"
+#include "Logger.h"
 
 CreateVoiceWindow::CreateVoiceWindow(QWidget *parent) : QDialog(parent)
 {
@@ -54,7 +54,7 @@ void CreateVoiceWindow::accept()
     
     //configure voicecreator
     voicecreator->setMountPoint(RbSettings::value(RbSettings::Mountpoint).toString());
-    voicecreator->setLang(ui.comboLanguage->currentText());
+    voicecreator->setLang(ui.comboLanguage->itemData(ui.comboLanguage->currentIndex()).toString());
     voicecreator->setWavtrimThreshold(ui.wavtrimthreshold->value());
        
     //start creating
@@ -71,47 +71,43 @@ void CreateVoiceWindow::accept()
 void CreateVoiceWindow::updateSettings(void)
 {
     // fill in language combobox
-    QStringList languages = SystemInfo::languages();
-    languages.sort();
-    ui.comboLanguage->addItems(languages);
+    QMap<QString, QStringList> languages = SystemInfo::languages();
+
+    for(int i = 0; i < languages.keys().size(); i++) {
+        QString key = languages.keys().at(i);
+        ui.comboLanguage->addItem(languages.value(key).at(1), languages.value(key).at(0));
+    }
     // set saved lang
-    int sel = ui.comboLanguage->findText(RbSettings::value(RbSettings::VoiceLanguage).toString());
+    int sel = ui.comboLanguage->findData(
+            RbSettings::value(RbSettings::VoiceLanguage).toString());
     // if no saved language is found try to figure the language from the UI lang
     if(sel == -1) {
-        QString f = RbSettings::value(RbSettings::Language).toString();
+        QString uilang = RbSettings::value(RbSettings::Language).toString();
         // if no language is set default to english. Make sure not to check an empty string.
-        if(f.isEmpty()) f = "english";
-        sel = ui.comboLanguage->findText(f, Qt::MatchStartsWith);
-        qDebug() << "sel =" << sel;
-        // still nothing found?
-        if(sel == -1)
-            sel = ui.comboLanguage->findText("english", Qt::MatchStartsWith);
+        QString f = "english";
+        if(!uilang.isEmpty() && languages.contains(uilang)) {
+            f = languages.value(uilang).at(0);
+        }
+        sel = ui.comboLanguage->findData(f);
+        LOG_INFO() << "Selected language index:" << sel;
     }
     ui.comboLanguage->setCurrentIndex(sel);
-    
+
     QString ttsName = RbSettings::value(RbSettings::Tts).toString();
     TTSBase* tts = TTSBase::getTTS(this,ttsName);
+    if(!tts)
+    {
+        QMessageBox::critical(this, tr("TTS error"),
+            tr("The selected TTS failed to initialize. You can't use this TTS."));
+        return;
+    }
     if(tts->configOk())
-        ui.labelTtsProfile->setText(tr("Selected TTS engine: <b>%1</b>")
+        ui.labelTtsProfile->setText(tr("Engine: <b>%1</b>")
             .arg(TTSBase::getTTSName(ttsName)));
     else
-        ui.labelTtsProfile->setText(tr("Selected TTS engine: <b>%1</b>")
+        ui.labelTtsProfile->setText(tr("Engine: <b>%1</b>")
             .arg("Invalid TTS configuration!"));
-    
-    QString encoder = SystemInfo::value(SystemInfo::CurEncoder).toString();
-    // only proceed if encoder setting is set
-    EncBase* enc = EncBase::getEncoder(this,encoder);
-    if(enc != NULL) {
-        if(enc->configOk())
-            ui.labelEncProfile->setText(tr("Selected encoder: <b>%1</b>")
-                .arg(EncBase::getEncoderName(encoder)));
-        else
-            ui.labelEncProfile->setText(tr("Selected encoder: <b>%1</b>")
-                .arg("Invalid encoder configuration!"));
-    }
-    else
-        ui.labelEncProfile->setText(tr("Selected encoder: <b>%1</b>")
-            .arg("Invalid encoder configuration!"));
+
     ui.wavtrimthreshold->setValue(RbSettings::value(RbSettings::WavtrimThreshold).toInt());
     emit settingsUpdated();
 }
@@ -123,9 +119,20 @@ void CreateVoiceWindow::saveSettings(void)
 {
     // save selected language
     RbSettings::setValue(RbSettings::VoiceLanguage,
-                         ui.comboLanguage->currentText());
+                         ui.comboLanguage->itemData(ui.comboLanguage->currentIndex()).toString());
     // save wavtrim threshold value
     RbSettings::setValue(RbSettings::WavtrimThreshold,
                          ui.wavtrimthreshold->value());
     RbSettings::sync();
 }
+
+void CreateVoiceWindow::changeEvent(QEvent *e)
+{
+    if(e->type() == QEvent::LanguageChange) {
+        ui.retranslateUi(this);
+        updateSettings();
+    } else {
+        QWidget::changeEvent(e);
+    }
+}
+

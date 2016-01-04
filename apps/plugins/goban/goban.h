@@ -138,6 +138,19 @@
 #define  GBN_BUTTON_CONTEXT            BUTTON_SELECT | BUTTON_REPEAT
 /* No next var */
 
+#elif (CONFIG_KEYPAD == SANSA_CONNECT_PAD)
+#define  GBN_BUTTON_UP                 BUTTON_UP
+#define  GBN_BUTTON_DOWN               BUTTON_DOWN
+#define  GBN_BUTTON_LEFT               BUTTON_LEFT
+#define  GBN_BUTTON_RIGHT              BUTTON_RIGHT
+#define  GBN_BUTTON_RETREAT            BUTTON_VOL_DOWN
+#define  GBN_BUTTON_ADVANCE            BUTTON_VOL_UP
+#define  GBN_BUTTON_MENU               BUTTON_POWER
+#define  GBN_BUTTON_PLAY               BUTTON_SELECT | BUTTON_REL
+#define  GBN_BUTTON_CONTEXT            BUTTON_SELECT | BUTTON_REPEAT
+#define  GBN_BUTTON_NEXT_VAR           BUTTON_NEXT
+
+
 #elif (CONFIG_KEYPAD == CREATIVEZVM_PAD) \
    || (CONFIG_KEYPAD == CREATIVEZV_PAD)
 #define  GBN_BUTTON_UP                 BUTTON_UP
@@ -150,6 +163,17 @@
 #define  GBN_BUTTON_PLAY               BUTTON_SELECT | BUTTON_REL
 #define  GBN_BUTTON_CONTEXT            BUTTON_SELECT | BUTTON_REPEAT
 #define  GBN_BUTTON_NEXT_VAR           BUTTON_PLAY
+
+#elif (CONFIG_KEYPAD == CREATIVE_ZENXFI3_PAD)
+#define  GBN_BUTTON_UP                 BUTTON_UP | BUTTON_REL
+#define  GBN_BUTTON_DOWN               BUTTON_DOWN
+#define  GBN_BUTTON_LEFT               BUTTON_BACK
+#define  GBN_BUTTON_RIGHT              BUTTON_MENU
+#define  GBN_BUTTON_RETREAT            BUTTON_VOL_DOWN
+#define  GBN_BUTTON_ADVANCE            BUTTON_VOL_UP
+#define  GBN_BUTTON_MENU               BUTTON_POWER
+#define  GBN_BUTTON_PLAY               BUTTON_PLAY | BUTTON_REL
+#define  GBN_BUTTON_CONTEXT            BUTTON_PLAY | BUTTON_REPEAT
 
 #elif (CONFIG_KEYPAD == PHILIPS_HDD1630_PAD)
 #define  GBN_BUTTON_UP                 BUTTON_UP
@@ -294,7 +318,8 @@
 #define  GBN_BUTTON_PLAY               BUTTON_MENU | BUTTON_REL
 #define  GBN_BUTTON_NAV_MODE           BUTTON_OFF
 
-#elif (CONFIG_KEYPAD == SAMSUNG_YH_PAD)
+#elif (CONFIG_KEYPAD == SAMSUNG_YH820_PAD) || \
+      (CONFIG_KEYPAD == SAMSUNG_YH920_PAD)
 #define  GBN_BUTTON_UP                 BUTTON_UP
 #define  GBN_BUTTON_DOWN               BUTTON_DOWN
 #define  GBN_BUTTON_LEFT               BUTTON_LEFT
@@ -302,12 +327,9 @@
 #define  GBN_BUTTON_RETREAT            BUTTON_REW
 #define  GBN_BUTTON_ADVANCE            BUTTON_FFWD
 #define  GBN_BUTTON_MENU               BUTTON_PLAY | BUTTON_LEFT
-#define  GBN_BUTTON_PLAY               BUTTON_PLAY | BUTTON_RIGHT
+#define  GBN_BUTTON_PLAY               BUTTON_PLAY
 #define  GBN_BUTTON_CONTEXT            BUTTON_PLAY | BUTTON_DOWN
 #define  GBN_BUTTON_NEXT_VAR           BUTTON_PLAY | BUTTON_UP
-/* No context */
-/* No advance/retreat */
-/* no next var */
 
 #elif (CONFIG_KEYPAD == PBELL_VIBE500_PAD)
 #define  GBN_BUTTON_UP                 BUTTON_UP
@@ -326,20 +348,89 @@
 #define  GBN_BUTTON_DOWN               BUTTON_FF
 #define  GBN_BUTTON_LEFT               BUTTON_VOL_DOWN
 #define  GBN_BUTTON_RIGHT              BUTTON_VOL_UP
-#define  GBN_BUTTON_RETREAT            BUTTON_REC
-#define  GBN_BUTTON_ADVANCE            BUTTON_PLAY
-#define  GBN_BUTTON_PLAY               BUTTON_FUNC | BUTTON_REL
-#define  GBN_BUTTON_MENU               BUTTON_FUNC | BUTTON_REPEAT
+#define  GBN_BUTTON_RETREAT            (BUTTON_REC | BUTTON_REW)
+#define  GBN_BUTTON_ADVANCE            (BUTTON_REC | BUTTON_FF)
+#define  GBN_BUTTON_PLAY               (BUTTON_FUNC | BUTTON_REL)
+#define  GBN_BUTTON_MENU               BUTTON_PLAY
+#define  GBN_BUTTON_CONTEXT            (BUTTON_FUNC | BUTTON_REPEAT)
+#define  GBN_BUTTON_NEXT_VAR           BUTTON_REC
 
 #elif (CONFIG_KEYPAD == MPIO_HD300_PAD)
 #define  GBN_BUTTON_UP                 BUTTON_UP
 #define  GBN_BUTTON_DOWN               BUTTON_DOWN
 #define  GBN_BUTTON_LEFT               BUTTON_REW
 #define  GBN_BUTTON_RIGHT              BUTTON_FF
-#define  GBN_BUTTON_RETREAT            BUTTON_REC
-#define  GBN_BUTTON_ADVANCE            BUTTON_PLAY
-#define  GBN_BUTTON_PLAY               BUTTON_ENTER
+#define  GBN_BUTTON_RETREAT            (BUTTON_REC | BUTTON_REW)
+#define  GBN_BUTTON_ADVANCE            (BUTTON_REC | BUTTON_FF)
+#define  GBN_BUTTON_PLAY               (BUTTON_ENTER | BUTTON_REL)
+#define  GBN_BUTTON_CONTEXT            (BUTTON_ENTER | BUTTON_REPEAT)
 #define  GBN_BUTTON_MENU               BUTTON_MENU
+#define  GBN_BUTTON_NEXT_VAR           BUTTON_REC
+
+#elif (CONFIG_KEYPAD == SANSA_FUZEPLUS_PAD)
+#define  GBN_BUTTON_UP                 BUTTON_UP
+#define  GBN_BUTTON_DOWN               BUTTON_DOWN
+#define  GBN_BUTTON_LEFT               BUTTON_LEFT
+#define  GBN_BUTTON_RIGHT              BUTTON_RIGHT
+#define  GBN_BUTTON_MENU               BUTTON_POWER
+#define  GBN_BUTTON_PLAY               BUTTON_SELECT
+#define  GBN_BUTTON_RETREAT            BUTTON_BACK
+#define  GBN_BUTTON_ADVANCE            BUTTON_PLAYPAUSE
+#define  GBN_BUTTON_CONTEXT            BUTTON_BOTTOMLEFT
+#define  GBN_BUTTON_NEXT_VAR           BUTTON_BOTTOMRIGHT
+
+#elif (CONFIG_KEYPAD == SAMSUNG_YPR0_PAD)
+#define  GBN_BUTTON_UP                 BUTTON_UP
+#define  GBN_BUTTON_DOWN               BUTTON_DOWN
+#define  GBN_BUTTON_LEFT               BUTTON_LEFT
+#define  GBN_BUTTON_RIGHT              BUTTON_RIGHT
+#define  GBN_BUTTON_RETREAT            BUTTON_BACK
+#define  GBN_BUTTON_ADVANCE            BUTTON_USER
+#define  GBN_BUTTON_PLAY               BUTTON_SELECT
+#define  GBN_BUTTON_MENU               BUTTON_MENU
+
+#elif CONFIG_KEYPAD == SONY_NWZ_PAD
+#define GBN_BUTTON_UP                  BUTTON_UP
+#define GBN_BUTTON_DOWN                BUTTON_DOWN
+#define GBN_BUTTON_LEFT                BUTTON_LEFT
+#define GBN_BUTTON_RIGHT               BUTTON_RIGHT
+#define GBN_BUTTON_PLAY                BUTTON_PLAY
+#define GBN_BUTTON_MENU                BUTTON_BACK
+
+#elif CONFIG_KEYPAD == CREATIVE_ZEN_PAD
+#define GBN_BUTTON_UP                  BUTTON_UP
+#define GBN_BUTTON_DOWN                BUTTON_DOWN
+#define GBN_BUTTON_LEFT                BUTTON_LEFT
+#define GBN_BUTTON_RIGHT               BUTTON_RIGHT
+#define GBN_BUTTON_PLAY                BUTTON_SELECT
+#define GBN_BUTTON_MENU                BUTTON_MENU
+
+#elif (CONFIG_KEYPAD == HM60X_PAD)
+#define  GBN_BUTTON_UP                 BUTTON_UP
+#define  GBN_BUTTON_DOWN               BUTTON_DOWN
+#define  GBN_BUTTON_LEFT               BUTTON_LEFT
+#define  GBN_BUTTON_RIGHT              BUTTON_RIGHT
+#define  GBN_BUTTON_MENU               BUTTON_POWER
+#define  GBN_BUTTON_PLAY               BUTTON_SELECT
+#define  GBN_BUTTON_RETREAT            (BUTTON_POWER | BUTTON_LEFT)
+#define  GBN_BUTTON_ADVANCE            (BUTTON_POWER | BUTTON_UP)
+#define  GBN_BUTTON_CONTEXT            (BUTTON_POWER | BUTTON_DOWN)
+#define  GBN_BUTTON_NEXT_VAR           (BUTTON_POWER | BUTTON_RIGHT)
+
+#elif (CONFIG_KEYPAD == HM801_PAD)
+#define  GBN_BUTTON_UP                 BUTTON_UP
+#define  GBN_BUTTON_DOWN               BUTTON_DOWN
+#define  GBN_BUTTON_LEFT               BUTTON_LEFT
+#define  GBN_BUTTON_RIGHT              BUTTON_RIGHT
+#define  GBN_BUTTON_MENU               BUTTON_POWER
+#define  GBN_BUTTON_PLAY               BUTTON_SELECT
+#define  GBN_BUTTON_RETREAT            BUTTON_PREV
+#define  GBN_BUTTON_ADVANCE            (BUTTON_POWER | BUTTON_PLAY)
+#define  GBN_BUTTON_CONTEXT            BUTTON_PLAY
+#define  GBN_BUTTON_NEXT_VAR           BUTTON_NEXT
+
+#elif (CONFIG_KEYPAD == DX50_PAD)
+#define  GBN_BUTTON_MENU               (BUTTON_POWER|BUTTON_REL)
 
 #else
 #error Unsupported keypad

@@ -9,7 +9,7 @@
 
 include $(TOOLSDIR)/functions.make
 
-DEFINES = -DROCKBOX -DMEMORYSIZE=$(MEMORYSIZE) -DMEM=$(MEMORYSIZE) $(TARGET) \
+DEFINES = -DROCKBOX -DMEMORYSIZE=$(MEMORYSIZE) $(TARGET) \
 	-DTARGET_ID=$(TARGET_ID) -DTARGET_NAME=\"$(MODELNAME)\" $(BUILDDATE) \
 	$(EXTRA_DEFINES) # <-- -DSIMULATOR or not
 INCLUDES = -I$(BUILDDIR) -I$(BUILDDIR)/lang $(TARGET_INC)
@@ -17,12 +17,16 @@ INCLUDES = -I$(BUILDDIR) -I$(BUILDDIR)/lang $(TARGET_INC)
 CFLAGS = $(INCLUDES) $(DEFINES) $(GCCOPTS) 
 PPCFLAGS = $(filter-out -g -Dmain=SDL_main,$(CFLAGS)) # cygwin sdl-config fix
 ASMFLAGS = -D__ASSEMBLER__      # work around gcc 3.4.x bug with -std=gnu99, only meant for .S files
+CORE_LDOPTS = $(GLOBAL_LDOPTS)  # linker ops specifically for core build
 
 TOOLS = $(TOOLSDIR)/rdf2binary $(TOOLSDIR)/convbdf \
 	$(TOOLSDIR)/codepages $(TOOLSDIR)/scramble $(TOOLSDIR)/bmp2rb \
 	$(TOOLSDIR)/uclpack $(TOOLSDIR)/mkboot $(TOOLSDIR)/iaudio_bl_flash.c \
 	$(TOOLSDIR)/iaudio_bl_flash.h
 
+ifeq ($(MODELNAME),archosplayer)
+  TOOLS += $(TOOLSDIR)/player_unifont
+endif
 
 ifeq (,$(PREFIX))
 ifdef APP_TYPE
@@ -58,40 +62,58 @@ endif
 
 all: $(DEPFILE) build
 
-# Subdir makefiles. their primary purpose is to populate SRC, OTHER_SRC &
-# ASMDEFS_SRC but they also define special dependencies and compile rules
+# Subdir makefiles. their primary purpose is to populate SRC, OTHER_SRC,
+# ASMDEFS_SRC and CORE_LIBS. But they also define special dependencies and
+# compile rules
 include $(TOOLSDIR)/tools.make
 
-ifeq (,$(findstring checkwps,$(APPSDIR)))
-  ifeq (,$(findstring database,$(APPSDIR)))
-    include $(FIRMDIR)/firmware.make
-    include $(ROOTDIR)/lib/skin_parser/skin_parser.make
-    include $(ROOTDIR)/apps/bitmaps/bitmaps.make
+ifeq (,$(findstring checkwps,$(APP_TYPE)))
+  ifeq (,$(findstring database,$(APP_TYPE)))
+    ifeq (,$(findstring warble,$(APP_TYPE)))
+      include $(FIRMDIR)/firmware.make
+      include $(ROOTDIR)/apps/bitmaps/bitmaps.make
+      ifeq (arch_arm,$(ARCH))
+          include $(ROOTDIR)/lib/unwarminder/unwarminder.make
+      endif
+      ifeq (,$(findstring bootloader,$(APPSDIR)))
+        include $(ROOTDIR)/lib/skin_parser/skin_parser.make
+        include $(ROOTDIR)/lib/tlsf/libtlsf.make
+      endif
+    endif
   endif
 endif
 
-#included before codecs.make and plugins.make so they see $(LIBSETJMP)
+#included before codecs.make and plugins.make so they see them)
 ifndef APP_TYPE
   include $(ROOTDIR)/lib/libsetjmp/libsetjmp.make
+  ifeq (arch_arm,$(ARCH))
+    include $(ROOTDIR)/lib/arm_support/arm_support.make
+  endif
+endif
+
+ifeq (,$(findstring bootloader,$(APPSDIR)))
+  ifeq (,$(findstring checkwps,$(APP_TYPE)))
+    include $(ROOTDIR)/lib/fixedpoint/fixedpoint.make
+  endif
 endif
 
 ifneq (,$(findstring bootloader,$(APPSDIR)))
   include $(APPSDIR)/bootloader.make
 else ifneq (,$(findstring bootbox,$(APPSDIR)))
-  BOOTBOXLDOPTS = -Wl,--gc-sections
   include $(APPSDIR)/bootbox.make
-else ifneq (,$(findstring checkwps,$(APPSDIR)))
+else ifneq (,$(findstring checkwps,$(APP_TYPE)))
   include $(APPSDIR)/checkwps.make
   include $(ROOTDIR)/lib/skin_parser/skin_parser.make
-else ifneq (,$(findstring database,$(APPSDIR)))
+else ifneq (,$(findstring database,$(APP_TYPE)))
   include $(APPSDIR)/database.make
-else
+else ifneq (,$(findstring warble,$(APP_TYPE)))
+  include $(ROOTDIR)/lib/rbcodec/test/warble.make
+  include $(ROOTDIR)/lib/tlsf/libtlsf.make
+  include $(ROOTDIR)/lib/rbcodec/rbcodec.make
+else # core
   include $(APPSDIR)/apps.make
   include $(APPSDIR)/lang/lang.make
-
-  ifdef SOFTWARECODECS
-    include $(APPSDIR)/codecs/codecs.make
-  endif
+  include $(ROOTDIR)/lib/rbcodec/rbcodec.make
 
   ifdef ENABLEDPLUGINS
     include $(APPSDIR)/plugins/bitmaps/pluginbitmaps.make
@@ -102,11 +124,35 @@ else
     include $(ROOTDIR)/uisimulator/uisimulator.make
   endif
 
-  ifneq (,$(findstring android, $(APP_TYPE)))
-	include $(ROOTDIR)/android/android.make
+  ifneq (,$(findstring ypr0,$(APP_TYPE)))
+    include $(ROOTDIR)/firmware/target/hosted/samsungypr/ypr0/ypr0.make
   endif
-  
+
+  ifneq (,$(findstring ypr1,$(APP_TYPE)))
+    include $(ROOTDIR)/firmware/target/hosted/samsungypr/ypr1/ypr1.make
+  endif
+
+  ifneq (,$(findstring android_ndk, $(APP_TYPE)))
+    include $(ROOTDIR)/firmware/target/hosted/ibasso/android_ndk.make
+  else
+    ifneq (,$(findstring android, $(APP_TYPE)))
+	  include $(ROOTDIR)/android/android.make
+    endif
+  endif
+
+  ifneq (,$(findstring pandora, $(MODELNAME)))
+	include $(ROOTDIR)/packaging/pandora/pandora.make
+  endif
+
 endif # bootloader
+
+# One or more subdir makefiles requested --gc-sections?
+ifdef CORE_GCSECTIONS
+  # Do not use '--gc-sections' when compiling sdl-sim
+  ifneq ($(findstring sdl-sim, $(APP_TYPE)), sdl-sim)
+    CORE_LDOPTS += -Wl,--gc-sections
+  endif
+endif # CORE_GCSECTIONS
 
 OBJ := $(SRC:.c=.o)
 OBJ := $(OBJ:.S=.o)
@@ -147,7 +193,8 @@ clean::
 		*.wav *.mp3 *.voice $(CLEANOBJS) \
 		$(LINKRAM) $(LINKROM) rockbox.elf rockbox.map rockbox.bin \
 		make.dep rombox.elf rombox.map rombox.bin rombox.ucl romstart.txt \
-		$(BINARY) $(FLASHFILE) uisimulator bootloader flash $(BOOTLINK)
+		$(BINARY) $(FLASHFILE) uisimulator bootloader flash $(BOOTLINK) \
+		rockbox.apk
 
 #### linking the binaries: ####
 
@@ -162,11 +209,14 @@ ifndef APP_TYPE
 
 ## target build
 CONFIGFILE := $(FIRMDIR)/export/config/$(MODELNAME).h
+ifeq ($(wildcard $(FIRMDIR)/target/$(CPU)/$(MANUFACTURER)/app.lds),)
+RAMLDS := $(FIRMDIR)/target/$(CPU)/app.lds
+else
 RAMLDS := $(FIRMDIR)/target/$(CPU)/$(MANUFACTURER)/app.lds
+endif
 LINKRAM := $(BUILDDIR)/ram.link
 ROMLDS := $(FIRMDIR)/rom.lds
 LINKROM := $(BUILDDIR)/rom.link
-
 
 $(LINKRAM): $(RAMLDS) $(CONFIGFILE)
 	$(call PRINTS,PP $(@F))
@@ -176,25 +226,29 @@ $(LINKROM): $(ROMLDS)
 	$(call PRINTS,PP $(@F))
 	$(call preprocess2file,$<,$@,-DLOADADDRESS=$(LOADADDRESS))
 
-$(BUILDDIR)/rockbox.elf : $$(OBJ) $$(FIRMLIB) $$(VOICESPEEXLIB) $$(SKINLIB) $$(LINKRAM)
+# Note: make sure -Wl,--gc-sections comes before -T in the linker options.
+# Having the latter first caused crashes on (at least) mini2g.
+$(BUILDDIR)/rockbox.elf : $$(OBJ) $(FIRMLIB) $(VOICESPEEXLIB) $(CORE_LIBS) $$(LINKRAM)
 	$(call PRINTS,LD $(@F))$(CC) $(GCCOPTS) -Os -nostdlib -o $@ $(OBJ) \
 		-L$(BUILDDIR)/firmware -lfirmware \
-		-L$(BUILDDIR)/lib -lskin_parser \
-		-L$(BUILDDIR)/apps/codecs $(VOICESPEEXLIB:lib%.a=-l%) \
-		-lgcc $(BOOTBOXLDOPTS) $(GLOBAL_LDOPTS) \
-		-T$(LINKRAM) -Wl,-Map,$(BUILDDIR)/rockbox.map
+		-L$(RBCODEC_BLD)/codecs $(call a2lnk, $(VOICESPEEXLIB)) \
+		-L$(BUILDDIR)/lib $(call a2lnk, $(CORE_LIBS)) \
+		-lgcc $(CORE_LDOPTS) -T$(LINKRAM) \
+		-Wl,-Map,$(BUILDDIR)/rockbox.map
 
-$(BUILDDIR)/rombox.elf : $$(OBJ) $$(FIRMLIB) $$(VOICESPEEXLIB) $$(SKINLIB) $$(LINKROM)
+$(BUILDDIR)/rombox.elf : $$(OBJ) $(FIRMLIB) $(VOICESPEEXLIB) $(CORE_LIBS) $$(LINKROM)
 	$(call PRINTS,LD $(@F))$(CC) $(GCCOPTS) -Os -nostdlib -o $@ $(OBJ) \
-		$(VOICESPEEXLIB) $(FIRMLIB) -lgcc $(GLOBAL_LDOPTS) \
-		-L$(BUILDDIR)/lib -lskin_parser \
-        -L$(BUILDDIR)/firmware -T$(LINKROM) -Wl,-Map,$(BUILDDIR)/rombox.map
+		-L$(BUILDDIR)/firmware -lfirmware \
+		-L$(RBCODEC_BLD)/codecs $(call a2lnk, $(VOICESPEEXLIB)) \
+		-L$(BUILDDIR)/lib $(call a2lnk, $(CORE_LIBS)) \
+		-lgcc $(CORE_LDOPTS) -T$(LINKROM) \
+		-Wl,-Map,$(BUILDDIR)/rombox.map
 
 $(BUILDDIR)/rockbox.bin : $(BUILDDIR)/rockbox.elf
-	$(call PRINTS,OC $(@F))$(OC) $(if $(filter yes, $(USE_ELF)), -S -x, -O binary) $< $@
+	$(call PRINTS,OC $(@F))$(call objcopy,$<,$@)
 
 $(BUILDDIR)/rombox.bin : $(BUILDDIR)/rombox.elf
-	$(call PRINTS,OC $(@F))$(OC) -O binary $< $@
+	$(call PRINTS,OC $(@F))$(call objcopy,$<,$@)
 
 #
 # If there's a flashfile defined for this target (rockbox.ucl for Archos
@@ -251,23 +305,32 @@ tags:
 	$(SILENT)etags -o $(BUILDDIR)/TAGS $(filter-out %.o,$(SRC) $(OTHER_SRC))
 
 fontzip:
-	$(SILENT)$(TOOLSDIR)/buildzip.pl $(VERBOSEOPT) -m \"$(MODELNAME)\" -r "$(ROOTDIR)" --rbdir="$(RBDIR)" -f 1 -o rockbox-fonts.zip $(TARGET) $(BINARY)
+	$(SILENT)$(TOOLSDIR)/buildzip.pl $(VERBOSEOPT) --app=$(APPLICATION) -m \"$(MODELNAME)\" -r "$(ROOTDIR)" --rbdir="$(RBDIR)" -f 1 -o rockbox-fonts.zip $(TARGET) $(BINARY)
 
-zip:
-	$(SILENT)$(TOOLSDIR)/buildzip.pl $(VERBOSEOPT) -m \"$(MODELNAME)\" -i \"$(TARGET_ID)\"  -r "$(ROOTDIR)" --rbdir="$(RBDIR)" $(TARGET) $(BINARY)
+zip: $(BUILDDIR)/rockbox.zip
+
+ifdef NODEPS
+$(BUILDDIR)/rockbox.zip:
+else
+$(BUILDDIR)/rockbox.zip: build
+endif
+	$(SILENT)$(TOOLSDIR)/buildzip.pl $(VERBOSEOPT) --app=$(APPLICATION) -m \"$(MODELNAME)\" -i \"$(TARGET_ID)\"  -r "$(ROOTDIR)" --rbdir="$(RBDIR)" $(TARGET) $(BINARY)
 
 mapzip:
 	$(SILENT)find . -name "*.map" | xargs zip rockbox-maps.zip
 
+elfzip: 
+	$(SILENT)find . -name "*.elf" | xargs zip rockbox-elfs.zip
+
 fullzip:
-	$(SILENT)$(TOOLSDIR)/buildzip.pl $(VERBOSEOPT) -m \"$(MODELNAME)\" -i \"$(TARGET_ID)\"  -r "$(ROOTDIR)" --rbdir="$(RBDIR)" -f 2 -o rockbox-full.zip $(TARGET) $(BINARY)
+	$(SILENT)$(TOOLSDIR)/buildzip.pl $(VERBOSEOPT) --app=$(APPLICATION) -m \"$(MODELNAME)\" -i \"$(TARGET_ID)\"  -r "$(ROOTDIR)" --rbdir="$(RBDIR)" -f 2 -o rockbox-full.zip $(TARGET) $(BINARY)
 
 7zip:
-	$(SILENT)$(TOOLSDIR)/buildzip.pl $(VERBOSEOPT) -m \"$(MODELNAME)\" -i \"$(TARGET_ID)\"  -o "rockbox.7z" -z "7za a -mx=9" -r "$(ROOTDIR)" --rbdir="$(RBDIR)" $(TARGET) $(BINARY)
+	$(SILENT)$(TOOLSDIR)/buildzip.pl $(VERBOSEOPT) --app=$(APPLICATION) -m \"$(MODELNAME)\" -i \"$(TARGET_ID)\"  -o "rockbox.7z" -z "7za a -mx=9" -r "$(ROOTDIR)" --rbdir="$(RBDIR)" $(TARGET) $(BINARY)
 
 tar:
 	$(SILENT)rm -f rockbox.tar
-	$(SILENT)$(TOOLSDIR)/buildzip.pl $(VERBOSEOPT) -m \"$(MODELNAME)\" -i \"$(TARGET_ID)\"  -o "rockbox.tar" -z "tar -cf" -r "$(ROOTDIR)" --rbdir="$(RBDIR)" $(TARGET) $(BINARY)
+	$(SILENT)$(TOOLSDIR)/buildzip.pl $(VERBOSEOPT) --app=$(APPLICATION) -m \"$(MODELNAME)\" -i \"$(TARGET_ID)\"  -o "rockbox.tar" -z "tar -cf" -r "$(ROOTDIR)" --rbdir="$(RBDIR)" $(TARGET) $(BINARY)
 
 bzip2: tar
 	$(SILENT)bzip2 -f9 rockbox.tar
@@ -295,21 +358,27 @@ voice: voicetools $(BUILDDIR)/apps/features
 
 endif
 
+ifeq (,$(findstring android, $(APP_TYPE)))
+
+simext1:
+	$(SILENT)mkdir -p $@
+
 bininstall: $(BUILDDIR)/$(BINARY)
 	@echo "Installing your rockbox binary in your '$(RBPREFIX)' dir"
 	$(SILENT)cp $(BINARY) "$(RBPREFIX)/.rockbox/"
 
-install:
+install: simext1
 	@echo "Installing your build in your '$(RBPREFIX)' dir"
-	$(SILENT)$(TOOLSDIR)/buildzip.pl $(VERBOSEOPT) -m "$(MODELNAME)" -i "$(TARGET_ID)" $(INSTALL) -z "zip -r0" -r "$(ROOTDIR)" --rbdir="$(RBDIR)" -f 0 $(TARGET) $(BINARY)
+	$(SILENT)$(TOOLSDIR)/buildzip.pl $(VERBOSEOPT) --app=$(APPLICATION) -m "$(MODELNAME)" -i "$(TARGET_ID)" $(INSTALL) -z "zip -r0" -r "$(ROOTDIR)" --rbdir="$(RBDIR)" -f 0 $(TARGET) $(BINARY)
 
-fullinstall:
+fullinstall: simext1
 	@echo "Installing a full setup in your '$(RBPREFIX)' dir"
-	$(SILENT)$(TOOLSDIR)/buildzip.pl $(VERBOSEOPT) -m "$(MODELNAME)" -i "$(TARGET_ID)" $(INSTALL) -z "zip -r0" -r "$(ROOTDIR)" --rbdir="$(RBDIR)" -f 2 $(TARGET) $(BINARY)
+	$(SILENT)$(TOOLSDIR)/buildzip.pl $(VERBOSEOPT) --app=$(APPLICATION) -m "$(MODELNAME)" -i "$(TARGET_ID)" $(INSTALL) -z "zip -r0" -r "$(ROOTDIR)" --rbdir="$(RBDIR)" -f 2 $(TARGET) $(BINARY)
 
-symlinkinstall:
+symlinkinstall: simext1
 	@echo "Installing a full setup with links in your '$(RBPREFIX)' dir"
-	$(SILENT)$(TOOLSDIR)/buildzip.pl $(VERBOSEOPT) -m "$(MODELNAME)" -i "$(TARGET_ID)" $(INSTALL) -z "zip -r0" -r "$(ROOTDIR)" --rbdir="$(RBDIR)" -f 2 $(TARGET) $(BINARY) -l
+	$(SILENT)$(TOOLSDIR)/buildzip.pl $(VERBOSEOPT) --app=$(APPLICATION) -m "$(MODELNAME)" -i "$(TARGET_ID)" $(INSTALL) -z "zip -r0" -r "$(ROOTDIR)" --rbdir="$(RBDIR)" -f 2 $(TARGET) $(BINARY) -l
+endif
 
 help:
 	@echo "A few helpful make targets"
@@ -332,6 +401,8 @@ help:
 	@echo "7zip           - creates a rockbox.7z of your build (no fonts)"
 	@echo "fontzip        - creates rockbox-fonts.zip"
 	@echo "mapzip         - creates rockbox-maps.zip with all .map files"
+	@echo "elfzip         - creates rockbox-elfs.zip with all .elf files"
+	@echo "pnd            - creates rockbox.pnd archive (Pandora builds only)"
 	@echo "tools          - builds the tools only"
 	@echo "voice          - creates the voice clips (voice builds only)"
 	@echo "voicetools     - builds the voice tools only"

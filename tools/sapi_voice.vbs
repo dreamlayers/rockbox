@@ -39,6 +39,7 @@ Const STDERR = 2
 Dim oShell, oArgs, oEnv
 Dim oFSO, oStdIn, oStdOut
 Dim bVerbose, bSAPI4, bList
+Dim bMSSP
 Dim sLanguage, sVoice, sSpeed, sName, sVendor
 
 Dim oSpVoice, oSpFS ' SAPI5 voice and filestream
@@ -60,6 +61,7 @@ bVerbose = (oEnv("V") <> "")
 
 Set oArgs = WScript.Arguments.Named
 bSAPI4 = oArgs.Exists("sapi4")
+bMSSP = oArgs.Exists("mssp")
 bList = oArgs.Exists("listvoices")
 sLanguage = oArgs.Item("language")
 sVoice = oArgs.Item("voice")
@@ -121,25 +123,30 @@ If bSAPI4 Then
 
     ' Speed selection
     If sSpeed <> "" Then oTTS.Speed = sSpeed
-    
+
     ' Get vendor information
     sVendor = oTTS.MfgName(nMode)
 
 Else ' SAPI5
     ' Create SAPI5 object
-    Set oSpVoice = CreateObject("SAPI.SpVoice")
+    If bMSSP Then
+            Set oSpVoice = CreateObject("speech.SpVoice")
+    Else
+            Set oSpVoice = CreateObject("SAPI.SpVoice")
+    End If
     If Err.Number <> 0 Then
-        WScript.StdErr.WriteLine "Error - could not get SpVoice object." _
+        WScript.StdErr.WriteLine "Error " & Err.Number _
+                                 & " - could not get SpVoice object." _
                                  & " SAPI 5 not installed?"
         WScript.Quit 1
     End If
-    
-    If bList Then 
+
+    If bList Then
         ' Just list available voices for the selected language
         For Each nLangID in LangIDs(sLanguage)
             sSelectString = "Language=" & Hex(nLangID)
             For Each oVoice in oSpVoice.GetVoices(sSelectString)
-                WScript.StdErr.Write oVoice.GetAttribute("Name") & ","
+                WScript.StdErr.Write oVoice.GetAttribute("Name") & ";"
             Next
         Next
         WScript.StdErr.WriteLine
@@ -270,6 +277,8 @@ Function LangIDs(ByRef sLanguage)
     Dim aIDs
 
     Select Case sLanguage
+        Case "afrikaans"
+            LangIDs = Array(&h436)
         Case "arabic"
             LangIDs = Array( &h401,  &h801,  &hc01, &h1001, &h1401, &h1801, _
                             &h1c01, &h2001, &h2401, &h2801, &h2c01, &h3001, _
@@ -277,8 +286,8 @@ Function LangIDs(ByRef sLanguage)
             ' Saudi Arabia, Iraq, Egypt, Libya, Algeria, Morocco, Tunisia,
             ' Oman, Yemen, Syria, Jordan, Lebanon, Kuwait, U.A.E., Bahrain,
             ' Qatar
-        Case "afrikaans"
-            LangIDs = Array(&h436)
+        Case "basque"
+            LangIDs = Array(&h42d)
         Case "bulgarian"
             LangIDs = Array(&h402)
         Case "catala"
@@ -296,6 +305,13 @@ Function LangIDs(ByRef sLanguage)
             ' Standard, Austrian, Luxembourg, Liechtenstein (Swiss -> wallisertitsch)
         Case "eesti"
             LangIDs = Array(&h425)
+        Case "english-us"
+            LangIDs = Array( &h409,  &h809,  &hc09, &h1009, &h1409, &h1809, _
+                            &h1c09, &h2009, &h2409, &h2809, &h2c09, &h3009, _
+                            &h3409)
+            ' American, British, Australian, Canadian, New Zealand, Ireland,
+            ' South Africa, Jamaika, Caribbean, Belize, Trinidad, Zimbabwe,
+            ' Philippines
         Case "english"
             LangIDs = Array( &h809,  &h409,  &hc09, &h1009, &h1409, &h1809, _
                             &h1c09, &h2009, &h2409, &h2809, &h2c09, &h3009, _
@@ -328,6 +344,8 @@ Function LangIDs(ByRef sLanguage)
             LangIDs = Array(&h40d)
         Case "hindi"
             LangIDs = Array(&h439)
+        Case "hrvatski"
+            LangIDs = Array(&h41a, &h101a) ' Croatia, Bosnia and Herzegovina
         Case "islenska"
             LangIDs = Array(&h40f)
         Case "italiano"
@@ -336,26 +354,30 @@ Function LangIDs(ByRef sLanguage)
             LangIDs = Array(&h411)
         Case "korean"
             LangIDs = Array(&h412)
+        Case "latviesu"
+            LangIDs = Array(&h426)
         Case "lietuviu"
             LangIDs = Array(&h427)
         Case "magyar"
             LangIDs = Array(&h40e)
         Case "nederlands"
             LangIDs = Array(&h413, &h813) ' Standard, Belgian
-        Case "norsk"
-            LangIDs = Array(&h414) ' Bokmal
         Case "norsk-nynorsk"
             LangIDs = Array(&h814)
+        Case "norsk"
+            LangIDs = Array(&h414) ' Bokmal
         Case "polski"
             LangIDs = Array(&h415)
-        Case "portugues"
-            LangIDs = Array(&h816)
         Case "portugues-brasileiro"
             LangIDs = Array(&h416)
+        Case "portugues"
+            LangIDs = Array(&h816)
         Case "romaneste"
             LangIDs = Array(&h418)
         Case "russian"
             LangIDs = Array(&h419)
+        Case "slovak"
+            LangIDs = Array(&h41B)
         Case "slovenscina"
             LangIDs = Array(&h424)
         Case "srpski"
@@ -368,6 +390,8 @@ Function LangIDs(ByRef sLanguage)
             LangIDs = Array(&h41e)
         Case "turkce"
             LangIDs = Array(&h41f)
+        Case "ukrainian"
+            LangIDs = Array(&h422)
         Case "wallisertitsch"
             LangIDs = Array(&h807) ' Swiss German
         Case "walon"

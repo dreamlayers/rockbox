@@ -21,87 +21,128 @@
 
 #include <jni.h>
 #include <stdbool.h>
-#include <system.h>
+#define _SYSTEM_WITH_JNI /* for getJavaEnvironment */
+#include <pthread.h>
+#include "system.h"
+#include "kernel.h"
 #include "debug.h"
 #include "pcm.h"
+#include "pcm-internal.h"
 
 extern JNIEnv *env_ptr;
 
 /* infos about our pcm chunks */
+static const void *pcm_data_start;
 static size_t  pcm_data_size;
-static char   *pcm_data_start;
+static int     audio_locked = 0;
+static pthread_mutex_t audio_lock_mutex = PTHREAD_MUTEX_INITIALIZER;
 
 /* cache frequently called methods */
 static jmethodID play_pause_method;
 static jmethodID stop_method;
 static jmethodID set_volume_method;
+static jmethodID write_method;
 static jclass    RockboxPCM_class;
 static jobject   RockboxPCM_instance;
 
 
 /*
- * transfer our raw data into a java array
+ * mutex lock/unlock wrappers neatness' sake
+ */
+static inline void lock_audio(void)
+{
+    pthread_mutex_lock(&audio_lock_mutex);
+}
+
+static inline void unlock_audio(void)
+{
+    pthread_mutex_unlock(&audio_lock_mutex);
+}
+
+/*
+ * write pcm samples to the hardware. Calls AudioTrack.write directly (which
+ * is usually a blocking call)
  *
- * a bit of a monster functions, but it should cover all cases to overcome
- * the issue that the chunk size of the java layer and our pcm chunks are
- * differently sized
- *
- * afterall, it only copies the raw pcm data from pcm_data_start to
- * the passed byte[]-array
+ * temp_array is not strictly needed as a parameter as we could
+ * create it here, but that would result in frequent garbage collection
  *
  * it is called from the PositionMarker callback of AudioTrack
  **/
-JNIEXPORT void JNICALL
-Java_org_rockbox_RockboxPCM_pcmSamplesToByteArray(JNIEnv *env,
-                                                  jobject this,
-                                                  jbyteArray arr)
+JNIEXPORT jint JNICALL
+Java_org_rockbox_RockboxPCM_nativeWrite(JNIEnv *env, jobject this,
+                                        jbyteArray temp_array, jint max_size)
 {
-    (void)this;
-    size_t len;
-	size_t array_size = (*env)->GetArrayLength(env, arr);
-    if (array_size > pcm_data_size)
-        len = pcm_data_size;
-    else
-        len = array_size;
+    bool new_buffer = false;
 
-	(*env)->SetByteArrayRegion(env, arr, 0, len, pcm_data_start);
+    lock_audio();
 
-    if (array_size > pcm_data_size)
-    {   /* didn't have enough data for the array ? */
-        size_t remaining = array_size - pcm_data_size;
-        size_t offset = len;
-    retry:
-        pcm_play_get_more_callback((void**)&pcm_data_start, &pcm_data_size);
-        if (pcm_data_size == 0)
-        {
-            DEBUGF("out of data\n");
-            return;
-        }
-        if (remaining > pcm_data_size)
-        {   /* got too little data, get more ... */
-            (*env)->SetByteArrayRegion(env, arr, offset, pcm_data_size, pcm_data_start);
-            /* advance in the java array by the amount we copied */
-            offset += pcm_data_size;
-            /* we copied at least a bit */
-            remaining -= pcm_data_size;
-            pcm_data_size = 0;
-            /* let's get another buch of data and try again */
-            goto retry;
-        }
-        else
-            (*env)->SetByteArrayRegion(env, arr, offset, remaining, pcm_data_start);
-        len = remaining;
+    jint left = max_size;
+
+    if (!pcm_data_size) /* get some initial data */
+    {
+        new_buffer = pcm_play_dma_complete_callback(PCM_DMAST_OK,
+                            &pcm_data_start, &pcm_data_size);
     }
-    pcm_data_start += len;
-    pcm_data_size -= len;
+
+    while(left > 0 && pcm_data_size)
+    {
+        jint ret;
+        jsize transfer_size = MIN((size_t)left, pcm_data_size);
+        /* decrement both by the amount we're going to write */
+        pcm_data_size -= transfer_size; left -= transfer_size;
+        (*env)->SetByteArrayRegion(env, temp_array, 0,
+                                        transfer_size, (jbyte*)pcm_data_start);
+
+        if (new_buffer)
+        {
+            new_buffer = false;
+            pcm_play_dma_status_callback(PCM_DMAST_STARTED);
+        }
+        /* SetByteArrayRegion copies, which enables us to unlock audio. This
+         * is good because the below write() call almost certainly block.
+         * This allows the mixer to be clocked at a regular interval which vastly
+         * improves responsiveness when pausing/stopping playback */
+        unlock_audio();
+        ret = (*env)->CallIntMethod(env, this, write_method,
+                                            temp_array, 0, transfer_size);
+        lock_audio();
+
+        /* check if still playing. might have changed during the write() call */
+        if (!pcm_is_playing())
+            break;
+
+        if (ret < 0)
+        {
+            unlock_audio();
+            return ret;
+        }
+
+        if (pcm_data_size == 0) /* need new data */
+        {
+            new_buffer = pcm_play_dma_complete_callback(PCM_DMAST_OK,
+                                &pcm_data_start, &pcm_data_size);
+        }
+        else /* increment data pointer and feed more */
+            pcm_data_start += transfer_size;
+    }
+
+    if (new_buffer)
+        pcm_play_dma_status_callback(PCM_DMAST_STARTED);
+
+    unlock_audio();
+    return max_size - left;
 }
 
 void pcm_play_lock(void)
 {
+    if (++audio_locked == 1)
+        lock_audio();
 }
 
 void pcm_play_unlock(void)
 {
+    if (--audio_locked == 0)
+        unlock_audio();
 }
 
 void pcm_dma_apply_settings(void)
@@ -110,7 +151,7 @@ void pcm_dma_apply_settings(void)
 
 void pcm_play_dma_start(const void *addr, size_t size)
 {
-    pcm_data_start = (char*)addr;
+    pcm_data_start = addr;
     pcm_data_size = size;
     
     pcm_play_dma_pause(false);
@@ -118,9 +159,13 @@ void pcm_play_dma_start(const void *addr, size_t size)
 
 void pcm_play_dma_stop(void)
 {
-    (*env_ptr)->CallVoidMethod(env_ptr,
-                               RockboxPCM_instance,
-                               stop_method);
+    /* NOTE: due to how pcm_play_dma_complete_callback() works, this is
+     * possibly called from nativeWrite(), i.e. another (host) thread
+     * => need to discover the appropriate JNIEnv* */
+    JNIEnv* env = getJavaEnvironment();
+    (*env)->CallVoidMethod(env,
+                           RockboxPCM_instance,
+                           stop_method);
 }
 
 void pcm_play_dma_pause(bool pause)
@@ -163,15 +208,36 @@ void pcm_play_dma_init(void)
     play_pause_method = e->GetMethodID(env_ptr, RockboxPCM_class, "play_pause", "(Z)V");
     set_volume_method = e->GetMethodID(env_ptr, RockboxPCM_class, "set_volume", "(I)V");
     stop_method       = e->GetMethodID(env_ptr, RockboxPCM_class, "stop", "()V");
-    /* get initial pcm data, if any */
-    pcm_play_get_more_callback((void*)&pcm_data_start, &pcm_data_size);
+    write_method      = e->GetMethodID(env_ptr, RockboxPCM_class, "write", "([BII)I");
 }
 
-void pcm_postinit(void)
+void pcm_play_dma_postinit(void)
 {
 }
 
 void pcm_set_mixer_volume(int volume)
 {
     (*env_ptr)->CallVoidMethod(env_ptr, RockboxPCM_instance, set_volume_method, volume);
+}
+
+/*
+ * release audio resources */
+void pcm_shutdown(void)
+{
+    JNIEnv e = *env_ptr;
+    jmethodID release = e->GetMethodID(env_ptr, RockboxPCM_class, "release", "()V");
+    e->CallVoidMethod(env_ptr, RockboxPCM_instance, release);
+    pthread_mutex_destroy(&audio_lock_mutex);
+}
+
+JNIEXPORT void JNICALL
+Java_org_rockbox_RockboxPCM_postVolumeChangedEvent(JNIEnv *env,
+                                                   jobject this,
+                                                   jint volume)
+{
+    (void) env;
+    (void) this;
+    /* for the main queue, the volume will be available through
+     * button_get_data() */
+    queue_broadcast(SYS_VOLUME_CHANGED, volume);
 }

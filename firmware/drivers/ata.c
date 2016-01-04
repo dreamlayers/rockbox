@@ -32,7 +32,7 @@
 #include "power.h"
 #include "string.h"
 #include "ata_idle_notify.h"
-#include "ata-target.h"
+#include "ata-driver.h"
 #include "ata-defines.h"
 #include "storage.h"
 
@@ -79,76 +79,7 @@
 static unsigned int ata_thread_id = 0;
 #endif
 
-#if defined(MAX_PHYS_SECTOR_SIZE) && MEM == 64
-/* Hack - what's the deal with 5g? */
-struct ata_lock
-{
-    struct thread_entry *thread;
-    int count;
-    volatile unsigned char locked;
-    IF_COP( struct corelock cl; )
-};
-
-static void ata_lock_init(struct ata_lock *l)
-{
-    corelock_init(&l->cl);
-    l->locked = 0;
-    l->count = 0;
-    l->thread = NULL;
-}
-
-static void ata_lock_lock(struct ata_lock *l)
-{
-    struct thread_entry * const current =
-        thread_id_entry(THREAD_ID_CURRENT);
-
-    if (current == l->thread)
-    {
-        l->count++;
-        return;
-    }
-
-    corelock_lock(&l->cl);
-
-    IF_PRIO( current->skip_count = -1; )
-
-    while (l->locked != 0)
-    {
-        corelock_unlock(&l->cl);
-        switch_thread();
-        corelock_lock(&l->cl);
-    }
-
-    l->locked = 1;
-    l->thread = current;
-    corelock_unlock(&l->cl);
-}
-
-static void ata_lock_unlock(struct ata_lock *l)
-{
-    if (l->count > 0)
-    {
-        l->count--;
-        return;
-    }
-
-    corelock_lock(&l->cl);
-
-    IF_PRIO( l->thread->skip_count = 0; )
-
-    l->thread = NULL;
-    l->locked = 0;
-
-    corelock_unlock(&l->cl);
-}
-
-#define mutex           ata_lock
-#define mutex_init      ata_lock_init
-#define mutex_lock      ata_lock_lock
-#define mutex_unlock    ata_lock_unlock
-#endif /* MAX_PHYS_SECTOR_SIZE */
-
-#if defined(HAVE_USBSTACK) && defined(USE_ROCKBOX_USB)
+#if defined(HAVE_USBSTACK)
 #define ALLOW_USB_SPINDOWN
 #endif
 
@@ -162,7 +93,9 @@ static bool ata_led_on = false;
 #endif
 static bool spinup = false;
 static bool sleeping = true;
+#ifdef HAVE_ATA_POWER_OFF
 static bool poweroff = false;
+#endif
 static long sleep_timeout = 5*HZ;
 #ifdef HAVE_LBA48
 static bool lba48 = false; /* set for 48 bit addressing */
@@ -196,12 +129,15 @@ static int phys_sector_mult = 1;
 static int dma_mode = 0;
 #endif
 
+#ifdef HAVE_ATA_POWER_OFF
 static int ata_power_on(void);
+#endif
 static int perform_soft_reset(void);
 static int set_multiple_mode(int sectors);
 static int set_features(void);
 
-STATICIRAM ICODE_ATTR int wait_for_bsy(void)
+#ifndef ATA_TARGET_POLLING
+static ICODE_ATTR int wait_for_bsy(void)
 {
     long timeout = current_tick + HZ*30;
     
@@ -216,7 +152,7 @@ STATICIRAM ICODE_ATTR int wait_for_bsy(void)
     return 0; /* timeout */
 }
 
-STATICIRAM ICODE_ATTR int wait_for_rdy(void)
+static ICODE_ATTR int wait_for_rdy(void)
 {
     long timeout;
 
@@ -235,8 +171,12 @@ STATICIRAM ICODE_ATTR int wait_for_rdy(void)
 
     return 0; /* timeout */
 }
+#else
+#define wait_for_bsy    ata_wait_for_bsy
+#define wait_for_rdy    ata_wait_for_rdy
+#endif
 
-STATICIRAM ICODE_ATTR int wait_for_start_of_transfer(void)
+static ICODE_ATTR int wait_for_start_of_transfer(void)
 {
     if (!wait_for_bsy())
         return 0;
@@ -244,7 +184,7 @@ STATICIRAM ICODE_ATTR int wait_for_start_of_transfer(void)
     return (ATA_IN8(ATA_ALT_STATUS) & (STATUS_BSY|STATUS_DRQ)) == STATUS_DRQ;
 }
 
-STATICIRAM ICODE_ATTR int wait_for_end_of_transfer(void)
+static ICODE_ATTR int wait_for_end_of_transfer(void)
 {
     if (!wait_for_bsy())
         return 0;
@@ -267,7 +207,7 @@ static void ata_led(bool on)
 #endif
 
 #ifndef ATA_OPTIMIZED_READING
-STATICIRAM ICODE_ATTR void copy_read_sectors(unsigned char* buf, int wordcount)
+static ICODE_ATTR void copy_read_sectors(unsigned char* buf, int wordcount)
 {
     unsigned short tmp = 0;
 
@@ -299,7 +239,7 @@ STATICIRAM ICODE_ATTR void copy_read_sectors(unsigned char* buf, int wordcount)
 #endif /* !ATA_OPTIMIZED_READING */
 
 #ifndef ATA_OPTIMIZED_WRITING
-STATICIRAM ICODE_ATTR void copy_write_sectors(const unsigned char* buf,
+static ICODE_ATTR void copy_write_sectors(const unsigned char* buf,
                                               int wordcount)
 {
     if ( (unsigned long)buf & 1)
@@ -361,13 +301,16 @@ static int ata_transfer_sectors(unsigned long start,
     if ( sleeping ) {
         sleeping = false; /* set this now since it'll be on */
         spinup = true;
+#ifdef HAVE_ATA_POWER_OFF
         if (poweroff) {
             if (ata_power_on()) {
                 ret = -2;
                 goto error;
             }
         }
-        else {
+        else
+#endif
+        {
             if (perform_soft_reset()) {
                 ret = -2;
                 goto error;
@@ -456,7 +399,9 @@ static int ata_transfer_sectors(unsigned long start,
             if (spinup) {
                 spinup_time = current_tick - spinup_start;
                 spinup = false;
+#ifdef HAVE_ATA_POWER_OFF
                 poweroff = false;
+#endif
             }
         }
         else
@@ -485,7 +430,9 @@ static int ata_transfer_sectors(unsigned long start,
                 if (spinup) {
                     spinup_time = current_tick - spinup_start;
                     spinup = false;
+#ifdef HAVE_ATA_POWER_OFF
                     poweroff = false;
+#endif
                 }
 
                 /* read the status register exactly once per loop */
@@ -552,7 +499,7 @@ static int ata_transfer_sectors(unsigned long start,
 }
 
 #ifndef MAX_PHYS_SECTOR_SIZE
-int ata_read_sectors(IF_MD2(int drive,)
+int ata_read_sectors(IF_MD(int drive,)
                      unsigned long start,
                      int incount,
                      void* inbuf)
@@ -566,7 +513,7 @@ int ata_read_sectors(IF_MD2(int drive,)
 #endif
 
 #ifndef MAX_PHYS_SECTOR_SIZE
-int ata_write_sectors(IF_MD2(int drive,)
+int ata_write_sectors(IF_MD(int drive,)
                       unsigned long start,
                       int count,
                       const void* buf)
@@ -608,7 +555,7 @@ static inline int flush_current_sector(void)
                                 sector_cache.data, true);
 }
 
-int ata_read_sectors(IF_MD2(int drive,)
+int ata_read_sectors(IF_MD(int drive,)
                      unsigned long start,
                      int incount,
                      void* inbuf)
@@ -674,7 +621,7 @@ int ata_read_sectors(IF_MD2(int drive,)
     return rc;
 }
 
-int ata_write_sectors(IF_MD2(int drive,)
+int ata_write_sectors(IF_MD(int drive,)
                       unsigned long start,
                       int count,
                       const void* buf)
@@ -752,7 +699,7 @@ int ata_write_sectors(IF_MD2(int drive,)
 }
 #endif /* MAX_PHYS_SECTOR_SIZE */
 
-static int check_registers(void)
+static int STORAGE_INIT_ATTR check_registers(void)
 {
     int i;
     wait_for_bsy();
@@ -855,7 +802,9 @@ void ata_spin(void)
 
 static void ata_thread(void)
 {
+#ifdef HAVE_ATA_POWER_OFF
     static long last_sleep = 0;
+#endif
     struct queue_event ev;
 #ifdef ALLOW_USB_SPINDOWN
     static bool usb_mode = false;
@@ -893,7 +842,9 @@ static void ata_thread(void)
                         }
                         mutex_lock(&ata_mtx);
                         ata_perform_sleep();
+#ifdef HAVE_ATA_POWER_OFF
                         last_sleep = current_tick;
+#endif
                         mutex_unlock(&ata_mtx);
                     }
                 }
@@ -924,11 +875,14 @@ static void ata_thread(void)
                     ata_led(true);
                     sleeping = false; /* set this now since it'll be on */
 
+#ifdef HAVE_ATA_POWER_OFF
                     if (poweroff) {
                         ata_power_on();
                         poweroff = false;
                     }
-                    else {
+                    else
+#endif
+                    {
                         perform_soft_reset();
                     }
 
@@ -946,7 +900,6 @@ static void ata_thread(void)
             case SYS_USB_DISCONNECTED:
                 /* Tell the USB thread that we are ready again */
                 DEBUGF("ata_thread got SYS_USB_DISCONNECTED\n");
-                usb_acknowledge(SYS_USB_DISCONNECTED_ACK);
                 usb_mode = false;
                 break;
 #endif
@@ -971,7 +924,11 @@ static void ata_thread(void)
 }
 
 /* Hardware reset protocol as specified in chapter 9.1, ATA spec draft v5 */
+#ifdef HAVE_ATA_POWER_OFF
 static int ata_hard_reset(void)
+#else
+static int STORAGE_INIT_ATTR ata_hard_reset(void)
+#endif
 {
     int ret;
 
@@ -989,6 +946,35 @@ static int ata_hard_reset(void)
     mutex_unlock(&ata_mtx);
 
     return ret;
+}
+
+// not putting this into STORAGE_INIT_ATTR, as ATA spec recommends to
+// re-read identify_info after soft reset. So we'll do that.
+static int identify(void)
+{
+    int i;
+
+    ATA_OUT8(ATA_SELECT, ata_device);
+
+    if(!wait_for_rdy()) {
+        DEBUGF("identify() - not RDY\n");
+        return -1;
+    }
+    ATA_OUT8(ATA_COMMAND, CMD_IDENTIFY);
+
+    if (!wait_for_start_of_transfer())
+    {
+        DEBUGF("identify() - CMD failed\n");
+        return -2;
+    }
+
+    for (i=0; i<SECTOR_SIZE/2; i++) {
+        /* the IDENTIFY words are already swapped, so we need to treat
+           this info differently that normal sector data */
+        identify_info[i] = ATA_SWAP_IDENTIFY(ATA_IN16(ATA_DATA));
+    }
+
+    return 0;
 }
 
 static int perform_soft_reset(void)
@@ -1023,6 +1009,9 @@ static int perform_soft_reset(void)
     if (!ret)
         return -1;
 
+    if (identify())
+        return -5;
+
     if (set_features())
         return -2;
 
@@ -1047,6 +1036,7 @@ int ata_soft_reset(void)
     return ret;
 }
 
+#ifdef HAVE_ATA_POWER_OFF
 static int ata_power_on(void)
 {
     int rc;
@@ -1064,6 +1054,9 @@ static int ata_power_on(void)
     if( ata_hard_reset() )
         return -1;
 
+    if (identify())
+        return -5;
+
     rc = set_features();
     if (rc)
         return rc * 10 - 2;
@@ -1076,8 +1069,9 @@ static int ata_power_on(void)
 
     return 0;
 }
+#endif
 
-static int master_slave_detect(void)
+static int STORAGE_INIT_ATTR master_slave_detect(void)
 {
     /* master? */
     ATA_OUT8(ATA_SELECT, 0);
@@ -1095,33 +1089,6 @@ static int master_slave_detect(void)
         else
             return -1;
     }
-    return 0;
-}
-
-static int identify(void)
-{
-    int i;
-
-    ATA_OUT8(ATA_SELECT, ata_device);
-
-    if(!wait_for_rdy()) {
-        DEBUGF("identify() - not RDY\n");
-        return -1;
-    }
-    ATA_OUT8(ATA_COMMAND, CMD_IDENTIFY);
-
-    if (!wait_for_start_of_transfer())
-    {
-        DEBUGF("identify() - CMD failed\n");
-        return -2;
-    }
-
-    for (i=0; i<SECTOR_SIZE/2; i++) {
-        /* the IDENTIFY words are already swapped, so we need to treat
-           this info differently that normal sector data */
-        identify_info[i] = ATA_SWAP_IDENTIFY(ATA_IN16(ATA_DATA));
-    }
-
     return 0;
 }
 
@@ -1236,7 +1203,7 @@ static int set_features(void)
         }
     }
 
-#ifdef ATA_SET_DEVICE_FEATURES
+#ifdef ATA_SET_PIO_TIMING
     ata_set_pio_timings(pio_mode);
 #endif
 
@@ -1252,7 +1219,7 @@ unsigned short* ata_get_identify(void)
     return identify_info;
 }
 
-static int init_and_check(bool hard_reset)
+static int STORAGE_INIT_ATTR init_and_check(bool hard_reset)
 {
     int rc;
 
@@ -1279,7 +1246,7 @@ static int init_and_check(bool hard_reset)
     return 0;
 }
 
-int ata_init(void)
+int STORAGE_INIT_ATTR ata_init(void)
 {
     int rc = 0;
     bool coldstart;
@@ -1445,7 +1412,7 @@ int ata_spinup_time(void)
 }
 
 #ifdef STORAGE_GET_INFO
-void ata_get_info(IF_MD2(int drive,)struct storage_info *info)
+void ata_get_info(IF_MD(int drive,)struct storage_info *info)
 {
     unsigned short *src,*dest;
     static char vendor[8];

@@ -72,6 +72,7 @@
 #include "viewport.h"
 #include "statusbar-skinned.h"
 #include "bootchart.h"
+#include "scroll_engine.h"
 
 #if CONFIG_CODEC == MAS3507D
 void dac_line_in(bool enable);
@@ -80,10 +81,15 @@ struct user_settings global_settings;
 struct system_status global_status;
 
 #if CONFIG_CODEC == SWCODEC
-#include "dsp.h"
+#include "dsp_proc_settings.h"
 #include "playback.h"
 #ifdef HAVE_RECORDING
 #include "enc_config.h"
+#endif
+#include "pcm_sampr.h"
+#ifdef HAVE_PLAY_FREQ
+#include "pcm_mixer.h"
+#include "dsp_core.h"
 #endif
 #endif /* CONFIG_CODEC == SWCODEC */
 
@@ -98,6 +104,12 @@ struct system_status global_status;
 #ifdef HAVE_REMOTE_LCD
 #include "lcd-remote.h"
 #endif
+
+#if defined(DX50) || defined(DX90)
+#include "governor-ibasso.h"
+#include "usb-ibasso.h"
+#endif
+
 
 long lasttime = 0;
 
@@ -231,7 +243,7 @@ void settings_load(int which)
     }
 }
 
-static bool cfg_string_to_int(int setting_id, int* out, const char* str)
+bool cfg_string_to_int(int setting_id, int* out, const char* str)
 {
     const char* start = settings[setting_id].cfg_vals;
     char* end = NULL;
@@ -268,6 +280,7 @@ bool settings_load_config(const char* file, bool apply)
     char* name;
     char* value;
     int i;
+    bool theme_changed = false;
     fd = open_utf8(file, O_RDONLY);
     if (fd < 0)
         return false;
@@ -275,13 +288,15 @@ bool settings_load_config(const char* file, bool apply)
     while (read_line(fd, line, sizeof line) > 0)
     {
         if (!settings_parseline(line, &name, &value))
-            continue;    
+            continue;
         for(i=0; i<nb_settings; i++)
         {
             if (settings[i].cfg_name == NULL)
                 continue;
             if (!strcasecmp(name,settings[i].cfg_name))
             {
+                if (settings[i].flags&F_THEMESETTING)
+                    theme_changed = true;
                 switch (settings[i].flags&F_T_MASK)
                 {
                     case F_T_CUSTOM:
@@ -363,7 +378,8 @@ bool settings_load_config(const char* file, bool apply)
     {
         settings_save();
         settings_apply(true);
-        settings_apply_skins();
+        if (theme_changed)
+            settings_apply_skins();
     }
     return true;
 }
@@ -543,6 +559,8 @@ static bool settings_write_config(const char* filename, int options)
         if (settings[i].cfg_name == NULL)
             continue;
         value[0] = '\0';
+        if (settings[i].flags & F_DEPRECATED)
+            continue;
         
         switch (options)
         {
@@ -579,15 +597,13 @@ static bool settings_write_config(const char* filename, int options)
     return true;
 }
 #ifndef HAVE_RTC_RAM
-static void flush_global_status_callback(void *data)
+static void flush_global_status_callback(void)
 {
-    (void)data;
     write_nvram_data(nvram_buffer,NVRAM_BLOCK_SIZE);
 }
 #endif
-static void flush_config_block_callback(void *data)
+static void flush_config_block_callback(void)
 {
-    (void)data;
     write_nvram_data(nvram_buffer,NVRAM_BLOCK_SIZE);
     settings_write_config(CONFIGFILE, SETTINGS_SAVE_CHANGED);
 }
@@ -714,11 +730,43 @@ void settings_apply_pm_range(void)
 }
 #endif /* HAVE_LCD_BITMAP */
 
+#ifdef HAVE_PLAY_FREQ
+void settings_apply_play_freq(int value, bool playback)
+{
+    static const unsigned long play_sampr[] = { SAMPR_44, SAMPR_48 };
+    static int prev_setting = 0;
+
+    if ((unsigned)value >= ARRAYLEN(play_sampr))
+        value = 0;
+
+    bool changed = value != prev_setting;
+    prev_setting = value;
+
+    unsigned long elapsed = 0;
+    unsigned long offset = 0;
+    bool playing = changed && !playback &&
+                   audio_status() == AUDIO_STATUS_PLAY;
+
+    if (playing)
+    {
+        struct mp3entry *id3 = audio_current_track();
+        elapsed = id3->elapsed;
+        offset = id3->offset;
+    }
+
+    if (changed && !playback)
+        audio_hard_stop();
+
+    /* Other sub-areas of playback pick it up from the mixer */
+    mixer_set_frequency(play_sampr[value]);
+
+    if (playing)
+        audio_play(elapsed, offset);
+}
+#endif /* HAVE_PLAY_FREQ */
+
 void sound_settings_apply(void)
 {
-#if CONFIG_CODEC == SWCODEC
-    sound_set_dsp_callback(dsp_callback);
-#endif
 #ifdef AUDIOHW_HAVE_BASS
     sound_set(SOUND_BASS, global_settings.bass);
 #endif
@@ -726,7 +774,9 @@ void sound_settings_apply(void)
     sound_set(SOUND_TREBLE, global_settings.treble);
 #endif
     sound_set(SOUND_BALANCE, global_settings.balance);
+#ifndef PLATFORM_HAS_VOLUME_CHANGE
     sound_set(SOUND_VOLUME, global_settings.volume);
+#endif
     sound_set(SOUND_CHANNELS, global_settings.channel_config);
     sound_set(SOUND_STEREO_WIDTH, global_settings.stereo_width);
 #if (CONFIG_CODEC == MAS3587F) || (CONFIG_CODEC == MAS3539F)
@@ -747,6 +797,9 @@ void sound_settings_apply(void)
 #endif
 #ifdef AUDIOHW_HAVE_DEPTH_3D
     sound_set(SOUND_DEPTH_3D, global_settings.depth_3d);
+#endif
+#ifdef AUDIOHW_HAVE_FILTER_ROLL_OFF
+    sound_set(SOUND_FILTER_ROLL_OFF, global_settings.roll_off);
 #endif
 #ifdef AUDIOHW_HAVE_EQ
     int b;
@@ -775,9 +828,10 @@ void settings_apply(bool read_disk)
 #ifdef HAVE_LCD_BITMAP
     int rc;
 #endif
-#if CONFIG_CODEC == SWCODEC
-    int i;
-#endif
+    CHART(">set_codepage");
+    set_codepage(global_settings.default_codepage);
+    CHART("<set_codepage");
+
     sound_settings_apply();
 
 #ifdef HAVE_DISK_STORAGE
@@ -838,6 +892,10 @@ void settings_apply(bool read_disk)
     dac_line_in(global_settings.line_in);
 #endif
     set_poweroff_timeout(global_settings.poweroff);
+    if (global_settings.sleeptimer_on_startup)
+        set_sleeptimer_duration(global_settings.sleeptimer_duration);
+    set_keypress_restarts_sleep_timer(
+        global_settings.keypress_restarts_sleeptimer);
 
 #if defined(BATTERY_CAPACITY_INC) && BATTERY_CAPACITY_INC > 0
     /* only call if it's really exchangable */
@@ -874,30 +932,40 @@ void settings_apply(bool read_disk)
         /* fonts need to be loaded before the WPS */
         if (global_settings.font_file[0]
             && global_settings.font_file[0] != '-') {
+            int font_ui = screens[SCREEN_MAIN].getuifont();
+            const char* loaded_font = font_filename(font_ui);
             
             snprintf(buf, sizeof buf, FONT_DIR "/%s.fnt",
                      global_settings.font_file);
-            CHART2(">font_load ", global_settings.font_file);
-            rc = font_load(NULL, buf);
-            CHART2("<font_load ", global_settings.font_file);
-            if (rc < 0)
-                font_reset(NULL);
+            if (!loaded_font || strcmp(loaded_font, buf))
+            {
+                CHART2(">font_load ", global_settings.font_file);
+                if (font_ui >= 0)
+                    font_unload(font_ui);
+                rc = font_load_ex(buf, 0, global_settings.glyphs_to_cache);
+                CHART2("<font_load ", global_settings.font_file);
+                screens[SCREEN_MAIN].setuifont(rc);
+                screens[SCREEN_MAIN].setfont(rc);
+            }
         }
-        else
-            font_reset(NULL);
 #ifdef HAVE_REMOTE_LCD        
         if ( global_settings.remote_font_file[0]
             && global_settings.remote_font_file[0] != '-') {
-            snprintf(buf, sizeof buf, FONT_DIR "%s.fnt",
+            int font_ui = screens[SCREEN_REMOTE].getuifont();
+            const char* loaded_font = font_filename(font_ui);
+            snprintf(buf, sizeof buf, FONT_DIR "/%s.fnt",
                      global_settings.remote_font_file);
-            CHART2(">font_load_remoteui ", global_settings.remote_font_file);
-            rc = font_load_remoteui(buf);
-            CHART2("<font_load_remoteui ", global_settings.remote_font_file);
-            if (rc < 0)
-                font_load_remoteui(NULL);
+            if (!loaded_font || strcmp(loaded_font, buf))
+            {
+                CHART2(">font_load_remoteui ", global_settings.remote_font_file);
+                if (font_ui >= 0)
+                    font_unload(font_ui);
+                rc = font_load(buf);
+                CHART2("<font_load_remoteui ", global_settings.remote_font_file);
+                screens[SCREEN_REMOTE].setuifont(rc);
+                screens[SCREEN_REMOTE].setfont(rc);
+            }
         }
-        else
-            font_load_remoteui(NULL);
 #endif
         if ( global_settings.kbd_file[0]
              && global_settings.kbd_file[0] != '-') {
@@ -916,10 +984,10 @@ void settings_apply(bool read_disk)
             CHART(">lang_core_load");
             lang_core_load(buf);
             CHART("<lang_core_load");
-            CHART(">talk_init");
-            talk_init(); /* use voice of same language */
-            CHART("<talk_init");
         }
+        CHART(">talk_init");
+        talk_init(); /* use voice of same language */
+        CHART("<talk_init");
 
         /* load the icon set */
         CHART(">icons_init");
@@ -939,9 +1007,6 @@ void settings_apply(bool read_disk)
 #ifdef HAVE_LCD_COLOR
     screens[SCREEN_MAIN].set_foreground(global_settings.fg_color);
     screens[SCREEN_MAIN].set_background(global_settings.bg_color);
-    screens[SCREEN_MAIN].set_selector_start(global_settings.lss_color);
-    screens[SCREEN_MAIN].set_selector_end(global_settings.lse_color);
-    screens[SCREEN_MAIN].set_selector_text(global_settings.lst_color);
 #endif
 
 #ifdef HAVE_LCD_BITMAP
@@ -953,37 +1018,39 @@ void settings_apply(bool read_disk)
     lcd_scroll_delay(global_settings.scroll_delay);
 
 
-    CHART(">set_codepage");
-    set_codepage(global_settings.default_codepage);
-    CHART("<set_codepage");
-
+#ifdef HAVE_PLAY_FREQ
+    settings_apply_play_freq(global_settings.play_frequency, false);
+#endif
 #if CONFIG_CODEC == SWCODEC
 #ifdef HAVE_CROSSFADE
     audio_set_crossfade(global_settings.crossfade);
 #endif
-    dsp_set_replaygain();
-    dsp_set_crossfeed(global_settings.crossfeed);
+    replaygain_update();
+    dsp_set_crossfeed_type(global_settings.crossfeed);
     dsp_set_crossfeed_direct_gain(global_settings.crossfeed_direct_gain);
     dsp_set_crossfeed_cross_params(global_settings.crossfeed_cross_gain,
                                    global_settings.crossfeed_hf_attenuation,
                                    global_settings.crossfeed_hf_cutoff);
 
     /* Configure software equalizer, hardware eq is handled in audio_init() */
-    dsp_set_eq(global_settings.eq_enabled);
+    dsp_eq_enable(global_settings.eq_enabled);
     dsp_set_eq_precut(global_settings.eq_precut);
-    for(i = 0; i < 5; i++) {
-        dsp_set_eq_coefs(i);
+    for(int i = 0; i < EQ_NUM_BANDS; i++) {
+        dsp_set_eq_coefs(i, &global_settings.eq_band_settings[i]);
     }
 
     dsp_dither_enable(global_settings.dithering_enabled);
-#ifdef HAVE_PITCHSCREEN
+    dsp_surround_set_balance(global_settings.surround_balance);
+    dsp_surround_set_cutoff(global_settings.surround_fx1, global_settings.surround_fx2);
+    dsp_surround_mix(global_settings.surround_mix);
+    dsp_surround_enable(global_settings.surround_enabled);
+    dsp_afr_enable(global_settings.afr_enabled);
+    dsp_pbe_precut(global_settings.pbe_precut);
+    dsp_pbe_enable(global_settings.pbe);
+#ifdef HAVE_PITCHCONTROL
     dsp_timestretch_enable(global_settings.timestretch_enabled);
 #endif
-    dsp_set_compressor(global_settings.compressor_threshold,
-                       global_settings.compressor_makeup_gain,
-                       global_settings.compressor_ratio,
-                       global_settings.compressor_knee,
-                       global_settings.compressor_release_time);
+    dsp_set_compressor(&global_settings.compressor_settings);
 #endif
 
 #ifdef HAVE_SPDIF_POWER
@@ -1007,6 +1074,10 @@ void settings_apply(bool read_disk)
     touchpad_set_sensitivity(global_settings.touchpad_sensitivity);
 #endif
 
+#ifdef HAVE_TOUCHPAD_DEADZONE
+    touchpad_set_deadzone(global_settings.touchpad_deadzone);
+#endif
+
 #ifdef HAVE_USB_CHARGING_ENABLE
     usb_charging_enable(global_settings.usb_charging);
 #endif
@@ -1014,6 +1085,11 @@ void settings_apply(bool read_disk)
 #ifdef HAVE_TOUCHSCREEN
     touchscreen_set_mode(global_settings.touch_mode);
     memcpy(&calibration_parameters, &global_settings.ts_calibration_data, sizeof(struct touchscreen_parameter));
+#endif
+
+#if defined(DX50) || defined(DX90)
+    ibasso_set_governor(global_settings.governor);
+    ibasso_set_usb_mode(global_settings.usb_mode);
 #endif
 
     /* This should stay last */
@@ -1061,12 +1137,21 @@ void reset_setting(const struct settings_list *setting, void *var)
 
 void settings_reset(void)
 {
-    int i;
-
-    for(i=0; i<nb_settings; i++)
+    for(int i=0; i<nb_settings; i++)
         reset_setting(&settings[i], settings[i].setting);
 #if defined (HAVE_RECORDING) && CONFIG_CODEC == SWCODEC
     enc_global_settings_reset();
+#endif
+#ifdef HAVE_LCD_BITMAP
+    FOR_NB_SCREENS(i)
+    {
+        if (screens[i].getuifont() > FONT_SYSFIXED)
+        {
+            font_unload(screens[i].getuifont());
+            screens[i].setuifont(FONT_SYSFIXED);
+            screens[i].setfont(FONT_SYSFIXED);
+        }
+    }
 #endif
 }
 
@@ -1080,6 +1165,20 @@ const struct settings_list* find_setting(const void* variable, int *id)
         {
             if (id)
                 *id = i;
+            return &settings[i];
+        }
+    }
+    return NULL;
+}
+const struct settings_list* find_setting_by_cfgname(const char* name, int *id)
+{
+    int i;
+    for (i=0; i<nb_settings; i++)
+    {
+        if (settings[i].cfg_name &&
+            !strcmp(settings[i].cfg_name, name))
+        {
+            if (id) *id = i;
             return &settings[i];
         }
     }
@@ -1174,6 +1273,7 @@ bool set_option(const char* string, const void* variable, enum optiontype type,
         function, UNIT_INT, 0, numoptions-1, 1,
         set_option_formatter, set_option_get_talk_id
     };
+    memset(&item, 0, sizeof(struct settings_list));
     set_option_options = options;
     item.int_setting = &data;
     item.flags = F_INT_SETTING|F_T_INT;
@@ -1228,4 +1328,3 @@ void set_file(const char* filename, char* setting, const int maxlen)
     strlcpy(setting, fptr, len);
     settings_save();
 }
-

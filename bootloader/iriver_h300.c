@@ -29,9 +29,9 @@
 #include "lcd.h"
 #include "lcd-remote.h"
 #include "scroll_engine.h"
-#include "kernel.h"
-#include "thread.h"
+#include "../kernel-internal.h"
 #include "storage.h"
+#include "file_internal.h"
 #include "usb.h"
 #include "disk.h"
 #include "font.h"
@@ -45,6 +45,8 @@
 #include "file.h"
 #include "pcf50606.h"
 #include "common.h"
+#include "rb-loader.h"
+#include "loader_strerror.h"
 #include "rbunicode.h"
 #include "isp1362.h"
 #include "version.h"
@@ -100,8 +102,8 @@ void shutdown(void)
 
     sleep(HZ*2);
     
-    _backlight_off();
-    _remote_backlight_off();
+    backlight_hw_off();
+    remote_backlight_hw_off();
     
     __reset_cookie();
     power_off();
@@ -112,7 +114,7 @@ void check_battery(void)
 {
     int battery_voltage, batt_int, batt_frac;
     
-    battery_voltage = battery_adc_voltage();
+    battery_voltage = _battery_voltage();
     batt_int = battery_voltage / 1000;
     batt_frac = (battery_voltage % 1000) / 10;
 
@@ -182,10 +184,10 @@ void main(void)
     restore_irq(mask);
 
     /* Start with the main backlight OFF. */
-    _backlight_init();
-    _backlight_off();
+    backlight_hw_init();
+    backlight_hw_off();
     
-    _remote_backlight_on();
+    remote_backlight_hw_on();
 
     system_init();
     kernel_init();
@@ -209,7 +211,7 @@ void main(void)
     lcd_setfont(FONT_SYSFIXED);
 
     printf("Rockbox boot loader");
-    printf("Version " RBVERSION);
+    printf("Version %s", rbversion);
 
     sleep(HZ/50); /* Allow the button driver to check the buttons */
     rec_button = ((button_status() & BUTTON_REC) == BUTTON_REC)
@@ -348,8 +350,7 @@ void main(void)
         while(!(button_get(true) & BUTTON_REL));
     }
 
-
-    disk_init();
+    filesystem_init();
 
     rc = disk_mount_all();
     if (rc<=0)
@@ -361,10 +362,10 @@ void main(void)
 
     printf("Loading firmware");
     i = load_firmware((unsigned char *)DRAM_START, BOOTFILE, MAX_LOADSIZE);
-    if(i < 0)
-        printf("Error: %s", strerror(i));
+    if(i <= EFILE_EMPTY)
+        printf("Error: %s", loader_strerror(i));
 
-    if (i == EOK)
+    if (i > 0)
         start_firmware();
 
     if (!detect_original_firmware())

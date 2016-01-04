@@ -22,6 +22,7 @@
 /* Taken from button-h10.c by Barry Wardell and reverse engineering by MrH. */
 
 #include "system.h"
+#include "kernel.h"
 #include "button.h"
 #include "backlight.h"
 #include "powermgmt.h"
@@ -134,7 +135,7 @@ void clickwheel_int(void)
     static int prev_keypost = BUTTON_NONE;
     static int count = 0;
     static int fast_mode = 0;
-    static long next_backlight_on = 0;
+    static long nextbacklight_hw_on = 0;
 
     static unsigned long prev_usec[WHEEL_BASE_SENSITIVITY] = { 0 };
     static unsigned long delta = 1ul << 24;
@@ -165,11 +166,11 @@ void clickwheel_int(void)
         velocity = 0;
     }
 
-    if (TIME_AFTER(current_tick, next_backlight_on))
+    if (TIME_AFTER(current_tick, nextbacklight_hw_on))
     {
         /* Poke backlight to turn it on or maintain it no more often
          * than every 1/4 second */
-        next_backlight_on = current_tick + HZ/4;
+        nextbacklight_hw_on = current_tick + HZ/4;
         backlight_on();
 #ifdef HAVE_BUTTON_LIGHT
         buttonlight_on();
@@ -208,7 +209,7 @@ void clickwheel_int(void)
         velocity = v;
         /* Ensure backlight never gets stuck for an extended period if tick
          * wrapped such that next poke is very far ahead */
-        next_backlight_on = current_tick - 1;
+        nextbacklight_hw_on = current_tick - 1;
     }
     else
     {
@@ -271,6 +272,10 @@ void clickwheel_int(void)
         if (delta > (0x7ful << 24))
             delta = 0x7ful << 24;
     }
+}
+#else
+void clickwheel_int(void)
+{
 }
 #endif /* BOOTLOADER */
 

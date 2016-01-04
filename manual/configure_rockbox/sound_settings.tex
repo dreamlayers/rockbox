@@ -10,7 +10,7 @@ change to customise your listening experience.
   where 0~dB is a reference that indicates the maximum volume that the \dap{}
   can produce without possible distortion (clipping). All values lower than
   this reference will be negative and yield a progressively softer volume.
-  \nopt{h100,h300,ondavx777}{%
+  \nopt{iriverh100,iriverh300,ondavx777}{%
       Values higher than 0~dB are available and can be used to raise the
       volume more than would otherwise be possible. These volume levels will
       ordinarily lead to distorted sound, but might work nicely for music that has
@@ -19,15 +19,17 @@ change to customise your listening experience.
   The volume can be adjusted from a
   \opt{player}{minimum of -78~dB to a maximum of +18~dB.}%
   \opt{recorder,recorderv2fm,ondio}{minimum of -100~dB to a maximum of +12~dB.}%
-  \opt{h100,h300}{minimum of -84~dB to a maximum of 0~dB.}%
+  \opt{iriverh100,iriverh300}{minimum of -84~dB to a maximum of 0~dB.}%
   \opt{iaudiom3,iaudiom5,iaudiox5,ipod3g,ipod4g,gigabeatf,mrobe100,mpiohd200}{%
       minimum of -73~dB to a maximum of +6~dB.}%
   \opt{ipodnano}{minimum of -72~dB to a maximum of +6~dB.}%
   \opt{ipodvideo,cowond2}{minimum of -89~dB to a maximum of +6~dB.}%
-  \opt{ipodnano2g,ipodcolor,ipod1g2g,h10,h10_5gb,sansa,sansaAMS}{minimum of 
+  \opt{ipodnano2g,ipodcolor,ipod1g2g,iriverh10,iriverh10_5gb,sansa,sansaAMS}{minimum of 
       -74~dB to a maximum of +6~dB.}%
   \opt{gigabeats}{minimum of -90~dB to a maximum of +6~dB.}%
   \opt{gigabeatf,vibe500}{minimum of -74~dB to a maximum of +6~dB.}%
+  \opt{fuzeplus}{minimum of -100~dB to a maximum of +6~dB.}
+  \opt{samsungyh}{minimum of -128~dB to a maximum of 0~dB.}
   \opt{ipodvideo}{\\Remark: Lowering the volume below -57~dB will also affect the line-out 
   and the recording gain.}
   \opt{cowond2}{\\Remark: Lowering the volume below -57~dB will also affect the line-out.}
@@ -35,17 +37,23 @@ change to customise your listening experience.
 \nopt{gigabeats}{  
 \section{Bass}
   This setting emphasises
-  \nopt{h100,h300}{or suppresses}
+  \nopt{iriverh100,iriverh300}{or suppresses}
   the lower (bass) frequencies in the sound. A value of 0~dB means that bass
   sounds are unaltered (flat response).
   \opt{masd}{The minimum setting is -15~dB and the maximum is 15~dB.}%
   \opt{masf}{The minimum setting is -12~dB and the maximum is 12~dB.}%
-  \opt{h100,h300}{The minimum setting is 0~dB and the maximum is 24~dB.}%
+  \opt{iriverh100,iriverh300}{The minimum setting is 0~dB and the maximum is 24~dB.}%
   \opt{ipodnano,ipodnano2g,ipodcolor,mpiohd200}{%
       The minimum setting is -6~dB and the maximum is 9~dB.}%
   \opt{ipodvideo}{The minimum setting is -12~dB and the maximum is 12~dB.}%
-  \opt{iaudiom3,iaudiom5,iaudiox5,sansa,sansaAMS,h10,h10_5gb,vibe500}{%
-      The minimum setting is -24~dB and the maximum is 24~dB.}
+  \opt{iaudiom3,iaudiom5,iaudiox5,sansa,sansaAMS,iriverh10,iriverh10_5gb,vibe500,fuzeplus%
+      ,samsungyh}{The minimum setting is -24~dB and the maximum is 24~dB.}
+
+\section{\label{ref:volume_limit}Volume Limit}
+  This setting adjusts the maximum volume of your music. The setting is by
+  default set to the maximum volume which equals to no limit. To set a volume
+  limit, select a volume from the list and the maximum volume will be limited to
+  the selected value all over the system.
 
 \opt{ipodvideo}{
 \section{Bass Cutoff}
@@ -57,17 +65,17 @@ change to customise your listening experience.
 
 \section{Treble}
   This setting emphasises
-  \nopt{h100,h300}{or suppresses}
+  \nopt{iriverh100,iriverh300}{or suppresses}
   the higher (treble) frequencies in the sound. A value of 0~dB means that
   treble sounds are unaltered (flat response).
   \opt{masd}{The minimum setting is -15~dB and the maximum is 15~dB.}%
   \opt{masf}{The minimum setting is -12~dB and the maximum is 12~dB.}%
-  \opt{h100,h300}{The minimum setting is 0~dB and the maximum is 6~dB.}%
+  \opt{iriverh100,iriverh300}{The minimum setting is 0~dB and the maximum is 6~dB.}%
   \opt{ipodnano,ipodnano2g,ipodcolor,mpiohd200}{%
       The minimum setting is -6~dB and the maximum is 9~dB.}%
   \opt{ipodvideo}{The minimum setting is -12~dB and the maximum is 12~dB.}%
-  \opt{iaudiom3,iaudiom5,iaudiox5,sansa,sansaAMS,h10,h10_5gb,vibe500}{%
-      The minimum setting is -24~dB and the maximum is 24~dB.}
+  \opt{iaudiom3,iaudiom5,iaudiox5,sansa,sansaAMS,iriverh10,iriverh10_5gb,vibe500,fuzeplus%
+      ,samsungyh}{The minimum setting is -24~dB and the maximum is 24~dB.}
 
 \opt{ipodvideo}{
 \section{Treble Cutoff}
@@ -326,15 +334,30 @@ change to customise your listening experience.
 \opt{swcodec}{
 \section{\label{ref:EQ}Equalizer}
   \screenshot{configure_rockbox/images/ss-equalizer}{The graphical equalizer}{}
-  Rockbox features a parametric equalizer (EQ). As the name suggests, a
-  parametric EQ lets you control several different parameters for each
-  band of the EQ. \nopt{gigabeats}{In some ways the EQ is similar to the
+  Rockbox features a parametric equalizer (EQ). In contrast to non-parametric
+  equalizers, a parametric EQ enables adjusting the center frequency, gain, and
+  width of EQ bands separately.  The ability to adjust the frequency and width
+  of bands enables more precise control of the EQ frequency response while 
+  avoiding the use of a large number of bands (often 12+) needed in a 
+  non-parametric EQ.
+  
+  The graphic below illustrates how the width of 10kHz band can be adjusted to
+  cover a wider (lower Q) or narrower (higher Q) range of frequencies.
+  
+  \includegraphics[width=14cm]{configure_rockbox/images/Q_factor.png}
+  
+  \nopt{gigabeats}{In some ways the EQ is similar to the
   \setting{Bass} and \setting{Treble} settings described earlier, but the EQ
-  allows you to control the sound much more carefully.} \opt{gigabeats}{The EQ
-  is similar to the \setting{Tone Controls} described above, but allows more
-  delicate control.}\\
+  allows you to control the sound much more carefully.  Note that the parameteric
+  EQ bands will be applied in addition to any bass or treble tone controls. 
+  } \opt{gigabeats}{The EQ  is similar to the \setting{Tone Controls} described 
+  above, but allows more delicate control.}\\
+  
+  \note{A maximum of 10 EQ bands are possible on most devices, but using more
+        than are required will waste battery and introduce additional rounding
+        noise.  For best results, use the fewest number of bands required.}
 
-  Rockbox's parametric EQ is composed of five different bands:
+  Rockbox's parametric EQ is composed of up to ten different bands:
   \begin{description}
   \item[Band 0: Low shelf filter.]
         The low shelf filter boosts or lowers all frequencies below a certain
@@ -350,12 +373,12 @@ change to customise your listening experience.
         The ``Q'' parameter should always be set to 0.7 for the shelving
         filters. Higher values will add a small boost around the cutoff
         frequency that is almost always undesirable.
-  \item[Bands 1-3: Peaking filters.]
+  \item[Bands 1-8: Peaking filters.]
         Peaking EQ filters boost or lower a frequency range centered at the
         centre frequency chosen.
         Graphic equalizers in home stereos are usually peaking
         filters. The peaking filters in Rockbox's EQ lets you adjust three
-        different parameters for EQ bands 1 through 3. The ``centre'' parameter
+        different parameters for EQ bands 1 through 8. The ``centre'' parameter
         controls the centre frequency of the frequency range that is affected
         as described above.
         The ``gain'' parameter controls how much each band is adjusted, and
@@ -364,7 +387,7 @@ change to customise your listening experience.
         frequency range is. Higher Q values will affect a narrower band of
         frequencies, while lower Q values will affect a wider band of
         frequencies.
-  \item[Band 4: High shelf filter.]
+  \item[Band 9: High shelf filter.]
         A high shelf filter boosts or lowers all frequencies above a certain
         frequency limit, much as the ``treble'' control found on ordinary
         stereo systems does.
@@ -373,7 +396,7 @@ change to customise your listening experience.
         than the low end.
   \end{description}
   As a general guide, EQ band 0 should be used for low frequencies, EQ bands 1
-  through 3 should be used for mids, and EQ band 4 should be used for highs.
+  through 8 should be used for mids, and EQ band 9 should be used for highs.
 
 \begin {description}
   \item[Enable EQ.]
@@ -387,11 +410,13 @@ change to customise your listening experience.
     \begin{btnmap}
       \opt{IRIVER_H100_PAD,IRIVER_H300_PAD,IAUDIO_X5_PAD,GIGABEAT_PAD%
           ,GIGABEAT_S_PAD,SANSA_C200_PAD,IAUDIO_M3_PAD,MROBE100_PAD%
-          ,SANSA_CLIP_PAD}{\ButtonRight}
+          ,SANSA_CLIP_PAD,SANSA_FUZEPLUS_PAD,SAMSUNG_YH92X_PAD%
+          ,SAMSUNG_YH820_PAD}{\ButtonRight}
       \opt{SANSA_E200_PAD,SANSA_FUZE_PAD,IPOD_4G_PAD,IPOD_3G_PAD}{\ButtonScrollFwd}
       \opt{IRIVER_H10_PAD}{\ButtonScrollUp}
       \opt{PBELL_VIBE500_PAD}{\ButtonUp}
       \opt{MPIO_HD200_PAD}{\ButtonVolUp}
+      \opt{MPIO_HD300_PAD}{\ButtonScrollUp}
       \opt{touchscreen}{\TouchMidRight}
           &
       \opt{HAVEREMOTEKEYMAP}{
@@ -403,11 +428,13 @@ change to customise your listening experience.
       %
       \opt{IRIVER_H100_PAD,IRIVER_H300_PAD,IAUDIO_X5_PAD,GIGABEAT_PAD%
           ,GIGABEAT_S_PAD,SANSA_C200_PAD,IAUDIO_M3_PAD,MROBE100_PAD%
-          ,SANSA_CLIP_PAD}{\ButtonLeft}
+          ,SANSA_CLIP_PAD,SANSA_FUZEPLUS_PAD,SAMSUNG_YH92X_PAD%
+          ,SAMSUNG_YH820_PAD}{\ButtonLeft}
       \opt{SANSA_E200_PAD,SANSA_FUZE_PAD,IPOD_4G_PAD,IPOD_3G_PAD}{\ButtonScrollBack}
       \opt{IRIVER_H10_PAD}{\ButtonScrollDown}
       \opt{PBELL_VIBE500_PAD}{\ButtonDown}
       \opt{MPIO_HD200_PAD}{\ButtonVolDown}
+      \opt{MPIO_HD300_PAD}{\ButtonScrollDown}
       \opt{touchscreen}{\TouchMidLeft}
           &
       \opt{HAVEREMOTEKEYMAP}{
@@ -420,8 +447,8 @@ change to customise your listening experience.
       \opt{IPOD_4G_PAD,IPOD_3G_PAD,PBELL_VIBE500_PAD}{\ButtonLeft}
       \opt{IRIVER_H100_PAD,IRIVER_H300_PAD,IAUDIO_X5_PAD,SANSA_E200_PAD,SANSA_C200_PAD%
           ,SANSA_FUZE_PAD,GIGABEAT_PAD,GIGABEAT_S_PAD,IAUDIO_M3_PAD,MROBE100_PAD%
-          ,SANSA_CLIP_PAD}{\ButtonUp}
-      \opt{IRIVER_H10_PAD,MPIO_HD200_PAD}{\ButtonRew}
+          ,SANSA_CLIP_PAD,SANSA_FUZEPLUS_PAD,SAMSUNG_YH92X_PAD,SAMSUNG_YH820_PAD}{\ButtonUp}
+      \opt{IRIVER_H10_PAD,MPIO_HD200_PAD,MPIO_HD300_PAD}{\ButtonRew}
       \opt{touchscreen}{\ActionStdPrev}
           &
       \opt{HAVEREMOTEKEYMAP}{
@@ -435,8 +462,8 @@ change to customise your listening experience.
       \opt{IPOD_4G_PAD,IPOD_3G_PAD,PBELL_VIBE500_PAD}{\ButtonRight}
       \opt{IRIVER_H100_PAD,IRIVER_H300_PAD,IAUDIO_X5_PAD,SANSA_E200_PAD,SANSA_C200_PAD%
           ,SANSA_FUZE_PAD,GIGABEAT_PAD,GIGABEAT_S_PAD,IAUDIO_M3_PAD,MROBE100_PAD%
-          ,SANSA_CLIP_PAD}{\ButtonDown}
-      \opt{IRIVER_H10_PAD,MPIO_HD200_PAD}{\ButtonFF}
+          ,SANSA_CLIP_PAD,SANSA_FUZEPLUS_PAD,SAMSUNG_YH92X_PAD,SAMSUNG_YH820_PAD}{\ButtonDown}
+      \opt{IRIVER_H10_PAD,MPIO_HD200_PAD,MPIO_HD300_PAD}{\ButtonFF}
       \opt{touchscreen}{\ActionStdNext}
           &
       \opt{HAVEREMOTEKEYMAP}{
@@ -449,11 +476,13 @@ change to customise your listening experience.
       %
       \opt{IRIVER_H100_PAD,IRIVER_H300_PAD,GIGABEAT_PAD,GIGABEAT_S_PAD,IAUDIO_X5_PAD%
           ,SANSA_C200_PAD,IPOD_4G_PAD,IPOD_3G_PAD,IPOD_VIDEO_PAD,SANSA_E200_PAD%
-          ,SANSA_FUZE_PAD,MROBE100_PAD,SANSA_CLIP_PAD}{\ButtonSelect}
+          ,SANSA_FUZE_PAD,MROBE100_PAD,SANSA_CLIP_PAD,SANSA_FUZEPLUS_PAD}{\ButtonSelect}
       \opt{MPIO_HD200_PAD}{\ButtonFunc}
+      \opt{MPIO_HD300_PAD}{\ButtonEnter}
       \opt{PBELL_VIBE500_PAD}{\ButtonOK}
       \opt{IRIVER_H10_PAD}{\ButtonRight}
       \opt{IAUDIO_M3_PAD}{\ButtonPlay}
+      \opt{SAMSUNG_YH92X_PAD,SAMSUNG_YH820_PAD}{\ButtonFF}
       \opt{touchscreen}{\TouchCenter
           \opt{COWON_D2_PAD}{/ \ButtonMenu}}
           &
@@ -466,12 +495,14 @@ change to customise your listening experience.
           \\
       %
       \opt{IRIVER_H100_PAD,IRIVER_H300_PAD}{\ButtonMode}
-      \opt{IPOD_4G_PAD,IPOD_3G_PAD}{\ButtonMenu}
+      \opt{IPOD_4G_PAD,IPOD_3G_PAD,MPIO_HD300_PAD}{\ButtonMenu}
       \opt{IAUDIO_X5_PAD}{\ButtonPower/\ButtonRec}
       \opt{IAUDIO_M3_PAD,MPIO_HD200_PAD}{\ButtonRec}
       \opt{SANSA_E200_PAD,SANSA_FUZE_PAD,IRIVER_H10_PAD}{\ButtonLeft}
       \opt{GIGABEAT_PAD,GIGABEAT_S_PAD,SANSA_C200_PAD,MROBE100_PAD,SANSA_CLIP_PAD}{\ButtonPower}
       \opt{PBELL_VIBE500_PAD}{\ButtonCancel}
+      \opt{SANSA_FUZEPLUS_PAD}{\ButtonBack}
+      \opt{SAMSUNG_YH92X_PAD,SAMSUNG_YH820_PAD}{\ButtonPlay}
       \opt{touchscreen}{\TouchTopLeft
           \opt{COWON_D2_PAD}{/ \ButtonPower}}
           &
@@ -485,11 +516,16 @@ change to customise your listening experience.
     \end{btnmap}
 
   \item[Pre-cut.]
-  If too much gain is added through the graphical EQ, your music may distort.
-  The \setting{Precut} setting allows you to adjust the overall gain of the EQ.
-
-  If your music distorts when using the EQ, trying changing this setting to a 
-  negative value.
+  If too much positive gain is added through the graphical EQ, your music may 
+  distort.  The \setting{Precut} setting allows you to apply a global negative
+  gain to decoded audio, cancelling out positive gain from the EQ.  This will
+  prevent distortion when boosting certain frequency ranges, at the expense of 
+  making audio quieter.
+  
+  Alternatively, precut can be used with a flat EQ curve to implement a volume
+  cap.  For example, on a player that allows overdriving the headphone output
+  to +6dB, maximum volume can be capped to +0dB by applying 6dB of precut. Note
+  that precut is not applied if EQ is disabled.  
 
 \item[Simple EQ.]
 This option provides an easier alternative for those who are daunted by all of
@@ -555,6 +591,36 @@ details about how to use the feature.
 }
 
 \opt{swcodec}{
+\section{Haas Surround}
+This setting implements the Haas effect with adjustable delay time to enhance 
+the stereo effect of the sound. A full range Haas effect creates the impression
+that sound  starts from one channel and ends in the other.  Therefore, four additional 
+functions are provided to move the stage back to the center:
+\setting{Balance} to change the left-right channel output ratio.  
+A bypass band for frequencies that mostly contain vocals, using \setting{f(x1)}, 
+and \setting{f(x2)} to set frequencies which are not affected. The \setting{SIDE ONLY} 
+setting uses mid-side processing to determine and apply effect to the side channel only. 
+Finally, the \setting{Dry/Wet Mix} setting adjusts the proportion mixed from the 
+original (dry) and 'effected' (wet) signals.
+}
+
+\opt{swcodec}{
+\section{Perceptual Bass Enhancement}
+This setting implements a group delay correction and an additional biophonic EQ to
+emphasize to boost bass perception. The \setting{precut} setting provides
+negative overall gain to prevent possible audio distortion due to the EQ
+gain.  The defult precut value is set to -2.5 dB and can be adjust from 0 dB to -4.5 dB.
+Note that this effect will stack with any other EQ applied.  
+}
+
+\opt{swcodec}{
+\section{Auditory Fatigue Reduction}
+Human hearing is more senstive to some frequency bands. This setting applies additional 
+equalization and bi-shelf filtering to reduce signals in these bands to minimize
+the chance that temporary threshold shift (auditory fatigue) occurs.
+}
+
+\opt{swcodec}{
 \section{Compressor}
 The \setting{Compressor} reduces, or compresses, the dynamic range of the audio
 signal.  This makes the quieter and louder sections closer to the same volume
@@ -592,6 +658,9 @@ The \setting{Knee} setting determines how abrupt the transition is from a
 non-compressed signal to a compressed signal.  Hard Knee means that the
 transition occurs precisely at the threshold.  The Soft Knee setting smoothes
 the transition from plus or minus three decibels around the threshold.
+
+The \setting{Attack Time} setting sets the delay in milliseconds between the
+input signal exceeding the activation threshold and acting upon it.
 
 The \setting{Release Time} setting sets the recovery time after the signal is
 compressed.  Once the compressor determines that compression is necessary,

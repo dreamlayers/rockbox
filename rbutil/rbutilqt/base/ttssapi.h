@@ -7,7 +7,6 @@
 *                     \/            \/     \/    \/            \/
 *
 *   Copyright (C) 2009 by Dominik Wenger
-*   $Id$
 *
 * This program is free software; you can redistribute it and/or
 * modify it under the terms of the GNU General Public License
@@ -42,6 +41,7 @@ class TTSSapi : public TTSBase
         TTSStatus voice(QString text,QString wavfile, QString *errStr);
         bool start(QString *errStr);
         bool stop();
+        QString voiceVendor(void);
         Capabilities capabilities();
 
         // for settings
@@ -49,8 +49,8 @@ class TTSSapi : public TTSBase
         void generateSettings();
         void saveSettings();
 
-        private slots:
-            void updateVoiceList();
+    private slots:
+        void updateVoiceList();
 
     private:
         QStringList getVoiceList(QString language);
@@ -61,11 +61,15 @@ class TTSSapi : public TTSBase
 
         QString m_TTSexec;
         QString m_TTSOpts;
-        QString m_TTSTemplate;
         QString m_TTSLanguage;
         QString m_TTSVoice;
         QString m_TTSSpeed;
-        bool m_sapi4;
+        bool m_started;
+
+    protected:
+        QString m_TTSTemplate;
+        QString m_TTSVoiceTemplate;
+        QString m_TTSType;
 };
 
 

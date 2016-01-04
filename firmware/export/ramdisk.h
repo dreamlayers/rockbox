@@ -23,6 +23,7 @@
 #define __RAMDISK_H__
 
 #include <stdbool.h>
+#include "config.h"
 #include "mv.h" /* for HAVE_MULTIDRIVE or not */
 
 struct storage_info;
@@ -32,16 +33,16 @@ void ramdisk_spindown(int seconds);
 void ramdisk_sleep(void);
 bool ramdisk_disk_is_active(void);
 int ramdisk_soft_reset(void);
-int ramdisk_init(void);
+int ramdisk_init(void) STORAGE_INIT_ATTR;
 void ramdisk_close(void);
-int ramdisk_read_sectors(IF_MD2(int drive,) unsigned long start, int count, void* buf);
-int ramdisk_write_sectors(IF_MD2(int drive,) unsigned long start, int count, const void* buf);
+int ramdisk_read_sectors(IF_MD(int drive,) unsigned long start, int count, void* buf);
+int ramdisk_write_sectors(IF_MD(int drive,) unsigned long start, int count, const void* buf);
 void ramdisk_spin(void);
 void ramdisk_sleepnow(void);
 int ramdisk_spinup_time(void);
 
 #ifdef STORAGE_GET_INFO
-void ramdisk_get_info(IF_MD2(int drive,) struct storage_info *info);
+void ramdisk_get_info(IF_MD(int drive,) struct storage_info *info);
 #endif
 
 long ramdisk_last_disk_activity(void);

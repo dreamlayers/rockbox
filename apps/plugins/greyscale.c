@@ -99,7 +99,8 @@
 #define GREYSCALE_RIGHT BUTTON_RIGHT
 #define GREYSCALE_OFF BUTTON_POWER
 
-#elif CONFIG_KEYPAD == SAMSUNG_YH_PAD
+#elif (CONFIG_KEYPAD == SAMSUNG_YH820_PAD) || \
+      (CONFIG_KEYPAD == SAMSUNG_YH920_PAD)
 #define GREYSCALE_SHIFT BUTTON_FFWD
 #define GREYSCALE_UP    BUTTON_UP
 #define GREYSCALE_DOWN  BUTTON_DOWN
@@ -131,7 +132,7 @@ void cleanup(void *parameter)
 
     grey_release(); /* switch off overlay and deinitialize */
     /* Turn on backlight timeout (revert to settings) */
-    backlight_use_settings(); /* backlight control in lib/helper.c */
+    backlight_use_settings();
 }
 
 /* this is only a demo of what the framework can do */
@@ -216,7 +217,7 @@ int main(void)
     };
 
     /* Turn off backlight timeout */
-    backlight_force_on(); /* backlight control in lib/helper.c */
+    backlight_ignore_timeout();
 
     rb->lcd_setfont(FONT_SYSFIXED);   /* select default font */
 

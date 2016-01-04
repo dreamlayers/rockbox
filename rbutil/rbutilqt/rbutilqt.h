@@ -7,7 +7,6 @@
  *                     \/            \/     \/    \/            \/
  *
  *   Copyright (C) 2007 by Dominik Riebeling
- *   $Id$
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -25,12 +24,18 @@
 
 #include <QSettings>
 #include <QTemporaryFile>
+#include <QList>
+#include <QTranslator>
 
 #include "ui_rbutilqtfrm.h"
 #include "httpget.h"
 #include "zipinstaller.h"
 #include "progressloggergui.h"
 #include "bootloaderinstallbase.h"
+#include "manualwidget.h"
+#include "infowidget.h"
+#include "selectiveinstallwidget.h"
+#include "backupdialog.h"
 
 class RbUtilQt : public QMainWindow
 {
@@ -38,10 +43,17 @@ class RbUtilQt : public QMainWindow
 
     public:
         RbUtilQt(QWidget *parent = 0);
+        static QList<QTranslator*> translators;
+        static bool chkConfig(QWidget *parent = 0);
 
     private:
+        ManualWidget *manual;
+        InfoWidget *info;
+        SelectiveInstallWidget* selectiveinstallwidget;
+        BackupDialog *backupdialog;
         Ui::RbUtilQtFrm ui;
 
+        void changeEvent(QEvent *e);
         void initDeviceNames(void);
         QString deviceName(QString);
         QString platform;
@@ -51,11 +63,9 @@ class RbUtilQt : public QMainWindow
         QString absolutePath;
         QTemporaryFile buildInfo;
         QTemporaryFile bleedingInfo;
-        void updateManual(void);
         ProgressLoggerGui *logger;
         ZipInstaller *installer;
         QUrl proxy(void);
-        bool chkConfig(bool);
 
         volatile bool m_installed;
         volatile bool m_error;
@@ -68,49 +78,27 @@ class RbUtilQt : public QMainWindow
         void about(void);
         void help(void);
         void sysinfo(void);
+        void changelog(void);
         void trace(void);
+        void eject(void);
         void configDialog(void);
         void updateDevice(void);
         void updateSettings(void);
 
-        void completeInstall(void);
-        void smallInstall(void);
-        bool smallInstallInner(void);
         void installdone(bool error);
-
-        void installBtn(void);
-        bool installAuto(void);
-        void install(void);
-
-        void installBootloaderBtn(void);
-        bool installBootloaderAuto(void);
-        void installBootloader(void);
-        void installBootloaderPost(bool error);
-
-        void installFontsBtn(void);
-        bool installFontsAuto(void);
-        void installFonts(void);
-
-        bool hasDoom(void);
-        void installDoomBtn(void);
-        bool installDoomAuto(void);
-        void installDoom(void);
 
         void createTalkFiles(void);
         void createVoiceFile(void);
         void downloadDone(bool);
-        void downloadBleedingDone(bool);
         void downloadInfo(void);
+        void backup(void);
 
         void installVoice(void);
-        void installThemes(void);
         void uninstall(void);
         void uninstallBootloader(void);
-        void downloadManual(void);
         void installPortable(void);
-        void updateInfo(void);
         void updateTabs(int);
-        
+
         void checkUpdate(void);
         void downloadUpdateDone(bool errror);
 };

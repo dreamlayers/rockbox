@@ -248,7 +248,7 @@
     *: "PLAY = Yes"
     cowond2*: "MENU, or top-right = Yes"
     iriverh100,iriverh120,iriverh300: "NAVI = Yes"
-    samsungyh*,ipod*,iaudiox5,iaudiom5,gigabeat*,sansae200*,sansac200*,iriverh10,iriverh10_5gb,mrobe100,sansaclip*,sansafuze*: "SELECT = Yes"
+    ipod*,iaudiox5,iaudiom5,gigabeat*,sansae200*,sansac200*,iriverh10,iriverh10_5gb,mrobe100,sansaclip*,sansafuze*,sansaconnect: "SELECT = Yes"
     mrobe500: "PLAY, POWER, or top-right = Yes"
     archosplayer: "(PLAY/STOP)"
     vibe500: "OK = Yes"
@@ -257,7 +257,7 @@
     *: "PLAY = Áno"
     cowond2*: "MENU, alebo vpravo-hore = Áno"
     iriverh100,iriverh120,iriverh300: "NAVI = Áno"
-    samsungyh*,ipod*,iaudiox5,iaudiom5,gigabeat*,sansae200*,sansac200*,iriverh10,iriverh10_5gb,mrobe100,sansaclip*,sansafuze*: "SELECT = Áno"
+    ipod*,iaudiox5,iaudiom5,gigabeat*,sansae200*,sansac200*,iriverh10,iriverh10_5gb,mrobe100,sansaclip*,sansafuze*,sansaconnect: "SELECT = Áno"
     mrobe500: "PLAY, POWER, alebo Vpravo-hore = Áno"
     archosplayer: "(PLAY/STOP)"
     vibe500: "OK = Áno"
@@ -417,7 +417,7 @@
 </phrase>
 <phrase>
   id: LANG_PLAYLISTS
-  desc: in the main menu and file view setting
+  desc: in the file view setting
   user: core
   <source>
     *: "Playlists"
@@ -1984,19 +1984,16 @@
 </phrase>
 <phrase>
   id: LANG_HEADPHONE_UNPLUG_RW
-  desc: in pause_phones_menu.
+  desc: deprecated
   user: core
   <source>
-    *: none
-    headphone_detection: "Duration to Rewind"
+    *: ""
   </source>
   <dest>
-    *: none
-    headphone_detection: "Vrátiť O"
+    *: ""
   </dest>
   <voice>
-    *: none
-    headphone_detection: "Vrátiť o"
+    *: ""
   </voice>
 </phrase>
 <phrase>
@@ -2234,17 +2231,19 @@
     *: "Building database... %d found (OFF to return)"
     iriverh100,iriverh120,iriverh300: "Building database... %d found (STOP to return)"
     ipod*: "Building database... %d found (PREV to return)"
-    iaudiox5,iaudiom5,gigabeat*,mrobe100: "Building database... %d found (LEFT to return)"
+    iaudiox5,iaudiom5,gigabeat*,mrobe100,samsungyh*: "Building database... %d found (LEFT to return)"
     iriverh10,iriverh10_5gb,sansae200*,sansac200*,sansafuze*,vibe500: "Building database... %d found (PREV to return)"
     gogearsa9200: "Building database... %d found (REW to return)"
+    archosplayer: "Building DB %d found"
   </source>
   <dest>
     *: "Vytváram databázu... %d nájdených (OFF pre návrat)"
     iriverh100,iriverh120,iriverh300: "Vytváram databázu... %d nájdených (STOP pre návrat)"
     ipod*: "Vytváram databázu... %d nájdených (PREV pre návrat)"
-    iaudiox5,iaudiom5,gigabeat*,mrobe100: "Vytváram databázu... %d nájdených (LEFT pre návrat)"
+    iaudiox5,iaudiom5,gigabeat*,mrobe100,samsungyh*: "Vytváram databázu... %d nájdených (LEFT pre návrat)"
     iriverh10,iriverh10_5gb,sansae200*,sansac200*,sansafuze*,vibe500: "Vytváram databázu... %d nájdených (PREV pre návrat)"
     gogearsa9200: "Vytváram databázu... %d nájdených (REW pre návrat)"
+    archosplayer: "Vytváram DB %d nájd."
   </dest>
   <voice>
     *: "záznamov nájdených"
@@ -3947,8 +3946,8 @@
     rtc: "ON = Set"
     mrobe500: "HEART = Set"
     iriverh100,iriverh120,iriverh300: "NAVI = Set"
-    ipod*,iaudiox5,iaudiom5,iriverh10,iriverh10_5gb,sansae200*,sansac200*,gigabeat*,mrobe100,sansaclip*,sansafuze*: "SELECT = Set"
-    gogearsa9200: "PLAY = Set"
+    ipod*,iaudiox5,iaudiom5,iriverh10,iriverh10_5gb,sansae200*,sansac200*,gigabeat*,mrobe100,sansaclip*,sansafuze*,sansaconnect: "SELECT = Set"
+    gogearsa9200,samsungyh*: "PLAY = Set"
     vibe500: "OK = Set"
     mpiohd300: "ENTER = Set"
   </source>
@@ -3957,14 +3956,14 @@
     rtc: "ON = Nastaviť"
     mrobe500: "HEART = Nastaviť"
     iriverh100,iriverh120,iriverh300: "NAVI = Nastaviť"
-    ipod*,iaudiox5,iaudiom5,iriverh10,iriverh10_5gb,sansae200*,sansac200*,gigabeat*,mrobe100,sansaclip*,sansafuze*: "SELECT = Nastaviť"
-    gogearsa9200: "PLAY = Nastaviť"
+    ipod*,iaudiox5,iaudiom5,iriverh10,iriverh10_5gb,sansae200*,sansac200*,gigabeat*,mrobe100,sansaclip*,sansafuze*,sansaconnect: "SELECT = Nastaviť"
+    gogearsa9200,samsungyh*: "PLAY = Nastaviť"
     vibe500: "OK = Nastaviť"
     mpiohd300: "ENTER = Nastaviť"
   </dest>
   <voice>
     *: none
-    rtc,iriverh100,iriverh120,iriverh300,iriverh10,iriverh10_5gb,iaudiox5,iaudiom5,ipod*,sansae200*,sansac200*,gigabeat*,mrobe100,gogearsa9200: ""
+    rtc,iriverh100,iriverh120,iriverh300,iriverh10,iriverh10_5gb,iaudiox5,iaudiom5,ipod*,sansae200*,sansac200*,gigabeat*,mrobe100,gogearsa9200,samsungyh*: ""
   </voice>
 </phrase>
 <phrase>
@@ -3980,10 +3979,12 @@
     iaudiox5,iaudiom5: "RECORD = Revert"
     iriverh10,iriverh10_5gb,sansae200*,sansafuze*: "PREV = Revert"
     gigabeatfx: "POWER = Revert"
+    sansafuzeplus: "BACK = Revert"
     mrobe100: "DISPLAY = Revert"
     gigabeats: "BACK = Revert"
     gogearsa9200: "LEFT = Revert"
     vibe500: "CANCEL = Revert"
+    samsungyh*: "REW = Revert"
   </source>
   <dest>
     *: none
@@ -3994,10 +3995,12 @@
     iaudiox5,iaudiom5: "RECORD = Vrátiť"
     iriverh10,iriverh10_5gb,sansae200*,sansafuze*: "PREV = Vrátiť"
     gigabeatfx: "POWER = Vrátiť"
+    sansafuzeplus: "BACK = Vrátiť"
     mrobe100: "DISPLAY = Vrátiť"
     gigabeats: "BACK = Vrátiť"
     gogearsa9200: "LEFT = Vrátiť"
     vibe500: "C = Vrátiť"
+    samsungyh*: "REW = Vrátiť"
   </dest>
   <voice>
     *: none
@@ -4528,6 +4531,7 @@
     gigabeats: "SELECT=Set POWER=Cancel"
     vibe500: "OK=Set C=Cancel"
     mpiohd300: "ENTER=Set MENU=Cancel"
+    sansafuzeplus: "SELECT=Set  BACK=Cancel"
   </source>
   <dest>
     *: none
@@ -4537,6 +4541,7 @@
     gigabeats: "SELECT=Nastaviť POWER=Zrušiť"
     vibe500: "OK=Nastaviť C=Zrušiť"
     mpiohd300: "ENTER=Nastaviť MENU=Zrušiť"
+    sansafuzeplus: "SELECT=Nastaviť  BACK=Zrušiť"
   </dest>
   <voice>
     *: none
@@ -5382,19 +5387,19 @@
 </phrase>
 <phrase>
   id: LANG_FM_SAVE_CHANGES
-  desc: When you try to exit radio to confirm save
+  desc: deprecated
   user: core
   <source>
     *: none
-    radio: "Save Changes?"
+    radio: ""
   </source>
   <dest>
     *: none
-    radio: "Uložiť Zmeny?"
+    radio: ""
   </dest>
   <voice>
     *: none
-    radio: "Uložiť Zmeny?"
+    radio: ""
   </voice>
 </phrase>
 <phrase>
@@ -5636,20 +5641,20 @@
   </voice>
 </phrase>
 <phrase>
-  id: LANG_RECORDING_FREQUENCY
-  desc: in the recording settings
+  id: LANG_FREQUENCY
+  desc: in recording and playback settings
   user: core
   <source>
     *: none
-    recording: "Frequency"
+    recording,play_frequency: "Frequency"
   </source>
   <dest>
     *: none
-    recording: "Frekvencia"
+    recording,play_frequency: "Frekvencia"
   </dest>
   <voice>
     *: none
-    recording: "Frekvencia"
+    recording,play_frequency: "Frekvencia"
   </voice>
 </phrase>
 <phrase>
@@ -5874,20 +5879,6 @@
   <voice>
     *: none
     recording: "Veľkosť delenia"
-  </voice>
-</phrase>
-<phrase>
-  id: LANG_REC_SIZE
-  desc: deprecated
-  user:
-  <source>
-    *: none
-  </source>
-  <dest>
-    *: none
-  </dest>
-  <voice>
-    *: none
   </voice>
 </phrase>
 <phrase>
@@ -6474,10 +6465,10 @@
 </phrase>
 <phrase>
   id: LANG_CATALOG
-  desc: in onplay menu
+  desc: in main menu and onplay menu
   user: core
   <source>
-    *: "Playlist Catalog"
+    *: "Playlist Catalogue"
   </source>
   <dest>
     *: "Katalóg Plejlistov"
@@ -6659,19 +6650,19 @@
   <source>
     *: none
     multivolume: "HD1"
-    sansae200*,sansac200*,sansafuze*: "mSD:"
+    sansae200*,sansac200*,sansafuze*,sansaclipplus: "mSD:"
     archosondio*: "MMC:"
   </source>
   <dest>
     *: none
     multivolume: "HD1"
-    sansae200*,sansac200*,sansafuze*: "MSD:"
+    sansae200*,sansac200*,sansafuze*,sansaclipplus: "MSD:"
     archosondio*: "MMC:"
   </dest>
   <voice>
     *: none
     multivolume: "H D 1"
-    sansae200*,sansac200*,sansafuze*: "mikro S D"
+    sansae200*,sansac200*,sansafuze*,sansaclipplus: "mikro S D"
     archosondio*: "M M C"
   </voice>
 </phrase>
@@ -6971,10 +6962,10 @@
 </phrase>
 <phrase>
   id: LANG_CATALOG_VIEW
-  desc: in onplay playlist catalog submenu
+  desc: in onplay playlist catalogue submenu
   user: core
   <source>
-    *: "View Catalog"
+    *: "View Catalogue"
   </source>
   <dest>
     *: "Zobraziť Katalóg"
@@ -6985,7 +6976,7 @@
 </phrase>
 <phrase>
   id: LANG_CATALOG_ADD_TO
-  desc: in onplay playlist catalog submenu
+  desc: in onplay playlist catalogue submenu
   user: core
   <source>
     *: "Add to Playlist"
@@ -6999,7 +6990,7 @@
 </phrase>
 <phrase>
   id: LANG_CATALOG_ADD_TO_NEW
-  desc: in onplay playlist catalog submenu
+  desc: in onplay playlist catalogue submenu
   user: core
   <source>
     *: "Add to New Playlist"
@@ -7013,7 +7004,7 @@
 </phrase>
 <phrase>
   id: LANG_CATALOG_NO_DIRECTORY
-  desc: error message when playlist catalog directory doesn't exist
+  desc: error message when playlist catalogue directory doesn't exist
   user: core
   <source>
     *: "%s doesn't exist"
@@ -7027,7 +7018,7 @@
 </phrase>
 <phrase>
   id: LANG_CATALOG_NO_PLAYLISTS
-  desc: error message when no playlists for playlist catalog
+  desc: error message when no playlists for playlist catalogue
   user: core
   <source>
     *: "No Playlists"
@@ -7576,15 +7567,15 @@
 </phrase>
 <phrase>
   id: LANG_BACKDROP_LOADED
-  desc: text for splash to indicate a new backdrop has been loaded successfully
+  desc: deprecated
   user: core
   <source>
     *: none
-    lcd_non-mono: "Backdrop Loaded"
+    lcd_non-mono: ""
   </source>
   <dest>
     *: none
-    lcd_non-mono: "Pozadie Načítané"
+    lcd_non-mono: ""
   </dest>
   <voice>
     *: none
@@ -7593,15 +7584,15 @@
 </phrase>
 <phrase>
   id: LANG_BACKDROP_FAILED
-  desc: text for splash to indicate a failure to load a bitmap as backdrop
+  desc: deprecated
   user: core
   <source>
     *: none
-    lcd_non-mono: "Backdrop Failed"
+    lcd_non-mono: ""
   </source>
   <dest>
     *: none
-    lcd_non-mono: "Zlihanie: Pozadie"
+    lcd_non-mono: ""
   </dest>
   <voice>
     *: none
@@ -7902,7 +7893,7 @@
     *: "Režim:"
   </dest>
   <voice>
-    *: ""
+    *: "Režim:"
   </voice>
 </phrase>
 <phrase>
@@ -7991,6 +7982,7 @@
     iriverh100,iriverh120,iriverh300: "The disk is full. Press STOP to continue."
     iaudiom5,iaudiox5: "The disk is full. Press POWER to continue."
     sansae200*,sansac200*,vibe500: "The disk is full. Press PREV to continue."
+    samsungyh*: "Disk full. Press LEFT to continue."
   </source>
   <dest>
     *: none
@@ -7998,6 +7990,7 @@
     iriverh100,iriverh120,iriverh300: "Disk je plný. Stlačte STOP pre pokračovanie"
     iaudiom5,iaudiox5: "Disk je plný. Stlačte POWER pre pokračovanie"
     sansae200*,sansac200*,vibe500: "Disk je plný. Stlačte PREV pre pokračovanie"
+    samsungyh*: "Disk je plný. Stlačte LEFT pre pokračovanie"
   </dest>
   <voice>
     *: none
@@ -8095,6 +8088,7 @@
     iriverh10,iriverh10_5gb,sansae200*,sansac200*,vibe500: "PREV to abort"
     gigabeats: "BACK to abort"
     gigabeatfx: "POWER to abort"
+    sansafuzeplus: "BACK to abort"
   </source>
   <dest>
     *: "OFF Pre prerušenie"
@@ -8104,6 +8098,7 @@
     iriverh10,iriverh10_5gb,sansae200*,sansac200*,vibe500: "PREV pre prerušenie"
     gigabeats: "BACK pre prerušenie"
     gigabeatfx: "POWER pre prerušenie"
+    sansafuzeplus: "BACK pre prerušenie"
   </dest>
   <voice>
     *: ""
@@ -10432,15 +10427,15 @@
   user: core
   <source>
     *: none
-    ipodvideo: "Bass Cutoff"
+    ipodvideo,ipod6g,mpiohd200,mpiohd300,gigabeatfx,mrobe100: "Bass Cutoff"
   </source>
   <dest>
     *: none
-    ipodvideo: "Hranica Hĺbok"
+    ipodvideo,ipod6g,mpiohd200,mpiohd300,gigabeatfx,mrobe100: "Hranica Hĺbok"
   </dest>
   <voice>
     *: none
-    ipodvideo: "Hranica hĺbok"
+    ipodvideo,ipod6g,mpiohd200,mpiohd300,gigabeatfx,mrobe100: "Hranica hĺbok"
   </voice>
 </phrase>
 <phrase>
@@ -10449,15 +10444,15 @@
   user: core
   <source>
     *: none
-    ipodvideo: "Treble Cutoff"
+    ipodvideo,ipod6g,mpiohd200,mpiohd300,gigabeatfx,mrobe100: "Treble Cutoff"
   </source>
   <dest>
     *: none
-    ipodvideo: "Hranica Výšok"
+    ipodvideo,ipod6g,mpiohd200,mpiohd300,gigabeatfx,mrobe100: "Hranica Výšok"
   </dest>
   <voice>
     *: none
-    ipodvideo: "Hranica výšok"
+    ipodvideo,ipod6g,mpiohd200,mpiohd300,gigabeatfx,mrobe100: "Hranica výšok"
   </voice>
 </phrase>
 <phrase>
@@ -10604,11 +10599,11 @@
   user: core
   <source>
     *: none
-    gigabeatfx: "Touchpad Sensitivity"
+    gigabeatfx,sansafuzeplus: "Touchpad Sensitivity"
   </source>
   <dest>
     *: none
-    gigabeatfx: "Citlivosť Dotykovej Plochy"
+    gigabeatfx,sansafuzeplus: "Citlivosť Dotykovej Plochy"
   </dest>
   <voice>
     *: none
@@ -11515,16 +11510,16 @@
 </phrase>
 <phrase>
   id: LANG_SKIN_RAM_USAGE
-  desc: how much RAM the skins are using
+  desc: deprecated
   user: core
   <source>
-    *: "Skin RAM usage:"
+    *: ""
   </source>
   <dest>
-    *: "Pamäť Ram využitá vzhľadom"
+    *: ""
   </dest>
   <voice>
-    *: "Pamäť RAM využitá vzhľadom"
+    *: ""
   </voice>
 </phrase>
 <phrase>
@@ -12099,20 +12094,20 @@
   </voice>
 </phrase>
 <phrase>
-  id: LANG_RECORDING_HISTOGRAM_INTERVAL
+  id: LANG_HISTOGRAM_INTERVAL
   desc: in record settings menu
   user: core
   <source>
     *: none
-    recording_histogram: "Histogram interval"
+    histogram: "Histogram interval"
   </source>
   <dest>
     *: none
-    recording_histogram: "Interval Histogramu"
+    histogram: "Interval Histogramu"
   </dest>
   <voice>
     *: none
-    recording_histogram: "Interval histogramu"
+    histogram: "Interval histogramu"
   </voice>
 </phrase>
 <phrase>
@@ -12274,15 +12269,15 @@
   user: core
   <source>
     *: none
-    gigabeats: "Band %d Gain"
+    gigabeats,samsungypr1: "Band %d Gain"
   </source>
   <dest>
     *: none
-    gigabeats: "Šírka Pásma %d"
+    gigabeats,samsungypr1: "Hlasitosť Pásma %d"
   </dest>
   <voice>
     *: none
-    gigabeats: "Šírka pásma"
+    gigabeats,samsungypr1: "Hlasitosť Pásma"
   </voice>
 </phrase>
 <phrase>
@@ -12291,15 +12286,15 @@
   user: core
   <source>
     *: none
-    gigabeats: "Wide"
+    gigabeats,samsungypr1: "Wide"
   </source>
   <dest>
     *: none
-    gigabeats: "Široké"
+    gigabeats,samsungypr1: "Široký"
   </dest>
   <voice>
     *: none
-    gigabeats: "Široké"
+    gigabeats,samsungypr1: "Široký"
   </voice>
 </phrase>
 <phrase>
@@ -12308,15 +12303,15 @@
   user: core
   <source>
     *: none
-    gigabeats: "Narrow"
+    gigabeats,samsungypr1: "Narrow"
   </source>
   <dest>
     *: none
-    gigabeats: "Úzke"
+    gigabeats,samsungypr1: "Úzky"
   </dest>
   <voice>
     *: none
-    gigabeats: "Úzke"
+    gigabeats,samsungypr1: "Úzky"
   </voice>
 </phrase>
 <phrase>
@@ -12339,15 +12334,15 @@
   user: core
   <source>
     *: none
-    gigabeats: "Advanced Tone Control Settings"
+    gigabeats,samsungypr1: "Advanced Tone Control Settings"
   </source>
   <dest>
     *: none
-    gigabeats: "Pokročilé Nastavenia Tónu"
+    gigabeats,samsungypr1: "Pokročilé Nastavenia Tónov"
   </dest>
   <voice>
     *: none
-    gigabeats: "Pokročilé nastavenia tónu"
+    gigabeats,samsungypr1: "Pokročilé Nastavenia Tónov"
   </voice>
 </phrase>
 <phrase>
@@ -12356,15 +12351,15 @@
   user: core
   <source>
     *: none
-    gigabeats: "3-D Enhancement"
+    depth_3d: "3-D Enhancement"
   </source>
   <dest>
     *: none
-    gigabeats: "3-D Vylepšenie"
+    depth_3d: "3-D Rozšírenie"
   </dest>
   <voice>
     *: none
-    gigabeats: "3-D Vylepšenie"
+    depth_3d: "3-D Rozšírenie"
   </voice>
 </phrase>
 <phrase>
@@ -12373,15 +12368,15 @@
   user: core
   <source>
     *: none
-    gigabeats: "Band %d Frequency"
+    gigabeats,samsungypr1: "Band %d Frequency"
   </source>
   <dest>
     *: none
-    gigabeats: "Frekvencia Pásma %d"
+    gigabeats,samsungypr1: "Frekvencia Pásma %d"
   </dest>
   <voice>
     *: none
-    gigabeats: "Frekvencia pásma"
+    gigabeats,samsungypr1: "Frekvencia Pásma"
   </voice>
 </phrase>
 <phrase>
@@ -12390,15 +12385,15 @@
   user: core
   <source>
     *: none
-    gigabeats: "Band %d Width"
+    gigabeats,samsungypr1: "Band %d Width"
   </source>
   <dest>
     *: none
-    gigabeats: "Šírka Pásma %d"
+    gigabeats,samsungypr1: "Šírka Pásma %d"
   </dest>
   <voice>
     *: none
-    gigabeats: "Šírka pásma"
+    gigabeats,samsungypr1: "Šírka Pásma "
   </voice>
 </phrase>
 <phrase>
@@ -12424,15 +12419,15 @@
   user: core
   <source>
     *: none
-    gigabeats: "Tone Controls"
+    gigabeats,samsungypr1: "Tone Controls"
   </source>
   <dest>
     *: none
-    gigabeats: "Nastavenia Tónu"
+    gigabeats,samsungypr1: "Ovládanie Tónov"
   </dest>
   <voice>
     *: none
-    gigabeats: "Nastavenia tónu"
+    gigabeats,samsungypr1: "Ovládanie Tónov"
   </voice>
 </phrase>
 <phrase>
@@ -12582,5 +12577,581 @@
   </dest>
   <voice>
     *: "Veľkosť Súboru"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_AUTORESUME_ENABLE_YES
+  desc: deprecated
+  user: core
+  <source>
+    *: ""
+  </source>
+  <dest>
+    *: ""
+  </dest>
+  <voice>
+    *: ""
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_FM_RSSI
+  desc: Signal strength of a received FM station
+  user: core
+  <source>
+    *: none
+    radio: "Signal strength:"
+  </source>
+  <dest>
+    *: none
+    radio: "Sila Signálu:"
+  </dest>
+  <voice>
+    *: none
+    radio: "Sila Signálu:"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_AUTORESUME_ENABLE
+  desc: deprecated
+  user: core
+  <source>
+    *: ""
+  </source>
+  <dest>
+    *: ""
+  </dest>
+  <voice>
+    *: ""
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_AUTORESUME
+  desc: resume settings menu
+  user: core
+  <source>
+    *: "Automatic resume"
+  </source>
+  <dest>
+    *: "Automatické Obnovenie Prehrávania"
+  </dest>
+  <voice>
+    *: "Automatické obnovenie prehrávania"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_AUTORESUME_AUTOMATIC
+  desc: resume on automatic track change
+  user: core
+  <source>
+    *: "Resume on automatic track change"
+  </source>
+  <dest>
+    *: "Obnoviť Pri Automatickej Zmene Stopy"
+  </dest>
+  <voice>
+    *: "Obnoviť Pri Automatickej Zmene Stopy"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_AUTORESUME_CUSTOM
+  desc: enable customization of resume on automatic track change
+  user: core
+  <source>
+    *: "In custom directories only"
+  </source>
+  <dest>
+    *: "Len v Zvolených Priečinkoch"
+  </dest>
+  <voice>
+    *: "Len v Zvolených Priečinkoch"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_CURRENT_PLAYLIST
+  desc: Used when you need to say playlist, also voiced
+  user: core
+  <source>
+    *: "Current Playlist"
+  </source>
+  <dest>
+    *: "Aktuálny Plejlist"
+  </dest>
+  <voice>
+    *: "Aktuálny Plejlist"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_SET_AS_PLAYLISTCAT_DIR
+  desc: used in the onplay menu to set a playlist catalogue dir
+  user: core
+  <source>
+    *: "Set As Playlist Catalogue Directory"
+  </source>
+  <dest>
+    *: "Nastaviť Ako Priečinok Katalógu Plejlistov"
+  </dest>
+  <voice>
+    *: "Nastaviť Ako Priečinok Katalógu Plejlistov"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_SAVE_CHANGES
+  desc: When you try to exit screens to confirm save
+  user: core
+  <source>
+    *: "Save Changes?"
+  </source>
+  <dest>
+    *: "Uložiť Zmeny?"
+  </dest>
+  <voice>
+    *: "Uložiť Zmeny?"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_PAUSE_REWIND
+  desc: Seconds to rewind when rewind on pause is enabled.
+  user: core
+  <source>
+    *: "Rewind on Pause"
+  </source>
+  <dest>
+    *: "Vrátiť Pri Pozastavení"
+  </dest>
+  <voice>
+    *: "Vrátiť Pri Pozastavení"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_RESET_PLAYLISTCAT_DIR
+  desc:
+  user: core
+  <source>
+    *: "Reset Playlist Catalogue Directory"
+  </source>
+  <dest>
+    *: "Resetovať Priečinok Katalógu Plejlistov"
+  </dest>
+  <voice>
+    *: "Resetovať Priečinok Katalógu Plejlistov"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_USB_SKIP_FIRST_DRIVE
+  desc: in settings_menu
+  user: core
+  <source>
+    *: none
+    multidrive_usb: "USB Hide Internal Drive"
+  </source>
+  <dest>
+    *: none
+    multidrive_usb: "USB Skryť Interný Disk"
+  </dest>
+  <voice>
+    *: none
+    multidrive_usb: "USB Skryť Interný Disk"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_LIST_LINE_PADDING
+  desc: list padding, in display settings
+  user: core
+  <source>
+    *: none
+    touchscreen: "Line Padding in Lists"
+  </source>
+  <dest>
+    *: none
+    touchscreen: "Zarovnanie Riadka v Zoznamoch"
+  </dest>
+  <voice>
+    *: none
+    touchscreen: "Zarovnanie Riadka v Zoznamoch"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_AUTOMATIC
+  desc: generic automatic
+  user: core
+  <source>
+    *: "Automatic"
+  </source>
+  <dest>
+    *: "Automaticky"
+  </dest>
+  <voice>
+    *: "Automaticky"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_SLEEP_TIMER_CANCEL_CURRENT
+  desc: shown instead of sleep timer when it's running
+  user: core
+  <source>
+    *: "Cancel Sleep Timer"
+  </source>
+  <dest>
+    *: "Zrušiť Časovač Spánku"
+  </dest>
+  <voice>
+    *: "Zrušiť Časovač Spánku"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_SLEEP_TIMER_DURATION
+  desc: default sleep timer duration in minutes
+  user: core
+  <source>
+    *: "Default Sleep Timer Duration"
+  </source>
+  <dest>
+    *: "Predvolené Trvanie Pre Časovač Spánku"
+  </dest>
+  <voice>
+    *: "Predvolené Trvanie Pre Časovač Spánku"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_SLEEP_TIMER_ON_POWER_UP
+  desc: whether sleep timer starts on power up
+  user: core
+  <source>
+    *: "Start Sleep Timer On Boot"
+  </source>
+  <dest>
+    *: "Aktivovať Časovač Spánku Po Zapnutí"
+  </dest>
+  <voice>
+    *: "Aktivovať Časovač Spánku Po Zapnutí"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_GLYPHS
+  desc: in settings_menu
+  user: core
+  <source>
+    *: "Glyphs To Cache"
+  </source>
+  <dest>
+    *: "Zapamätať Glyfy"
+  </dest>
+  <voice>
+    *: "Zapamätať Glyfy"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_KEYCLICK_HARDWARE
+  desc: in keyclick settings menu
+  user: core
+  <source>
+    *: none
+    hardware_click: "Speaker Keyclick"
+  </source>
+  <dest>
+    *: none
+    hardware_click: "Klik v Reproduktore"
+  </dest>
+  <voice>
+    *: none
+    hardware_click: "Klik v Reproduktore"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_KEYCLICK_SOFTWARE
+  desc: in keyclick settings menu
+  user: core
+  <source>
+    *: none
+    hardware_click: "Headphone Keyclick"
+  </source>
+  <dest>
+    *: none
+    hardware_click: "Klik v Slúchadlách"
+  </dest>
+  <voice>
+    *: none
+    hardware_click: "Klik v Slúchadlách"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_SHORTCUTS
+  desc: Title in the shortcuts menu
+  user: core
+  <source>
+    *: "Shortcuts"
+  </source>
+  <dest>
+    *: "Skratky"
+  </dest>
+  <voice>
+    *: "Skratky"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_STARTUP_SHUTDOWN
+  desc: in the general settings menu
+  user: core
+  <source>
+    *: "Startup/Shutdown"
+  </source>
+  <dest>
+    *: "Spúšťanie / Vypínanie"
+  </dest>
+  <voice>
+    *: "Spúšťanie / Vypínanie"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_KEYPRESS_RESTARTS_SLEEP_TIMER
+  desc: whether to restart running sleep timer on keypress
+  user: core
+  <source>
+    *: "Restart Sleep Timer On Keypress"
+  </source>
+  <dest>
+    *: "Stlačenie Tlačidla Reštartuje Časovač Spánku"
+  </dest>
+  <voice>
+    *: "Stlačenie Tlačidla Reštartuje Časovač Spánku"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_CROSSFEED_MEIER
+  desc: in sound settings
+  user: core
+  <source>
+    *: none
+    swcodec: "Simple (Meier)"
+  </source>
+  <dest>
+    *: none
+    swcodec: "Jednoduché (Meier)"
+  </dest>
+  <voice>
+    *: none
+    swcodec: "Jednoduché"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_SLEEP_TIMER_START_CURRENT
+  desc: shown when a sleep timer isn't running
+  user: core
+  <source>
+    *: "Start Sleep Timer"
+  </source>
+  <dest>
+    *: "Spustiť Časovač Spánku"
+  </dest>
+  <voice>
+    *: "Spustiť Časovač Spánku"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_CODEPAGE_WESTERN_EUROPEAN
+  desc: in codepage setting menu
+  user: core
+  <source>
+    *: "Western European (CP1252)"
+  </source>
+  <dest>
+    *: "ZápadoEurópske (CP1252)"
+  </dest>
+  <voice>
+    *: "ZápadoEurópske"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_CROSSFEED_CUSTOM
+  desc: in sound settings
+  user: core
+  <source>
+    *: none
+    swcodec: "Custom"
+  </source>
+  <dest>
+    *: none
+    swcodec: "Vlastné"
+  </dest>
+  <voice>
+    *: none
+    swcodec: "Vlastné"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_USE_SHORTCUTS_INSTEAD_OF_QS
+  desc: in settings_menu.
+  user: core
+  <source>
+    *: none
+    quickscreen: "Use Shortcuts Menu Instead of Quick Screen"
+  </source>
+  <dest>
+    *: none
+    quickscreen: "Používať Ponuku Skratky Miesto Rýchlej Obrazovky"
+  </dest>
+  <voice>
+    *: none
+    quickscreen: "Používať Ponuku Skratky Miesto Rýchlej Obrazovky"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_CONSTRAIN_NEXT_FOLDER
+  desc: in settings_menu. Whether LANG_NEXT_FOLDER should be constrained to directories within LANG_SET_AS_START_DIR
+  user: core
+  <source>
+    *: "Constrain Auto-Change"
+  </source>
+  <dest>
+    *: "Obmedziť Automatickú Zmenu"
+  </dest>
+  <voice>
+    *: "Obmedziť Automatickú Zmenu"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_SELECT_FOLDER
+  desc: in settings_menu
+  user: core
+  <source>
+    *: "Select one or more directories"
+  </source>
+  <dest>
+    *: "Vyberte Jeden Alebo Viacero Priečinkov"
+  </dest>
+  <voice>
+    *: "Vyberte Jeden Alebo Viacero Priečinkov"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_SELECT_DATABASE_DIRS
+  desc: in settings_menu
+  user: core
+  <source>
+    *: "Select directories to scan"
+  </source>
+  <dest>
+    *: "Vyberte Priečinky Pre Prehľadávanie"
+  </dest>
+  <voice>
+    *: "Vyberte Priečinky Pre Prehľadávanie"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_LIST_SEPARATOR_COLOR
+  desc: line between lines in lists
+  user: core
+  <source>
+    *: "Line Separator Colour"
+  </source>
+  <dest>
+    *: "Farba Oddeľovačov Riadkov"
+  </dest>
+  <voice>
+    *: "Farba Oddeľovačov Riadkov"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_LIST_SEPARATOR
+  desc: line between lines in lists
+  user: core
+  <source>
+    *: "Line Separator"
+  </source>
+  <dest>
+    *: "Oddeľovač Riadkov"
+  </dest>
+  <voice>
+    *: "Oddeľovač Riadkov"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_SYSFONT_EQUALIZER_BAND_Q
+  desc: in the equalizer settings menu
+  user: core
+  <source>
+    *: none
+    swcodec: "Q"
+  </source>
+  <dest>
+    *: none
+    swcodec: "Q"
+  </dest>
+  <voice>
+    *: none
+    swcodec: "Q"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_VOLUME_LIMIT
+  desc: in sound_settings
+  user: core
+  <source>
+    *: "Maximum Volume Limit"
+  </source>
+  <dest>
+    *: "Obmedzenie Maximálnej Hlasitosti"
+  </dest>
+  <voice>
+    *: "Obmedzenie Maximálnej Hlasitosti"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_FILTER_ROLL_OFF
+  desc: in sound settings
+  user: core
+  <source>
+    *: "DAC's filter roll-off"
+  </source>
+  <dest>
+    *: "roll-off DAC filtra "
+  </dest>
+  <voice>
+    *: "roll-off DAC filtra "
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_COMPRESSOR_ATTACK
+  desc: in sound settings
+  user: core
+  <source>
+    *: none
+    swcodec: "Attack Time"
+  </source>
+  <dest>
+    *: none
+    swcodec: "Čas Začiatku"
+  </dest>
+  <voice>
+    *: none
+    swcodec: "Čas Začiatku"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_FILTER_SHARP
+  desc: in sound settings
+  user: core
+  <source>
+    *: "Sharp"
+  </source>
+  <dest>
+    *: "Výrazný"
+  </dest>
+  <voice>
+    *: "Výrazný"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_FILTER_SLOW
+  desc: in sound settings
+  user: core
+  <source>
+    *: "Slow"
+  </source>
+  <dest>
+    *: "Pomalý"
+  </dest>
+  <voice>
+    *: "Pomalý"
   </voice>
 </phrase>

@@ -25,17 +25,18 @@
 
 #include "config.h"
 
+extern void *lc_open(const char *filename, unsigned char *buf, size_t buf_size);
+
 #if (CONFIG_PLATFORM & PLATFORM_NATIVE)
 #include "system.h"
 
-extern void *lc_open(const char *filename, unsigned char *buf, size_t buf_size);
 /* header is always at the beginning of the blob, and handle actually points
  * to the start of the blob (the header is there) */
 static inline void *lc_open_from_mem(void* addr, size_t blob_size)
 {
     (void)blob_size;
     /* commit dcache and discard icache */
-    cpucache_invalidate();
+    commit_discard_idcache();
     return addr;
 }
 static inline void *lc_get_header(void *handle) { return handle; }
@@ -44,23 +45,20 @@ static inline void lc_close(void *handle) { (void)handle; }
 
 #elif (CONFIG_PLATFORM & PLATFORM_HOSTED)
 
-/* don't call these directly for loading code
- * they're to be wrapped by platform specific functions */
-#ifdef WIN32
-/* windows' LoadLibrary can only handle ucs2, no utf-8 */
-#define _lc_open_char wchar_t
+#ifdef APPLICATION
+/* App doesn't simulate code loading from a buffer */
+static inline void * lc_open_from_mem(void *addr, size_t blob_size)
+{
+    return NULL;
+    (void)addr; (void)blob_size;
+}
 #else
-#define _lc_open_char char
+extern void *lc_open_from_mem(void* addr, size_t blob_size);
 #endif
-extern void *_lc_open(const _lc_open_char *filename, unsigned char *buf, size_t buf_size);
-extern void *_lc_get_header(void *handle);
-extern void  _lc_close(void *handle);
 
-extern void *lc_open(const char *filename, unsigned char *buf, size_t buf_size);
-extern void *lc_open_from_mem(void *addr, size_t blob_size);
 extern void *lc_get_header(void *handle);
 extern void  lc_close(void *handle);
-extern const char* lc_last_error(void);
+
 #endif
 
 /* this struct needs to be the first part of other headers

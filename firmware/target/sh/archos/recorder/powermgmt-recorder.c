@@ -60,9 +60,13 @@ const unsigned short percent_to_volt_charge[11] =
 /* full-scale ADC readout (2^10) in millivolt */
 
 /* Returns battery voltage from ADC [millivolts] */
-unsigned int battery_adc_voltage(void)
+int _battery_voltage(void)
 {
     return (adc_read(ADC_UNREG_POWER) * BATTERY_SCALE_FACTOR) >> 10;
+}
+
+void powermgmt_init_target(void)
+{
 }
 
 /** Charger control **/
@@ -81,8 +85,8 @@ static int wrcount = 0;
  */
 int long_delta;                     /* long term delta battery voltage */
 int short_delta;                    /* short term delta battery voltage */
-bool disk_activity_last_cycle = false;  /* flag set to aid charger time
-                                         * calculation */
+static bool disk_activity_last_cycle = false;  /* flag set to aid charger time
+                                                * calculation */
 char power_message[POWER_MESSAGE_LEN] = ""; /* message that's shown in
                                            debug menu */
                                         /* percentage at which charging
@@ -483,12 +487,12 @@ void charging_algorithm_step(void)
     charger_enable(trickle_sec > 0);
 }
 
-#ifdef CHARGING_DEBUG_FILE
 void charging_algorithm_close(void)
 {
+#ifdef CHARGING_DEBUG_FILE
     debug_file_close();
-}
 #endif /* CHARGING_DEBUG_FILE */
+}
 
 /* Returns true if the unit is charging the batteries. */
 bool charging_state(void)

@@ -50,42 +50,33 @@
 #include "sound.h"
 #include "splash.h"
 #include "general.h"
+#include "rbpaths.h"
 
 #define LOGF_ENABLE
 #include "logf.h"
 
-#if (CONFIG_PLATFORM & PLATFORM_SDL)
+#if (CONFIG_PLATFORM & (PLATFORM_SDL|PLATFORM_MAEMO|PLATFORM_PANDORA))
 #define PREFIX(_x_) sim_ ## _x_
 #else
 #define PREFIX(_x_) _x_
 #endif
 
 #if (CONFIG_PLATFORM & PLATFORM_HOSTED)
-#if CONFIG_CODEC == SWCODEC
-unsigned char codecbuf[CODEC_SIZE];
-#endif
+/* For PLATFORM_HOSTED this buffer must be define here. */
+static unsigned char codecbuf[CODEC_SIZE];
+#else
+/* For PLATFORM_NATIVE this buffer is defined in *.lds files. */
+extern unsigned char codecbuf[];
 #endif
 
-size_t codec_size;
+static size_t codec_size;
 
-extern void* plugin_get_audio_buffer(size_t *buffer_size);
-
-#if (CONFIG_PLATFORM & PLATFORM_NATIVE) && defined(HAVE_RECORDING)
-#undef open
-static int open(const char* pathname, int flags, ...)
-{
-    return file_open(pathname, flags);
-}
-#endif
 struct codec_api ci = {
 
-    0, /* filesize */
-    0, /* curpos */
+    0,    /* filesize */
+    0,    /* curpos */
     NULL, /* id3 */
-    NULL, /* taginfo_ready */
-    false, /* stop_codec */
-    0, /* new_track */
-    0, /* seek_time */
+    ERR_HANDLE_NOT_FOUND, /* audio_hid */
     NULL, /* struct dsp_config *dsp */
     NULL, /* codec_get_buffer */
     NULL, /* pcmbuf_insert */
@@ -93,14 +84,13 @@ struct codec_api ci = {
     NULL, /* read_filebuf */
     NULL, /* request_buffer */
     NULL, /* advance_buffer */
-    NULL, /* advance_buffer_loc */
     NULL, /* seek_buffer */
     NULL, /* seek_complete */
-    NULL, /* request_next_track */
-    NULL, /* discard_codec */
     NULL, /* set_offset */
     NULL, /* configure */
-    
+    NULL, /* get_command */
+    NULL, /* loop_track */
+
     /* kernel/ system */
 #if defined(CPU_ARM) && CONFIG_PLATFORM & PLATFORM_NATIVE
     __div0,
@@ -117,8 +107,9 @@ struct codec_api ci = {
     semaphore_release,
 #endif
 
-    cpucache_flush,
-    cpucache_invalidate,
+    commit_dcache,
+    commit_discard_dcache,
+    commit_discard_idcache,
 
     /* strings and memory */
     strcpy,
@@ -130,7 +121,6 @@ struct codec_api ci = {
     memmove,
     memcmp,
     memchr,
-    strcasestr,
 #if defined(DEBUG) || defined(SIMULATOR)
     debugf,
 #endif
@@ -138,8 +128,7 @@ struct codec_api ci = {
     logf,
 #endif
 
-    (qsort_func)qsort,
-    &global_settings,
+    (void *)qsort,
 
 #ifdef RB_PROFILE
     profile_thread,
@@ -149,40 +138,52 @@ struct codec_api ci = {
 #endif
 
 #ifdef HAVE_RECORDING
-    false,  /* stop_encoder */
-    0,      /* enc_codec_loaded */
-    enc_get_inputs,
-    enc_set_parameters,
-    enc_get_chunk,
-    enc_finish_chunk,
-    enc_get_pcm_data,
-    enc_unget_pcm_data,
-
-    /* file */
-    (open_func)PREFIX(open),
-    PREFIX(close),
-    (read_func)PREFIX(read),
-    PREFIX(lseek),
-    (write_func)PREFIX(write),
+    NULL, /* enc_pcmbuf_read */
+    NULL, /* enc_pcmbuf_advance */
+    NULL, /* enc_encbuf_get_buffer */
+    NULL, /* enc_encbuf_finish_buffer */
+    NULL, /* enc_stream_read */
+    NULL, /* enc_stream_lseek */
+    NULL, /* enc_stream_write */
     round_value_to_list32,
-
 #endif /* HAVE_RECORDING */
 
     /* new stuff at the end, sort into place next time
        the API gets incompatible */
+
 };
 
 void codec_get_full_path(char *path, const char *codec_root_fn)
 {
-    snprintf(path, MAX_PATH-1, "%s/%s." CODEC_EXTENSION,
-             CODECS_DIR, codec_root_fn);
+    snprintf(path, MAX_PATH-1, CODECS_DIR "/" CODEC_PREFIX "%s."
+            CODEC_EXTENSION, codec_root_fn);
 }
 
-static int codec_load_ram(void *handle, struct codec_api *api)
+/* Returns pointer to and size of free codec RAM. Aligns to CACHEALIGN_SIZE. */
+void *codec_get_buffer_callback(size_t *size)
 {
-    struct codec_header *c_hdr = lc_get_header(handle);
-    struct lc_header    *hdr   = c_hdr ? &c_hdr->lc_hdr : NULL;
-    int status;
+    void *buf = &codecbuf[codec_size];
+    ssize_t s = CODEC_SIZE - codec_size;
+
+    if (s <= 0)
+        return NULL;
+
+    *size = s;
+    ALIGN_BUFFER(buf, *size, CACHEALIGN_SIZE);
+
+    return buf;
+}
+
+/** codec loading and call interface **/
+static void *curr_handle = NULL;
+static struct codec_header *c_hdr = NULL;
+
+static int codec_load_ram(struct codec_api *api)
+{
+    struct lc_header *hdr;
+
+    c_hdr = lc_get_header(curr_handle);
+    hdr   = c_hdr ? &c_hdr->lc_hdr : NULL;
 
     if (hdr == NULL
         || (hdr->magic != CODEC_MAGIC
@@ -198,14 +199,16 @@ static int codec_load_ram(void *handle, struct codec_api *api)
         )
     {
         logf("codec header error");
-        lc_close(handle);
+        lc_close(curr_handle);
+        curr_handle = NULL;
         return CODEC_ERROR;
     }
 
     if (hdr->api_version > CODEC_API_VERSION
         || hdr->api_version < CODEC_MIN_API_VERSION) {
         logf("codec api version error");
-        lc_close(handle);
+        lc_close(curr_handle);
+        curr_handle = NULL;
         return CODEC_ERROR;
     }
 
@@ -216,47 +219,80 @@ static int codec_load_ram(void *handle, struct codec_api *api)
 #endif
 
     *(c_hdr->api) = api;
-    status = c_hdr->entry_point();
 
-    lc_close(handle);
-
-    return status;
+    logf("Codec: calling entrypoint");
+    return c_hdr->entry_point(CODEC_LOAD);
 }
 
-int codec_load_buf(unsigned int hid, struct codec_api *api)
+int codec_load_buf(int hid, struct codec_api *api)
 {
-    int rc;
-    void *handle;
-    rc = bufread(hid, CODEC_SIZE, codecbuf);
+    int rc = bufread(hid, CODEC_SIZE, codecbuf);
+
     if (rc < 0) {
-        logf("error loading codec");
-        return CODEC_ERROR;
-    }
-    handle = lc_open_from_mem(codecbuf, rc);
-    if (handle == NULL)
-    {
-        logf("error loading codec");
+        logf("Codec: cannot read buf handle");
         return CODEC_ERROR;
     }
 
-    api->discard_codec();
-    return codec_load_ram(handle, api);
+    curr_handle = lc_open_from_mem(codecbuf, rc);
+
+    if (curr_handle == NULL) {
+        logf("Codec: load error");
+        return CODEC_ERROR;
+    }
+
+    return codec_load_ram(api);
 }
 
 int codec_load_file(const char *plugin, struct codec_api *api)
 {
     char path[MAX_PATH];
-    void *handle;
 
     codec_get_full_path(path, plugin);
 
-    handle = lc_open(path, codecbuf, CODEC_SIZE);
+    curr_handle = lc_open(path, codecbuf, CODEC_SIZE);
 
-    if (handle == NULL) {
-        logf("Codec load error");
-        splashf(HZ*2, "Couldn't load codec: %s", path);
+    if (curr_handle == NULL) {
+        logf("Codec: cannot read file");
         return CODEC_ERROR;
     }
 
-    return codec_load_ram(handle, api);
+    return codec_load_ram(api);
 }
+
+int codec_run_proc(void)
+{
+    if (curr_handle == NULL) {
+        logf("Codec: no codec to run");
+        return CODEC_ERROR;
+    }
+
+    logf("Codec: entering run state");
+    return c_hdr->run_proc();
+}
+
+int codec_close(void)
+{
+    int status = CODEC_OK;
+
+    if (curr_handle != NULL) {
+        logf("Codec: cleaning up");
+        status = c_hdr->entry_point(CODEC_UNLOAD);
+        lc_close(curr_handle);
+        curr_handle = NULL;
+    }
+
+    return status;
+}
+
+#ifdef HAVE_RECORDING
+enc_callback_t codec_get_enc_callback(void)
+{
+    if (curr_handle == NULL ||
+        c_hdr->lc_hdr.magic != CODEC_ENC_MAGIC) {
+        logf("Codec: not an encoder");
+        return NULL;
+    }
+
+    return c_hdr->rec_extension[0];
+}
+#endif /* HAVE_RECORDING */

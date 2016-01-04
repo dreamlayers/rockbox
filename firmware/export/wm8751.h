@@ -21,25 +21,36 @@
 #ifndef _WM8751_H
 #define _WM8751_H
 
-/* volume/balance/treble/bass interdependency */
-#define VOLUME_MIN -730
-#define VOLUME_MAX  60
-
-/* turn off 3D Enchance feature of WM8750 for now
 #if defined(HAVE_WM8750)
-#define AUDIOHW_CAPS (BASS_CAP | TREBLE_CAP | PRESCALER_CAP | DEPTH_3D_CAP)
-#else
-*/
-#define AUDIOHW_CAPS (BASS_CAP | TREBLE_CAP | PRESCALER_CAP)
-/* #endif */
+#define AUDIOHW_CAPS (BASS_CAP | TREBLE_CAP | PRESCALER_CAP | \
+                      BASS_CUTOFF_CAP | TREBLE_CUTOFF_CAP | \
+                      DEPTH_3D_CAP | LIN_GAIN_CAP | MIC_GAIN_CAP)
 
-extern int tenthdb2master(int db);
+AUDIOHW_SETTING(DEPTH_3D,        "%", 0,  1,    0,   15,    0, (100 * val + 8) / 15)
+#ifdef HAVE_RECORDING
+    /* PGA -17.25dB to 30.0dB in 0.75dB increments 64 steps
+     * digital gain 0dB to 30.0dB in 0.5dB increments
+     * we use 0.75dB fake steps through whole range
+     *
+     * This combined gives -17.25 to 60.0dB 
+     */
+AUDIOHW_SETTING(LEFT_GAIN,      "dB", 2, 75,-1725, 6000,    0, val * 5)
+AUDIOHW_SETTING(RIGHT_GAIN,     "dB", 2, 75,-1725, 6000,    0, val * 5)
+AUDIOHW_SETTING(MIC_GAIN,       "dB", 2, 75,-1725, 6000, 3000, val * 5)
 
-extern void audiohw_set_master_vol(int vol_l, int vol_r);
-extern void audiohw_set_lineout_vol(int vol_l, int vol_r);
-#if defined(HAVE_WM8750) && defined(HAVE_RECORDING)
 void audiohw_set_recsrc(int source, bool recording);
-#endif
+#endif /* HAVE_RECORDING */
+#else /* !HAVE_WM8750 */
+#define AUDIOHW_CAPS (BASS_CAP | TREBLE_CAP | PRESCALER_CAP | \
+                      BASS_CUTOFF_CAP | TREBLE_CUTOFF_CAP | \
+                      LINEOUT_CAP)
+#endif /* HAVE_WM8750 */
+
+AUDIOHW_SETTING(VOLUME,         "dB", 0,  1,  -74,    6,  -25)
+AUDIOHW_SETTING(BASS,           "dB", 1, 15,  -60,   90,    0)
+AUDIOHW_SETTING(TREBLE,         "dB", 1, 15,  -60,   90,    0)
+AUDIOHW_SETTING(BASS_CUTOFF,    "Hz", 0, 70,  130,  200,  200)
+AUDIOHW_SETTING(TREBLE_CUTOFF, "kHz", 0,  4,    4,    8,    4)
 
 /* Register addresses and bits */
 #define OUTPUT_MUTED                0x2f
@@ -60,12 +71,13 @@ void audiohw_set_recsrc(int source, bool recording);
 #endif
 
 #define LOUT1                       0x02
-#define LOUT1_LOUT1VOL_MASK         (0x07f << 0)
+#define LOUT1_LOUT1VOL_MASK         0x07f
 #define LOUT1_LOUT1VOL(x)           ((x) & 0x7f)
 #define LOUT1_LO1ZC                 (1 << 7)
 #define LOUT1_LO1VU                 (1 << 8)
 
 #define ROUT1                       0x03
+#define ROUT1_ROUT1VOL_MASK         0x17f
 #define ROUT1_ROUT1VOL(x)           ((x) & 0x7f)
 #define ROUT1_RO1ZC                 (1 << 7)
 #define ROUT1_RO1VU                 (1 << 8)
@@ -110,11 +122,13 @@ void audiohw_set_recsrc(int source, bool recording);
 #define RIGHTGAIN_RDVU              (1 << 8)
 
 #define BASSCTRL                    0x0c
+#define BASSCTRL_BASS_MASK          0x0f
 #define BASSCTRL_BASS(x)            ((x) & 0xf)
 #define BASSCTRL_BC                 (1 << 6)
 #define BASSCTRL_BB                 (1 << 7)
 
 #define TREBCTRL                    0x0d
+#define TREBCTRL_TREB_MASK          0x0f
 #define TREBCTRL_TREB(x)            ((x) & 0xf)
 #define TREBCTRL_TC                 (1 << 6)
 
@@ -125,6 +139,7 @@ void audiohw_set_recsrc(int source, bool recording);
 #define ENHANCE_3D                  0x10
 #define ENHANCE_3D_3DEN             (1 << 0)
 #define ENHANCE_3D_DEPTH(x)         (((x) & 0xf) << 1)
+#define ENHANCE_3D_DEPTH_MASK       (0x0f << 1)
 #define ENHANCE_3D_3DLC             (1 << 5)
 #define ENHANCE_3D_3DUC             (1 << 6)
 #define ENHANCE_3D_MODE3D_PLAYBACK  (1 << 7)
@@ -137,6 +152,7 @@ void audiohw_set_recsrc(int source, bool recording);
 #define ALC1_ALCSEL_RIGHT           (1 << 7)
 #define ALC1_ALCSEL_LEFT            (2 << 7)
 #define ALC1_ALCSEL_STEREO          (3 << 7)
+#define ALC1_ALCSEL_MASK            (3 << 7)
 
 #define ALC2                        0x12
 #define ALC2_HLD(x)                 ((x) & 0x0f)
@@ -152,6 +168,14 @@ void audiohw_set_recsrc(int source, bool recording);
 #define NGAT_NGG_MUTEADC            (1 << 1)
 #define NGAT_NGG(x)                 (((x) & 0x3) << 1)
 #define NGAT_NGTH(x)                (((x) & 0x1f) << 3)
+
+#define LADCVOL                     0x15
+#define LADCVOL_LADCVOL(x)          ((x) & 0xff)
+#define LADCVOL_LAVU                (1 << 8)
+
+#define RADCVOL                     0x16
+#define RADCVOL_RADCVOL(x)          ((x) & 0xff)
+#define RADCVOL_RAVU                (1 << 8)
 #endif
 
 #define ADDITIONAL1                 0x17
@@ -167,6 +191,7 @@ void audiohw_set_recsrc(int source, bool recording);
 #define ADDITIONAL1_VSEL_DEFAULT2   (2 << 6)
 #define ADDITIONAL1_VSEL_DEFAULT    (3 << 6)
 #define ADDITIONAL1_VSEL(x)         ((x) & (0x3 << 6))
+#define ADDITIONAL1_VSEL_MASK       (3 << 6)
 #define ADDITIONAL1_TSDEN           (1 << 8)
 
 #define ADDITIONAL2                 0x18
@@ -196,6 +221,7 @@ void audiohw_set_recsrc(int source, bool recording);
 #define PWRMGMT1_VMIDSEL_500K       (2 << 7)
 #define PWRMGMT1_VMIDSEL_5K         (3 << 7)
 #define PWRMGMT1_VMIDSEL(x)         ((x) & (0x3 << 7))
+#define PWRMGMT1_VMIDSEL_MASK       ((1<<8)|(1<<7))
 
 #define PWRMGMT2                    0x1a
 #define PWRMGMT2_OUT3               (1 << 1)
@@ -232,7 +258,8 @@ void audiohw_set_recsrc(int source, bool recording);
 #define ADCL_LINSEL_LINPUT1         (0 << 6)
 #define ADCL_LINSEL_LINPUT2         (1 << 6)
 #define ADCL_LINSEL_LINPUT3         (2 << 6)
-#define ADCL_LINSEL_DIFF            (3 << 6)         
+#define ADCL_LINSEL_DIFF            (3 << 6)        
+#define ADCL_LINSEL_MASK            (3 << 6) 
 
 #define ADCR                        0x21
 #define ADCR_RMICBOOST_DISABLED     (0 << 4)
@@ -244,6 +271,7 @@ void audiohw_set_recsrc(int source, bool recording);
 #define ADCR_RINSEL_RINPUT2         (1 << 6)
 #define ADCR_RINSEL_RINPUT3         (2 << 6)
 #define ADCR_RINSEL_DIFF            (3 << 6)
+#define ADCR_RINSEL_MASK            (3 << 6)
 #endif
 
 #define LEFTMIX1                    0x22
@@ -256,6 +284,7 @@ void audiohw_set_recsrc(int source, bool recording);
 #endif
 #define LEFTMIX1_LI2LO_DEFAULT      (5 << 4)
 #define LEFTMIX1_LI2LOVOL(x)        ((x) & (0x7 << 4))
+#define LEFTMIX1_LI2LOVOL_MASK      (0x7 << 4)
 #define LEFTMIX1_LI2LO              (1 << 7)
 #define LEFTMIX1_LD2LO              (1 << 8)
 
@@ -297,6 +326,7 @@ void audiohw_set_recsrc(int source, bool recording);
 #endif
 #define RIGHTMIX2_RI2RO_DEFAULT     (5 << 4)
 #define RIGHTMIX2_RI2ROVOL(x)       ((x) & (0x7 << 4))
+#define RIGHTMIX2_RI2ROVOL_MASK     (0x7 << 4)
 #define RIGHTMIX2_RI2RO             (1 << 7)
 #define RIGHTMIX2_RD2RO             (1 << 8)
 
@@ -312,16 +342,20 @@ void audiohw_set_recsrc(int source, bool recording);
 #define MONOMIX2_RD2MO              (1 << 8)
 
 #define LOUT2                       0x28
+#define LOUT2_LOUT2VOL_MASK         0x7f
 #define LOUT2_LOUT2VOL(x)           ((x) & 0x7f)
 #define LOUT2_LO2ZC                 (1 << 7)
 #define LOUT2_LO2VU                 (1 << 8)
 
 #define ROUT2                       0x29
+#define ROUT2_ROUT2VOL_MASK         0x17f
 #define ROUT2_ROUT2VOL(x)           ((x) & 0x7f)
 #define ROUT2_RO2ZC                 (1 << 7)
 #define ROUT2_RO2VU                 (1 << 8)
 
 #define MONOOUT                     0x2a
 #define MONOOUT_MOZC                (1 << 7)
+
+#define WM_NUM_REGS                 0x2b
 
 #endif /* _WM8751_H */

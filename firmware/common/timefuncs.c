@@ -44,6 +44,7 @@ static void fill_default_tm(struct tm *tm)
 }
 #endif /* !CONFIG_RTC */
 
+#if CONFIG_RTC
 bool valid_time(const struct tm *tm)
 {
     if (tm->tm_hour < 0 || tm->tm_hour > 23 ||
@@ -57,6 +58,7 @@ bool valid_time(const struct tm *tm)
     else
         return true;
 }
+#endif /* CONFIG_RTC */
 
 struct tm *get_time(void)
 {
@@ -69,6 +71,7 @@ struct tm *get_time(void)
         /* Once per second, 1/10th of a second off */
         timeout = HZ * (current_tick / HZ + 1) + HZ / 5;
         rtc_read_datetime(&tm);
+        set_day_of_week(&tm);
 
         tm.tm_yday = 0; /* Not implemented for now */
         tm.tm_isdst = -1; /* Not implemented for now */
@@ -99,10 +102,11 @@ int set_time(const struct tm *tm)
     }
 #else /* No RTC */
     (void)tm;
-    return 0;
+    return -1;
 #endif /* RTC */
 }
 
+#if CONFIG_RTC
 void set_day_of_week(struct tm *tm)
 {
     int y=tm->tm_year+1900;
@@ -113,4 +117,5 @@ void set_day_of_week(struct tm *tm)
     if(m == 0 || m == 1) y--;
     tm->tm_wday = (d + mo[m] + y + y/4 - y/100 + y/400) % 7;
 }
+#endif /* CONFIG_RTC */
 

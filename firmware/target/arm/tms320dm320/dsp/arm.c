@@ -20,13 +20,13 @@
  *
  ****************************************************************************/
 
-#include <stdio.h>
 #include "arm.h"
 #include "registers.h"
 #include "ipc.h"
 #include "dma.h"
 
 volatile struct ipc_message status;
+volatile short int0_count;
 
 #if defined(HAVE_DEBUG)
 static int acked;
@@ -34,6 +34,7 @@ static int acked;
 
 interrupt void handle_int0(void) {
     IFR = 1;
+    int0_count++;
     
 #if defined(HAVE_DEBUG)
     acked = 1;
@@ -94,3 +95,19 @@ void debugf(const char *fmt, ...) {
     acked = 2;
 }
 #endif
+
+void int_arm(void)
+{
+    /*
+     * ImageBuffer clock enable in ARM's MOD1 is ORed with clock enable
+     * bit in CP_CLKC
+     */
+
+    /* Enable Image Buffer clock */
+    CP_CLKC |= 1 << 0;
+    /* Send interrupt to ARM */
+    CP_INTC = 1 << 3;
+    /* Disable Image Buffer clock */
+    CP_CLKC &= ~(1 << 0);
+}
+

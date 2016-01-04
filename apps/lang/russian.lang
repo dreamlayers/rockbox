@@ -25,6 +25,9 @@
 # - Alexander Levin
 # - Anton Veretenenko
 # - Simon Zhukovsky
+# - Desu Rozen
+# - James Hunt
+# - Dmitriy Gamza
 <phrase>
   id: LANG_SET_BOOL_YES
   desc: bool true representation
@@ -1407,10 +1410,10 @@
     *: "Gather Runtime Data"
   </source>
   <dest>
-    *: "Собирать данные о треках"
+    *: "Собирать данные о прослушивании"
   </dest>
   <voice>
-    *: "Собирать данные о треках"
+    *: "Собирать данные о прослушивании"
   </voice>
 </phrase>
 <phrase>
@@ -1575,10 +1578,10 @@
     *: "Show Icons"
   </source>
   <dest>
-    *: "Показать иконки"
+    *: "Показывать иконки"
   </dest>
   <voice>
-    *: "Показать иконки"
+    *: "Показывать иконки"
   </voice>
 </phrase>
 <phrase>
@@ -1606,10 +1609,10 @@
     *: "While Playing Screen"
   </source>
   <dest>
-    *: "Выбор файлов .wps"
+    *: "Экран воспроизведения"
   </dest>
   <voice>
-    *: "Выбор файлов .wps"
+    *: "Экран воспроизведения"
   </voice>
 </phrase>
 <phrase>
@@ -1963,11 +1966,11 @@
   </source>
   <dest>
     *: none
-    rtc: "Время и Дата"
+    rtc: "Время и дата"
   </dest>
   <voice>
     *: none
-    rtc: "Время и Дата"
+    rtc: "Время и дата"
   </voice>
 </phrase>
 <phrase>
@@ -2071,10 +2074,10 @@
     *: "Bookmark on Stop"
   </source>
   <dest>
-    *: "Создавать закладку на Паузе"
+    *: "Создавать закладку на паузе"
   </dest>
   <voice>
-    *: "Создавать закладку на Паузе"
+    *: "Создавать закладку на паузе"
   </voice>
 </phrase>
 <phrase>
@@ -2249,20 +2252,20 @@
   </voice>
 </phrase>
 <phrase>
-  id: LANG_RECORDING_FREQUENCY
-  desc: in the recording settings
+  id: LANG_FREQUENCY
+  desc: in recording and playback settings
   user: core
   <source>
     *: none
-    recording: "Frequency"
+    recording,play_frequency: "Frequency"
   </source>
   <dest>
     *: none
-    recording: "Частота"
+    recording,play_frequency: "Частота"
   </dest>
   <voice>
     *: none
-    recording: "Частота"
+    recording,play_frequency: "Частота"
   </voice>
 </phrase>
 <phrase>
@@ -3046,11 +3049,11 @@
   </source>
   <dest>
     *: none
-    lcd_bitmap: "Прокрутка экрана"
+    lcd_bitmap: "Прокручивать за границы экрана"
   </dest>
   <voice>
     *: none
-    lcd_bitmap: "Прокрутка экрана"
+    lcd_bitmap: "Прокручивать за границы экрана"
   </voice>
 </phrase>
 <phrase>
@@ -4022,19 +4025,19 @@
   <source>
     *: none
     multivolume: "HD1"
-    sansae200*,sansac200*,sansafuze*: "mSD:"
+    sansae200*,sansac200*,sansafuze*,sansaclipplus: "mSD:"
     archosondio*: "MMC:"
   </source>
   <dest>
     *: none
     multivolume: "HD1"
-    sansae200*,sansac200*,sansafuze*: "mSD:"
+    sansae200*,sansac200*,sansafuze*,sansaclipplus: "mSD:"
     archosondio*: "MMC:"
   </dest>
   <voice>
     *: none
     multivolume: "Эйч Ди 1"
-    sansae200*,sansac200*,sansafuze*: "микро Эс Ди"
+    sansae200*,sansac200*,sansafuze*,sansaclipplus: "микро Эс Ди"
     archosondio*: "Эм Эм Си"
   </voice>
 </phrase>
@@ -4172,10 +4175,12 @@
     iaudiox5,iaudiom5: "RECORD = Revert"
     iriverh10,iriverh10_5gb,sansae200*,sansafuze*: "PREV = Revert"
     gigabeatfx: "POWER = Revert"
+    sansafuzeplus: "BACK = Revert"
     mrobe100: "DISPLAY = Revert"
     gigabeats: "BACK = Revert"
     gogearsa9200: "LEFT = Revert"
     vibe500: "CANCEL = Revert"
+    samsungyh*: "REW = Revert"
   </source>
   <dest>
     *: none
@@ -4190,6 +4195,7 @@
     gigabeats: "НАЗАД = Отмена"
     gogearsa9200: "ЛЕВО = Отмена"
     vibe500: "C = Отмена"
+    samsungyh*: "REW = Отмена"
   </dest>
   <voice>
     *: none
@@ -4239,6 +4245,7 @@
     iriverh100,iriverh120,iriverh300: "The disk is full. Press STOP to continue."
     iaudiom5,iaudiox5: "The disk is full. Press POWER to continue."
     sansae200*,sansac200*,vibe500: "The disk is full. Press PREV to continue."
+    samsungyh*: "Disk full. Press LEFT to continue."
   </source>
   <dest>
     *: none
@@ -4246,6 +4253,7 @@
     iriverh100,iriverh120,iriverh300: "Диск заполнен. Нажмите СТОП для продолжения."
     iaudiom5,iaudiox5: "Диск заполнен. Нажмите ВЫКЛ. для продолжения."
     sansae200*,sansac200*,vibe500: "Диск заполнен. Нажмите ПРЕД. для продолжения."
+    samsungyh*: "Диск заполнен. Нажмите LEFT для продолжения."
   </dest>
   <voice>
     *: none
@@ -4416,6 +4424,7 @@
     gigabeats: "SELECT=Set POWER=Cancel"
     vibe500: "OK=Set C=Cancel"
     mpiohd300: "ENTER=Set MENU=Cancel"
+    sansafuzeplus: "SELECT=Set  BACK=Cancel"
   </source>
   <dest>
     *: none
@@ -4425,6 +4434,7 @@
     gigabeats: "ВЫБОР=Уст., ВЫКЛ.=Отм."
     vibe500: "OK=Уст., C=Отм."
     mpiohd300: "ENTER=Уст., MENU=Отм."
+    sansafuzeplus: "SELECT=Уст.,  BACK=Отм."
   </dest>
   <voice>
     *: none
@@ -6831,6 +6841,7 @@
     iriverh10,iriverh10_5gb,sansae200*,sansac200*,vibe500: "PREV to abort"
     gigabeats: "BACK to abort"
     gigabeatfx: "POWER to abort"
+    sansafuzeplus: "BACK to abort"
   </source>
   <dest>
     *: "ВЫКЛ. для отмены"
@@ -6861,15 +6872,15 @@
 </phrase>
 <phrase>
   id: LANG_BACKDROP_LOADED
-  desc: text for splash to indicate a new backdrop has been loaded successfully
+  desc: deprecated
   user: core
   <source>
     *: none
-    lcd_non-mono: "Backdrop Loaded"
+    lcd_non-mono: ""
   </source>
   <dest>
     *: none
-    lcd_non-mono: "Фон загружен"
+    lcd_non-mono: ""
   </dest>
   <voice>
     *: none
@@ -6878,15 +6889,15 @@
 </phrase>
 <phrase>
   id: LANG_BACKDROP_FAILED
-  desc: text for splash to indicate a failure to load a bitmap as backdrop
+  desc: deprecated
   user: core
   <source>
     *: none
-    lcd_non-mono: "Backdrop Failed"
+    lcd_non-mono: ""
   </source>
   <dest>
     *: none
-    lcd_non-mono: "Ошибка загрузки фона"
+    lcd_non-mono: ""
   </dest>
   <voice>
     *: none
@@ -6915,10 +6926,10 @@
     *: "Show Indices"
   </source>
   <dest>
-    *: "Показать индексы"
+    *: "Показывать порядковый номер"
   </dest>
   <voice>
-    *: "Показать индексы"
+    *: "Показывать порядковый номер"
   </voice>
 </phrase>
 <phrase>
@@ -6929,10 +6940,10 @@
     *: "Track Display"
   </source>
   <dest>
-    *: "Экран песен"
+    *: "Показывать названия песен"
   </dest>
   <voice>
-    *: "Экран песен"
+    *: "Показывать названия песен"
   </voice>
 </phrase>
 <phrase>
@@ -7284,19 +7295,19 @@
 </phrase>
 <phrase>
   id: LANG_FM_SAVE_CHANGES
-  desc: When you try to exit radio to confirm save
+  desc: deprecated
   user: core
   <source>
     *: none
-    radio: "Save Changes?"
+    radio: ""
   </source>
   <dest>
     *: none
-    radio: "Сохранить изменения?"
+    radio: ""
   </dest>
   <voice>
     *: none
-    radio: "Сохранить изменения?"
+    radio: ""
   </voice>
 </phrase>
 <phrase>
@@ -7381,15 +7392,15 @@
   user: core
   <source>
     *: none
-    ipodvideo: "Bass Cutoff"
+    ipodvideo,ipod6g,mpiohd200,mpiohd300,gigabeatfx,mrobe100: "Bass Cutoff"
   </source>
   <dest>
     *: none
-    ipodvideo: "Отсечение баса"
+    ipodvideo,ipod6g,mpiohd200,mpiohd300,gigabeatfx,mrobe100: "Отсечение баса"
   </dest>
   <voice>
     *: none
-    ipodvideo: "Отсечение баса"
+    ipodvideo,ipod6g,mpiohd200,mpiohd300,gigabeatfx,mrobe100: "Отсечение баса"
   </voice>
 </phrase>
 <phrase>
@@ -7465,17 +7476,19 @@
     *: "Building database... %d found (OFF to return)"
     iriverh100,iriverh120,iriverh300: "Building database... %d found (STOP to return)"
     ipod*: "Building database... %d found (PREV to return)"
-    iaudiox5,iaudiom5,gigabeat*,mrobe100: "Building database... %d found (LEFT to return)"
+    iaudiox5,iaudiom5,gigabeat*,mrobe100,samsungyh*: "Building database... %d found (LEFT to return)"
     iriverh10,iriverh10_5gb,sansae200*,sansac200*,sansafuze*,vibe500: "Building database... %d found (PREV to return)"
     gogearsa9200: "Building database... %d found (REW to return)"
+    archosplayer: "Building DB %d found"
   </source>
   <dest>
     *: "Построение базы... %d найдено (ВЫКЛ. для отмены)"
     iriverh100,iriverh120,iriverh300: "Построение базы... %d найдено (СТОП для отмены)"
     ipod*: "Построение базы... %d найдено (ПРЕД. для отмены)"
-    iaudiox5,iaudiom5,gigabeat*,mrobe100: "Построение базы... %d найдено (ВЛЕВО для отмены)"
+    iaudiox5,iaudiom5,gigabeat*,mrobe100,samsungyh*: "Построение базы... %d найдено (ВЛЕВО для отмены)"
     iriverh10,iriverh10_5gb,sansae200*,sansac200*,sansafuze*,vibe500: "Построение базы... %d найдено (ПРЕД. для отмены)"
     gogearsa9200: "Построение базы... %d найдено (РЕВЕРС. для отмены)"
+    archosplayer: "Построение БД... %d найдено"
   </dest>
   <voice>
     *: "найдено записей в базе"
@@ -7506,7 +7519,7 @@
     *: "<Все треки>"
   </dest>
   <voice>
-    *: "<Все треки>"
+    *: "Все треки"
   </voice>
 </phrase>
 <phrase>
@@ -7631,20 +7644,6 @@
   <voice>
     *: none
     lcd_sleep: "Режим сна (после отключения подсветки)"
-  </voice>
-</phrase>
-<phrase>
-  id: LANG_REC_SIZE
-  desc: deprecated
-  user:
-  <source>
-    *: none
-  </source>
-  <dest>
-    *: none
-  </dest>
-  <voice>
-    *: none
   </voice>
 </phrase>
 <phrase>
@@ -7908,11 +7907,11 @@
   </source>
   <dest>
     *: none
-    rtc: "Установить Время/Дату"
+    rtc: "Установить время/дату"
   </dest>
   <voice>
     *: none
-    rtc: "Установить Время/Дату"
+    rtc: "Установить время/дату"
   </voice>
 </phrase>
 <phrase>
@@ -8187,7 +8186,7 @@
     *: "PLAY = Yes"
     cowond2*: "MENU, or top-right = Yes"
     iriverh100,iriverh120,iriverh300: "NAVI = Yes"
-    samsungyh*,ipod*,iaudiox5,iaudiom5,gigabeat*,sansae200*,sansac200*,iriverh10,iriverh10_5gb,mrobe100,sansaclip*,sansafuze*: "SELECT = Yes"
+    ipod*,iaudiox5,iaudiom5,gigabeat*,sansae200*,sansac200*,iriverh10,iriverh10_5gb,mrobe100,sansaclip*,sansafuze*,sansaconnect: "SELECT = Yes"
     mrobe500: "PLAY, POWER, or top-right = Yes"
     archosplayer: "(PLAY/STOP)"
     vibe500: "OK = Yes"
@@ -8196,7 +8195,7 @@
     *: "ВОСПР. = Да"
     cowond2*: "МЕНЮ или прав. верх. = Да"
     iriverh100,iriverh120,iriverh300: "НАВИГ. = Да"
-    samsungyh*,ipod*,iaudiox5,iaudiom5,gigabeat*,sansae200*,sansac200*,iriverh10,iriverh10_5gb,mrobe100,sansaclip*,sansafuze*: "ВЫБОР = Да"
+    ipod*,iaudiox5,iaudiom5,gigabeat*,sansae200*,sansac200*,iriverh10,iriverh10_5gb,mrobe100,sansaclip*,sansafuze*: "ВЫБОР = Да"
     mrobe500: "ВОСПР., ВЫКЛ или прав. верх. = Да"
     archosplayer: "(ВОСПР./СТОП)"
     vibe500: "OK = Да"
@@ -8214,8 +8213,8 @@
     rtc: "ON = Set"
     mrobe500: "HEART = Set"
     iriverh100,iriverh120,iriverh300: "NAVI = Set"
-    ipod*,iaudiox5,iaudiom5,iriverh10,iriverh10_5gb,sansae200*,sansac200*,gigabeat*,mrobe100,sansaclip*,sansafuze*: "SELECT = Set"
-    gogearsa9200: "PLAY = Set"
+    ipod*,iaudiox5,iaudiom5,iriverh10,iriverh10_5gb,sansae200*,sansac200*,gigabeat*,mrobe100,sansaclip*,sansafuze*,sansaconnect: "SELECT = Set"
+    gogearsa9200,samsungyh*: "PLAY = Set"
     vibe500: "OK = Set"
     mpiohd300: "ENTER = Set"
   </source>
@@ -8225,7 +8224,7 @@
     mrobe500: "СЕРДЦЕ = Установить"
     iriverh100,iriverh120,iriverh300: "НАВИГ. = Установить"
     ipod*,iaudiox5,iaudiom5,iriverh10,iriverh10_5gb,sansae200*,sansac200*,gigabeat*,mrobe100,sansaclip*,sansafuze*: "ВЫБОР = Установить"
-    gogearsa9200: "ВОСПР. = Установить"
+    gogearsa9200,samsungyh*: "ВОСПР. = Установить"
     vibe500: "OK = Установить"
     mpiohd300: "ENTER = Установить"
   </dest>
@@ -8289,7 +8288,7 @@
     *: "Просмотреть файл .cue"
   </dest>
   <voice>
-    *: ""
+    *: "Просмотреть файл .cue"
   </voice>
 </phrase>
 <phrase>
@@ -8351,7 +8350,7 @@
     *: "<Случайный>"
   </dest>
   <voice>
-    *: "<Случайный>"
+    *: "Случайный"
   </voice>
 </phrase>
 <phrase>
@@ -8611,11 +8610,11 @@
   </source>
   <dest>
     *: none
-    alarm: "Экран будильника"
+    alarm: "Действие будильника"
   </dest>
   <voice>
     *: none
-    alarm: "Экран будильника"
+    alarm: "Действие будильника"
   </voice>
 </phrase>
 <phrase>
@@ -8628,11 +8627,11 @@
   </source>
   <dest>
     *: none
-    recording: "Очистить папку записи"
+    recording: "Сбросить папку записи"
   </dest>
   <voice>
     *: none
-    recording: "Очистить папку записи"
+    recording: "Сбросить папку записи"
   </voice>
 </phrase>
 <phrase>
@@ -8883,7 +8882,7 @@
     *: "Режим:"
   </dest>
   <voice>
-    *: ""
+    *: "Режим:"
   </voice>
 </phrase>
 <phrase>
@@ -9029,10 +9028,10 @@
 </phrase>
 <phrase>
   id: LANG_CATALOG
-  desc: in onplay menu
+  desc: in main menu and onplay menu
   user: core
   <source>
-    *: "Playlist Catalog"
+    *: "Playlist Catalogue"
   </source>
   <dest>
     *: "Каталог списков"
@@ -9305,19 +9304,16 @@
 </phrase>
 <phrase>
   id: LANG_HEADPHONE_UNPLUG_RW
-  desc: in pause_phones_menu.
+  desc: deprecated
   user: core
   <source>
-    *: none
-    headphone_detection: "Duration to Rewind"
+    *: ""
   </source>
   <dest>
-    *: none
-    headphone_detection: "Продолжительность перемотки"
+    *: ""
   </dest>
   <voice>
-    *: none
-    headphone_detection: "Продолжительность перемотки"
+    *: ""
   </voice>
 </phrase>
 <phrase>
@@ -9353,7 +9349,7 @@
 </phrase>
 <phrase>
   id: LANG_CATALOG_ADD_TO_NEW
-  desc: in onplay playlist catalog submenu
+  desc: in onplay playlist catalogue submenu
   user: core
   <source>
     *: "Add to New Playlist"
@@ -9514,10 +9510,10 @@
     *: "Previous Screen"
   </source>
   <dest>
-    *: "Предыдущий экран"
+    *: "Последнее использованное"
   </dest>
   <voice>
-    *: "Предыдущий экран"
+    *: "Последнее использованное"
   </voice>
 </phrase>
 <phrase>
@@ -9553,7 +9549,7 @@
 </phrase>
 <phrase>
   id: LANG_CATALOG_ADD_TO
-  desc: in onplay playlist catalog submenu
+  desc: in onplay playlist catalogue submenu
   user: core
   <source>
     *: "Add to Playlist"
@@ -9711,10 +9707,10 @@
     *: "Start Screen"
   </source>
   <dest>
-    *: "Главное меню"
+    *: "Показывать при запуске"
   </dest>
   <voice>
-    *: "Главное меню"
+    *: "Показывать при запуске"
   </voice>
 </phrase>
 <phrase>
@@ -9745,7 +9741,7 @@
     *: "<Не продолжать>"
   </dest>
   <voice>
-    *: "<Не продолжать>"
+    *: "Не продолжать"
   </voice>
 </phrase>
 <phrase>
@@ -9851,11 +9847,11 @@
   </source>
   <dest>
     *: none
-    swcodec: "Фасонирование"
+    swcodec: "Дизеринг"
   </dest>
   <voice>
     *: none
-    swcodec: "Фасонирование"
+    swcodec: "Дизеринг"
   </voice>
 </phrase>
 <phrase>
@@ -9984,10 +9980,10 @@
 </phrase>
 <phrase>
   id: LANG_CATALOG_VIEW
-  desc: in onplay playlist catalog submenu
+  desc: in onplay playlist catalogue submenu
   user: core
   <source>
-    *: "View Catalog"
+    *: "View Catalogue"
   </source>
   <dest>
     *: "Каталог"
@@ -10052,7 +10048,7 @@
     *: "<Неверная закладка>"
   </dest>
   <voice>
-    *: "<Неверная закладка>"
+    *: "Неверная закладка"
   </voice>
 </phrase>
 <phrase>
@@ -10157,15 +10153,15 @@
   user: core
   <source>
     *: none
-    ipodvideo: "Treble Cutoff"
+    ipodvideo,ipod6g,mpiohd200,mpiohd300,gigabeatfx,mrobe100: "Treble Cutoff"
   </source>
   <dest>
     *: none
-    ipodvideo: "Подавление высоких частот"
+    ipodvideo,ipod6g,mpiohd200,mpiohd300,gigabeatfx,mrobe100: "Подавление высоких частот"
   </dest>
   <voice>
     *: none
-    ipodvideo: "Подавление высоких частот"
+    ipodvideo,ipod6g,mpiohd200,mpiohd300,gigabeatfx,mrobe100: "Подавление высоких частот"
   </voice>
 </phrase>
 <phrase>
@@ -10187,7 +10183,7 @@
 </phrase>
 <phrase>
   id: LANG_PLAYLISTS
-  desc: in the main menu and file view setting
+  desc: in the file view setting
   user: core
   <source>
     *: "Playlists"
@@ -10389,7 +10385,7 @@
 </phrase>
 <phrase>
   id: LANG_CATALOG_NO_DIRECTORY
-  desc: error message when playlist catalog directory doesn't exist
+  desc: error message when playlist catalogue directory doesn't exist
   user: core
   <source>
     *: "%s doesn't exist"
@@ -10403,7 +10399,7 @@
 </phrase>
 <phrase>
   id: LANG_CATALOG_NO_PLAYLISTS
-  desc: error message when no playlists for playlist catalog
+  desc: error message when no playlists for playlist catalogue
   user: core
   <source>
     *: "No Playlists"
@@ -10524,11 +10520,11 @@
   </source>
   <dest>
     *: none
-    swcodec: "Повтор Сигнала"
+    swcodec: "Повтор сигнала"
   </dest>
   <voice>
     *: none
-    swcodec: "Повтор Сигнала"
+    swcodec: "Повтор сигнала"
   </voice>
 </phrase>
 <phrase>
@@ -10537,15 +10533,15 @@
   user: core
   <source>
     *: none
-    gigabeatfx: "Touchpad Sensitivity"
+    gigabeatfx,sansafuzeplus: "Touchpad Sensitivity"
   </source>
   <dest>
     *: none
-    gigabeatfx: "Чувствительность тачпада"
+    gigabeatfx,sansafuzeplus: "Чувствительность тачпада"
   </dest>
   <voice>
     *: none
-    gigabeatfx: "Чувствительность тачпада"
+    gigabeatfx,sansafuzeplus: "Чувствительность тачпада"
   </voice>
 </phrase>
 <phrase>
@@ -11278,10 +11274,10 @@
     *: "Queue Last Shuffled"
   </source>
   <dest>
-    *: "Queue Last Shuffled"
+    *: "В конец очереди и перемешать"
   </dest>
   <voice>
-    *: "Queue Last Shuffled"
+    *: "В конец очереди и перемешать"
   </voice>
 </phrase>
 <phrase>
@@ -11693,11 +11689,11 @@
   </source>
   <dest>
     *: none
-    quickscreen: "Set as Top Quickscreen Item"
+    quickscreen: "Установить как верхнюю кнопку на быстром экране"
   </dest>
   <voice>
     *: none
-    quickscreen: "Set as Top Quickscreen Item"
+    quickscreen: "Установить как верхнюю кнопку на быстром экране"
   </voice>
 </phrase>
 <phrase>
@@ -12039,15 +12035,15 @@
   user: core
   <source>
     *: none
-    gigabeats: "3-D Enhancement"
+    depth_3d: "3-D Enhancement"
   </source>
   <dest>
     *: none
-    gigabeats: "3-D расширения"
+    depth_3d: "3-D Расширение"
   </dest>
   <voice>
     *: none
-    gigabeats: "3-D расширения"
+    depth_3d: "3-D Расширение"
   </voice>
 </phrase>
 <phrase>
@@ -12233,16 +12229,16 @@
 </phrase>
 <phrase>
   id: LANG_SKIN_RAM_USAGE
-  desc: how much RAM the skins are using
+  desc: deprecated
   user: core
   <source>
-    *: "Skin RAM usage:"
+    *: ""
   </source>
   <dest>
-    *: "RAM для темы:"
+    *: ""
   </dest>
   <voice>
-    *: "RAM для темы"
+    *: ""
   </voice>
 </phrase>
 <phrase>
@@ -12526,28 +12522,28 @@
   </source>
   <dest>
     *: none
-    usb_hid: "Презантация"
+    usb_hid: "Презентация"
   </dest>
   <voice>
     *: none
-    usb_hid: "Презантация"
+    usb_hid: "Презентация"
   </voice>
 </phrase>
 <phrase>
-  id: LANG_RECORDING_HISTOGRAM_INTERVAL
+  id: LANG_HISTOGRAM_INTERVAL
   desc: in record settings menu
   user: core
   <source>
     *: none
-    recording_histogram: "Histogram interval"
+    histogram: "Histogram interval"
   </source>
   <dest>
     *: none
-    recording_histogram: "Интервал гистограммы"
+    histogram: "Интервал гистограммы"
   </dest>
   <voice>
     *: none
-    recording_histogram: "Интервал гистограммы"
+    histogram: "Интервал гистограммы"
   </voice>
 </phrase>
 <phrase>
@@ -12607,5 +12603,564 @@
   </dest>
   <voice>
     *: "Размер файла"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_AUTORESUME_ENABLE_YES
+  desc: deprecated
+  user: core
+  <source>
+    *: ""
+  </source>
+  <dest>
+    *: ""
+  </dest>
+  <voice>
+    *: ""
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_AUTORESUME_ENABLE
+  desc: deprecated
+  user: core
+  <source>
+    *: ""
+  </source>
+  <dest>
+    *: ""
+  </dest>
+  <voice>
+    *: ""
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_AUTORESUME
+  desc: resume settings menu
+  user: core
+  <source>
+    *: "Automatic resume"
+  </source>
+  <dest>
+    *: "Авто-возобновление"
+  </dest>
+  <voice>
+    *: "Автоматическое возобновление"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_AUTORESUME_AUTOMATIC
+  desc: resume on automatic track change
+  user: core
+  <source>
+    *: "Resume on automatic track change"
+  </source>
+  <dest>
+    *: "Возобновление при автоматической смене трэка"
+  </dest>
+  <voice>
+    *: "Возобновление при автоматической смене трэка"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_AUTORESUME_CUSTOM
+  desc: enable customization of resume on automatic track change
+  user: core
+  <source>
+    *: "In custom directories only"
+  </source>
+  <dest>
+    *: "Только в заданных папках"
+  </dest>
+  <voice>
+    *: "Только в заданных папках"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_CURRENT_PLAYLIST
+  desc: Used when you need to say playlist, also voiced
+  user: core
+  <source>
+    *: "Current Playlist"
+  </source>
+  <dest>
+    *: "Текущий список"
+  </dest>
+  <voice>
+    *: "Текущий список"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_USB_SKIP_FIRST_DRIVE
+  desc: in settings_menu
+  user: core
+  <source>
+    *: none
+    multidrive_usb: "USB Hide Internal Drive"
+  </source>
+  <dest>
+    *: none
+    multidrive_usb: "USB: Скрыть внутренний диск"
+  </dest>
+  <voice>
+    *: none
+    multidrive_usb: "USB: Скрыть внутренний диск"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_SET_AS_PLAYLISTCAT_DIR
+  desc: used in the onplay menu to set a playlist catalogue dir
+  user: core
+  <source>
+    *: "Set As Playlist Catalogue Directory"
+  </source>
+  <dest>
+    *: "Установить как папку каталога списков"
+  </dest>
+  <voice>
+    *: "Установить как папку каталога списков"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_LIST_LINE_PADDING
+  desc: list padding, in display settings
+  user: core
+  <source>
+    *: none
+    touchscreen: "Line Padding in Lists"
+  </source>
+  <dest>
+    *: none
+    touchscreen: "Отступ в списках"
+  </dest>
+  <voice>
+    *: none
+    touchscreen: "Отступ в списках"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_SAVE_CHANGES
+  desc: When you try to exit screens to confirm save
+  user: core
+  <source>
+    *: "Save Changes?"
+  </source>
+  <dest>
+    *: "Сохранить изменения?"
+  </dest>
+  <voice>
+    *: "Сохранить изменения?"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_PAUSE_REWIND
+  desc: Seconds to rewind when rewind on pause is enabled.
+  user: core
+  <source>
+    *: "Rewind on Pause"
+  </source>
+  <dest>
+    *: "Перемотка назад на паузе"
+  </dest>
+  <voice>
+    *: "Перемотка назад на паузе"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_AUTOMATIC
+  desc: generic automatic
+  user: core
+  <source>
+    *: "Automatic"
+  </source>
+  <dest>
+    *: "Автоматич."
+  </dest>
+  <voice>
+    *: "Автоматич."
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_SLEEP_TIMER_CANCEL_CURRENT
+  desc: shown instead of sleep timer when it's running
+  user: core
+  <source>
+    *: "Cancel Sleep Timer"
+  </source>
+  <dest>
+    *: "Отменить таймер сна"
+  </dest>
+  <voice>
+    *: "Отменить таймер сна"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_LIST_SEPARATOR
+  desc: line between lines in lists
+  user: core
+  <source>
+    *: "Line Separator"
+  </source>
+  <dest>
+    *: "Линия разделитель"
+  </dest>
+  <voice>
+    *: "Линия разделитель"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_LIST_SEPARATOR_COLOR
+  desc: line between lines in lists
+  user: core
+  <source>
+    *: "Line Separator Colour"
+  </source>
+  <dest>
+    *: "Цвет линии разделителя"
+  </dest>
+  <voice>
+    *: "Цвет линии разделителя"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_SLEEP_TIMER_DURATION
+  desc: default sleep timer duration in minutes
+  user: core
+  <source>
+    *: "Default Sleep Timer Duration"
+  </source>
+  <dest>
+    *: "Продолжительность таймера сна по умолчанию"
+  </dest>
+  <voice>
+    *: "Продолжительность таймера сна по умолчанию"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_RESET_PLAYLISTCAT_DIR
+  desc:
+  user: core
+  <source>
+    *: "Reset Playlist Catalogue Directory"
+  </source>
+  <dest>
+    *: "Сбросить папку каталога списков"
+  </dest>
+  <voice>
+    *: "Сбросить папку каталога списков"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_SLEEP_TIMER_ON_POWER_UP
+  desc: whether sleep timer starts on power up
+  user: core
+  <source>
+    *: "Start Sleep Timer On Boot"
+  </source>
+  <dest>
+    *: "Запускать таймер сна при загрузке"
+  </dest>
+  <voice>
+    *: "Запускать таймер сна при загрузке"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_GLYPHS
+  desc: in settings_menu
+  user: core
+  <source>
+    *: "Glyphs To Cache"
+  </source>
+  <dest>
+    *: "Кешировать глифов"
+  </dest>
+  <voice>
+    *: "Кешировать глифов"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_KEYCLICK_HARDWARE
+  desc: in keyclick settings menu
+  user: core
+  <source>
+    *: none
+    hardware_click: "Speaker Keyclick"
+  </source>
+  <dest>
+    *: none
+    hardware_click: "Сигнал через динамик при нажатии клавиш"
+  </dest>
+  <voice>
+    *: none
+    hardware_click: "Сигнал через динамик при нажатии клавиш"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_KEYCLICK_SOFTWARE
+  desc: in keyclick settings menu
+  user: core
+  <source>
+    *: none
+    hardware_click: "Headphone Keyclick"
+  </source>
+  <dest>
+    *: none
+    hardware_click: "Сигнал через наушники при нажатии клавиш"
+  </dest>
+  <voice>
+    *: none
+    hardware_click: "Сигнал через наушники при нажатии клавиш"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_SHORTCUTS
+  desc: Title in the shortcuts menu
+  user: core
+  <source>
+    *: "Shortcuts"
+  </source>
+  <dest>
+    *: "Ярлыки"
+  </dest>
+  <voice>
+    *: "Ярлыки"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_STARTUP_SHUTDOWN
+  desc: in the general settings menu
+  user: core
+  <source>
+    *: "Startup/Shutdown"
+  </source>
+  <dest>
+    *: "Запуск/выключение"
+  </dest>
+  <voice>
+    *: "Запуск/выключение"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_KEYPRESS_RESTARTS_SLEEP_TIMER
+  desc: whether to restart running sleep timer on keypress
+  user: core
+  <source>
+    *: "Restart Sleep Timer On Keypress"
+  </source>
+  <dest>
+    *: "Перезапускать таймер сна при нажатии клавиш"
+  </dest>
+  <voice>
+    *: "Перезапускать таймер сна при нажатии клавиш"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_CROSSFEED_MEIER
+  desc: in sound settings
+  user: core
+  <source>
+    *: none
+    swcodec: "Simple (Meier)"
+  </source>
+  <dest>
+    *: none
+    swcodec: "Алгоритм Мейера"
+  </dest>
+  <voice>
+    *: none
+    swcodec: "Алгоритм Мейера"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_SLEEP_TIMER_START_CURRENT
+  desc: shown when a sleep timer isn't running
+  user: core
+  <source>
+    *: "Start Sleep Timer"
+  </source>
+  <dest>
+    *: "Запустить таймер сна"
+  </dest>
+  <voice>
+    *: "Запустить таймер сна"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_CODEPAGE_WESTERN_EUROPEAN
+  desc: in codepage setting menu
+  user: core
+  <source>
+    *: "Western European (CP1252)"
+  </source>
+  <dest>
+    *: "Западно-Eвропейская (CP1252)"
+  </dest>
+  <voice>
+    *: "Западно-Eвропейская"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_CROSSFEED_CUSTOM
+  desc: in sound settings
+  user: core
+  <source>
+    *: none
+    swcodec: "Custom"
+  </source>
+  <dest>
+    *: none
+    swcodec: "Ручная настройка"
+  </dest>
+  <voice>
+    *: none
+    swcodec: "Ручная настройка"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_USE_SHORTCUTS_INSTEAD_OF_QS
+  desc: in settings_menu.
+  user: core
+  <source>
+    *: none
+    quickscreen: "Use Shortcuts Menu Instead of Quick Screen"
+  </source>
+  <dest>
+    *: none
+    quickscreen: "Использовать Ярлыки вместо Быстрого меню"
+  </dest>
+  <voice>
+    *: none
+    quickscreen: "Использовать Ярлыки вместо Быстрого меню"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_CONSTRAIN_NEXT_FOLDER
+  desc: in settings_menu. Whether LANG_NEXT_FOLDER should be constrained to directories within LANG_SET_AS_START_DIR
+  user: core
+  <source>
+    *: "Constrain Auto-Change"
+  </source>
+  <dest>
+    *: "Ограничение автоматической смены папки"
+  </dest>
+  <voice>
+    *: "Ограничение автоматической смены папки"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_SELECT_FOLDER
+  desc: in settings_menu
+  user: core
+  <source>
+    *: "Select one or more directories"
+  </source>
+  <dest>
+    *: "Выберите одну или несколько папок"
+  </dest>
+  <voice>
+    *: "Выберите одну или несколько папок"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_SELECT_DATABASE_DIRS
+  desc: in settings_menu
+  user: core
+  <source>
+    *: "Select directories to scan"
+  </source>
+  <dest>
+    *: "Выберите папки для сканирования"
+  </dest>
+  <voice>
+    *: "Выберите папки для сканирования"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_VOLUME_LIMIT
+  desc: in sound_settings
+  user: core
+  <source>
+    *: "Maximum Volume Limit"
+  </source>
+  <dest>
+    *: "Ограничение максимальной громкости"
+  </dest>
+  <voice>
+    *: "Ограничение максимальной громкости"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_SYSFONT_EQUALIZER_BAND_Q
+  desc: in the equalizer settings menu
+  user: core
+  <source>
+    *: none
+    swcodec: "Q"
+  </source>
+  <dest>
+    *: none
+    swcodec: "Q"
+  </dest>
+  <voice>
+    *: none
+    swcodec: "Q"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_FILTER_SLOW
+  desc: in sound settings
+  user: core
+  <source>
+    *: "Slow"
+  </source>
+  <dest>
+    *: "Slow"
+  </dest>
+  <voice>
+    *: "Slow"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_FILTER_SHARP
+  desc: in sound settings
+  user: core
+  <source>
+    *: "Sharp"
+  </source>
+  <dest>
+    *: "Sharp"
+  </dest>
+  <voice>
+    *: "Sharp"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_COMPRESSOR_ATTACK
+  desc: in sound settings
+  user: core
+  <source>
+    *: none
+    swcodec: "Attack Time"
+  </source>
+  <dest>
+    *: none
+    swcodec: "Время атаки"
+  </dest>
+  <voice>
+    *: none
+    swcodec: "Время атаки"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_FILTER_ROLL_OFF
+  desc: in sound settings
+  user: core
+  <source>
+    *: "DAC's filter roll-off"
+  </source>
+  <dest>
+    *: "Цифровой фильтр ЦАП"
+  </dest>
+  <voice>
+    *: "Цифровой фильтр ЦАП"
   </voice>
 </phrase>

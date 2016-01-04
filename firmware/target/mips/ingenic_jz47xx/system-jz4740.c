@@ -26,6 +26,7 @@
 #include "panic.h"
 #include "system.h"
 #include "kernel.h"
+#include "power.h"
 
 #define EXTENDED_EXCEPTION_DESC 0
 #if EXTENDED_EXCEPTION_DESC
@@ -136,7 +137,7 @@ static void dis_irq(unsigned int irq)
         if (!gpio_irq_mask[t])
             __intc_mask_irq(IRQ_GPIO0 - t);
     }
-    else if ((irq >= IRQ_DMA_0) && (irq <= IRQ_DMA_0 + NUM_DMA))
+    else if ((irq >= IRQ_DMA_0) && (irq < IRQ_DMA_0 + NUM_DMA))
     {
         __dmac_channel_disable_irq(irq - IRQ_DMA_0);
         dma_irq_mask &= ~(1 << (irq - IRQ_DMA_0));
@@ -271,7 +272,7 @@ void exception_handler(void* stack_ptr, unsigned int cause, unsigned int epc)
     lcd_set_viewport(NULL);
 #endif
     lcd_clear_display();
-    _backlight_on();
+    backlight_hw_on();
 
     lcd_puts(0, 0, parse_exception(cause));
     lcd_putsf(0, 1, "0x%08x at 0x%08x", read_c0_badvaddr(), epc);

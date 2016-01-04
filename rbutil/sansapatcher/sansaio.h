@@ -23,9 +23,11 @@
 #define __SANSAIO_H
 
 #include <stdint.h>
-#include <unistd.h>
+#if !defined(_MSC_VER)
+#include <unistd.h> /* not available on MSVC */
+#endif
 
-#ifdef __WIN32__
+#if defined(__WIN32__) || defined(_WIN32)
 #include <windows.h>
 #define loff_t int64_t
 #else
@@ -38,6 +40,10 @@
 #define lseek64 lseek
 #endif
 
+#endif
+
+#ifdef __cplusplus
+extern "C" {
 #endif
 
 struct sansa_partinfo_t {
@@ -57,6 +63,7 @@ struct mi4header_t {
 
 struct sansa_t {
     HANDLE dh;
+    unsigned char* sectorbuf;
     char diskname[4096];
     int sector_size;
     struct sansa_partinfo_t pinfo[4];
@@ -71,7 +78,11 @@ int sansa_reopen_rw(struct sansa_t* sansa);
 int sansa_close(struct sansa_t* sansa);
 int sansa_seek(struct sansa_t* sansa, loff_t pos);
 int sansa_read(struct sansa_t* sansa, unsigned char* buf, int nbytes);
-int sansa_write(struct sansa_t* sansa, unsigned char* buf, int nbytes);
-int sansa_alloc_buffer(unsigned char** sectorbuf, int bufsize);
+int sansa_write(struct sansa_t* sansa, int nbytes);
+int sansa_alloc_buffer(struct sansa_t* sansa, int bufsize);
+int sansa_dealloc_buffer(struct sansa_t* sansa);
 
+#ifdef __cplusplus
+}
+#endif
 #endif

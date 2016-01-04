@@ -31,12 +31,21 @@
 int debug_indent_level = 0;
 extern int skin_line;
 extern char* skin_start;
+extern char* skin_buffer;
 
 /* Global error variables */
-int error_line;
-int error_col;
-const char *error_line_start;
-char* error_message;
+static int error_line;
+static int error_col;
+static const char *error_line_start;
+static char* error_message;
+
+
+static inline struct skin_element*
+get_child(OFFSETTYPE(struct skin_element**) children, int child)
+{
+    struct skin_element **kids = SKINOFFSETTOPTR(skin_buffer, children);
+    return kids[child];
+}
 
 /* Debugging functions */
 void skin_error(enum skin_errorcode error, const char* cursor)
@@ -56,6 +65,8 @@ void skin_error(enum skin_errorcode error, const char* cursor)
     switch(error)
     {
     case MEMORY_LIMIT_EXCEEDED:
+        error_line_start = NULL;
+        printf("Error: Memory limit exceeded at Line %d\n", skin_line);
         error_message = "Memory limit exceeded";
         break;
     case NEWLINE_EXPECTED:
@@ -93,6 +104,9 @@ void skin_error(enum skin_errorcode error, const char* cursor)
         break;
     case MULTILINE_EXPECTED:
         error_message = "Expected subline separator";
+        break;
+    case GOT_CALLBACK_ERROR:
+        error_message = "Parser callback returned error";
         break;
     };
 
@@ -142,14 +156,14 @@ void skin_debug_tree(struct skin_element* root)
             printf("{ Viewport \n");
 
             debug_indent_level++;
-            skin_debug_tree(current->children[0]);
+            skin_debug_tree(get_child(current->children, 0));
             debug_indent_level--;
 
             printf("}");
             break;
 
         case TEXT:
-            text = current->data;
+            text = SKINOFFSETTOPTR(skin_buffer, current->data);
             printf("* Plain text on line %d: \"%s\"\n", current->line, text);
             break;
 
@@ -164,7 +178,7 @@ void skin_debug_tree(struct skin_element* root)
                        current->tag->name,
                        current->line, current->params_count);
                 debug_indent_level++;
-                skin_debug_params(current->params_count, current->params);
+                skin_debug_params(current->params_count, SKINOFFSETTOPTR(skin_buffer, current->params));
                 debug_indent_level--;
                 skin_debug_indent();
                 printf(")\n");
@@ -183,7 +197,7 @@ void skin_debug_tree(struct skin_element* root)
             debug_indent_level++;
             for(i = 0; i < current->children_count; i++)
             {
-                skin_debug_tree(current->children[i]);
+                skin_debug_tree(get_child(current->children, i));
             }
             debug_indent_level--;
 
@@ -201,7 +215,7 @@ void skin_debug_tree(struct skin_element* root)
                 skin_debug_indent();
                 printf("[ Enumeration %d\n", i);
                 debug_indent_level++;
-                skin_debug_tree(current->children[i]);
+                skin_debug_tree(get_child(current->children, i));
                 debug_indent_level--;
                 skin_debug_indent();
                 printf("]\n");
@@ -219,7 +233,7 @@ void skin_debug_tree(struct skin_element* root)
 
             debug_indent_level++;
             if (current->children)
-                skin_debug_tree(current->children[0]);
+                skin_debug_tree(get_child(current->children, 0));
             debug_indent_level--;
 
             skin_debug_indent();
@@ -227,7 +241,7 @@ void skin_debug_tree(struct skin_element* root)
             break;
         }
 
-        current = current->next;
+        current = SKINOFFSETTOPTR(skin_buffer, current->next);
     }
 
 }
@@ -246,7 +260,7 @@ void skin_debug_params(int count, struct skin_tag_parameter params[])
             break;
 
         case STRING:
-            printf("string: \"%s\"", params[i].data.text);
+            printf("string: \"%s\"", SKINOFFSETTOPTR(skin_buffer, params[i].data.text));
             break;
 
         case INTEGER:
@@ -261,7 +275,7 @@ void skin_debug_params(int count, struct skin_tag_parameter params[])
         case CODE:
             printf("Skin Code: \n");
             debug_indent_level++;
-            skin_debug_tree(params[i].data.code);
+            skin_debug_tree(SKINOFFSETTOPTR(skin_buffer, params[i].data.code));
             debug_indent_level--;
             skin_debug_indent();
             break;
@@ -272,7 +286,7 @@ void skin_debug_params(int count, struct skin_tag_parameter params[])
     }
 }
 
-void skin_debug_indent()
+void skin_debug_indent(void)
 {
     int i;
     for(i = 0; i < debug_indent_level; i++)
@@ -282,7 +296,7 @@ void skin_debug_indent()
 #endif
 
 #define MIN(a,b) ((a<b)?(a):(b))
-void skin_error_format_message()
+void skin_error_format_message(void)
 {
     int i;
     char text[128];

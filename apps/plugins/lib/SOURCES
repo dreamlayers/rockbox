@@ -4,10 +4,8 @@ helper.c
 md5.c
 jhash.c
 configfile.c
-fixedpoint.c
 playback_control.c
 rgb_hsv.c
-buflib.c
 highscore.c
 simple_viewer.c
 display_text.c
@@ -42,7 +40,6 @@ playergfx.c
 #ifdef HAVE_LCD_BITMAP
 
 #ifdef CPU_ARM
-../../../firmware/target/arm/support-arm.S
 pluginlib_jpeg_idct_arm.S
 #endif
 
@@ -54,6 +51,7 @@ pluginlib_jpeg_load.c
 #endif
 
 checkbox.c
+osd.c
 picture.c
 xlcd_core.c
 xlcd_draw.c

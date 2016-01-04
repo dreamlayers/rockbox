@@ -94,9 +94,9 @@ static long nand_last_activity_value = -1;
 static long nand_stack[DEFAULT_STACK_SIZE];
 
 static struct mutex nand_mtx;
-static struct wakeup nand_wakeup;
+static struct semaphore nand_complete;
 static struct mutex ecc_mtx;
-static struct wakeup ecc_wakeup;
+static struct semaphore ecc_complete;
 
 static uint8_t nand_data[0x800] STORAGE_ALIGN_ATTR;
 static uint8_t nand_ctrl[0x200] STORAGE_ALIGN_ATTR;
@@ -230,7 +230,7 @@ static void nand_transfer_data_start(uint32_t bank, uint32_t direction,
         DMACOM3 = DMACOM_CLEARBOTHDONE;
     DMABASE3 = (uint32_t)buffer;
     DMATCNT3 = (size >> 4) - 1;
-    clean_dcache();
+    commit_dcache();
     DMACOM3 = 4;
 }
 
@@ -239,7 +239,7 @@ static uint32_t nand_transfer_data_collect(uint32_t direction)
     long timeout = current_tick + HZ / 50;
     while ((DMAALLST & DMAALLST_DMABUSY3))
         if (nand_timeout(timeout)) return 1;
-    if (!direction) invalidate_dcache();
+    if (!direction) commit_discard_dcache();
     if (nand_wait_addrdone()) return 1;
     if (!direction) FMCTRL1 = FMCTRL1_CLEARRFIFO | FMCTRL1_CLEARWFIFO;
     else FMCTRL1 = FMCTRL1_CLEARRFIFO;
@@ -263,7 +263,7 @@ static void ecc_start(uint32_t size, void* databuffer, void* sparebuffer,
     ECC_UNK1 = size;
     ECC_DATA_PTR = (uint32_t)databuffer;
     ECC_SPARE_PTR = (uint32_t)sparebuffer;
-    clean_dcache();
+    commit_dcache();
     ECC_CTRL = type;
 }
 
@@ -272,7 +272,7 @@ static uint32_t ecc_collect(void)
     long timeout = current_tick + HZ / 50;
     while (!(SRCPND & INTMSK_ECC))
         if (nand_timeout(timeout)) return ecc_unlock(1);
-    invalidate_dcache();
+    commit_discard_dcache();
     ECC_INT_CLR = 1;
     SRCPND = INTMSK_ECC;
     return ecc_unlock(ECC_RESULT);
@@ -731,9 +731,9 @@ static void nand_thread(void)
 int nand_device_init(void)
 {
     mutex_init(&nand_mtx);
-    wakeup_init(&nand_wakeup);
+    semaphore_init(&nand_complete, 1, 0);
     mutex_init(&ecc_mtx);
-    wakeup_init(&ecc_wakeup);
+    semaphore_init(&ecc_complete, 1, 0);
 
     uint32_t type;
     uint32_t i, j;

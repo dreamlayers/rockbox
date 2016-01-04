@@ -132,7 +132,7 @@ static inline void restore_irq(int oldlevel)
     asm volatile ("move.w %0, %%sr" : : "d"(oldlevel));
 }
 
-static inline uint16_t swap16(uint16_t value)
+static inline uint16_t swap16_hw(uint16_t value)
   /*
     result[15..8] = value[ 7..0];
     result[ 7..0] = value[15..8];
@@ -141,7 +141,7 @@ static inline uint16_t swap16(uint16_t value)
     return (value >> 8) | (value << 8);
 }
 
-static inline uint32_t SWAW32(uint32_t value)
+static inline uint32_t swaw32_hw(uint32_t value)
   /*
     result[31..16] = value[15.. 0];
     result[15.. 0] = value[31..16];
@@ -151,7 +151,7 @@ static inline uint32_t SWAW32(uint32_t value)
     return value;
 }
 
-static inline uint32_t swap32(uint32_t value)
+static inline uint32_t swap32_hw(uint32_t value)
   /*
     result[31..24] = value[ 7.. 0];
     result[23..16] = value[15.. 8];
@@ -174,7 +174,7 @@ static inline uint32_t swap32(uint32_t value)
     return value;
 }
 
-static inline uint32_t swap_odd_even32(uint32_t value)
+static inline uint32_t swap_odd_even32_hw(uint32_t value)
 {
     /*
       result[31..24],[15.. 8] = value[23..16],[ 7.. 0]
@@ -194,12 +194,13 @@ static inline uint32_t swap_odd_even32(uint32_t value)
     return value;
 }
 
-#define HAVE_CPUCACHE_COMMIT_DISCARD
-/* deprecated alias */
-#define HAVE_CPUCACHE_INVALIDATE
-
 #define DEFAULT_PLLCR_AUDIO_BITS 0x10400000
 void coldfire_set_pllcr_audio_bits(long bits);
+
+/* Safely modify the interrupt mask register as the core interrupt level is
+   required to be at least as high as the level interrupt being
+   masked/unmasked */
+void coldfire_imr_mod(unsigned long bits, unsigned long mask);
 
 /* Set DATAINCONTROL without disturbing FIFO reset state */
 void coldfire_set_dataincontrol(unsigned long value);
@@ -217,5 +218,19 @@ extern void cf_set_cpu_frequency(long frequency);
 /* 124.1856 MHz */
 #define CPUFREQ_MAX_MULT     11
 #define CPUFREQ_MAX          (CPUFREQ_MAX_MULT * CPU_FREQ)
+
+void commit_discard_idcache(void);
+static inline void commit_discard_dcache(void) {}
+static inline void commit_dcache(void) {}
+
+/*---------------------------------------------------------------------------
+ * Put core in a power-saving state if waking list wasn't repopulated.
+ *---------------------------------------------------------------------------
+ */
+static inline void core_sleep(void)
+{
+    /* Supervisor mode, interrupts enabled upon wakeup */
+    asm volatile ("stop #0x2000");
+};
 
 #endif /* SYSTEM_TARGET_H */

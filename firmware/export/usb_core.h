@@ -55,22 +55,16 @@ void usb_core_enable_driver(int driver,bool enabled);
 bool usb_core_driver_enabled(int driver);
 void usb_core_handle_transfer_completion(
         struct usb_transfer_completion_event_data* event);
+void usb_core_handle_notify(long id, intptr_t data);
+/* For controllers which handle SET ADDR and/or SET CONFIG in hardware */
+void usb_core_notify_set_address(uint8_t addr);
+void usb_core_notify_set_config(uint8_t config);
 
 int usb_core_request_endpoint(int type, int dir,struct usb_class_driver* drv);
 void usb_core_release_endpoint(int dir);
 
 #ifdef HAVE_HOTSWAP
 void usb_core_hotswap_event(int volume,bool inserted);
-#endif
-
-#ifdef HAVE_USB_CHARGING_ENABLE
-/* hardware which knows how to control usb current should use one
- * of the following to find out from the usb stack how much is ok
- */
-/* implemented by target, called by usb when value changes */
-void usb_charging_maxcurrent_change(int maxcurrent);
-/* implemented by usb, called by target to get value */
-int usb_charging_maxcurrent(void);
 #endif
 
 #endif

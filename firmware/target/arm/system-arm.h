@@ -62,6 +62,24 @@ void __div0(void);
 #define enable_fiq() \
     enable_interrupt(FIQ_STATUS)
 
+#define irq_enabled() \
+    interrupt_enabled(IRQ_STATUS)
+#define fiq_enabled() \
+    interrupt_enabled(FIQ_STATUS)
+#define ints_enabled() \
+    interrupt_enabled(IRQ_FIQ_STATUS)
+
+#define irq_enabled_checkval(val) \
+    (((val) & IRQ_STATUS) == 0)
+#define fiq_enabled_checkval(val) \
+    (((val) & FIQ_STATUS) == 0)
+#define ints_enabled_checkval(val) \
+    (((val) & IRQ_FIQ_STATUS) == 0)
+
+/* We run in SYS mode */
+#define is_thread_context() \
+    (get_processor_mode() == 0x1f)
+
 /* Core-level interrupt masking */
 
 static inline int set_interrupt_status(int status, int mask)
@@ -87,22 +105,36 @@ static inline void restore_interrupt(int cpsr)
     asm volatile ("msr cpsr_c, %0" : : "r"(cpsr));
 }
 
+static inline bool interrupt_enabled(int status)
+{
+    unsigned long cpsr;
+    asm ("mrs %0, cpsr" : "=r"(cpsr));
+    return (cpsr & status) == 0;
+}
+
+static inline unsigned long get_processor_mode(void)
+{
+    unsigned long cpsr;
+    asm ("mrs %0, cpsr" : "=r"(cpsr));
+    return cpsr & 0x1f;
+}
+
 /* ARM_ARCH version section for architecture*/
 
 #if ARM_ARCH >= 6
-static inline uint16_t swap16(uint16_t value)
+static inline uint16_t swap16_hw(uint16_t value)
     /*
       result[15..8] = value[ 7..0];
       result[ 7..0] = value[15..8];
     */
 {
     uint32_t retval;
-    asm volatile ("revsh %0, %1"                /* xxAB */
+    asm ("revsh %0, %1"                         /* xxAB */
         : "=r"(retval) : "r"((uint32_t)value)); /* xxBA */
     return retval;
 }
 
-static inline uint32_t swap32(uint32_t value)
+static inline uint32_t swap32_hw(uint32_t value)
     /*
       result[31..24] = value[ 7.. 0];
       result[23..16] = value[15.. 8];
@@ -111,19 +143,19 @@ static inline uint32_t swap32(uint32_t value)
     */
 {
     uint32_t retval;
-    asm volatile ("rev %0, %1"        /* ABCD */
+    asm ("rev %0, %1"                 /* ABCD */
         : "=r"(retval) : "r"(value)); /* DCBA */
     return retval;
 }
 
-static inline uint32_t swap_odd_even32(uint32_t value)
+static inline uint32_t swap_odd_even32_hw(uint32_t value)
 {
     /*
       result[31..24],[15.. 8] = value[23..16],[ 7.. 0]
       result[23..16],[ 7.. 0] = value[31..24],[15.. 8]
     */
     uint32_t retval;
-    asm volatile ("rev16 %0, %1"      /* ABCD */
+    asm ("rev16 %0, %1"               /* ABCD */
         : "=r"(retval) : "r"(value)); /* BADC */
     return retval;
 }
@@ -190,7 +222,7 @@ static inline int disable_interrupt_save(int mask)
 
 #else /* ARM_ARCH < 6 */
 
-static inline uint16_t swap16(uint16_t value)
+static inline uint16_t swap16_hw(uint16_t value)
     /*
       result[15..8] = value[ 7..0];
       result[ 7..0] = value[15..8];
@@ -199,7 +231,7 @@ static inline uint16_t swap16(uint16_t value)
     return (value >> 8) | (value << 8);
 }
 
-static inline uint32_t swap32(uint32_t value)
+static inline uint32_t swap32_hw(uint32_t value)
     /*
       result[31..24] = value[ 7.. 0];
       result[23..16] = value[15.. 8];
@@ -207,31 +239,53 @@ static inline uint32_t swap32(uint32_t value)
       result[ 7.. 0] = value[31..24];
     */
 {
+#ifdef __thumb__
+    uint32_t mask = 0x00FF00FF;
+    asm (                            /* val  = ABCD */
+        "and %1, %0              \n" /* mask = .B.D */
+        "eor %0, %1              \n" /* val  = A.C. */
+        "lsl %1, #8              \n" /* mask = B.D. */
+        "lsr %0, #8              \n" /* val  = .A.C */
+        "orr %0, %1              \n" /* val  = BADC */
+        "mov %1, #16             \n" /* mask = 16   */
+        "ror %0, %1              \n" /* val  = DCBA */
+        : "+l"(value), "+l"(mask));
+#else
     uint32_t tmp;
-    asm volatile (
-        "eor %1, %0, %0, ror #16 \n\t"
-        "bic %1, %1, #0xff0000   \n\t"
-        "mov %0, %0, ror #8      \n\t"
-        "eor %0, %0, %1, lsr #8  \n\t"
-        : "+r" (value), "=r" (tmp)
-    );
+    asm (
+        "eor %1, %0, %0, ror #16 \n"
+        "bic %1, %1, #0xff0000   \n"
+        "mov %0, %0, ror #8      \n"
+        "eor %0, %0, %1, lsr #8  \n"
+        : "+r" (value), "=r" (tmp));
+#endif
     return value;
 }
 
-static inline uint32_t swap_odd_even32(uint32_t value)
+static inline uint32_t swap_odd_even32_hw(uint32_t value)
 {
     /*
       result[31..24],[15.. 8] = value[23..16],[ 7.. 0]
       result[23..16],[ 7.. 0] = value[31..24],[15.. 8]
     */
+#ifdef __thumb__
+    uint32_t mask = 0x00FF00FF;
+    asm (                            /* val  = ABCD */
+        "and %1, %0             \n"  /* mask = .B.D */
+        "eor %0, %1             \n"  /* val  = A.C. */
+        "lsl %1, #8             \n"  /* mask = B.D. */
+        "lsr %0, #8             \n"  /* val  = .A.C */
+        "orr %0, %1             \n"  /* val  = BADC */
+        : "+l"(value), "+l"(mask));
+#else
     uint32_t tmp;
-    asm volatile (                    /* ABCD      */
-        "bic %1, %0, #0x00ff00  \n\t" /* AB.D      */
-        "bic %0, %0, #0xff0000  \n\t" /* A.CD      */
-        "mov %0, %0, lsr #8     \n\t" /* .A.C      */
-        "orr %0, %0, %1, lsl #8 \n\t" /* B.D.|.A.C */
-        : "+r" (value), "=r" (tmp)    /* BADC      */
-    );
+    asm (                            /* ABCD      */
+        "bic %1, %0, #0x00ff00  \n"  /* AB.D      */
+        "bic %0, %0, #0xff0000  \n"  /* A.CD      */
+        "mov %0, %0, lsr #8     \n"  /* .A.C      */
+        "orr %0, %0, %1, lsl #8 \n"  /* B.D.|.A.C */
+        : "+r" (value), "=r" (tmp)); /* BADC      */
+#endif
     return value;
 }
 
@@ -271,5 +325,53 @@ static inline int disable_interrupt_save(int mask)
 }
 
 #endif /* ARM_ARCH */
+
+static inline uint32_t swaw32_hw(uint32_t value)
+{
+    /*
+      result[31..16] = value[15.. 0];
+      result[15.. 0] = value[31..16];
+    */
+#ifdef __thumb__
+    asm (
+        "ror %0, %1"
+        : "+l"(value) : "l"(16));
+    return value;
+#else
+    uint32_t retval;
+    asm (
+        "mov %0, %1, ror #16"
+        : "=r"(retval) : "r"(value));
+    return retval;
+#endif
+
+}
+
+#if defined(CPU_TCC780X) || defined(CPU_TCC77X) /* Single core only for now */ \
+|| CONFIG_CPU == IMX31L || CONFIG_CPU == DM320 || CONFIG_CPU == AS3525 \
+|| CONFIG_CPU == S3C2440 || CONFIG_CPU == S5L8701 || CONFIG_CPU == AS3525v2 \
+|| CONFIG_CPU == S5L8702
+/* Use the generic ARMv4/v5/v6 wait for IRQ */
+static inline void core_sleep(void)
+{
+    asm volatile (
+        "mcr p15, 0, %0, c7, c0, 4 \n" /* Wait for interrupt */
+#if CONFIG_CPU == IMX31L
+        "nop\n nop\n nop\n nop\n nop\n" /* Clean out the pipes */
+#endif
+        : : "r"(0)
+    );
+    enable_irq();
+}
+#else
+/* Skip this if special code is required and implemented */
+#if !(defined(CPU_PP)) && CONFIG_CPU != RK27XX && CONFIG_CPU != IMX233
+static inline void core_sleep(void)
+{
+    /* TODO: core_sleep not implemented, battery life will be decreased */
+    enable_irq();
+}
+#endif /* CPU_PP */
+#endif
 
 #endif /* SYSTEM_ARM_H */

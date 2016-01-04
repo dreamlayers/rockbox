@@ -7,6 +7,7 @@
  *                     \/            \/     \/    \/            \/
  * $Id$
  *
+ * Copyright (C) 2011 by Tomasz Moń
  * Copyright (C) 2007 by Karl Kurbjun
  *
  * This program is free software; you can redistribute it and/or
@@ -26,17 +27,25 @@
 #include "uart-target.h"
 #include "system-arm.h"
 #include "spi.h"
+#include "i2c.h"
 #ifdef CREATIVE_ZVx
 #include "dma-target.h"
-#else
+#endif
+#ifdef MROBE_500
 #include "usb-mr500.h"
 #endif
+#ifdef SANSA_CONNECT
+#include "avr-sansaconnect.h"
+#endif
+
+static unsigned short clock_arm_slow = 0xFFFF;
+static unsigned short clock_arm_fast = 0xFFFF;
 
 #define default_interrupt(name) \
   extern __attribute__((weak,alias("UIRQ"))) void name (void)
 
-void irq_handler(void) __attribute__((interrupt ("IRQ"), naked, section(".icode")));
-void fiq_handler(void) __attribute__((interrupt ("FIQ"), naked, section(".icode")));
+void irq_handler(void) __attribute__((interrupt ("IRQ"), section(".icode")));
+void fiq_handler(void) __attribute__((interrupt ("FIQ"), section(".icode")));
 
 default_interrupt(TIMER0);
 default_interrupt(TIMER1);
@@ -132,21 +141,12 @@ static void UIRQ(void)
 
 void irq_handler(void)
 {
-    /*
-     * Based on: linux/arch/arm/kernel/entry-armv.S and system-meg-fx.c
-     */
-
-    asm volatile(   "stmfd sp!, {r0-r7, ip, lr} \n"   /* Store context */
-                    "sub   sp, sp, #8           \n"); /* Reserve stack */
     unsigned short addr = IO_INTC_IRQENTRY0>>2;
     if(addr != 0)
     {
         addr--;
         irqvector[addr]();
     }
-    asm volatile(   "add   sp, sp, #8           \n"   /* Cleanup stack   */
-                    "ldmfd sp!, {r0-r7, ip, lr} \n"   /* Restore context */
-                    "subs  pc, lr, #4           \n"); /* Return from IRQ */
 }
 
 void fiq_handler(void)
@@ -154,18 +154,12 @@ void fiq_handler(void)
     /*
      * Based on: linux/arch/arm/kernel/entry-armv.S and system-meg-fx.c
      */
-
-    asm volatile(   "stmfd sp!, {r0-r7, ip, lr} \n"   /* Store context */
-                    "sub   sp, sp, #8           \n"); /* Reserve stack */
     unsigned short addr = IO_INTC_FIQENTRY0>>2;
     if(addr != 0)
     {
         addr--;
         irqvector[addr]();
     }
-    asm volatile(   "add   sp, sp, #8           \n"   /* Cleanup stack   */
-                    "ldmfd sp!, {r0-r7, ip, lr} \n"   /* Restore context */
-                    "subs  pc, lr, #4           \n"); /* Return from FIQ */
 }
 
 void system_reboot(void)
@@ -194,25 +188,23 @@ void system_exception_wait(void)
     IO_INTC_EINT0 = 0;
     IO_INTC_EINT1 = 0;
     IO_INTC_EINT2 = 0;
+#ifdef MROBE_500
     while ((IO_GIO_BITSET0&0x01) != 0); /* Wait for power button */
+#endif
+#ifdef SANSA_CONNECT
+    while (1); /* Holding power button for a while makes avr system reset */
+#endif
 }
 
 void system_init(void)
 {
+    unsigned int vector_addr;
     /* Pin 33 is connected to a buzzer, for an annoying sound set 
      *  PWM0C == 0x3264
      *  PWM0H == 0x1932
      *  Function to 1
      *  Since this is not used in the FW, set it to a normal output at a zero
      *  level. */
-    /*  33: output, non-inverted, no-irq, falling edge, no-chat, normal */
-    dm320_set_io(33, false, false, false, false, false, 0x00);
-    IO_GIO_BITCLR2      = 1<<1;
-
-    /* Pin 1 is the power button. Right now it is setup without IRQ, but that
-     *  may be needed for wakeup if a different shutdown method is used. */
-    /*  1: input , non-inverted, no-irq, falling edge, no-chat, normal */
-    dm320_set_io(1, true, false, false, false, false, 0x00);
 
     /* taken from linux/arch/arm/mach-itdm320-20/irq.c */
 
@@ -234,45 +226,124 @@ void system_init(void)
     IO_INTC_FISEL0 = 0;
     IO_INTC_FISEL1 = 0;
     IO_INTC_FISEL2 = 0;
-    
-    /* setup the clocks */
-    IO_CLK_DIV0=0x0003;
-    
-    /* SDRAM Divide by 3 */
-    IO_CLK_DIV1=0x0102;
-    IO_CLK_DIV2=0x021F;
-    IO_CLK_DIV3=0x1FFF;
-    IO_CLK_DIV4=0x1F00;
-    
-    /* 27 MHz input clock:
-     *  PLLA = 27*11/1
-     */
-    IO_CLK_PLLA=0x80A0;
-    IO_CLK_PLLB=0x80C0;
-    
-    IO_CLK_SEL0=0x017E;
-    IO_CLK_SEL1=0x1000;
-    IO_CLK_SEL2=0x1001;
-    
-    /* need to wait before bypassing */
-    
-    IO_CLK_BYP=0x0000;
-    
-    /* turn off some unneeded modules */
-    IO_CLK_MOD0 &=  ~0x0018;
-    IO_CLK_MOD1 =   0x0918;
-    IO_CLK_MOD2 =   ~0x7C58;
+
+    /* Only initially needed clocks should be turned on */
+    IO_CLK_MOD0 =   CLK_MOD0_HPIB | CLK_MOD0_DSP  | CLK_MOD0_SDRAMC | 
+                    CLK_MOD0_EMIF | CLK_MOD0_INTC | CLK_MOD0_AIM    | 
+                    CLK_MOD0_AHB  | CLK_MOD0_BUSC | CLK_MOD0_ARM;
+    IO_CLK_MOD1 =   CLK_MOD1_CPBUS;
+    IO_CLK_MOD2 =   CLK_MOD2_GIO;
+
+#if 0
+    if (IO_BUSC_REVR == REVR_ES11)
+    {
+        /* Agressive clock setup for newer parts (ES11) - this is actually lower
+         *  power also.
+         */
+
+        /* Setup the EMIF interface timings */
+
+        /* ATA interface:
+         * If this is the newer silicon the timings need to be slowed down some
+         * for reliable access due to the faster ARM clock.
+         */
+        /* OE width, WE width, CS width, Cycle width */
+        IO_EMIF_CS3CTRL1 = (8 << 12) | (8 << 8) | (14 << 4) | 15;
+        /* 14: Width (16), 12: Idles, 8: OE setup, 4: WE Setup, CS setup */
+        IO_EMIF_CS3CTRL2 = (1<<14) | (1 << 12) | (3 << 8) | (3 << 4) | 1;
+
+        /* USB interface:
+         * The following EMIF timing values are from the OF:
+         *      IO_EMIF_CS4CTRL1 = 0x66AB;
+         *      IO_EMIF_CS4CTRL2 = 0x4220;
+         *
+         * More agressive numbers may be possible, but it depends on the clocking
+         *  setup. 
+         */
+        IO_EMIF_CS4CTRL1 = 0x66AB;
+        IO_EMIF_CS4CTRL2 = 0x4220; 
+
+        /* 27 MHz input clock:
+         *  PLLA: 27 * 15 / 2 = 202.5 MHz
+         *  PLLB: 27 *  9 / 2 = 121.5 MHz (off: bit 12)
+         */
+        IO_CLK_PLLA = (14 <<  4) | 1;
+        IO_CLK_PLLB = ( 1 << 12) | ( 8 <<  4) | 1;         
+
+        /* Set the slow and fast clock speeds used for boosting
+         * Slow Setup:
+         *  ARM div  = 4    ( 50.625 MHz )
+         *  AHB div  = 1    ( 50.625 MHz )
+         * Fast Setup:
+         *  ARM div  = 1    ( 202.5  MHz )
+         *  AHB div  = 2    ( 101.25 MHz )
+         */
+        clock_arm_slow = (0 << 8) | 3;
+        clock_arm_fast = (1 << 8) | 0;
+
+        IO_CLK_DIV0 = clock_arm_slow;
+        
+        /* SDRAM div= 2     ( 101.25 MHz )
+         * AXL div  = 1     ( 202.5  MHz )
+         */
+        IO_CLK_DIV1 = (0 << 8) | 1;
+        
+        /* MS div   = 15    ( 13.5 MHz )
+         * DSP div  = 4     ( 50.625 MHz - could be double, but this saves power)
+         */ 
+        IO_CLK_DIV2 = (3 << 8) | 14;
+        
+        /* MMC div  = 256   ( slow )
+         * VENC div = 32    ( 843.75 KHz )
+         */
+        IO_CLK_DIV3 = (31 << 8) | 255;
+        
+        /* I2C div  = 1     ( 48 MHz if M48XI is running )
+         * VLNQ div = 32
+         */
+        IO_CLK_DIV4 = (31 << 8) | 0;
+        
+        /* Feed everything from PLLA */
+        IO_CLK_SEL0=0x007E;
+        IO_CLK_SEL1=0x1000;
+        IO_CLK_SEL2=0x0000; 
+    }
+    else
+#endif
+    {
+#ifdef SANSA_CONNECT
+        /* Setting AHB divisor to 0 increases power consumption */
+        clock_arm_slow = (1 << 8) | 3;
+        clock_arm_fast = (1 << 8) | 1;
+#else
+        /* Set the slow and fast clock speeds used for boosting
+         * Slow Setup:
+         *  ARM div  = 4    ( 87.5 MHz )
+         *  AHB div  = 1    ( 87.5 MHz )
+         * Fast Setup:
+         *  ARM div  = 2    ( 175  MHz )
+         *  AHB div  = 2    ( 87.5 MHz )
+         */
+        clock_arm_slow = (0 << 8) | 3;
+        clock_arm_fast = (1 << 8) | 1;
+#endif
+    }
+
+    /* M48XI disabled, USB buffer powerdown */
+    IO_CLK_LPCTL1 = 0x11; /* I2C wodn't work with this disabled */
 
     /* IRQENTRY only reflects enabled interrupts */
     IO_INTC_RAW = 0;
 
-    IO_INTC_ENTRY_TBA0 = 0;
-    IO_INTC_ENTRY_TBA1 = 0;
+    vector_addr = (unsigned int) irqvector;
+    IO_INTC_ENTRY_TBA0 = 0;//(short) vector_addr & ~0x000F;
+    IO_INTC_ENTRY_TBA1 = 0;//(short) (vector_addr >> 16);
 
     int i;
     /* Set interrupt priorities to predefined values */
     for(i = 0; i < 23; i++)
-        DM320_REG(0x0540+i*2) = ((irqpriority[i*2+1] & 0x3F) << 8) | (irqpriority[i*2] & 0x3F); /* IO_INTC_PRIORITYx */
+        DM320_REG(0x0540+i*2) = ((irqpriority[i*2+1] & 0x3F) << 8) | 
+            (irqpriority[i*2] & 0x3F); /* IO_INTC_PRIORITYx */
     
     /* Turn off all timers */
     IO_TIMER0_TMMD = CONFIG_TIMER0_TMMD_STOP;
@@ -280,47 +351,46 @@ void system_init(void)
     IO_TIMER2_TMMD = CONFIG_TIMER2_TMMD_STOP;
     IO_TIMER3_TMMD = CONFIG_TIMER3_TMMD_STOP;
 
-#ifndef CREATIVE_ZVx
-    /* set GIO26 (reset pin) to output and low */
-    IO_GIO_BITCLR1=(1<<10);
-    IO_GIO_DIR1&=~(1<<10);
+#ifndef SANSA_CONNECT
+    /* UART1 is not used on Sansa Connect - don't power it up */
+    uart_init();
+#endif
+    spi_init();
+
+#ifdef MROBE_500
+    /* Initialization is done so shut the front LED off so that the battery
+     * can charge.
+     */
+    IO_GIO_BITCLR2 = 0x0001;
 #endif
 
-    uart_init();
-    spi_init();
-    
 #ifdef CREATIVE_ZVx
     dma_init();
 #endif
 
-#if !defined(LCD_NATIVE_WIDTH) && !defined(LCD_NATIVE_HEIGHT)
-#define LCD_NATIVE_WIDTH    LCD_WIDTH
-#define LCD_NATIVE_HEIGHT   LCD_HEIGHT
+#ifdef SANSA_CONNECT
+    /* keep WIFI CS and reset high to save power */
+    IO_GIO_DIR0 &= ~((1 << 4) /* CS */ | (1 << 3) /* reset */);
+    IO_GIO_BITSET0 = (1 << 4) | (1 << 3);
+
+    i2c_init();
+    avr_hid_init();
+
+#ifndef BOOTLOADER
+    /* Disable External Memory interface (used for accessing NOR flash) */
+    bitclr16(&IO_CLK_MOD0, CLK_MOD0_EMIF);
 #endif
 
-#define LCD_FUDGE       LCD_NATIVE_WIDTH%32
-#define LCD_BUFFER_SIZE  ((LCD_NATIVE_WIDTH+LCD_FUDGE)*LCD_NATIVE_HEIGHT*2)
-#define LCD_TTB_AREA    ((LCD_BUFFER_SIZE>>19)+1)
+    /* Unknown GIOs - set them to save power */
+    /* GIO40 - output 0
+     * GIO28 - output 0
+     */
+    IO_GIO_DIR2 &= ~(1 << 8);
+    IO_GIO_BITCLR2 = (1 << 8);
 
-    /* MMU initialization (Starts data and instruction cache) */
-    ttb_init();
-    /* Make sure everything is mapped on itself */
-    map_section(0, 0, 0x1000, CACHE_NONE);
-    
-    /* Enable caching for RAM */
-    map_section(CONFIG_SDRAM_START, CONFIG_SDRAM_START, MEM, CACHE_ALL);
-    /* enable buffered writing for the framebuffer */
-    map_section((int)FRAME, (int)FRAME, LCD_TTB_AREA, BUFFERED);
-#ifdef CREATIVE_ZVx
-    /* mimic OF */
-    map_section(0x00100000, 0x00100000,  4, CACHE_NONE);
-    map_section(0x04700000, 0x04700000,  2,   BUFFERED);
-    map_section(0x40000000, 0x40000000, 16, CACHE_NONE);
-    map_section(0x50000000, 0x50000000, 16, CACHE_NONE);
-    map_section(0x60000000, 0x60000000, 16, CACHE_NONE);
-    map_section(0x80000000, 0x80000000,  1, CACHE_NONE);
+    IO_GIO_DIR1 &= ~(1 << 12);
+    IO_GIO_BITCLR1 = (1 << 12);
 #endif
-    enable_mmu();
 }
 
 int system_memory_guard(int newmode)
@@ -332,106 +402,105 @@ int system_memory_guard(int newmode)
 #ifdef HAVE_ADJUSTABLE_CPU_FREQ
 void set_cpu_frequency(long frequency)
 {
-    if (frequency == CPUFREQ_MAX) {
-        IO_CLK_DIV0 = 0x0101;  /* 175 MHz ARM */
-    } else {
-        IO_CLK_DIV0 = 0x0003; /* 87.5 MHz ARM - not much savings, about 3 mA */
+    /* If these variables have not been changed since startup then boosting
+     *  should not be used.
+     */
+    if(clock_arm_slow == 0xFFFF || clock_arm_fast == 0xFFFF)
+    {
+        return;
+    }
+
+    if (frequency == CPUFREQ_MAX) 
+    {
+        IO_CLK_DIV0 = clock_arm_fast;
+        FREQ = CPUFREQ_MAX;
+    } 
+    else 
+    {
+        IO_CLK_DIV0 = clock_arm_slow;
+        FREQ = CPUFREQ_NORMAL;
     }
 }
 #endif
 
-/* This function is pretty crude.  It is not acurate to a usec, but errors on
- *  longer.
+/*
+ * Waits for specified amount of microseconds (or longer, but NEVER less)
+ *
+ * Maximum supported usec value is 10000, use sleep() for longer delays.
  */
 void udelay(int usec) {
-    volatile int temp=usec*(175000/200);
-    
-    while(temp) {
-        temp--;
+    /*
+     * count and prev_tick must be initialized as soon as posible (right
+     * after function entry)
+     *
+     * count must be initialized before prev_count
+     */
+    unsigned short count = IO_TIMER1_TMCNT;
+    long prev_tick = current_tick;
+
+    /* initialization time/sequence of these values is not critical */
+    unsigned short stop;
+    unsigned short tmp = IO_TIMER1_TMDIV;
+
+    if (!irq_enabled())
+    {
+        /*
+         * Interrupts are disabled
+         *
+         * Clear TIMER1 interrupt to prevent returning from this fuction
+         * before specified amount of time has passed
+         * In worst case this makes udelay() take one tick longer
+         */
+        IO_INTC_IRQ0 = INTR_IRQ0_TMR1;
+    }
+
+    /*
+     * On Sansa Connect tick timer counts from 0 to 26999
+     * in this case stop will overflow only if usec > 10000
+     * such long delays shouldn't be blocking (use sleep() instead)
+     */
+    stop = count + usec*((tmp+1)/10000);
+    stop += (unsigned short)(((unsigned long)(usec)*((tmp%10000)+1))/10000);
+
+    /* stop values over TMDIV won't ever be reached */
+    if (stop > tmp)
+    {
+        stop -= tmp;
+    }
+
+    /*
+     * Status in IO_INTC_IRQ0 is changed even when interrupts are
+     * masked. If bit 1 in IO_INTC_IRQ0 is set to 0, then
+     * there is pending current_tick update.
+     *
+     * Relaying solely on current_tick value when interrupts are disabled
+     * can lead to lockup.
+     * Interrupt status bit check below is used to prevent this lockup.
+     */
+ 
+    if (stop < count)
+    {
+        /* udelay will end after counter reset (tick) */
+        while ((IO_TIMER1_TMCNT < stop) ||
+               ((current_tick == prev_tick) /* ensure new tick */ &&
+                (IO_INTC_IRQ0 & INTR_IRQ0_TMR1))); /* prevent lock */
+    }
+    else
+    {
+        /* udelay will end before counter reset (tick) */
+        while ((IO_TIMER1_TMCNT < stop) &&
+            ((current_tick == prev_tick) &&
+             (IO_INTC_IRQ0 & INTR_IRQ0_TMR1)));
     }
 }
 
-/* This function sets the specified pin up */
-void dm320_set_io (char pin_num, bool input, bool invert, bool irq, bool irqany,
-                    bool chat, char func_num )
+#ifdef BOOTLOADER
+void system_prepare_fw_start(void)
 {
-    volatile short  *pio;
-    char            reg_offset; /* Holds the offset to the register */
-    char            shift_val;  /* Holds the shift offset to the GPIO bit(s) */
-    short           io_val;     /* Used as an intermediary to prevent glitchy
-                                 *  assignments. */
-    
-    /* Make sure this is a valid pin number */
-    if( (unsigned) pin_num > 40 )
-        return;
-        
-    /* Clamp the function number */
-    func_num    &=  0x03;
-    
-    /* Note that these are integer calculations */
-    reg_offset  =   (pin_num / 16);
-    shift_val   =   (pin_num - (16 * reg_offset));
-    
-    /* Handle the direction */
-    /* Calculate the pointer to the direction register */
-    pio         = &IO_GIO_DIR0 + reg_offset;
-    
-    if(input)
-        *pio        |=  ( 1 << shift_val );
-    else
-        *pio        &= ~( 1 << shift_val );
-    
-    /* Handle the inversion */
-    /* Calculate the pointer to the inversion register */
-    pio         = &IO_GIO_INV0 + reg_offset;
-    
-    if(invert)
-        *pio        |=  ( 1 << shift_val );
-    else
-        *pio        &= ~( 1 << shift_val );
-        
-    /* Handle the chat */
-    /* Calculate the pointer to the chat register */
-    pio         = &IO_GIO_CHAT0 + reg_offset;
-    
-    if(chat)
-        *pio        |=  ( 1 << shift_val );
-    else
-        *pio        &= ~( 1 << shift_val );
-        
-    /* Handle interrupt configuration */
-    if(pin_num < 16)
-    {
-        /* Sets whether the pin is an irq or not */
-        if(irq)
-            IO_GIO_IRQPORT |=  (1 << pin_num );
-        else
-            IO_GIO_IRQPORT &= ~(1 << pin_num );
-        
-        /* Set whether this is a falling or any edge sensitive irq */
-        if(irqany)
-            IO_GIO_IRQEDGE |=  (1 << pin_num );
-        else
-            IO_GIO_IRQEDGE &= ~(1 << pin_num );
-    }
-    
-    /* Handle the function number */
-    /* Calculate the pointer to the function register */
-    reg_offset  =   (  (pin_num - 9) / 8 );
-    shift_val   =   ( ((pin_num - 9) - (8 * reg_offset)) * 2 );
-    
-    if( pin_num < 9 )
-    {
-        reg_offset  =   0;
-        shift_val   =   0;
-    }
-
-    /* Calculate the pointer to the function register */
-    pio         =   &IO_GIO_FSEL0 + reg_offset;
-
-    io_val      =   *pio;
-    io_val      &= ~( 3 << shift_val );         /* zero previous value */
-    io_val      |=  ( func_num << shift_val );  /* Store new value */
-    *pio        =   io_val;
+    tick_stop();
+    IO_INTC_EINT0 = 0;
+    IO_INTC_EINT1 = 0;
+    IO_INTC_EINT2 = 0;
 }
+#endif
 

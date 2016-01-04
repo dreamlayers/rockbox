@@ -2,6 +2,39 @@
 \chapter{Advanced Topics}
 
 \section{\label{ref:CustomisingUI}Customising the User Interface}
+
+\subsection{\label{ref:CustomisingTheMainMenu}Customising The Main Menu}
+
+It is possible to customise the main menu, i.e. to reorder or to hide some
+of its items (only the main menu can be customised, submenus can not).
+To accomplish this, load a \fname{.cfg} file (as described in
+\reference{ref:manage_settings}) containing the following line:
+\config{root~menu~order:items}, where ``items'' is a comma separated list
+(no spaces around the commas!) of the following
+words: \config{bookmarks}, \config{files}, \opt{tagcache}{\config{database}, }%
+\config{wps}, \config{settings}, \opt{recording}{\config{recording}, }%
+\opt{radio}{\config{radio}, }\config{playlists}, \config{plugins},
+\config{system\_menu}, \opt{PLAYER_PAD}{\config{shutdown}, }\config{shortcuts}.
+Each of the words, if it occurs in the list, activates the appropriate item
+in the main menu. The order of the items is given by the order of the words
+in the list. The items whose words do not occur in the list will be hidden,
+with one exception: the menu item \setting{Settings} will be shown even if
+its word is not in the list (it is added as the last item then).
+
+The following configuration example will change the main menu so that it will
+contain only the items for the file browser, for resuming the playback, and
+for changing the settings (the latter will be added automatically).
+\begin{example}
+    \config{root menu order:files,wps}
+\end{example}
+
+
+To reset the menu items to the default, use \config{root~menu~order:-} (i.e.
+use a hyphen instead of ``items'').
+
+This configuration entry can only be created and edited with a text editor. It is
+not possible to change this setting via the settings menu.
+
 \opt{lcd_bitmap}{
 \subsection{\label{ref:GettingExtras}Getting Extras}
 
@@ -225,7 +258,7 @@ are discussed below.
   the last number giving the colour depth in bits) when
   designing your own WPS, or if you use a WPS designed for another target.
   \opt{HAVE_REMOTE_LCD}{The resolution of the remote is
-      \opt{h100,h300}{128$\times$64$\times$1}%
+      \opt{iriverh100,iriverh300}{128$\times$64$\times$1}%
       \opt{iaudiox5,iaudiom5,iaudiom3}{128$\times$96$\times$2}
       pixels.
   }
@@ -263,6 +296,27 @@ area of the screen.
 \nopt{lcd_color}{\opt{lcd_non-mono}{\input{advanced_topics/viewports/grayscale-vp-syntax.tex}}}
 \opt{lcd_color}{\input{advanced_topics/viewports/colour-vp-syntax.tex}}
 
+\opt{lcd_non-mono}{
+\subsubsection{Viewport Line Text Styles}
+  \begin{tagmap}
+    \config{\%Vs(mode[,param])}
+    & Set the viewport text style to `mode' from this point forward\\
+  \end{tagmap}
+
+Mode can be the following:
+
+\begin{rbtabular}{.75\textwidth}{lX}{\textbf{Mode} & \textbf{Description}}{}{}
+  clear & Restore the default style\\
+  invert & Draw lines inverted\\
+  color & Draw the text coloured by the value given in `param'. Functionally
+    equivalent to using the \%Vf() tag\\
+  \opt{lcd_color}{%
+    gradient & Draw the next `param' lines using a gradient as
+    defined by \%Vg. By default the gradient is drawn over 1 line.
+    \%Vs(gradient,2) will use 2 lines to fully change from the start colour to
+    the end colour\\}
+\end{rbtabular}
+}
 
 \subsubsection{Conditional Viewports}
 
@@ -321,7 +375,8 @@ and the WPS, but you can use multiple fonts in each of the individual screens.\\
     \item `filename' is the font filename to load. Fonts should be stored in
        \fname{/.rockbox/fonts/}
     \item `glyphs' is an optional specification of how many unique glyphs to
-       store in memory. Default is 256.
+       store in memory. Default is from the system setting
+       \setting{Glyphs To Load}.
   \end{itemize}
 
   An example would be: \config{\%Fl(2,12-Nimbus.fnt,100)}
@@ -349,7 +404,7 @@ For tags with multiple values, like Play status, the conditional can hold a
 list of alternatives, one for each value the tag can have.
 Example enumeration: 
 \begin{example}
-     \%?mp{\textless}Stop{\textbar}\%Play{\textbar}Pause{\textbar}Ffwd{\textbar}Rew{\textgreater}
+     \%?mp{\textless}Stop{\textbar}Play{\textbar}Pause{\textbar}Ffwd{\textbar}Rew{\textgreater}
 \end{example}
 
 The last else part is optional, and will be displayed if the tag has no value. 
@@ -532,7 +587,7 @@ Example of a configuration file:
 
 \note{As you can see from the example, configuration files do not need to 
   contain all of the Rockbox options.  You can create configuration files 
-  that change only certain settings. So, for example, supppose you 
+  that change only certain settings. So, for example, suppose you 
   typically use the \dap{} at one volume in the car, and another when using 
   headphones. Further, suppose you like to use an inverse LCD when you are 
   in the car, and a regular LCD setting when you are using headphones. You 
@@ -567,7 +622,7 @@ Example of a configuration file:
   in the \dap{} and resets all settings to their default values. 
   
   \opt{IRIVER_H100_PAD,IRIVER_H300_PAD,IAUDIO_X5_PAD,SANSA_E200_PAD,SANSA_C200_PAD%
-      ,PBELL_VIBE500_PAD}{
+      ,PBELL_VIBE500_PAD,SAMSUNG_YH92X_PAD,SAMSUNG_YH820_PAD}{
       \note{You can also reset all settings to their default 
       values by turning off the \dap, turning it back on, and holding the
       \ButtonRec{} button immediately after the \dap{} turns on.}
@@ -622,11 +677,11 @@ Rockbox is able to load and start another firmware file without rebooting.
 You just ``play'' a file with the extension %
 \opt{recorder,recorderv2fm,ondio}{\fname{.ajz}.} %
 \opt{player}{\fname{.mod}.} %
-\opt{h100,h300}{\fname{.iriver}.} %
+\opt{iriverh100,iriverh300}{\fname{.iriver}.} %
 \opt{ipod}{\fname{.ipod}.} %
 \opt{iaudio}{\fname{.iaudio}.} %
-\opt{sansa,h10,h10_5gb,vibe500}{\fname{.mi4}.} %
-\opt{sansaAMS}{\fname{.sansa}.} %
+\opt{sansa,iriverh10,iriverh10_5gb,mrobe100,vibe500,samsungyh}{\fname{.mi4}.} %
+\opt{sansaAMS,fuzeplus}{\fname{.sansa}.} %
 \opt{gigabeatf,gigabeats}{\fname{.gigabeat}.} %
 This can be used to test new firmware versions without deleting your
 current version.
@@ -698,6 +753,16 @@ current version.
   to each single PCM sample and is therefore consuming additional CPU time. If 
   you want to achieve some (minor) savings in runtime, switch this feature off 
   (see \reference{ref:ReplayGain}).
+}
+
+\opt{lcd_bitmap}{
+\subsection{Peak Meter}
+  The peak meter is a feature of the While Playing Screen and will be updated with a 
+  high framerate. Depending on your \dap{} this might result in a high CPU load. To 
+  save battery runtime you should switch this feature off (see \reference{ref:peak_meter}).
+  \opt{ipodvideo}{
+    \note{Especially the \playerman{} \playertype{} suffers from an enabled peak meter.}
+  }
 }
 
 \opt{swcodec,disk_storage,flash_storage}{

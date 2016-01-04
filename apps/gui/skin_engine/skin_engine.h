@@ -25,13 +25,14 @@
 
 #ifndef PLUGIN
 
-#include "skin_fonts.h"
 #include "tag_table.h"
 
 #include "wps_internals.h" /* TODO: remove this line.. shoudlnt be needed */
 
 enum skinnable_screens {
+#ifdef HAVE_LCD_BITMAP
     CUSTOM_STATUSBAR,
+#endif
     WPS,
 #if CONFIG_TUNER
     FM_SCREEN,
@@ -40,31 +41,6 @@ enum skinnable_screens {
     
     SKINNABLE_SCREENS_COUNT
 };
-
-
-#ifdef HAVE_LCD_BITMAP
-#define MAIN_BUFFER ((2*LCD_HEIGHT*LCD_WIDTH*LCD_DEPTH/8) \
-                    + (SKINNABLE_SCREENS_COUNT * LCD_BACKDROP_BYTES))
-
-#if (NB_SCREENS > 1)
-#define REMOTE_BUFFER (2*(LCD_REMOTE_HEIGHT*LCD_REMOTE_WIDTH*LCD_REMOTE_DEPTH/8) \
-                      + (SKINNABLE_SCREENS_COUNT * REMOTE_LCD_BACKDROP_BYTES))
-#else
-#define REMOTE_BUFFER 0
-#endif
-
-
-#define SKIN_BUFFER_SIZE (MAIN_BUFFER + REMOTE_BUFFER + SKIN_FONT_SIZE) + \
-                         (WPS_MAX_TOKENS * \
-                         (sizeof(struct wps_token) + (sizeof(struct skin_element))))
-#endif
-
-#ifdef HAVE_LCD_CHARCELLS
-#define SKIN_BUFFER_SIZE (LCD_HEIGHT * LCD_WIDTH) * 64 + \
-                         (WPS_MAX_TOKENS * \
-                         (sizeof(struct wps_token) + (sizeof(struct skin_element))))
-#endif
-
 
 #ifdef HAVE_TOUCHSCREEN
 int skin_get_touchaction(struct wps_data *data, int* edge_offset,
@@ -81,10 +57,7 @@ void skin_update(enum skinnable_screens skin, enum screen_type screen,
  * or from a skinfile (isfile = true)
  */
 bool skin_data_load(enum screen_type screen, struct wps_data *wps_data,
-                    const char *buf, bool isfile);
-
-/* call this in statusbar toggle handlers if needed */
-void skin_statusbar_changed(struct gui_wps*);
+                    const char *buf, bool isfile, struct skin_stats *stats);
 
 bool skin_has_sbs(enum screen_type screen, struct wps_data *data);
 
@@ -99,6 +72,8 @@ bool skin_backdrops_preload(void);
 void skin_backdrop_show(int backdrop_id);
 void skin_backdrop_load_setting(void);
 void skin_backdrop_unload(int backdrop_id);
+#define BACKDROP_BUFFERNAME "#backdrop_buffer#"
+void* skin_backdrop_get_buffer(int backdrop_id);
 
 /* do the button loop as often as required for the peak meters to update
  * with a good refresh rate. 
@@ -112,6 +87,7 @@ struct gui_wps *skin_get_gwps(enum skinnable_screens skin, enum screen_type scre
 struct wps_state *skin_get_global_state(void);
 void gui_sync_skin_init(void);
 
+void skin_unload_all(void);
 
 bool skin_do_full_update(enum skinnable_screens skin, enum screen_type screen);
 void skin_request_full_update(enum skinnable_screens skin);

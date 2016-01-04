@@ -205,7 +205,7 @@ static enum color get_band_rtoc(int in_val)
 
 static char *get_tolerance_str(enum color color)
 {
-    static char tolerance_str [14];	
+    static char tolerance_str [14];
     rb->snprintf(tolerance_str, sizeof(tolerance_str), "%d%% tolerance",
                  band_data[color].tolerance);
     return tolerance_str;
@@ -496,9 +496,9 @@ static void display_helpfile(void)
         "", "V = IR",
         "", "I = V/R",
         "", "and",
-        "", "R = I/V", "", "",
-        "Where", "V", "=", "voltage", "I", "=", "current", "(in", "amps)", 
-        "and", "R", "=", "resistance", "(measured", "in", "Ohms)", "", "",
+        "", "R = V/I", "", "",
+        "Where", "V", "=", "voltage, ", "I", "=", "current", "(in", "amps)", 
+        "and", "R", "=", "resistance", "(measured", "in", "Ohms).", "", "",
          /* 28 */
         /* -- */
         "The", "primary", "characteristics", "of", "a", "resistor", "are",
@@ -574,7 +574,7 @@ static void display_helpfile(void)
     
 static void led_resistance_calc(void)
 {
-    backlight_force_on();
+    backlight_ignore_timeout();
     int voltage_menu_selection, button_press, j, k, l, foreward_current = 0;
     int fwd_current_selection = 0;
     bool quit = false;
@@ -760,7 +760,7 @@ static void led_resistance_calc(void)
 
         rb->lcd_update();
         
-        button_press = rb->button_get(true);
+        while ((button_press = rb->button_get(true)) & BUTTON_REL);
         switch(button_press) {
             case PLA_SELECT:
                 break;
@@ -771,7 +771,7 @@ static void led_resistance_calc(void)
         }
     }
     display->set_viewport(&text_vp);
-    rb->lcd_stop_scroll();
+    rb->lcd_scroll_stop();
     display->set_viewport(&screen_vp);
     rb->lcd_clear_display();
 }
@@ -779,11 +779,10 @@ static void led_resistance_calc(void)
         
 static void resistance_to_color(void) 
 {
-    backlight_force_on();
+    backlight_ignore_timeout();
     int menu_selection;
     int menu_selection_tol;
     int button_press;
-    int i;
     bool quit = false;
     char kbd_buffer [10];
     int kbd_input_int;
@@ -801,8 +800,8 @@ static void resistance_to_color(void)
     enum color units_used = 0;
     
     char out_str[20];
-    
-    for(i=0; i<=10; i++) { kbd_buffer[i] = 0; }
+
+    memset(kbd_buffer,0,sizeof(kbd_buffer));
     /* This cleans out the mysterious garbage that appears */
     rb->lcd_clear_display();
     rb->splash(HZ/2, "Resistance to Colour");
@@ -909,14 +908,14 @@ static void resistance_to_color(void)
         }
     }
     display->set_viewport(&text_vp);
-    rb->lcd_stop_scroll();
+    rb->lcd_scroll_stop();
     display->set_viewport(&screen_vp);
     rb->lcd_clear_display();
 }
     
 static void color_to_resistance(void) 
 {
-    backlight_force_on();
+    backlight_ignore_timeout();
     bool quit = false;
     int button_input = 0;
             
@@ -990,7 +989,7 @@ static void color_to_resistance(void)
         }                   
     }
     display->set_viewport(&text_vp);
-    rb->lcd_stop_scroll();
+    rb->lcd_scroll_stop();
     display->set_viewport(&screen_vp);
     rb->lcd_clear_display();
     return;

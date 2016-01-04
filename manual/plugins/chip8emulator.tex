@@ -40,37 +40,49 @@ The default keymappings are:
         \opt{RECORDER_PAD,ONDIO_PAD,IRIVER_H100_PAD,IRIVER_H300_PAD}{\ButtonOff}
         \opt{IPOD_4G_PAD,IPOD_3G_PAD}{\ButtonMenu}
         \opt{IAUDIO_X5_PAD,IRIVER_H10_PAD,SANSA_E200_PAD,SANSA_C200_PAD%
-            ,GIGABEAT_PAD,MROBE100_PAD,SANSA_FUZE_PAD}
+          ,GIGABEAT_PAD,MROBE100_PAD,SANSA_FUZE_PAD,SANSA_FUZEPLUS_PAD}
             {\ButtonPower}
         \opt{GIGABEAT_S_PAD}{\ButtonBack}
         \opt{PBELL_VIBE500_PAD}{\ButtonRec}
+        \opt{SAMSUNG_YH92X_PAD,SAMSUNG_YH820_PAD}{\ButtonRew}
+        \opt{MPIO_HD200_PAD}{\ButtonRec + \ButtonPlay}
+        \opt{MPIO_HD300_PAD}{Long \ButtonMenu}
         \end{sideways}
         &
-        % Key "0"
+        % Key "0" 
+        \begin{sideways}
+        \opt{SANSA_FUZEPLUS_PAD}{\ButtonVolDown}
+        \opt{SAMSUNG_YH92X_PAD,SAMSUNG_YH820_PAD}{\ButtonFF}
+        \end{sideways}
         &
         % "Key "1"
         \begin{sideways}
+        \opt{SANSA_FUZEPLUS_PAD}{\ButtonBack}
         \opt{RECORDER_PAD}{\ButtonFOne}
-        \opt{ONDIO_PAD}{\ButtonUp}
+        \opt{ONDIO_PAD,SANSA_FUZEPLUS_PAD}{\ButtonUp}
         \opt{GIGABEAT_PAD,GIGABEAT_S_PAD,MROBE100_PAD}{\ButtonMenu}
+        \opt{MPIO_HD200_PAD,MPIO_HD300_PAD}{\ButtonRew}
         \end{sideways}
         &
         % Key "2"
         \begin{sideways}
-        \opt{RECORDER_PAD,ONDIO_PAD}{\ButtonUp}
         \opt{IPOD_4G_PAD,IPOD_3G_PAD,SANSA_E200_PAD,SANSA_FUZE_PAD}
             {\ButtonScrollBack}
         \opt{IRIVER_H100_PAD,IRIVER_H300_PAD,IAUDIO_X5_PAD,GIGABEAT_PAD%
-          ,GIGABEAT_S_PAD,MROBE100_PAD,PBELL_VIBE500_PAD}{\ButtonUp}
+          ,RECORDER_PAD,ONDIO_PAD,SANSA_FUZEPLUS_PAD,GIGABEAT_S_PAD%
+          ,MROBE100_PAD,PBELL_VIBE500_PAD,SAMSUNG_YH92X_PAD,SAMSUNG_YH820_PAD}{\ButtonUp}
         \opt{IRIVER_H10_PAD}{\ButtonScrollUp}
         \opt{SANSA_C200_PAD}{\ButtonVolUp}
+        \opt{MPIO_HD200_PAD,MPIO_HD300_PAD}{\ButtonFF}
         \end{sideways}
         &
         % Key "3"
         \begin{sideways}
         \opt{RECORDER_PAD}{\ButtonFThree}
-        \opt{MROBE100_PAD}{\ButtonPlay}
+        \opt{MROBE100_PAD,SANSA_FUZEPLUS_PAD}{\ButtonPlay}
         \opt{GIGABEAT_PAD,GIGABEAT_S_PAD}{\ButtonVolDown}
+        \opt{MPIO_HD200_PAD}{\ButtonFunc}
+        \opt{MPIO_HD300_PAD}{\ButtonMenu}
         \end{sideways}
         &
         % Key "4"
@@ -78,8 +90,10 @@ The default keymappings are:
         \opt{RECORDER_PAD,ONDIO_PAD,IRIVER_H100_PAD,IRIVER_H300_PAD,IPOD_4G_PAD%
             ,IPOD_3G_PAD,IAUDIO_X5_PAD,IRIVER_H10_PAD,SANSA_E200_PAD%
             ,SANSA_C200_PAD,GIGABEAT_PAD,GIGABEAT_S_PAD,MROBE100_PAD%
-            ,SANSA_FUZE_PAD,PBELL_VIBE500_PAD}
-            {\ButtonLeft}
+            ,SANSA_FUZE_PAD,PBELL_VIBE500_PAD,SANSA_FUZEPLUS_PAD,SAMSUNG_YH92X_PAD%
+            ,SAMSUNG_YH820_PAD}{\ButtonLeft}
+        \opt{MPIO_HD200_PAD}{\ButtonRec}
+        \opt{MPIO_HD300_PAD}{\ButtonEnter}
         \end{sideways}
         &
         % Key "5"
@@ -88,10 +102,13 @@ The default keymappings are:
         \opt{ONDIO_PAD}{\ButtonMenu}
         \opt{IRIVER_H100_PAD,IRIVER_H300_PAD,IAUDIO_X5_PAD,SANSA_E200_PAD%
             ,SANSA_C200_PAD,GIGABEAT_PAD,GIGABEAT_S_PAD,MROBE100_PAD%
-            ,SANSA_FUZE_PAD}
+            ,SANSA_FUZE_PAD,SANSA_FUZEPLUS_PAD}
             {\ButtonSelect}
-        \opt{IPOD_4G_PAD,IPOD_3G_PAD,IRIVER_H10_PAD}{\ButtonPlay}
+        \opt{IPOD_4G_PAD,IPOD_3G_PAD,IRIVER_H10_PAD,SAMSUNG_YH92X_PAD,SAMSUNG_YH820_PAD}%
+            {\ButtonPlay}
         \opt{PBELL_VIBE500_PAD}{\ButtonOK}
+        \opt{MPIO_HD200_PAD}{\ButtonPlay}
+        \opt{MPIO_HD300_PAD}{\ButtonRec}
         \end{sideways}
         &
         % Key "6"
@@ -99,8 +116,10 @@ The default keymappings are:
         \opt{RECORDER_PAD,ONDIO_PAD,IRIVER_H100_PAD,IRIVER_H300_PAD,IPOD_4G_PAD%
             ,IPOD_3G_PAD,IAUDIO_X5_PAD,IRIVER_H10_PAD,SANSA_E200_PAD%
             ,SANSA_C200_PAD,GIGABEAT_PAD,GIGABEAT_S_PAD,MROBE100_PAD%
-            ,SANSA_FUZE_PAD,PBELL_VIBE500_PAD}
-            {\ButtonRight}
+            ,SANSA_FUZE_PAD,PBELL_VIBE500_PAD,SANSA_FUZEPLUS_PAD,SAMSUNG_YH92X_PAD%
+            ,SAMSUNG_YH820_PAD}{\ButtonRight}
+        \opt{MPIO_HD200_PAD}{\ButtonVolDown}
+        \opt{MPIO_HD300_PAD}{\ButtonPlay}
         \end{sideways}
         &
         % Key "7"
@@ -108,16 +127,20 @@ The default keymappings are:
         \opt{RECORDER_PAD}{\ButtonFTwo}
         \opt{MROBE100_PAD}{\ButtonDisplay}
         \opt{GIGABEAT_PAD,GIGABEAT_S_PAD}{\ButtonVolUp}
+        \opt{MPIO_HD200_PAD}{\ButtonVolUp}
+        \opt{MPIO_HD300_PAD}{\ButtonScrollUp}
+        \opt{SANSA_FUZEPLUS_PAD}{\ButtonBottomLeft}
         \end{sideways}
         &
         % Key "8"
         \begin{sideways}
         \opt{RECORDER_PAD,ONDIO_PAD,IRIVER_H100_PAD,IRIVER_H300_PAD%
-            ,GIGABEAT_PAD,GIGABEAT_S_PAD,MROBE100_PAD,PBELL_VIBE500_PAD}{\ButtonDown}
+            ,GIGABEAT_PAD,GIGABEAT_S_PAD,MROBE100_PAD,PBELL_VIBE500_PAD,SAMSUNG_YH92X_PAD%
+            ,SAMSUNG_YH820_PAD}{\ButtonDown}
         \opt{IPOD_4G_PAD,IPOD_3G_PAD,SANSA_E200_PAD,SANSA_FUZE_PAD}
             {\ButtonScrollFwd}
-        \opt{IAUDIO_X5_PAD}{\ButtonDown}
-        \opt{IRIVER_H10_PAD}{\ButtonScrollDown}
+        \opt{IAUDIO_X5_PAD,SANSA_FUZEPLUS_PAD}{\ButtonDown}
+        \opt{IRIVER_H10_PAD,MPIO_HD300_PAD}{\ButtonScrollDown}
         \opt{SANSA_C200_PAD}{\ButtonVolDown}
         \end{sideways}
         &
@@ -126,9 +149,13 @@ The default keymappings are:
         \opt{RECORDER_PAD}{\ButtonOn}
         \opt{GIGABEAT_PAD}{\ButtonA}
         \opt{GIGABEAT_S_PAD}{\ButtonPlay}
+        \opt{SANSA_FUZEPLUS_PAD}{\ButtonBottomRight}
         \end{sideways}
         &
         % Key "A"
+        \begin{sideways}
+          \opt{SANSA_FUZEPLUS_PAD}{\ButtonVolUp}
+        \end{sideways}
         &
         % Key "B"
         &

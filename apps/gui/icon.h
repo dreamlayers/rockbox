@@ -30,12 +30,11 @@ typedef const unsigned char * ICON;
 typedef long ICON;
 #endif
 
-#define NOICON Icon_NOICON
-#define FORCE_INBUILT_ICON 0x80000000
 /* Don't #ifdef icon values, or we wont be able to use the same 
    bmp for every target. */
 enum themable_icons {
-    Icon_NOICON = -1, /* Dont put this in a .bmp */
+    NOICON = -1,
+    Icon_NOICON = NOICON, /* Dont put this in a .bmp */
     Icon_Audio,
     Icon_Folder,
     Icon_Playlist,
@@ -109,9 +108,20 @@ void icons_init(void);
 
 #ifdef HAVE_LCD_CHARCELLS
 # define CURSOR_CHAR 0xe10c
-# define get_icon_width(a) 6
+# define get_icon_width(a) 1
+# define get_icon_height(a) 1 /* needs to be verified */
 #else
 int get_icon_width(enum screen_type screen_type);
+int get_icon_height(enum screen_type screen_type);
+int get_icon_format(enum screen_type screen_type);
 #endif
+
+#if (LCD_DEPTH > 1) || defined(HAVE_REMOTE_LCD) && (LCD_REMOTE_DEPTH > 1) \
+    && !defined(HAVE_LCD_CHARCELLS)
+int get_icon_format(enum screen_type screen_type);
+#else
+# define get_icon_format(a) FORMAT_MONO
+#endif
+
 
 #endif /*_GUI_ICON_H_*/

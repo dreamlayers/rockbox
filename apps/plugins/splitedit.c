@@ -55,7 +55,8 @@
 #define SPLITEDIT_SPEED150 (BUTTON_REC | BUTTON_RIGHT)
 #define SPLITEDIT_MENU_RUN BUTTON_RIGHT
 
-#elif CONFIG_KEYPAD == SAMSUNG_YH_PAD
+#elif (CONFIG_KEYPAD == SAMSUNG_YH820_PAD) || \
+      (CONFIG_KEYPAD == SAMSUNG_YH920_PAD)
 #define SPLITEDIT_QUIT      (BUTTON_REC | BUTTON_REW)
 #define SPLITEDIT_PLAY      (BUTTON_REC | BUTTON_FFWD)
 #define SPLITEDIT_SAVE       BUTTON_FFWD
@@ -245,7 +246,7 @@ static void update_timebar(struct mp3entry *mp3)
  * Marks the entire area of the osci buffer invalid.
  * It will be drawn with new values in the next loop.
  */
-void splitedit_invalidate_osci(void)
+static void splitedit_invalidate_osci(void)
 {
     osci_valid = false;
     validation_start = ~(unsigned int)0;
@@ -254,7 +255,7 @@ void splitedit_invalidate_osci(void)
 /**
  * Returns the loop mode. See the LOOP_MODE_XXX constants above.
  */
-int splitedit_get_loop_mode(void)
+static int splitedit_get_loop_mode(void)
 {
     return loop_mode;
 }
@@ -300,7 +301,7 @@ static void update_icons(void)
 /**
  * Sets the loop mode. See the LOOP_MODE_XXX constants above.
  */
-void splitedit_set_loop_mode(int mode)
+static void splitedit_set_loop_mode(int mode)
 {
     int old_loop_mode = loop_mode;
     /* range restriction */
@@ -386,7 +387,7 @@ static void set_range_by_time(
 /**
  * Set the split point in screen coordinates
  */
-void splitedit_set_split_x(int newx)
+static void splitedit_set_split_x(int newx)
 {
     int minx = split_x - 2 > 0 ? split_x - 2: 0;
 
@@ -424,7 +425,7 @@ void splitedit_set_split_x(int newx)
 /**
  * returns the split point in screen coordinates
  */
-int splitedit_get_split_x(void)
+static int splitedit_get_split_x(void)
 {
     return split_x;
 }
@@ -502,7 +503,7 @@ static void scroll(struct mp3entry *mp3)
 /**
  * Zooms in by 3/4
  */
-void splitedit_zoom_in(struct mp3entry *mp3)
+static void splitedit_zoom_in(struct mp3entry *mp3)
 {
     rb->lcd_set_drawmode(DRMODE_SOLID|DRMODE_INVERSEVID);
     rb->lcd_fillrect(OSCI_X, OSCI_Y, OSCI_WIDTH, OSCI_HEIGHT);
@@ -516,7 +517,7 @@ void splitedit_zoom_in(struct mp3entry *mp3)
 /**
  * Zooms out by 4/3
  */
-void splitedit_zoom_out(struct mp3entry *mp3)
+static void splitedit_zoom_out(struct mp3entry *mp3)
 {
     rb->lcd_set_drawmode(DRMODE_SOLID|DRMODE_INVERSEVID);
     rb->lcd_fillrect(OSCI_X, OSCI_Y, LCD_WIDTH, OSCI_HEIGHT);
@@ -777,6 +778,19 @@ static int save(
     return retval;
 }
 
+static void puts_wrapper(int x, int y, const char *str, bool scroll, bool selected)
+{
+    struct line_desc line = LINE_DESC_DEFINIT;
+    struct screen *lcd = rb->screens[SCREEN_MAIN];
+    int w = lcd->getcharwidth();
+    int h = lcd->getcharheight();
+
+    line.scroll = scroll;
+    line.style = selected ? STYLE_INVERT : STYLE_DEFAULT;
+
+    rb->screens[0]->put_line(x * w, y * h, &line, str);
+}
+
 /**
  * Let the user choose which file to save with which name
  */
@@ -804,8 +818,8 @@ static void save_editor(struct mp3entry *mp3, int splittime)
         rb->lcd_clear_display();
 
         /* Save file1? */
-        rb->lcd_puts_style(0, 0, "Save part 1?", choice == SE_PART1_SAVE);
-        rb->lcd_puts(13, 0, part1_save?"yes":"no");
+        puts_wrapper(0, 0, "Save part 1?", false, choice == SE_PART1_SAVE);
+        puts_wrapper(7, 0, part1_save?"yes":"no", false, false);
 
         /* trim to display the filename without path */
         for (pos = rb->strlen(part1_name); pos > 0; pos--)
@@ -816,12 +830,11 @@ static void save_editor(struct mp3entry *mp3, int splittime)
         pos++;
 
         /* File name 1 */
-        rb->lcd_puts_scroll_style(0, 1,
-            &part1_name[pos], choice == SE_PART1_NAME);
+        puts_wrapper(0, 1, &part1_name[pos], true, choice == SE_PART1_NAME);
 
         /* Save file2? */
-        rb->lcd_puts_style(0, 3, "Save part 2?", choice == SE_PART2_SAVE);
-        rb->lcd_puts(13, 3, part2_save?"yes":"no");
+        puts_wrapper(0, 3, "Save part 2?", false, choice == SE_PART2_SAVE);
+        puts_wrapper(7, 3, part2_save?"yes":"no", false, false);
 
         /* trim to display the filename without path */
         for (pos = rb->strlen(part2_name); pos > 0; pos --)
@@ -832,11 +845,10 @@ static void save_editor(struct mp3entry *mp3, int splittime)
         pos++;
 
         /* File name 2 */
-        rb->lcd_puts_scroll_style(0, 4,
-            &part2_name[pos], choice == SE_PART2_NAME);
+        puts_wrapper(0, 4, &part2_name[pos], true, choice == SE_PART2_NAME);
 
         /* Save */
-        rb->lcd_puts_style(0, 6, "Save", choice == SE_SAVE);
+        puts_wrapper(0, 6, "Save", false, choice == SE_SAVE);
 
         rb->lcd_update();
 
@@ -874,7 +886,7 @@ static void save_editor(struct mp3entry *mp3, int splittime)
                 break;
 
             case SE_SAVE:
-                rb->lcd_stop_scroll();
+                rb->lcd_scroll_stop();
                 rb->lcd_set_drawmode(DRMODE_SOLID|DRMODE_INVERSEVID);
                 rb->lcd_fillrect(0, 6*8, LCD_WIDTH, LCD_HEIGHT);
                 rb->lcd_set_drawmode(DRMODE_SOLID);
@@ -915,9 +927,9 @@ static void save_editor(struct mp3entry *mp3, int splittime)
 /**
  * The main loop of the editor
  */
-unsigned long splitedit_editor(struct mp3entry * mp3_to_split,
-                          unsigned int split_time,
-                          unsigned int range)
+static unsigned long splitedit_editor(struct mp3entry * mp3_to_split,
+                                      unsigned int split_time,
+                                      unsigned int range)
 {
     int button = BUTTON_NONE;
     int lastbutton = BUTTON_NONE;

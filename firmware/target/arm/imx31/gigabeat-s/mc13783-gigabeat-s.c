@@ -27,17 +27,14 @@
 #include "mc13783-target.h"
 #include "adc-target.h"
 #include "button-target.h"
-#include "usb-target.h"
 #include "power-gigabeat-s.h"
 #include "powermgmt-target.h"
 
 /* Gigabeat S mc13783 serial interface node. */
 
-/* This is all based on communicating with the MC13783 PMU which is on 
- * CSPI2 with the chip select at 0. The LCD controller resides on
- * CSPI3 cs1, but we have no idea how to communicate to it */
 struct spi_node mc13783_spi =
 {
+    /* Based upon original firmware settings */
     CSPI2_NUM,                     /* CSPI module 2 */
     CSPI_CONREG_CHIP_SELECT_SS0 |  /* Chip select 0 */
     CSPI_CONREG_DRCTL_DONT_CARE |  /* Don't care about CSPI_RDY */
@@ -56,33 +53,33 @@ const struct mc13783_event mc13783_events[MC13783_NUM_EVENTS] =
 {
     [MC13783_ADCDONE_EVENT] = /* ADC conversion complete */
     {
-        .set  = MC13783_EVENT_SET0,
-        .mask = MC13783_ADCDONEM,
+        .int_id   = MC13783_INT_ID_ADCDONE,
+        .sense    = 0,
         .callback = adc_done,
     },
     [MC13783_ONOFD1_EVENT] = /* Power button */
     {
-        .set  = MC13783_EVENT_SET1,
-        .mask = MC13783_ONOFD1M,
+        .int_id   = MC13783_INT_ID_ONOFD1,
+        .sense    = MC13783_ONOFD1S,
         .callback = button_power_event,
     },
     [MC13783_SE1_EVENT] = /* Main charger detection */
     {
-        .set  = MC13783_EVENT_SET0,
-        .mask = MC13783_SE1M,
+        .int_id   = MC13783_INT_ID_SE1,
+        .sense    = MC13783_SE1S,
         .callback = charger_main_detect_event,
     },
     [MC13783_USB_EVENT] = /* USB insertion/USB charger detection */
     {
-        .set  = MC13783_EVENT_SET0,
-        .mask = MC13783_USBM,
+        .int_id   = MC13783_INT_ID_USB,
+        .sense    = MC13783_USB4V4S,
         .callback = usb_connect_event,
     },
 #ifdef HAVE_HEADPHONE_DETECTION
     [MC13783_ONOFD2_EVENT] = /* Headphone jack */
     {
-        .set  = MC13783_EVENT_SET1,
-        .mask = MC13783_ONOFD2M,
+        .int_id   = MC13783_INT_ID_ONOFD2,
+        .sense    = 0,
         .callback = headphone_detect_event,
     },
 #endif

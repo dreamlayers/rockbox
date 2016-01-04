@@ -7,7 +7,6 @@
  *                     \/            \/     \/    \/            \/
  *
  *   Copyright (C) 2008 by Dominik Riebeling
- *   $Id$
  *
  * All files in this archive are subject to the GNU General Public License.
  * See the file COPYING in the source tree root for full license agreement.
@@ -22,40 +21,39 @@
 #include "bootloaderinstallipod.h"
 
 #include "../ipodpatcher/ipodpatcher.h"
-#include "autodetection.h"
+#include "utils.h"
+#include "Logger.h"
 
 
 BootloaderInstallIpod::BootloaderInstallIpod(QObject *parent)
         : BootloaderInstallBase(parent)
 {
     (void)parent;
-    // initialize sector buffer. ipod_sectorbuf is defined in ipodpatcher.
-    // The buffer itself is only present once, so make sure to not allocate
-    // it if it was already allocated. The application needs to take care
-    // no concurrent (i.e. multiple objects of this class running) requests
-    // are done.
-    if(ipod_sectorbuf == NULL)
-        ipod_alloc_buffer(&ipod_sectorbuf, BUFFER_SIZE);
+    // initialize sector buffer. The sector buffer is part of the ipod_t
+    // structure, so a second instance of this class will have its own buffer.
+    ipod_alloc_buffer(&ipod, BUFFER_SIZE);
 }
 
 
 BootloaderInstallIpod::~BootloaderInstallIpod()
 {
-    if(ipod_sectorbuf) {
-        free(ipod_sectorbuf);
-        ipod_sectorbuf = NULL;
+    if(ipod.sectorbuf) {
+        ipod_dealloc_buffer(&ipod);
     }
 }
 
 
 bool BootloaderInstallIpod::install(void)
 {
-    if(ipod_sectorbuf == NULL) {
+    if(ipod.sectorbuf == NULL) {
         emit logItem(tr("Error: can't allocate buffer memory!"), LOGERROR);
         emit done(true);
         return false;
     }
+    // save buffer pointer before cleaning up ipod_t structure
+    unsigned char* sb = ipod.sectorbuf;
     memset(&ipod, 0, sizeof(struct ipod_t));
+    ipod.sectorbuf = sb;
 
     if(!ipodInitialize(&ipod)) {
         emit done(true);
@@ -69,7 +67,7 @@ bool BootloaderInstallIpod::install(void)
     }
     if(getmodel(&ipod,(ipod.ipod_directory[ipod.ososimage].vers>>8)) < 0) {
         emit logItem(tr("Unknown version number in firmware (%1)").arg(
-                    ipod.ipod_directory[0].vers), LOGERROR);
+                    ipod.ipod_directory[ipod.ososimage].vers), LOGERROR);
         emit done(true);
         return false;
     }
@@ -134,13 +132,13 @@ void BootloaderInstallIpod::installStage3(bool mounted)
         emit logItem(tr("Writing log aborted"), LOGERROR);
         emit done(true);
     }
-    qDebug() << "[BootloaderInstallIpod] version installed:" << m_blversion.toString(Qt::ISODate);
+    LOG_INFO() << "version installed:"
+               << m_blversion.toString(Qt::ISODate);
 }
 
 
 bool BootloaderInstallIpod::uninstall(void)
 {
-    struct ipod_t ipod;
     emit logItem(tr("Uninstalling bootloader"), LOGINFO);
     QCoreApplication::processEvents();
 
@@ -154,9 +152,9 @@ bool BootloaderInstallIpod::uninstall(void)
         emit done(true);
         return false;
     }
-    if (getmodel(&ipod,(ipod.ipod_directory[0].vers>>8)) < 0) {
+    if (getmodel(&ipod,(ipod.ipod_directory[ipod.ososimage].vers>>8)) < 0) {
         emit logItem(tr("Unknown version number in firmware (%1)").arg(
-                    ipod.ipod_directory[0].vers), LOGERROR);
+                    ipod.ipod_directory[ipod.ososimage].vers), LOGERROR);
         emit done(true);
         return false;
     }
@@ -167,7 +165,7 @@ bool BootloaderInstallIpod::uninstall(void)
         return false;
     }
 
-    if (ipod.ipod_directory[0].entryOffset == 0) {
+    if (ipod_has_bootloader(&ipod) == 0) {
         emit logItem(tr("No bootloader detected."), LOGERROR);
         emit done(true);
         return false;
@@ -191,21 +189,20 @@ bool BootloaderInstallIpod::uninstall(void)
 
 BootloaderInstallBase::BootloaderType BootloaderInstallIpod::installed(void)
 {
-    struct ipod_t ipod;
     BootloaderInstallBase::BootloaderType result = BootloaderRockbox;
 
     if(!ipodInitialize(&ipod)) {
-        qDebug() << "[BootloaderInstallIpod] installed: BootloaderUnknown";
+        LOG_INFO() << "installed: BootloaderUnknown";
         result = BootloaderUnknown;
     }
     else {
         read_directory(&ipod);
-        if(ipod.ipod_directory[0].entryOffset == 0 || ipod.macpod) {
-            qDebug() << "[BootloaderInstallIpod] installed: BootloaderOther";
+        getmodel(&ipod,(ipod.ipod_directory[ipod.ososimage].vers>>8));
+        if(!ipod_has_bootloader(&ipod)) {
             result = BootloaderOther;
         }
         else {
-            qDebug() << "[BootloaderInstallIpod] installed: BootloaderRockbox";
+            LOG_INFO() << "installed: BootloaderRockbox";
         }
     }
     ipod_close(&ipod);
@@ -226,7 +223,7 @@ BootloaderInstallBase::Capabilities BootloaderInstallIpod::capabilities(void)
 bool BootloaderInstallIpod::ipodInitialize(struct ipod_t *ipod)
 {
     if(!m_blfile.isEmpty()) {
-        QString devicename = Autodetection::resolveDevicename(m_blfile);
+        QString devicename = Utils::resolveDevicename(m_blfile);
         if(devicename.isEmpty()) {
             emit logItem(tr("Error: could not retrieve device name"), LOGERROR);
             return false;
@@ -240,12 +237,12 @@ bool BootloaderInstallIpod::ipodInitialize(struct ipod_t *ipod)
         sprintf(ipod->diskname, "%s",
             qPrintable(devicename.remove(QRegExp("[0-9]+$"))));
 #endif
-        qDebug() << "[BootloaderInstallIpod] ipodpatcher: overriding scan, using"
-                 << ipod->diskname;
+        LOG_INFO() << "ipodpatcher: overriding scan, using"
+                   << ipod->diskname;
     }
     else {
         emit logItem(tr("Error: no mountpoint specified!"), LOGERROR);
-        qDebug() << "[BootloaderInstallIpod] no mountpoint specified!";
+        LOG_ERROR() << "no mountpoint specified!";
     }
     int result = ipod_open(ipod, 1);
     if(result == -2) {

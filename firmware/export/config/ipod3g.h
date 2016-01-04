@@ -2,8 +2,6 @@
  * This config file is for the Apple iPod 3g
  */
 
-#define TARGET_TREE /* this target is using the target tree system */
-
 #define IPOD_ARCH 1
 
 #define MODEL_NAME   "Apple iPod 3g"
@@ -48,8 +46,6 @@
 
 /* define this if you have access to the quickscreen */
 #define HAVE_QUICKSCREEN
-/* define this if you have access to the pitchscreen */
-#define HAVE_PITCHSCREEN
 
 /* define this if you would like tagcache to build on this target */
 #define HAVE_TAGCACHE
@@ -57,6 +53,8 @@
 /* LCD dimensions */
 #define LCD_WIDTH  160
 #define LCD_HEIGHT 128
+/* sqrt(160^2 + 128^2) / 2.0 = 102.4 */
+#define LCD_DPI 102
 #define LCD_DEPTH  2   /* 4 colours - 2bpp */
 
 #define LCD_PIXELFORMAT HORIZONTAL_PACKING
@@ -78,6 +76,9 @@
 #define DEFAULT_CONTRAST_SETTING    40 /* Match boot contrast */
 
 #define CONFIG_KEYPAD IPOD_3G_PAD
+
+/* Define this to have CPU boosted while scrolling in the UI */
+#define HAVE_GUI_BOOST
 
 /* define this if the unit uses a scrollwheel for navigation */
 #define HAVE_SCROLLWHEEL
@@ -133,6 +134,8 @@
 #define BATTERY_CAPACITY_MAX 1200 /* max. capacity selectable */
 #define BATTERY_CAPACITY_INC 10   /* capacity increment */
 #define BATTERY_TYPES_COUNT  1    /* only one type */
+
+#define CONFIG_BATTERY_MEASURE VOLTAGE_MEASURE
 
 /* Hardware controlled charging? FIXME */
 #define CONFIG_CHARGING CHARGING_SIMPLE

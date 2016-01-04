@@ -24,8 +24,8 @@ by section, they are as follows:
         The top left tool shows your colours that are at the ready. To
         swap them, ``click'' on the background colour. To edit the foreground colour,
         click on it.
-    \item[Preset Pallete]
-        Several preset colours are availible. Clicking on one changes
+    \item[Preset Palette]
+        Several preset colours are available. Clicking on one changes
         the foreground of the Colour Picker to the selected colour.
     \item[Pencil]
         Draws as you move the cursor. You can change the brush size with the
@@ -105,12 +105,14 @@ if you select Exit, so any unsaved changes will be lost.}
 
 \begin{btnmap}
     \nopt{IPOD_4G_PAD,IPOD_3G_PAD,IPOD_1G2G_PAD}{
-        \nopt{IRIVER_H300_PAD,GIGABEAT_S_PAD,SANSA_FUZE_PAD,PBELL_VIBE500_PAD}
+        \nopt{IRIVER_H300_PAD,GIGABEAT_S_PAD,SANSA_FUZE_PAD,PBELL_VIBE500_PAD%
+             ,SAMSUNG_YH92X_PAD,SAMSUNG_YH820_PAD}
             {\ButtonPower}
         \opt{IRIVER_H300_PAD}{\ButtonOff}
         \opt{GIGABEAT_S_PAD}{\ButtonBack}
         \opt{SANSA_FUZE_PAD}{Long \ButtonHome}
         \opt{PBELL_VIBE500_PAD}{\ButtonRec}
+        \opt{SAMSUNG_YH92X_PAD,SAMSUNG_YH820_PAD}{Long \ButtonRew}
           \opt{HAVEREMOTEKEYMAP}{& }
         & Quits Rockpaint immediately.\\
     }
@@ -128,28 +130,36 @@ if you select Exit, so any unsaved changes will be lost.}
     \opt{IRIVER_H300_PAD}{\ButtonOn}%
     \opt{IPOD_4G_PAD,IPOD_3G_PAD,IPOD_1G2G_PAD}{\ButtonSelect+\ButtonMenu}%
     \opt{SANSA_C200_PAD,SANSA_E200_PAD}{\ButtonSelect+\ButtonPower}%
+    \opt{SANSA_CLIP_PAD}{\ButtonHome}%
     \opt{SANSA_FUZE_PAD}{\ButtonSelect+\ButtonDown}%
     \opt{IAUDIO_X5_PAD}{\ButtonPlay}%
     \opt{GIGABEAT_PAD,GIGABEAT_S_PAD,COWON_D2_PAD,PBELL_VIBE500_PAD}{\ButtonMenu}%
     \opt{IRIVER_H10_PAD}{\ButtonPlay}%
+    \opt{SAMSUNG_YH92X_PAD,SAMSUNG_YH820_PAD}{\ButtonRew}%
       \opt{HAVEREMOTEKEYMAP}{& }
     & Displays the Main Menu.\\
 
     \opt{IRIVER_H300_PAD,IAUDIO_X5_PAD,SANSA_C200_PAD,SANSA_E200_PAD}{\ButtonRec}
+    \opt{SANSA_CLIP_PAD}{\ButtonVolUp}
     \opt{SANSA_FUZE_PAD}{\ButtonSelect+\ButtonLeft}
     \opt{IPOD_4G_PAD,IPOD_3G_PAD,IPOD_1G2G_PAD}{\ButtonMenu+\ButtonLeft}
     \opt{GIGABEAT_PAD}{\ButtonA}
     \opt{IRIVER_H10_PAD}{\ButtonRew}
     \opt{GIGABEAT_S_PAD}{\ButtonPlay}
+    \opt{SANSA_FUZEPLUS_PAD}{\ButtonBottomLeft{} or \ButtonBottomRight}
     \opt{touchscreen}{\TouchBottomLeft}
     \opt{PBELL_VIBE500_PAD}{\ButtonOK}
+    \opt{SAMSUNG_YH92X_PAD}{\ButtonFF{} or \ButtonRec}%
+    \opt{SAMSUNG_YH820_PAD}{\ButtonFF{} or \ButtonLeft+\ButtonFF}%
       \opt{HAVEREMOTEKEYMAP}{& }
     & Displays the toolbar.\\
 
-    \nopt{IRIVER_H10_PAD,touchscreen,PBELL_VIBE500_PAD}{\ButtonSelect}%
+    \nopt{IRIVER_H10_PAD,touchscreen,PBELL_VIBE500_PAD,SANSA_FUZEPLUS_PAD%
+         ,SAMSUNG_YH92X_PAD,SAMSUNG_YH820_PAD}{\ButtonSelect}%
     \opt{IRIVER_H10_PAD}{\ButtonFF}%
     \opt{touchscreen}{\TouchCenter}
-    \opt{PBELL_VIBE500_PAD}{\ButtonPlay}
+    \opt{PBELL_VIBE500_PAD,SAMSUNG_YH92X_PAD,SAMSUNG_YH820_PAD}{\ButtonPlay}
+    \opt{SANSA_FUZEPLUS_PAD}{\ButtonVolUp}
       \opt{HAVEREMOTEKEYMAP}{& }
     & Toggles the brush and selects objects.\\
 

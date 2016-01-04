@@ -27,19 +27,15 @@
 #include "logf.h"
 #include "storage.h"
 #include "disk.h"
+#include "fat.h"
 /* Needed to get at the audio buffer */
 #include "audio.h"
 #include "usb_storage.h"
+#if CONFIG_RTC
 #include "timefuncs.h"
-
-/* For sector filter macro definitions */
-#include "usb-target.h"
-
-/* Enable the following define to export only the SD card slot. This
- * is useful for USBCV MSC tests, as those are destructive.
- * This won't work right if the device doesn't have a card slot.
- */
-//#define HIDE_FIRST_DRIVE
+#endif
+#include "core_alloc.h"
+#include "panic.h"
 
 #ifdef USB_USE_RAMDISK
 #define RAMDISK_SIZE 2048
@@ -70,7 +66,7 @@
 #ifdef USB_READ_BUFFER_SIZE
 #define READ_BUFFER_SIZE USB_READ_BUFFER_SIZE
 #else
-#if CONFIG_CPU == AS3525
+#if CONFIG_USBOTG == USBOTG_AS3525
 /* We'd need to implement multidescriptor dma for sizes >65535 */
 #define READ_BUFFER_SIZE (1024*63)
 #else
@@ -78,13 +74,14 @@
 #endif /* CONFIG_CPU == AS3525 */
 #endif /* USB_READ_BUFFER_SIZE */
 
-#define MAX_CBW_SIZE 1024
+/* We don't use sizeof() here, because we *need* a multiple of 32 */
+#define MAX_CBW_SIZE 32
 
 #ifdef USB_WRITE_BUFFER_SIZE
 #define WRITE_BUFFER_SIZE USB_WRITE_BUFFER_SIZE
 #else
 #if (CONFIG_STORAGE & STORAGE_SD)
-#if CONFIG_CPU == AS3525
+#if CONFIG_USBOTG == USBOTG_AS3525
 /* We'd need to implement multidescriptor dma for sizes >65535 */
 #define WRITE_BUFFER_SIZE (1024*63)
 #else
@@ -311,7 +308,9 @@ static void send_command_result(void *data,int size);
 static void send_command_failed_result(void);
 static void send_block_data(void *data,int size);
 static void receive_block_data(void *data,int size);
+#if CONFIG_RTC
 static void receive_time(void);
+#endif
 static void fill_inquiry(IF_MD_NONVOID(int lun));
 static void send_and_read_next(void);
 static bool ejected[NUM_DRIVES];
@@ -319,6 +318,10 @@ static bool locked[NUM_DRIVES];
 
 static int usb_interface;
 static int ep_in, ep_out;
+
+#if defined(HAVE_MULTIDRIVE)
+static bool skip_first = 0;
+#endif
 
 #ifdef USB_USE_RAMDISK
 static unsigned char* ramdisk_buffer;
@@ -330,62 +333,37 @@ static enum {
     SENDING_RESULT,
     SENDING_FAILED_RESULT,
     RECEIVING_BLOCKS,
+#if CONFIG_RTC
     RECEIVING_TIME,
+#endif
     WAITING_FOR_CSW_COMPLETION_OR_COMMAND,
     WAITING_FOR_CSW_COMPLETION
 } state = WAITING_FOR_COMMAND;
 
+#if CONFIG_RTC
 static void yearday_to_daymonth(int yd, int y, int *d, int *m)
 {
-    static const char tnl[] = { 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31 };
-    static const char tl[] = { 31, 29, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31 };
-    const char *t;
-    int i=0;
+    static char t[] = { 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31 };
 
-    if((y%4 == 0 && y%100 != 0) || y%400 == 0)
-    {
-        t=tl;
-    }
-    else
-    {
-        t=tnl;
-    }
+    bool leap = (y%4 == 0 && y%100 != 0) || y%400 == 0;
+    t[1] = leap ? 29 : 28;
 
-    while(yd >= t[i] && i<12)
-    {
-        yd-=t[i];
-        i++;
-    }
+    int i;
+    for (i = 0; i < 12 && yd >= t[i]; i++)
+        yd -= t[i];
+
     *d = yd+1;
     *m = i;
 }
+#endif /* CONFIG_RTC */
 
 static bool check_disk_present(IF_MD_NONVOID(int volume))
 {
 #ifdef USB_USE_RAMDISK
     return true;
 #else
-    unsigned char sector[SECTOR_SIZE];
-    return storage_read_sectors(IF_MD2(volume,)0,1,sector) == 0;
+    return disk_present(IF_MD(volume));
 #endif
-}
-
-void usb_storage_try_release_storage(void)
-{
-    /* Check if there is a connected drive left. If not,
-       release excusive access */
-    bool canrelease=true;
-    int i;
-    for(i=0;i<storage_num_drives();i++) {
-        if(!ejected[i] && locked[i]) {
-            canrelease=false;
-            break;
-        }
-    }
-    if(canrelease) {
-        logf("scsi release ata");
-        usb_release_exclusive_storage();
-    }
 }
 
 #ifdef HAVE_HOTSWAP
@@ -401,6 +379,13 @@ void usb_storage_notify_hotswap(int volume,bool inserted)
            At least try to keep our state consistent */
         locked[volume]=false;
     }
+}
+#endif
+
+#ifdef HAVE_MULTIDRIVE
+void usb_set_skip_first_drive(bool skip)
+{
+    skip_first = skip;
 }
 #endif
 
@@ -439,27 +424,28 @@ int usb_storage_get_config_descriptor(unsigned char *dest,int max_packet_size)
     unsigned char *orig_dest = dest;
 
     interface_descriptor.bInterfaceNumber = usb_interface;
-    PACK_DATA(dest, interface_descriptor);
+    PACK_DATA(&dest, interface_descriptor);
 
     endpoint_descriptor.wMaxPacketSize = max_packet_size;
 
     endpoint_descriptor.bEndpointAddress = ep_in;
-    PACK_DATA(dest, endpoint_descriptor);
+    PACK_DATA(&dest, endpoint_descriptor);
 
     endpoint_descriptor.bEndpointAddress = ep_out;
-    PACK_DATA(dest, endpoint_descriptor);
+    PACK_DATA(&dest, endpoint_descriptor);
 
     return (dest - orig_dest);
 }
 
+static int usb_handle;
 void usb_storage_init_connection(void)
 {
     logf("ums: set config");
     /* prime rx endpoint. We only need room for commands */
     state = WAITING_FOR_COMMAND;
 
-#if CONFIG_CPU == IMX31L || defined(CPU_TCC77X) || defined(CPU_TCC780X) || \
-    defined(BOOTLOADER) || CONFIG_CPU == DM320
+#if (CONFIG_CPU == IMX31L || defined(CPU_TCC77X) || defined(CPU_TCC780X) || \
+     defined(BOOTLOADER) || CONFIG_CPU == DM320) && !defined(CPU_PP502x)
     static unsigned char _cbw_buffer[MAX_CBW_SIZE]
         USB_DEVBSS_ATTR __attribute__((aligned(32)));
     cbw_buffer = (void *)_cbw_buffer;
@@ -472,18 +458,24 @@ void usb_storage_init_connection(void)
     ramdisk_buffer = _ramdisk_buffer;
 #endif
 #else
-    /* TODO : check if bufsize is at least 32K ? */
-    size_t bufsize;
-    unsigned char * audio_buffer;
+    unsigned char * buffer;
+    /* dummy ops with no callbacks, needed because by
+     * default buflib buffers can be moved around which must be avoided */
+    static struct buflib_callbacks dummy_ops;
 
-    audio_buffer = audio_get_buffer(false,&bufsize);
+    // Add 31 to handle worst-case misalignment
+    usb_handle = core_alloc_ex("usb storage", ALLOCATE_BUFFER_SIZE + MAX_CBW_SIZE + 31, &dummy_ops);
+    if (usb_handle < 0)
+        panicf("%s(): OOM", __func__);
+
+    buffer = core_get_data(usb_handle);
 #if defined(UNCACHED_ADDR) && CONFIG_CPU != AS3525
-    cbw_buffer = (void *)UNCACHED_ADDR((unsigned int)(audio_buffer+31) & 0xffffffe0);
+    cbw_buffer = (void *)UNCACHED_ADDR((unsigned int)(buffer+31) & 0xffffffe0);
 #else
-    cbw_buffer = (void *)((unsigned int)(audio_buffer+31) & 0xffffffe0);
+    cbw_buffer = (void *)((unsigned int)(buffer+31) & 0xffffffe0);
 #endif
     tb.transfer_buffer = cbw_buffer + MAX_CBW_SIZE;
-    cpucache_invalidate();
+    commit_discard_dcache();
 #ifdef USB_USE_RAMDISK
     ramdisk_buffer = tb.transfer_buffer + ALLOCATE_BUFFER_SIZE;
 #endif
@@ -508,7 +500,8 @@ void usb_storage_init_connection(void)
 
 void usb_storage_disconnect(void)
 {
-    /* Empty for now */
+    if (usb_handle > 0)
+        usb_handle = core_free(usb_handle);
 }
 
 /* called by usb_core_transfer_complete() */
@@ -523,7 +516,9 @@ void usb_storage_transfer_complete(int ep,int dir,int status,int length)
     (void)buffer;
     #endif
     struct command_block_wrapper* cbw = (void*)cbw_buffer;
+#if CONFIG_RTC
     struct tm tm;
+#endif
 
     logf("transfer result for ep %d/%d %X %d", ep,dir,status, length);
     switch(state) {
@@ -561,7 +556,7 @@ void usb_storage_transfer_complete(int ep,int dir,int status,int length)
                 int result = USBSTOR_WRITE_SECTORS_FILTER();
 
                 if (result == 0) {
-                    result = storage_write_sectors(IF_MD2(cur_cmd.lun,)
+                    result = storage_write_sectors(IF_MD(cur_cmd.lun,)
                         cur_cmd.sector,
                         MIN(WRITE_BUFFER_SIZE/SECTOR_SIZE, cur_cmd.count),
                         cur_cmd.data[cur_cmd.data_select]);
@@ -687,6 +682,7 @@ void usb_storage_transfer_complete(int ep,int dir,int status,int length)
                 cur_sense_data.ascq=0;
             }
             break;
+#if CONFIG_RTC
         case RECEIVING_TIME:
             tm.tm_year=(tb.transfer_buffer[0]<<8)+tb.transfer_buffer[1] - 1900;
             tm.tm_yday=(tb.transfer_buffer[2]<<8)+tb.transfer_buffer[3];
@@ -698,6 +694,7 @@ void usb_storage_transfer_complete(int ep,int dir,int status,int length)
             set_time(&tm);
             send_csw(UMS_STATUS_GOOD);
             break;
+#endif /* CONFIG_RTC */
     }
 }
 
@@ -711,8 +708,8 @@ bool usb_storage_control_request(struct usb_ctrlrequest* req, unsigned char* des
     switch (req->bRequest) {
         case USB_BULK_GET_MAX_LUN: {
             *tb.max_lun = storage_num_drives() - 1;
-#ifdef HIDE_FIRST_DRIVE
-            *tb.max_lun --;
+#if defined(HAVE_MULTIDRIVE)
+            if(skip_first) (*tb.max_lun) --;
 #endif
             logf("ums: getmaxlun");
             usb_drv_send_blocking(EP_CONTROL, tb.max_lun, 1);
@@ -763,7 +760,7 @@ static void send_and_read_next(void)
                 ramdisk_buffer + cur_cmd.sector*SECTOR_SIZE,
                 MIN(READ_BUFFER_SIZE/SECTOR_SIZE, cur_cmd.count)*SECTOR_SIZE);
 #else
-        result = storage_read_sectors(IF_MD2(cur_cmd.lun,)
+        result = storage_read_sectors(IF_MD(cur_cmd.lun,)
                 cur_cmd.sector,
                 MIN(READ_BUFFER_SIZE/SECTOR_SIZE, cur_cmd.count),
                 cur_cmd.data[cur_cmd.data_select]);
@@ -782,13 +779,13 @@ static void handle_scsi(struct command_block_wrapper* cbw)
 
     struct storage_info info;
     unsigned int length = cbw->data_transfer_length;
-    unsigned int block_size = 0;
-    unsigned int block_count = 0;
+    unsigned int block_size, block_count;
     bool lun_present=true;
     unsigned char lun = cbw->lun;
     unsigned int block_size_mult = 1;
 
     if(letoh32(cbw->signature) != CBW_SIGNATURE) {
+        logf("ums: bad cbw signature (%x)", cbw->signature);
         usb_drv_stall(ep_in, true,true);
         usb_drv_stall(ep_out, true,false);
         return;
@@ -798,8 +795,8 @@ static void handle_scsi(struct command_block_wrapper* cbw)
      * bogus data */
     cbw->signature=0;
 
-#ifdef HIDE_FIRST_DRIVE
-    lun++;
+#if defined(HAVE_MULTIDRIVE)
+    if(skip_first) lun++;
 #endif
 
     storage_get_info(lun,&info);
@@ -821,7 +818,7 @@ static void handle_scsi(struct command_block_wrapper* cbw)
         lun_present = false;
 
 #ifdef MAX_LOG_SECTOR_SIZE
-    block_size_mult = disk_sector_multiplier;
+    block_size_mult = disk_get_sector_multiplier(IF_MD(lun));
 #endif
 
     cur_cmd.tag = cbw->tag;
@@ -851,7 +848,7 @@ static void handle_scsi(struct command_block_wrapper* cbw)
 
         case SCSI_REPORT_LUNS: {
             logf("scsi report luns %d",lun);
-            int allocation_length=0;
+            unsigned int allocation_length=0;
             int i;
             unsigned int response_length = 8+8*storage_num_drives();
             allocation_length|=(cbw->command_block[6]<<24);
@@ -869,6 +866,7 @@ static void handle_scsi(struct command_block_wrapper* cbw)
 #endif
                     tb.lun_data->luns[i][1]=0;
             }
+            length = MIN(length, allocation_length);
             send_command_result(tb.lun_data,
                                 MIN(response_length, length));
             break;
@@ -1121,7 +1119,7 @@ static void handle_scsi(struct command_block_wrapper* cbw)
                         ramdisk_buffer + cur_cmd.sector*SECTOR_SIZE,
                         MIN(READ_BUFFER_SIZE/SECTOR_SIZE,cur_cmd.count)*SECTOR_SIZE);
 #else
-                cur_cmd.last_result = storage_read_sectors(IF_MD2(cur_cmd.lun,)
+                cur_cmd.last_result = storage_read_sectors(IF_MD(cur_cmd.lun,)
                         cur_cmd.sector,
                         MIN(READ_BUFFER_SIZE/SECTOR_SIZE, cur_cmd.count),
                         cur_cmd.data[cur_cmd.data_select]);
@@ -1165,6 +1163,7 @@ static void handle_scsi(struct command_block_wrapper* cbw)
             }
             break;
 
+#if CONFIG_RTC
         case SCSI_WRITE_BUFFER:
             if(cbw->command_block[1]==1 /* mode = vendor specific */
             && cbw->command_block[2]==0 /* buffer id = 0 */
@@ -1182,6 +1181,7 @@ static void handle_scsi(struct command_block_wrapper* cbw)
             && cbw->command_block[9]==0)
             receive_time();
             break;
+#endif /* CONFIG_RTC */
 
         default:
             logf("scsi unknown cmd %x",cbw->command_block[0x0]);
@@ -1211,11 +1211,14 @@ static void send_command_failed_result(void)
     state = SENDING_FAILED_RESULT;
 }
 
+#if CONFIG_RTC
 static void receive_time(void)
 {
     usb_drv_recv_nonblocking(ep_out, tb.transfer_buffer, 12);
     state = RECEIVING_TIME;
 }
+#endif /* CONFIG_RTC */
+
 static void receive_block_data(void *data,int size)
 {
     usb_drv_recv_nonblocking(ep_out, data, size);
@@ -1248,17 +1251,13 @@ static void send_csw(int status)
 
 static void copy_padded(char *dest, char *src, int len)
 {
-   int i=0;
-   while(src[i]!=0 && i<len)
-   {
-      dest[i]=src[i];
-      i++;
-   }
-   while(i<len)
-   {
-      dest[i]=' ';
-      i++;
-   }
+    for (int i = 0; i < len; i++) {
+        if (src[i] == '\0') {
+            memset(&dest[i], ' ', len - i);
+            return;
+        }
+        dest[i] = src[i];
+    }
 }
 
 /* build SCSI INQUIRY */

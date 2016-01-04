@@ -2,8 +2,6 @@
  * This config file is for Samsung YP-S3
  */
 
-#define TARGET_TREE /* this target is using the target tree system */
-
 /* For Rolo and boot loader */
 #define MODEL_NUMBER 53
 
@@ -46,9 +44,6 @@
 /* define this if you have access to the quickscreen */
 #define HAVE_QUICKSCREEN
 
-/* define this if you have access to the pitchscreen */
-#define HAVE_PITCHSCREEN
-
 /* define this if you would like tagcache to build on this target */
 #define HAVE_TAGCACHE
 
@@ -62,6 +57,8 @@
 /* LCD dimensions */
 #define LCD_WIDTH  176
 #define LCD_HEIGHT 220
+/* sqrt(176^2 + 220^2) / 1.8 = 156.5 */
+#define LCD_DPI 157
 #define LCD_DEPTH  16   /* pseudo 262.144 colors */
 #define LCD_PIXELFORMAT RGB565 /* rgb565 */
 
@@ -118,6 +115,8 @@
 #define BATTERY_CAPACITY_INC     0    /* capacity increment */
 #define BATTERY_TYPES_COUNT      1     /* only one type */
 
+#define CONFIG_BATTERY_MEASURE VOLTAGE_MEASURE
+
 /* Hardware controlled charging, software can monitor plug and charge state */
 #define CONFIG_CHARGING CHARGING_MONITOR
 
@@ -150,7 +149,6 @@
 
 /* USB */
 //#define HAVE_USBSTACK
-#define USE_ROCKBOX_USB
 #define USB_VENDOR_ID 0x04E8
 #define USB_PRODUCT_ID 0x5090
 

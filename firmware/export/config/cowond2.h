@@ -1,7 +1,6 @@
 /*
  * This config file is for the Cowon D2
  */
-#define TARGET_TREE /* this target is using the target tree system */
 
 /* For Rolo and boot loader */
 #define MODEL_NUMBER 24
@@ -10,7 +9,6 @@
 
 #if 0
 #define HAVE_USBSTACK
-#define USE_ROCKBOX_USB
 #define USB_VENDOR_ID 0x0e21
 #define USB_PRODUCT_ID 0x0800
 #endif
@@ -49,8 +47,6 @@
 
 /* define this if you have access to the quickscreen */
 #define HAVE_QUICKSCREEN
-/* define this if you have access to the pitchscreen */
-#define HAVE_PITCHSCREEN
 
 /* define this if you would like tagcache to build on this target */
 #define HAVE_TAGCACHE
@@ -75,9 +71,11 @@
 /* LCD dimensions */
 #define LCD_WIDTH  320
 #define LCD_HEIGHT 240
+/* sqrt(320^2 + 240^2) / 2.5 = 160.0 */
+#define LCD_DPI 160
 #define LCD_DPI    160
 #define LCD_DEPTH  16
-#define LCD_PIXELFORMAT 565
+#define LCD_PIXELFORMAT RGB565
 
 /* define this if you have LCD enable function */
 #define HAVE_LCD_ENABLE
@@ -135,6 +133,8 @@
 #define BATTERY_CAPACITY_MAX 3200 /* max. capacity selectable */
 #define BATTERY_CAPACITY_INC 50   /* capacity increment */
 #define BATTERY_TYPES_COUNT  1    /* only one type */
+
+#define CONFIG_BATTERY_MEASURE VOLTAGE_MEASURE
 
 /* Hardware controlled charging */
 #define CONFIG_CHARGING CHARGING_SIMPLE

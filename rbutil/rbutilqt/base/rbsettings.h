@@ -7,7 +7,6 @@
  *                     \/            \/     \/    \/            \/
  *
  *   Copyright (C) 2007 by Dominik Wenger
- *   $Id$
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -28,10 +27,11 @@ class RbSettings : public QObject
 {
     Q_OBJECT
     public:
-        
+
         //! All user settings
         enum UserSettings {
             RbutilVersion,
+            ShowChangelog,
             CurrentPlatform,
             Mountpoint,
             CachePath,
@@ -41,26 +41,39 @@ class RbSettings : public QObject
             OfPath,
             Platform,
             Language,
+            BackupPath,
+            InstallRockbox,
+            InstallFonts,
+            InstallThemes,
+            InstallGamefiles,
             Tts,
-            LastTalkedFolder,
+            UseTtsCorrections,
+            TalkFolders,
+            TalkProcessFiles,
+            TalkProcessFolders,
+            TalkRecursive,
+            TalkSkipExisting,
+            TalkStripExtensions,
+            TalkIgnoreFiles,
+            TalkIgnoreWildcards,
             VoiceLanguage,
             TtsLanguage,
             TtsOptions,
             TtsPath,
             TtsVoice,
+            TtsPitch,
             EncoderPath,
             EncoderOptions,
             WavtrimThreshold,
             EncoderComplexity,
             TtsSpeed,
-            CacheOffline,
             CacheDisabled,
             TtsUseSapi4,
             EncoderNarrowBand,
             EncoderQuality,
             EncoderVolume,
         };
- 
+
         //! call this to flush the user Settings
         static void sync();
         //! returns the filename of the usersettings file

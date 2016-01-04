@@ -21,7 +21,10 @@
 
 #include "config.h"
 #include "lcd.h"
+#ifdef HAVE_REMOTE_LCD
 #include "lcd-remote.h"
+#endif
+#include "scroll_engine.h"
 #include "thread.h"
 #include "kernel.h"
 #include "button.h"
@@ -31,16 +34,21 @@
 #include "i2c.h"
 #include "adc.h"
 #include "string.h"
-#include "buffer.h"
+#include "core_alloc.h"
 #include "storage.h"
 #include "rolo.h"
 
-#ifdef MI4_FORMAT
+#include "loader_strerror.h"
+#if defined(MI4_FORMAT)
 #include "crc32-mi4.h"
-#undef FIRMWARE_OFFSET_FILE_CRC
-#undef FIRMWARE_OFFSET_FILE_DATA
-#define FIRMWARE_OFFSET_FILE_CRC     0xC
-#define FIRMWARE_OFFSET_FILE_DATA    0x200
+#include "mi4-loader.h"
+#define LOAD_FIRMWARE(a,b,c) load_mi4(a,b,c)
+#elif defined(RKW_FORMAT)
+#include "rkw-loader.h"
+#define LOAD_FIRMWARE(a,b,c) load_rkw(a,b,c)
+#else
+#include "rb-loader.h"
+#define LOAD_FIRMWARE(a,b,c) load_firmware(a,b,c)
 #endif
 
 #if !defined(IRIVER_IFP7XX_SERIES)
@@ -48,6 +56,7 @@
 
 #define IRQ0_EDGE_TRIGGER 0x80
 
+static int rolo_handle;
 #ifdef CPU_PP
 /* Handle the COP properly - it needs to jump to a function outside SDRAM while
  * the new firmware is being loaded, and then jump to the start of SDRAM
@@ -74,7 +83,7 @@ void rolo_restart_cop(void)
     COP_INT_DIS = -1;
 
     /* Invalidate cache */
-    cpucache_invalidate();
+    commit_discard_idcache();
     
     /* Disable cache */
     CACHE_CTL = CACHE_CTL_DISABLE;
@@ -99,6 +108,7 @@ void rolo_restart_cop(void)
 
 static void rolo_error(const char *text)
 {
+    rolo_handle = core_free(rolo_handle);
     lcd_clear_display();
     lcd_puts(0, 0, "ROLO error:");
     lcd_puts_scroll(0, 1, text);
@@ -106,14 +116,15 @@ static void rolo_error(const char *text)
     button_get(true);
     button_get(true);
     button_get(true);
-    lcd_stop_scroll();
+    lcd_scroll_stop();
 }
 
-#if CONFIG_CPU == SH7034 || CONFIG_CPU == IMX31L
+#if CONFIG_CPU == SH7034 || CONFIG_CPU == IMX31L || CONFIG_CPU == RK27XX
 /* these are in assembler file "descramble.S" for SH7034 */
 extern unsigned short descramble(const unsigned char* source,
                                  unsigned char* dest, int length);
 /* this is in firmware/target/arm/imx31/rolo_restart.c for IMX31 */
+/* this is in firmware/target/arm/rk27xx/rolo_restart.c for rk27xx */
 extern void rolo_restart(const unsigned char* source, unsigned char* dest,
                          int length);
 #else
@@ -146,7 +157,7 @@ void rolo_restart(const unsigned char* source, unsigned char* dest,
     CPU_INT_DIS = -1;
 
     /* Flush cache */
-    cpucache_flush();
+    commit_discard_idcache();
 
     /* Disable cache */
     CACHE_CTL = CACHE_CTL_DISABLE;
@@ -172,10 +183,8 @@ void rolo_restart(const unsigned char* source, unsigned char* dest,
     );
 
 #elif defined(CPU_ARM)
-#ifdef HAVE_CPUCACHE_INVALIDATE
     /* Flush and invalidate caches */
-    cpucache_invalidate();
-#endif
+    commit_discard_idcache();
     asm volatile(
         "bx    %0   \n"
         : : "r"(dest)
@@ -195,24 +204,17 @@ extern unsigned long loadaddress;
 
 /***************************************************************************
  *
- * Name: rolo_load_app(char *filename,int scrambled)
+ * Name: rolo_load(const char *filename)
  * Filename must be a fully defined filename including the path and extension
  *
  ***************************************************************************/
+#if defined(CPU_COLDFIRE) || defined(CPU_ARM) || defined(CPU_MIPS)
 int rolo_load(const char* filename)
 {
-    int fd;
-    long length;
-#if defined(CPU_COLDFIRE) || defined(CPU_ARM) || defined(CPU_MIPS)
-#if !defined(MI4_FORMAT)
-    int i;
-#endif
-    unsigned long checksum,file_checksum;
-#else
-    long file_length;
-    unsigned short checksum,file_checksum;
-#endif
     unsigned char* ramstart = (void*)&loadaddress;
+    unsigned char* filebuf;
+    size_t filebuf_size;
+    int errno, length;
 
     lcd_clear_display();
     lcd_puts(0, 0, "ROLO...");
@@ -227,26 +229,20 @@ int rolo_load(const char* filename)
 
     audio_stop();
 
-    fd = open(filename, O_RDONLY);
-    if(-1 == fd) {
-        rolo_error("File not found");
+    /* get the system buffer. release only in case of error, otherwise
+     * we don't return anyway */
+    rolo_handle = core_alloc_maximum("rolo", &filebuf_size, NULL);
+    filebuf = core_get_data(rolo_handle);
+
+    errno = LOAD_FIRMWARE(filebuf, filename, filebuf_size);
+
+    if (errno <= 0)
+    {
+        rolo_error(loader_strerror(errno));
         return -1;
     }
-
-    length = filesize(fd) - FIRMWARE_OFFSET_FILE_DATA;
-
-#if CONFIG_CPU != SH7034
-    /* Read and save checksum */
-    lseek(fd, FIRMWARE_OFFSET_FILE_CRC, SEEK_SET);
-    if (read(fd, &file_checksum, 4) != 4) {
-        rolo_error("Error Reading checksum");
-        return -1;
-    }
-
-#if !defined(MI4_FORMAT)
-    /* Rockbox checksums are big-endian */
-    file_checksum = betoh32(file_checksum);
-#endif
+    else
+        length = errno;
 
 #if defined(CPU_PP) && NUM_CORES > 1
     lcd_puts(0, 2, "Waiting for coprocessor...");
@@ -257,31 +253,6 @@ int rolo_load(const char* filename)
     lcd_puts(0, 2, "                          ");
     lcd_update();
 #endif
-
-    lseek(fd, FIRMWARE_OFFSET_FILE_DATA, SEEK_SET);
-
-    if (read(fd, audiobuf, length) != length) {
-        rolo_error("Error Reading File");
-        return -1;
-    }
-
-#ifdef MI4_FORMAT
-    /* Check CRC32 to see if we have a valid file */
-    chksum_crc32gentab();
-    checksum = chksum_crc32 (audiobuf, length);
-#else
-    checksum = MODEL_NUMBER;
-
-    for(i = 0;i < length;i++) {
-        checksum += audiobuf[i];
-    }
-#endif
-
-    /* Verify checksum against file header */
-    if (checksum != file_checksum) {
-        rolo_error("Checksum Error");
-        return -1;
-    }
 
 #ifdef HAVE_STORAGE_FLUSH
     lcd_puts(0, 1, "Flushing storage buffers");
@@ -308,7 +279,48 @@ int rolo_load(const char* filename)
 #endif
 #endif /* CONFIG_CPU == IMX31L */
 
-#else /* CONFIG_CPU == SH7034 */
+    rolo_restart(filebuf, ramstart, length);
+
+    /* never reached */
+    return 0;
+}
+#else /* defined(CPU_SH) */
+int rolo_load(const char* filename)
+{
+    int fd;
+    long length;
+    long file_length;
+    unsigned short checksum,file_checksum;
+    unsigned char* ramstart = (void*)&loadaddress;
+    unsigned char* filebuf;
+    size_t filebuf_size;
+
+    lcd_clear_display();
+    lcd_puts(0, 0, "ROLO...");
+    lcd_puts(0, 1, "Loading");
+    lcd_update();
+#ifdef HAVE_REMOTE_LCD
+    lcd_remote_clear_display();
+    lcd_remote_puts(0, 0, "ROLO...");
+    lcd_remote_puts(0, 1, "Loading");
+    lcd_remote_update();
+#endif
+
+    audio_stop();
+
+    fd = open(filename, O_RDONLY);
+    if(-1 == fd) {
+        rolo_error("File not found");
+        return -1;
+    }
+
+    length = filesize(fd) - FIRMWARE_OFFSET_FILE_DATA;
+
+    /* get the system buffer. release only in case of error, otherwise
+     * we don't return anyway */
+    rolo_handle = core_alloc_maximum("rolo", &filebuf_size, NULL);
+    filebuf = core_get_data(rolo_handle);
+
     /* Read file length from header and compare to real file length */
     lseek(fd, FIRMWARE_OFFSET_FILE_LENGTH, SEEK_SET);
     if(read(fd, &file_length, 4) != 4) {
@@ -329,12 +341,12 @@ int rolo_load(const char* filename)
     lseek(fd, FIRMWARE_OFFSET_FILE_DATA, SEEK_SET);
 
     /* verify that file can be read and descrambled */
-    if ((audiobuf + (2*length)+4) >= audiobufend) {
+    if ((size_t)((2*length)+4) >= filebuf_size) {
         rolo_error("Not enough room to load file");
         return -1;
     }
 
-    if (read(fd, &audiobuf[length], length) != (int)length) {
+    if (read(fd, &filebuf[length], length) != (int)length) {
         rolo_error("Error Reading File");
         return -1;
     }
@@ -342,7 +354,7 @@ int rolo_load(const char* filename)
     lcd_puts(0, 1, "Descramble");
     lcd_update();
 
-    checksum = descramble(audiobuf + length, audiobuf, length);
+    checksum = descramble(filebuf + length, filebuf, length);
 
     /* Verify checksum against file header */
     if (checksum != file_checksum) {
@@ -373,12 +385,12 @@ int rolo_load(const char* filename)
     defined(ARCHOS_FMRECORDER)
     PAIOR = 0x0FA0;
 #endif
-#endif
-    rolo_restart(audiobuf, ramstart, length);
+    rolo_restart(filebuf, ramstart, length);
 
     return 0; /* this is never reached */
     (void)checksum; (void)file_checksum;
 }
+#endif /*  */
 #else  /* !defined(IRIVER_IFP7XX_SERIES) */
 int rolo_load(const char* filename)
 {

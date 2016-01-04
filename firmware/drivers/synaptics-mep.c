@@ -561,6 +561,8 @@ int touchpad_read_device(char *data, int len)
 /* for HDD6330 an absolute packet will follow for sensor nr 0 which we ignore */
 #if defined(PHILIPS_HDD6330)
                 if ((data[3]>>6) == 0) syn_read(tmp, 4);
+                // relay tap gesture packet
+                if (tmp[1]==0x02) { data[1]=0x02; data[2]=0x00; data[3]=0x00; }
 #endif
                 logf(" pos %d", val);
                 logf(" z %d", data[3]);
@@ -590,7 +592,7 @@ int touchpad_read_device(char *data, int len)
 int touchpad_set_parameter(char mod_nr, char par_nr, unsigned int param)
 {
     char data[4];
-    int val=0;
+    int i, val=0;
 
     if (syn_status)
     {
@@ -601,12 +603,54 @@ int touchpad_set_parameter(char mod_nr, char par_nr, unsigned int param)
         data[2]=(param >> 8) & 0xff; /* param_hi */
         data[3]=param & 0xff;        /* param_lo */
         syn_send(data,4);
-        val=syn_read(data,1); /* get the simple ACK = 0x18 */
+        val=syn_read(data,4); /* try to get the simple ACK = 0x18 */
+
+        /* modules > 0 sometimes don't give ACK immediately but other packets like */
+        /* absolute from the scroll strip, so it has to be ignored until we receive ACK */
+        if ((mod_nr > 0) && ((data[0] & 7) != 0))
+        for (i = 0; i < 2; i++)
+        {
+            val=syn_read(data,4);
+            if (data[0] == 0x18) break;
+        }
 
         syn_enable_int(true);
     }
     return val;
 }
+
+#if 0
+/* Not used normally, but useful for pulling settings or determining
+   which parameters are supported */
+int touchpad_get_parameter(char mod_nr, char par_nr, unsigned int *param_p)
+{
+    char data[4];
+    int val = 0;
+
+    if (syn_status)
+    {
+        syn_enable_int(false);
+
+        /* 'Get MEP Parameter' command packet */
+        data[0]=0x01 | (mod_nr << 5); /* header - addr=mod_nr,global:0,ctrl:0,len:1 */
+        data[1]=0x40+par_nr; /* parameter number */
+        syn_send(data,2);
+
+        /* Must not be an error packet; check size */
+        if (syn_read(data,4) == 3)
+        {
+            /* ACK: param_hi[15:8], param_lo[7:0] */
+            if (param_p)
+                *param_p = ((unsigned int)data[2] << 8) | data[3];
+            val = 3;
+        }
+
+        syn_enable_int(true);
+    }
+
+    return val;
+}
+#endif
 
 int touchpad_set_buttonlights(unsigned int led_mask, char brightness)
 {

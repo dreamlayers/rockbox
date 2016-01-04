@@ -21,8 +21,7 @@
 
 #include "config.h"
 #include "jz4740.h"
-#include "ata.h"
-//#include "ata-nand-target.h" /* TODO */
+#include "nand.h"
 #include "nand_id.h"
 #include "system.h"
 #include "panic.h"
@@ -117,7 +116,7 @@ static struct nand_param internal_param;
 static struct mutex nand_mtx;
 #ifdef USE_DMA
 static struct mutex nand_dma_mtx;
-static struct wakeup nand_wkup;
+static struct semaphore nand_dma_complete;
 #endif
 static unsigned char temp_page[4096]; /* Max page size */
 
@@ -170,7 +169,7 @@ static void jz_nand_write_dma(void *source, unsigned int len, int bw)
         yield();
 #else
     REG_DMAC_DCMD(DMA_NAND_CHANNEL) |= DMAC_DCMD_TIE;  /* Enable DMA interrupt */
-    wakeup_wait(&nand_wkup, TIMEOUT_BLOCK);
+    semaphore_wait(&nand_dma_complete, TIMEOUT_BLOCK);
 #endif
 
     REG_DMAC_DCCSR(DMA_NAND_CHANNEL) &= ~DMAC_DCCSR_EN; /* Disable DMA channel */
@@ -202,7 +201,7 @@ static void jz_nand_read_dma(void *target, unsigned int len, int bw)
         yield();
 #else
     REG_DMAC_DCMD(DMA_NAND_CHANNEL) |= DMAC_DCMD_TIE;  /* Enable DMA interrupt */
-    wakeup_wait(&nand_wkup, TIMEOUT_BLOCK);
+    semaphore_wait(&nand_dma_complete, TIMEOUT_BLOCK);
 #endif
 
     //REG_DMAC_DCCSR(DMA_NAND_CHANNEL) &= ~DMAC_DCCSR_EN; /* Disable DMA channel */
@@ -226,7 +225,7 @@ void DMA_CALLBACK(DMA_NAND_CHANNEL)(void)
     if (REG_DMAC_DCCSR(DMA_NAND_CHANNEL) & DMAC_DCCSR_TT)
         REG_DMAC_DCCSR(DMA_NAND_CHANNEL) &= ~DMAC_DCCSR_TT;
     
-    wakeup_signal(&nand_wkup);
+    semaphore_release(&nand_dma_complete);
 }
 #endif /* USE_DMA */
 
@@ -603,7 +602,7 @@ int nand_init(void)
         mutex_init(&nand_mtx);
 #ifdef USE_DMA
         mutex_init(&nand_dma_mtx);
-        wakeup_init(&nand_wkup);
+        semaphore_init(&nand_dma_complete, 1, 0);
         system_enable_irq(DMA_IRQ(DMA_NAND_CHANNEL));
 #endif
         
@@ -629,7 +628,7 @@ static inline int read_sector(unsigned long start, unsigned int count,
     return ret;
 }
 
-int nand_read_sectors(IF_MV2(int drive,) unsigned long start, int count, void* buf)
+int nand_read_sectors(IF_MV(int drive,) unsigned long start, int count, void* buf)
 {
 #ifdef HAVE_MULTIVOLUME
     (void)drive;
@@ -672,7 +671,7 @@ int nand_read_sectors(IF_MV2(int drive,) unsigned long start, int count, void* b
 }
 
 /* TODO */
-int nand_write_sectors(IF_MV2(int drive,) unsigned long start, int count, const void* buf)
+int nand_write_sectors(IF_MV(int drive,) unsigned long start, int count, const void* buf)
 {
     (void)start;
     (void)count;
@@ -729,7 +728,7 @@ void nand_sleepnow(void)
 }
 
 #ifdef STORAGE_GET_INFO
-void nand_get_info(IF_MV2(int drive,) struct storage_info *info)
+void nand_get_info(IF_MV(int drive,) struct storage_info *info)
 {
 #ifdef HAVE_MULTIVOLUME
     (void)drive;

@@ -7,7 +7,6 @@
  *                     \/            \/     \/    \/            \/
  *
  *   Copyright (C) 2007 by Dominik Wenger
- *   $Id$
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -21,7 +20,7 @@
 #ifndef PROGRESSLOGGERGUI_H
 #define PROGRESSLOGGERGUI_H
 
-#include <QtGui>
+#include <QWidget>
 
 #include "progressloggerinterface.h"
 #include "ui_progressloggerfrm.h"

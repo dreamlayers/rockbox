@@ -48,7 +48,7 @@ SECTIONS
        "by hand" */
     .text LOADADDR(.data) + SIZEOF(.data) :
     {
-        *(.init.text)
+        KEEP(*(.startup*));
         *(.text*)
         . = ALIGN(0x4);
     } > FLASH
@@ -70,7 +70,7 @@ SECTIONS
        stackend = .;
     } > IRAM
 
-    .bss DRAMORIG+0x800000:
+    .bss DRAMORIG+0x800000 (NOLOAD) :
     {
        _edata = .;
         *(.ibss)

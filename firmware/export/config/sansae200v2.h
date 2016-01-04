@@ -1,7 +1,6 @@
 /*
  * This config file is for the Sandisk Sansa e200v2
  */
-#define TARGET_TREE /* this target is using the target tree system */
 
 /* For Rolo and boot loader */
 #define MODEL_NUMBER 41
@@ -12,7 +11,14 @@
 /* define this if you have recording possibility */
 #define HAVE_RECORDING
 
-#define REC_SAMPR_CAPS      SAMPR_CAP_ALL
+#define REC_SAMPR_CAPS      (SAMPR_CAP_48 | SAMPR_CAP_44 | SAMPR_CAP_32 | \
+                             SAMPR_CAP_24 | SAMPR_CAP_22 | SAMPR_CAP_16 | \
+                             SAMPR_CAP_12 | SAMPR_CAP_11 | SAMPR_CAP_8)
+
+/* because the samplerates don't match at each point, we must be able to
+ * tell PCM which set of rates to use. not needed if recording rates are
+ * a simple subset of playback rates and are equal values. */
+#define CONFIG_SAMPR_TYPES
 
 /* Define bitmask of input sources - recordable bitmask can be defined
    explicitly if different */
@@ -39,15 +45,14 @@
 /* define this if you have access to the quickscreen */
 #define HAVE_QUICKSCREEN
 
-/* define this if you have access to the pitchscreen */
-#define HAVE_PITCHSCREEN
-
 /* define this if you would like tagcache to build on this target */
 #define HAVE_TAGCACHE
 
 /* LCD dimensions */
 #define LCD_WIDTH  176
 #define LCD_HEIGHT 220
+/* sqrt(176^2 + 220^2) / 1.8 = 156.5 */
+#define LCD_DPI 157
 #define LCD_DEPTH  16   /* 65536 colours */
 #define LCD_PIXELFORMAT RGB565 /* rgb565 */
 
@@ -75,6 +80,9 @@
 
 /* Define this to enable morse code input */
 #define HAVE_MORSE_INPUT
+
+/* Define this to have CPU boosted while scrolling in the UI */
+#define HAVE_GUI_BOOST
 
 /* Define this if you do software codec */
 #define CONFIG_CODEC SWCODEC
@@ -142,6 +150,8 @@
 #define BATTERY_CAPACITY_INC 0          /* capacity increment */
 #define BATTERY_TYPES_COUNT  1          /* only one type */
 
+#define CONFIG_BATTERY_MEASURE VOLTAGE_MEASURE
+
 /* Charging implemented in a target-specific algorithm */
 #define CONFIG_CHARGING CHARGING_TARGET
 
@@ -191,10 +201,10 @@
 /* enable these for the experimental usb stack */
 #define HAVE_USBSTACK
 //#define USB_HANDLED_BY_OF
-#define USE_ROCKBOX_USB
 #define USB_VENDOR_ID 0x0781
 #define USB_PRODUCT_ID 0x7423
 #define HAVE_USB_HID_MOUSE
+#define HAVE_BOOTLOADER_USB_MODE
 
 /* Define this if you have adjustable CPU frequency */
 #define HAVE_ADJUSTABLE_CPU_FREQ

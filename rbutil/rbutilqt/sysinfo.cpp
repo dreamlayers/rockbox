@@ -7,7 +7,6 @@
  *                     \/            \/     \/    \/            \/
  *
  *   Copyright (C) 2007 by Dominik Riebeling
- *   $Id$
  *
  * All files in this archive are subject to the GNU General Public License.
  * See the file COPYING in the source tree root for full license agreement.
@@ -17,7 +16,8 @@
  *
  ****************************************************************************/
 
-#include <QtGui>
+#include <QDialog>
+#include <QDir>
 #include "sysinfo.h"
 #include "ui_sysinfofrm.h"
 #include "system.h"
@@ -28,7 +28,7 @@
 Sysinfo::Sysinfo(QWidget *parent) : QDialog(parent)
 {
     ui.setupUi(this);
-   
+
     updateSysinfo();
     connect(ui.buttonOk, SIGNAL(clicked()), this, SLOT(close()));
     connect(ui.buttonRefresh, SIGNAL(clicked()), this, SLOT(updateSysinfo()));
@@ -39,7 +39,7 @@ void Sysinfo::updateSysinfo(void)
     ui.textBrowser->setHtml(getInfo());
 }
 
-QString Sysinfo::getInfo()
+QString Sysinfo::getInfo(Sysinfo::InfoType type)
 {
     QString info;
     info += tr("<b>OS</b><br/>") + System::osVersionString() + "<hr/>";
@@ -60,18 +60,36 @@ QString Sysinfo::getInfo()
     }
     info += "<hr/>";
 
-    info += "<b>" + tr("Filesystem") + "</b><br/>";
-    QStringList drives = Autodetection::mountpoints();
+    info += "<b>" + tr("Filesystem") + "</b>";
+    QStringList drives = Utils::mountpoints();
+    info += "<table>";
+    info += "<tr><td>" + tr("Mountpoint") + "</td><td>" + tr("Label")
+            + "</td><td>" + tr("Free") + "</td><td>" + tr("Total") + "</td><td>"
+            + tr("Cluster Size") + "</td></tr>";
     for(int i = 0; i < drives.size(); i++) {
-        info += tr("%1, %2 MiB available")
+        info += tr("<tr><td>%1</td><td>%4</td><td>%2 GiB</td><td>%3 GiB</td><td>%5</td></tr>")
             .arg(QDir::toNativeSeparators(drives.at(i)))
-            .arg(Utils::filesystemFree(drives.at(i)) / (1024*1024));
-            if(i + 1 < drives.size())
-                info += "<br/>";
+            .arg((double)Utils::filesystemFree(drives.at(i)) / (1<<30), 0, 'f', 2)
+            .arg((double)Utils::filesystemTotal(drives.at(i)) / (1<<30), 0, 'f', 2)
+            .arg(Utils::filesystemName(drives.at(i)))
+            .arg(Utils::filesystemClusterSize(drives.at(i)));
     }
+    info += "</table>";
     info += "<hr/>";
+    if(type == InfoText) {
+        info.replace(QRegExp("(<[^>]+>)+"),"\n");
+    }
 
     return info;
 }
 
+
+void Sysinfo::changeEvent(QEvent *e)
+{
+    if(e->type() == QEvent::LanguageChange) {
+        ui.retranslateUi(this);
+    } else {
+        QWidget::changeEvent(e);
+    }
+}
 

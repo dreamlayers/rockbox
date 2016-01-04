@@ -7,7 +7,6 @@
  *                     \/            \/     \/    \/            \/
  *
  *   Copyright (C) 2007 by Dominik Wenger
- *   $Id$
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -22,7 +21,10 @@
 #ifndef PREVIEW_H
 #define PREVIEW_H
 
-#include <QtGui>
+#include <QDialog>
+#include <QLabel>
+#include <QTimer>
+
 #include "ui_previewfrm.h"
 
 
@@ -36,6 +38,7 @@ public:
     void setText(QString text);
 
 private slots:
+    void changeEvent(QEvent *event);
     void mouseMoveEvent(QMouseEvent * event);
     void leaveEvent(QEvent * event);
 

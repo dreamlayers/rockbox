@@ -26,7 +26,6 @@
 #include "ata_idle_notify.h"
 #include "ata-sd-target.h"
 #include "disk.h"
-#include "fat.h"
 #include "led.h"
 #include "sdmmc.h"
 #include "logf.h"
@@ -47,7 +46,7 @@ static long               sd_stack[(DEFAULT_STACK_SIZE*2 + 0x1c0)/sizeof(long)];
 static const char         sd_thread_name[] = "ata/sd";
 static struct event_queue sd_queue;
 static struct mutex       sd_mtx;
-static struct wakeup      sd_wakeup;
+static struct semaphore   sd_wakeup;
 static void               sd_thread(void) NORETURN_ATTR;
 
 static int                use_4bit;
@@ -831,7 +830,7 @@ static int jz_sd_exec_cmd(struct sd_request *request)
 
     /* Wait for command completion */
     //__intc_unmask_irq(IRQ_MSC);
-    //wakeup_wait(&sd_wakeup, 100);
+    //semaphore_wait(&sd_wakeup, 100);
     while (timeout-- && !(REG_MSC_STAT & MSC_STAT_END_CMD_RES));
 
 
@@ -881,7 +880,7 @@ static int jz_sd_exec_cmd(struct sd_request *request)
 #endif
         }
         //__intc_unmask_irq(IRQ_MSC);
-        //wakeup_wait(&sd_wakeup, 100);
+        //semaphore_wait(&sd_wakeup, 100);
         /* Wait for Data Done */
         while (!(REG_MSC_IREG & MSC_IREG_DATA_TRAN_DONE));
         REG_MSC_IREG = MSC_IREG_DATA_TRAN_DONE;    /* clear status */
@@ -891,7 +890,7 @@ static int jz_sd_exec_cmd(struct sd_request *request)
     if (events & SD_EVENT_PROG_DONE)
     {
         //__intc_unmask_irq(IRQ_MSC);
-        //wakeup_wait(&sd_wakeup, 100);
+        //semaphore_wait(&sd_wakeup, 100);
         while (!(REG_MSC_IREG & MSC_IREG_PRG_DONE));
         REG_MSC_IREG = MSC_IREG_PRG_DONE;    /* clear status */
     }
@@ -945,7 +944,7 @@ static void jz_sd_rx_handler(unsigned int arg)
 /* MSC interrupt handler */
 void MSC(void)
 {
-    //wakeup_signal(&sd_wakeup);
+    //semaphore_release(&sd_wakeup);
     logf("MSC interrupt");
 }
 
@@ -1228,7 +1227,7 @@ int sd_init(void)
     static bool inited = false;
     if(!inited)
     {
-        wakeup_init(&sd_wakeup);
+        semaphore_init(&sd_wakeup, 1, 0);
         mutex_init(&sd_mtx);
         queue_init(&sd_queue, true);
         create_thread(sd_thread, sd_stack, sizeof(sd_stack), 0,
@@ -1266,7 +1265,7 @@ static inline void sd_stop_transfer(void)
     mutex_unlock(&sd_mtx);
 }
 
-int sd_read_sectors(IF_MV2(int drive,) unsigned long start, int count, void* buf)
+int sd_read_sectors(IF_MV(int drive,) unsigned long start, int count, void* buf)
 {
 #ifdef HAVE_MULTIVOLUME
     (void)drive;
@@ -1320,7 +1319,7 @@ err:
     return retval;
 }
 
-int sd_write_sectors(IF_MV2(int drive,) unsigned long start, int count, const void* buf)
+int sd_write_sectors(IF_MV(int drive,) unsigned long start, int count, const void* buf)
 {
 #ifdef HAVE_MULTIVOLUME
     (void)drive;
@@ -1467,34 +1466,28 @@ static void sd_thread(void)
         {
 #ifdef HAVE_HOTSWAP
         case SYS_HOTSWAP_INSERTED:
-        case SYS_HOTSWAP_EXTRACTED:
-            fat_lock();          /* lock-out FAT activity first -
-                                    prevent deadlocking via disk_mount that
-                                    would cause a reverse-order attempt with
-                                    another thread */
-            mutex_lock(&sd_mtx); /* lock-out card activity - direct calls
-                                    into driver that bypass the fat cache */
+        case SYS_HOTSWAP_EXTRACTED:;
+            int success = 1;
 
-            /* We now have exclusive control of fat cache and ata */
+            disk_unmount(sd_drive_nr); /* release "by force" */
 
-            disk_unmount(sd_drive_nr);     /* release "by force", ensure file
-                                    descriptors aren't leaked and any busy
-                                    ones are invalid if mounting */
+            mutex_lock(&sd_mtx); /* lock-out card activity */
 
             /* Force card init for new card, re-init for re-inserted one or
              * clear if the last attempt to init failed with an error. */
             card.initialized = 0;
 
-            if(ev.id == SYS_HOTSWAP_INSERTED)
-                disk_mount(sd_drive_nr);
-
-            queue_broadcast(SYS_FS_CHANGED, 0);
-
-            /* Access is now safe */
             mutex_unlock(&sd_mtx);
-            fat_unlock();
+
+            if(ev.id == SYS_HOTSWAP_INSERTED)
+                success = disk_mount(sd_drive_nr); /* 0 if fail */
+
+            if(success)
+                queue_broadcast(SYS_FS_CHANGED, 0);
+
             break;
-#endif
+#endif /* HAVE_HOTSWAP */
+
         case SYS_TIMEOUT:
             if (TIME_BEFORE(current_tick, last_disk_activity+(3*HZ)))
                 idle_notified = false;
@@ -1511,9 +1504,6 @@ static void sd_thread(void)
             usb_acknowledge(SYS_USB_CONNECTED_ACK);
             /* Wait until the USB cable is extracted again */
             usb_wait_for_disconnect(&sd_queue);
-            break;
-        case SYS_USB_DISCONNECTED:
-            usb_acknowledge(SYS_USB_DISCONNECTED_ACK);
             break;
         }
     }

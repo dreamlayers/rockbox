@@ -27,12 +27,18 @@
 #include "sound.h"
 #include "i2s.h"
 #include "pcm.h"
+#include "pcm-internal.h"
 
 struct dma_data
 {
 /* NOTE: The order of size and p is important if you use assembler
    optimised fiq handler, so don't change it. */
-    uint16_t *p;
+    union
+    {
+        uint16_t *p;
+        const void *p_r;
+        void *p_w;
+    };
     size_t size;
 #if NUM_CORES > 1
     unsigned core;
@@ -47,7 +53,7 @@ struct dma_data
 struct dma_data dma_play_data SHAREDBSS_ATTR =
 {
     /* Initialize to a locked, stopped state */
-    .p = NULL,
+    { .p = NULL },
     .size = 0,
 #if NUM_CORES > 1
     .core = 0x00,
@@ -55,11 +61,6 @@ struct dma_data dma_play_data SHAREDBSS_ATTR =
     .locked = 0,
     .state = 0
 };
-
-void pcm_postinit(void)
-{
-    audiohw_postinit();
-}
 
 const void * pcm_play_dma_get_peak_buffer(int *count)
 {
@@ -109,6 +110,11 @@ void pcm_play_dma_init(void)
 #endif
 }
 
+void pcm_play_dma_postinit(void)
+{
+    audiohw_postinit();
+}
+
 void pcm_dma_apply_settings(void)
 {
 }
@@ -142,7 +148,7 @@ static void play_stop_pcm(void)
 
 void pcm_play_dma_start(const void *addr, size_t size)
 {
-    dma_play_data.p    = (uint16_t*)addr;
+    dma_play_data.p_r  = addr;
     dma_play_data.size = size;
 
 #if NUM_CORES > 1
@@ -247,6 +253,9 @@ void fiq_handler(void)
      * r0-r3 and r12 is a working register.
      */
     asm volatile (
+        "sub     lr, lr, #4          \n"
+        "stmfd   sp!, { r0-r3, lr }  \n" /* stack scratch regs and lr */
+        "mov     r14, #0             \n" /* Was the callback called? */
 #if defined(CPU_TCC780X)
         "mov     r8, #0xc000         \n" /* DAI_TX_IRQ_MASK | DAI_RX_IRQ_MASK */
         "ldr     r9, =0xf3001004     \n" /* CREQ */
@@ -257,7 +266,7 @@ void fiq_handler(void)
         "str     r8, [r9]            \n" /* clear DAI IRQs */
         "ldmia   r11, { r8-r9 }      \n" /* r8 = p, r9 = size */
         "cmp     r9, #0x10           \n" /* is size <16? */
-        "blt     .more_data          \n" /* if so, ask pcmbuf for more data */
+        "blo     .more_data          \n" /* if so, ask pcmbuf for more data */
 
     ".fill_fifo:                     \n"
         "ldr     r12, [r8], #4       \n" /* load two samples */
@@ -279,35 +288,43 @@ void fiq_handler(void)
         "sub     r9, r9, #0x10       \n" /* 4 words written */
         "stmia   r11, { r8-r9 }      \n" /* save p and size */
 
-    ".exit:                          \n"
-        "subs    pc, lr, #4          \n" /* FIQ specific return sequence */
+        "cmp     r14, #0             \n" /* Callback called? */
+        "ldmeqfd sp!, { r0-r3, pc }^ \n" /* no? -> exit */
+
+        "ldr     r1, =pcm_play_status_callback \n"
+        "ldr     r1, [r1]            \n"
+        "cmp     r1, #0              \n"
+        "movne   r0, %1              \n"
+        "blxne   r1                  \n"
+        "ldmfd   sp!, { r0-r3, pc }^ \n" /* exit */
 
     ".more_data:                     \n"
-        "stmfd   sp!, { r0-r3, lr }  \n" /* stack scratch regs and lr */
-        "ldr     r2, =pcm_play_get_more_callback \n"
-        "mov     r0, r11             \n" /* r0 = &p */
-        "add     r1, r11, #4         \n" /* r1 = &size */
-        "blx     r2                  \n" /* call pcm_play_get_more_callback */
-        "ldmia   r11, { r8-r9 }      \n" /* load new p and size */
-        "cmp     r9, #0x10           \n" /* did we actually get enough data? */
-        "ldmfd   sp!, { r0-r3, lr }  \n"
-        "bpl     .fill_fifo          \n" /* not stop and enough? refill */
-        "b       .exit               \n"
+        "mov     r14, #1             \n" /* Remember we got more data in this FIQ */
+        "mov     r0, %0              \n" /* r0 = status */
+        "mov     r1, r11             \n" /* r1 = &dma_play_data.p_r */
+        "add     r2, r11, #4         \n" /* r2 = &dma_play_data.size */
+        "mov     lr, pc              \n"
+        "ldr     pc, =pcm_play_dma_complete_callback \n"
+        "cmp     r0, #0              \n" /* any more to play? */
+        "ldmneia r11, { r8-r9 }      \n" /* load new p and size */
+        "cmpne   r9, #0x0f           \n" /* did we actually get enough data? */
+        "bhi     .fill_fifo          \n" /* not stop and enough? refill */
+        "ldmfd   sp!, { r0-r3, pc }^ \n" /* exit */
         ".ltorg                      \n"
+        : : "i"(PCM_DMAST_OK), "i"(PCM_DMAST_STARTED)
     );
 }
 #else /* C version for reference */
-void fiq_handler(void) ICODE_ATTR __attribute__((naked));
+void fiq_handler(void) ICODE_ATTR;
 void fiq_handler(void)
 {
-    asm volatile(   "stmfd sp!, {r0-r7, ip, lr} \n"   /* Store context */
-                    "sub   sp, sp, #8           \n"); /* Reserve stack */
+    register bool new_buffer = false;
 
     if (dma_play_data.size < 16)
     {
         /* p is empty, get some more data */
-        pcm_play_get_more_callback((void**)&dma_play_data.p,
-                                   &dma_play_data.size);
+        new_buffer = pcm_play_dma_complete_callback(&dma_play_data.p_r,
+                                                    &dma_play_data.size);
     }
 
     if (dma_play_data.size >= 16)
@@ -327,9 +344,8 @@ void fiq_handler(void)
     /* Clear FIQ status */
     CREQ = DAI_TX_IRQ_MASK | DAI_RX_IRQ_MASK;
 
-    asm volatile(   "add   sp, sp, #8           \n"   /* Cleanup stack   */
-                    "ldmfd sp!, {r0-r7, ip, lr} \n"   /* Restore context */
-                    "subs  pc, lr, #4           \n"); /* Return from FIQ */
+    if (new_buffer)
+        pcm_play_dma_status_callback(PCM_DMAST_STARTED);
 }
 #endif
 

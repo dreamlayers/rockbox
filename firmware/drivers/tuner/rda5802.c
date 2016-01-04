@@ -26,6 +26,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include "kernel.h"
+#include "power.h"
 #include "tuner.h" /* tuner abstraction interface */
 #include "fmradio.h"
 #include "fmradio_i2c.h" /* physical interface driver */
@@ -44,7 +45,9 @@
 #define SYSCONFIG1  0x4
 #define SYSCONFIG2  0x5
 #define SYSCONFIG3  0x6
-
+#define SYSCONFIG4  0x7 /* undocumented */
+#define SYSCONFIG5  0x8 /* undocumented */
+#define SYSCONFIG6  0x9 /* undocumented */
 #define READCHAN    0xA
 #define STATUSRSSI  0xB
 #define IDENT       0xC
@@ -76,7 +79,7 @@
 
 /* SYSCONFIG1 (0x4) */
 #define SYSCONFIG1_DE       (0x1 << 11)
-    #define SYSCONFIG1_SMUTE (0x1 << 9)
+    #define SYSCONFIG1_SOFTMUTE_EN  (0x1 << 9)
 
 /* SYSCONFIG2 (0x5) */
 #define SYSCONFIG2_VOLUME   (0xF <<  0)
@@ -92,21 +95,25 @@
     #define STATUSRSSI_RSSIr(x) (((x) & STATUSRSSI_RSSI) >> 9)
 #define STATUSRSSI_FM_TRUE  (0x1 << 8)
 
-static const uint16_t initvals[16] = {
-    0x0000, 0x0000, 0xC401, 0x1B90, 
-    0x0400, 0x866F, 0x8000, 0x4712, 
-    0x5EC6, 0x0000, 0x406E, 0x2D80, 
-    0x5803, 0x5804, 0x5804, 0x5804
-};
-
 static bool tuner_present = false;
-static uint16_t cache[16];
+
+static uint16_t cache[16] = {
+    [POWERCFG] =    0xC401, /* DHIZ, DMUTE, CLK_DIRECT_MODE, ENABLE */
+    [CHANNEL] =     0x0000, /* - */
+    [SYSCONFIG1] =  0x0200, /* SYSCONFIG1_SOFTMUTE_EN */
+    [SYSCONFIG2] =  0x867F, /* INT_MODE (def), SEEKTH=1100b, LNA_PORT_SEL=LNAN,
+                               LNA_ICSEL=3.0mA, VOLUME=max */
+    [SYSCONFIG3] =  0x8000, /* I2S slave mode */
+    [SYSCONFIG4] =  0x4712, /* undocumented, affects stereo blend */
+    [SYSCONFIG5] =  0x5EC6, /* undocumented */
+    [SYSCONFIG6] =  0x0000  /* undocumented */
+};
 
 /* reads <len> registers from radio at offset 0x0A into cache */
 static void rda5802_read(int len)
 {
     int i;
-    unsigned char buf[128];
+    unsigned char buf[sizeof(cache)];
     unsigned char *ptr = buf;
     uint16_t data;
     
@@ -122,7 +129,7 @@ static void rda5802_read(int len)
 static void rda5802_write(int len)
 {
     int i;
-    unsigned char buf[64];
+    unsigned char buf[sizeof(cache)];
     unsigned char *ptr = buf;
     uint16_t data;
 
@@ -171,9 +178,12 @@ static void rda5802_sleep(int snooze)
         rda5802_write_clear(POWERCFG, POWERCFG_ENABLE);
     }
     else {
+        tuner_power(true);
         rda5802_write_set(POWERCFG, POWERCFG_ENABLE);
     }
     rda5802_write_cache();
+    if(snooze)
+        tuner_power(false);
 }
 
 bool rda5802_detect(void)
@@ -186,14 +196,14 @@ void rda5802_init(void)
     if (rda5802_detect()) {
         tuner_present = true;
 
-        // soft-reset
-        rda5802_write_reg(POWERCFG, POWERCFG_SOFT_RESET);
+        /* soft-reset */
+        rda5802_write_set(POWERCFG, POWERCFG_SOFT_RESET);
         rda5802_write(1);
+        rda5802_write_clear(POWERCFG, POWERCFG_SOFT_RESET);
         sleep(HZ * 10 / 1000);
 
-        // write initialisation values
-        memcpy(cache, initvals, sizeof(cache));
-        rda5802_write(14);
+        /* write initialisation values */
+        rda5802_write(8);
         sleep(HZ * 70 / 1000);
     }
 }
@@ -202,10 +212,13 @@ static void rda5802_set_frequency(int freq)
 {
     int i;
     uint16_t readchan;
+    static const int spacings[] = {100000, 200000, 50000, 50000};
+    static const int bandstart[] = {87000000, 76000000, 76000000, 65000000};
 
-    /* check BAND and spacings */
-    int start = CHANNEL_BANDr(cache[CHANNEL]) & 1 ? 76000000 : 87000000;
-    int chan = (freq - start) / 50000;
+    /* calculate channel number */
+    int start = bandstart[CHANNEL_BANDr(cache[CHANNEL])];
+    int space = spacings[CHANNEL_SPACEr(cache[CHANNEL])];
+    int chan = (freq - start) / space;
 
     for (i = 0; i < 5; i++) {
         /* tune and wait a bit */
@@ -241,14 +254,16 @@ static int rda5802_tuned(void)
 static void rda5802_set_region(int region)
 {
     const struct fm_region_data *rd = &fm_region_data[region];
+
     int band = (rd->freq_min == 76000000) ?
                CHANNEL_BAND_760_900 : CHANNEL_BAND_870_1080;
     int deemphasis = (rd->deemphasis == 50) ? SYSCONFIG1_DE : 0;
+    int space = (rd->freq_step == 50000) ?
+                CHANNEL_SPACE_50KHZ : CHANNEL_SPACE_100KHZ;
 
-    uint16_t bandspacing = CHANNEL_BANDw(band) |
-                           CHANNEL_SPACEw(CHANNEL_SPACE_50KHZ);
     rda5802_write_masked(SYSCONFIG1, deemphasis, SYSCONFIG1_DE);
-    rda5802_write_masked(CHANNEL, bandspacing, CHANNEL_BAND | CHANNEL_SPACE);
+    rda5802_write_masked(CHANNEL, CHANNEL_BANDw(band), CHANNEL_BAND);
+    rda5802_write_masked(CHANNEL, CHANNEL_SPACEw(space), CHANNEL_SPACE);
     rda5802_write_cache();
 }
 
@@ -268,9 +283,7 @@ int rda5802_set(int setting, int value)
 {
     switch (setting) {
     case RADIO_SLEEP:
-        if (value != 2) {
-            rda5802_sleep(value);
-        }
+        rda5802_sleep(value);
         break;
 
     case RADIO_FREQUENCY:
@@ -284,8 +297,6 @@ int rda5802_set(int setting, int value)
     case RADIO_MUTE:
         rda5802_write_masked(POWERCFG, value ? 0 : POWERCFG_DMUTE,
                                 POWERCFG_DMUTE);
-        rda5802_write_masked(SYSCONFIG1, (3 << 9), (3 << 9));
-        rda5802_write_set(SYSCONFIG2, SYSCONFIG2_VOLUME);
         rda5802_write_cache();
         break;
 

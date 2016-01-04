@@ -21,30 +21,6 @@
 #ifndef LCD_REMOTE_TARGET_H
 #define LCD_REMOTE_TARGET_H
 
-#define REMOTE_INIT_LCD   1
-#define REMOTE_DEINIT_LCD 2
-
-void lcd_remote_powersave(bool on);
-void lcd_remote_set_invert_display(bool yesno);
-//void lcd_remote_set_flip(bool yesno);
-
-bool remote_detect(void);
-void lcd_remote_init_device(void);
-void lcd_remote_on(void);
-void lcd_remote_off(void);
-void lcd_remote_update(void);
-void lcd_remote_update_rect(int, int, int, int);
-
-#ifndef SIMULATOR
-void _remote_backlight_on(void);
-void _remote_backlight_off(void);
-#endif
-
-extern bool remote_initialized;
-
 void lcd_remote_sleep(void);
-
-int remote_read_device(void);
-bool remote_button_hold(void);
 
 #endif

@@ -22,7 +22,6 @@
 /*
  * This config file is for the Lyre prototype 1.
  */
-#define TARGET_TREE /* this target is using the target tree system */
 
 #define CONFIG_SDRAM_START 0x20000000
 
@@ -45,6 +44,8 @@
 /* LCD dimensions */
 #define LCD_WIDTH  128
 #define LCD_HEIGHT 128
+/* sqrt(128^2 + 128^2) / 1.8 = 100.6 */
+#define LCD_DPI 101
 /* The LCD used is just rgb444, 64 colours. We do a bit conversion on LCD
  * drivers. */
 #define LCD_DEPTH  16   /* 65536 colours */
@@ -83,6 +84,8 @@
 #define BATTERY_CAPACITY_MAX 2500        /* max. capacity selectable */
 #define BATTERY_CAPACITY_INC 100         /* capacity increment */
 #define BATTERY_TYPES_COUNT  1          /* only one type */
+
+#define CONFIG_BATTERY_MEASURE VOLTAGE_MEASURE
 
 #define CONFIG_CPU AT91SAM9260
 

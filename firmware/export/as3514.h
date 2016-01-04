@@ -24,11 +24,26 @@
 
 #include "config.h"
 
-extern int tenthdb2master(int db);
+#if 0
+#define AUDIOHW_CAPS    (LINEOUT_CAP | LIN_GAIN_CAP | MIC_GAIN_CAP)
+#endif
 
-extern void audiohw_set_master_vol(int vol_l, int vol_r);
-extern void audiohw_set_lineout_vol(int vol_l, int vol_r);
-extern void audiohw_set_sampr_dividers(int fsel);
+#define AUDIOHW_CAPS    (LIN_GAIN_CAP | MIC_GAIN_CAP)
+
+/*different volume ranges for different AMS chips*/
+#if CONFIG_CPU == AS3525v2 
+AUDIOHW_SETTING(VOLUME,     "dB",   0,   1, -82,   6, -25)
+#else /* AS3525v1 */
+AUDIOHW_SETTING(VOLUME,     "dB",   0,   1, -74,   6, -25)
+#endif /* CONFIG_CPU == AS3525v2 */
+
+#ifdef HAVE_RECORDING
+AUDIOHW_SETTING(MIC_GAIN,   "dB",   1,   1,   0,  39,  23, (val - 23) * 15)
+AUDIOHW_SETTING(LEFT_GAIN,  "dB",   1,   1,   0,  31,  23, (val - 23) * 15)
+AUDIOHW_SETTING(RIGHT_GAIN, "dB",   1,   1,   0,  31,  23, (val - 23) * 15)
+#endif /* HAVE_RECORDING */
+
+void audiohw_set_sampr_dividers(int fsel);
 
 /* Register Descriptions */
 
@@ -89,9 +104,9 @@ extern void audiohw_set_sampr_dividers(int fsel);
 #endif
 
 #define AS3514_SYSTEM     0x20
-#define AS3514_CVDD_DCDC3 0x21
 
 #ifndef HAVE_AS3543
+#define AS3514_CVDD_DCDC3 0x21
 #define AS3514_CHARGER    0x22
 #define AS3514_DCDC15     0x23
 #define AS3514_SUPERVISOR 0x24
@@ -125,16 +140,6 @@ extern void audiohw_set_sampr_dividers(int fsel);
 #define AS3514_UID_0      0x30
 #define AS3514_UID_LEN    16
 #endif
-
-/*different volume ranges for different AMS chips*/
-#if CONFIG_CPU == AS3525v2 
-/* Headphone volume goes from -81.0 ... +6dB */
-#define VOLUME_MIN -810
-#else
-/* Headphone volume goes from -73.5 ... +6dB */
-#define VOLUME_MIN -735
-#endif
-#define VOLUME_MAX   60
 
 /*** Audio Registers ***/
 
@@ -300,6 +305,10 @@ extern void audiohw_set_sampr_dividers(int fsel);
 
 /* AUDIOSET2 (15h) */
 #ifdef HAVE_AS3543
+#define AUDIOSET2_BIAS_on      (0x0 << 7)
+#define AUDIOSET2_BIAS_off      (0x1 << 7)
+#define AUDIOSET2_SUM_off      (0x1 << 6)
+#define AUDIOSET2_AGC_off       (0x1 << 5)
 #define AUDIOSET2_HPH_QUALITY_LOW_POWER (0x0 << 4)
 #define AUDIOSET2_HPH_QUALITY_HIGH      (0x1 << 4)
 #else
@@ -359,14 +368,25 @@ extern void audiohw_set_sampr_dividers(int fsel);
 /* AS3514_CHARGER */
 #define TMPSUP_OFF      (0x1 << 7)
 #define CHG_I           (0x7 << 4)
-#define CHG_I_400MA     (0x7 << 4)
-#define CHG_I_350MA     (0x6 << 4)
-#define CHG_I_300MA     (0x5 << 4)
-#define CHG_I_250MA     (0x4 << 4)
-#define CHG_I_200MA     (0x3 << 4)
-#define CHG_I_150MA     (0x2 << 4)
-#define CHG_I_100MA     (0x1 << 4)
+#ifdef HAVE_AS3543  /* AS3543 uses charge current steps of 70 mA */
+#define CHG_I_55MA      (0x0 << 4)
+#define CHG_I_70MA      (0x1 << 4)
+#define CHG_I_140MA     (0x2 << 4)
+#define CHG_I_210MA     (0x3 << 4)
+#define CHG_I_280MA     (0x4 << 4)
+#define CHG_I_350MA     (0x5 << 4)
+#define CHG_I_420MA     (0x6 << 4)
+#define CHG_I_460MA     (0x7 << 4)
+#else               /* AS3514 uses charge current steps of 50 mA */
 #define CHG_I_50MA      (0x0 << 4)
+#define CHG_I_100MA     (0x1 << 4)
+#define CHG_I_150MA     (0x2 << 4)
+#define CHG_I_200MA     (0x3 << 4)
+#define CHG_I_250MA     (0x4 << 4)
+#define CHG_I_300MA     (0x5 << 4)
+#define CHG_I_350MA     (0x6 << 4)
+#define CHG_I_400MA     (0x7 << 4)
+#endif
 #define CHG_V           (0x7 << 1)
 #define CHG_V_4_25V     (0x7 << 1)
 #define CHG_V_4_20V     (0x6 << 1)

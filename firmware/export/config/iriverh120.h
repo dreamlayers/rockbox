@@ -1,4 +1,3 @@
-#define TARGET_TREE /* this target is using the target tree system */
 /*
  * This config file is for iriver H120 and H140
  */
@@ -35,8 +34,6 @@
 
 /* define this if you have access to the quickscreen */
 #define HAVE_QUICKSCREEN
-/* define this if you have access to the pitchscreen */
-#define HAVE_PITCHSCREEN
 
 /* define this if you would like tagcache to build on this target */
 #define HAVE_TAGCACHE
@@ -44,6 +41,8 @@
 /* LCD dimensions */
 #define LCD_WIDTH  160
 #define LCD_HEIGHT 128
+/* sqrt(160^2 + 128^2) / 1.9 = 107.8 */
+#define LCD_DPI 108
 #define LCD_DEPTH  2
 
 #define LCD_PIXELFORMAT VERTICAL_PACKING
@@ -114,7 +113,7 @@
 /* define this if you have recording possibility */
 #define HAVE_RECORDING
 
-#define HAVE_RECORDING_HISTOGRAM
+#define HAVE_HISTOGRAM
 
 /* Define bitmask of input sources - recordable bitmask can be defined
    explicitly if different */
@@ -134,6 +133,8 @@
 #define BATTERY_CAPACITY_MAX 3200 /* max. capacity selectable */
 #define BATTERY_CAPACITY_INC 50   /* capacity increment */
 #define BATTERY_TYPES_COUNT  1    /* only one type */
+
+#define CONFIG_BATTERY_MEASURE VOLTAGE_MEASURE
 
 /* Hardware controlled charging */
 #define CONFIG_CHARGING CHARGING_SIMPLE

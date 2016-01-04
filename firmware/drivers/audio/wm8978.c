@@ -20,13 +20,16 @@
  * KIND, either express or implied.
  *
  ****************************************************************************/
+
 #include "config.h"
 #include "system.h"
+#include "kernel.h"
 #include "audiohw.h"
 #include "wmcodec.h"
 #include "audio.h"
 /*#define LOGF_ENABLE*/
 #include "logf.h"
+#include "sound.h"
 
 /* TODO: Define/refine an API for special hardware steps outside the
  * main codec driver such as special GPIO handling. */
@@ -34,39 +37,6 @@
  * the Gigabeat S. If you change anything for another device that uses this
  * file it may break things. */
 extern void audiohw_enable_headphone_jack(bool enable);
-
-const struct sound_settings_info audiohw_settings[] =
-{
-    [SOUND_VOLUME]             = {"dB", 0,   1, -90,   6, -25},
-    [SOUND_BALANCE]            = {"%",  0,   1,-100, 100,   0},
-    [SOUND_CHANNELS]           = {"",   0,   1,   0,   5,   0},
-    [SOUND_STEREO_WIDTH]       = {"%",  0,   5,   0, 250, 100},
-    [SOUND_EQ_BAND1_GAIN]      = {"dB", 0,   1, -12,  12,   0},
-    [SOUND_EQ_BAND2_GAIN]      = {"dB", 0,   1, -12,  12,   0},
-    [SOUND_EQ_BAND3_GAIN]      = {"dB", 0,   1, -12,  12,   0},
-    [SOUND_EQ_BAND4_GAIN]      = {"dB", 0,   1, -12,  12,   0},
-    [SOUND_EQ_BAND5_GAIN]      = {"dB", 0,   1, -12,  12,   0},
-    [SOUND_EQ_BAND1_FREQUENCY] = {"",   0,   1,   0,   3,   0},
-    [SOUND_EQ_BAND2_FREQUENCY] = {"",   0,   1,   0,   3,   0},
-    [SOUND_EQ_BAND3_FREQUENCY] = {"",   0,   1,   0,   3,   0},
-    [SOUND_EQ_BAND4_FREQUENCY] = {"",   0,   1,   0,   3,   0},
-    [SOUND_EQ_BAND5_FREQUENCY] = {"",   0,   1,   0,   3,   0},
-    [SOUND_EQ_BAND2_WIDTH]     = {"",   0,   1,   0,   1,   0},
-    [SOUND_EQ_BAND3_WIDTH]     = {"",   0,   1,   0,   1,   0},
-    [SOUND_EQ_BAND4_WIDTH]     = {"",   0,   1,   0,   1,   0},
-    [SOUND_DEPTH_3D]           = {"%",  0,   1,   0,  15,   0},
-#ifdef HAVE_RECORDING
-    /* Digital: -119.0dB to +8.0dB in 0.5dB increments
-     * Analog:  Relegated to volume control
-     * Circumstances unfortunately do not allow a great deal of positive
-     * gain. */
-    [SOUND_LEFT_GAIN]          = {"dB", 1,   1,-238,  16,   0},
-    [SOUND_RIGHT_GAIN]         = {"dB", 1,   1,-238,  16,   0},
-#if 0
-    [SOUND_MIC_GAIN]           = {"dB", 1,   1,-238,  16,   0},
-#endif
-#endif
-};
 
 static uint16_t wmc_regs[WMC_NUM_REGISTERS] =
 {
@@ -183,49 +153,21 @@ static void wmc_write_masked(unsigned int reg, unsigned int bits,
     wmc_write(reg, (wmc_regs[reg] & ~mask) | (bits & mask));
 }
 
-/* convert tenth of dB volume (-890..60) to master volume register value
+/* convert tenth of dB volume (-890..60) to volume register value
  * (000000...111111) */
-int tenthdb2master(int db)
+static int vol_tenthdb2hw(int db)
 {
-    /* -90dB to +6dB 1dB steps (96 levels) 7bits */
-    /* 1100000 ==  +6dB  (0x60,96)               */
-    /* 1101010 ==   0dB  (0x5a,90)               */
-    /* 1000001 == -57dB  (0x21,33,DAC)           */
-    /* 0000001 == -89dB  (0x01,01)               */
-    /* 0000000 == -90dB  (0x00,00,Mute)          */
-    if (db <= VOLUME_MIN)
-    {
+    /*   att  DAC  AMP  result
+        +6dB    0   +6     96
+         0dB    0    0     90
+       -57dB    0  -57     33
+       -58dB   -1  -57     32
+       -89dB  -32  -57      1
+       -90dB  -oo  -oo      0 */
+    if (db <= -900)
         return 0x0;
-    }
     else
-    {
-        return (db - VOLUME_MIN) / 10;
-    }
-}
-
-int sound_val2phys(int setting, int value)
-{
-    int result;
-
-    switch (setting)
-    {
-#ifdef HAVE_RECORDING
-    case SOUND_LEFT_GAIN:
-    case SOUND_RIGHT_GAIN:
-    case SOUND_MIC_GAIN:
-        result = value * 5;
-        break;
-#endif
-
-    case SOUND_DEPTH_3D:
-        result = (100 * value + 8) / 15;
-        break;
-
-    default:
-        result = value;
-    }
-
-    return result;
+        return db / 10 - -90;
 }
 
 void audiohw_preinit(void)
@@ -275,7 +217,7 @@ void audiohw_postinit(void)
 
     /* 9. Set remaining registers */
     wmc_write(WMC_AUDIO_INTERFACE, WMC_WL_16 | WMC_FMT_I2S);
-    wmc_write(WMC_DAC_CONTROL, WMC_DACOSR_128 | WMC_AMUTE);
+    wmc_write(WMC_DAC_CONTROL, WMC_DACOSR_128);
 
     /* No ADC, no HP filter, no popping */
     wmc_clear(WMC_ADC_CONTROL, WMC_HPFEN);
@@ -330,7 +272,7 @@ static void sync_prescaler(void)
 
     /* Combine all prescaling into a single DAC attenuation */
     if (wmc_vol.eq_on)
-        prescaler = wmc_vol.prescaler * 2;
+        prescaler = wmc_vol.prescaler;
 
     if (wmc_vol.enh_3d_on)
         prescaler += wmc_vol.enh_3d_prescaler;
@@ -341,12 +283,15 @@ static void sync_prescaler(void)
                      WMC_DVOL);
 }
 
-void audiohw_set_headphone_vol(int vol_l, int vol_r)
+void audiohw_set_volume(int vol_l, int vol_r)
 {
     int prev_l = wmc_vol.vol_l;
     int prev_r = wmc_vol.vol_r;
     int dac_l, dac_r, hp_l, hp_r;
     int mix_l, mix_r, boost_l, boost_r;
+
+    vol_l = vol_tenthdb2hw(vol_l);
+    vol_r = vol_tenthdb2hw(vol_r);
 
     wmc_vol.vol_l = vol_l;
     wmc_vol.vol_r = vol_r;
@@ -460,7 +405,7 @@ void audiohw_set_eq_band_width(unsigned int band, int val)
  * gain to EQ bands. */
 void audiohw_set_prescaler(int val)
 {
-    wmc_vol.prescaler = val;
+    wmc_vol.prescaler = val / 5; /* centibels->semi-decibels */
     sync_prescaler();
 }
 
@@ -497,88 +442,7 @@ void audiohw_close(void)
 
 void audiohw_set_frequency(int fsel)
 {
-    /* For 16.9344MHz MCLK, codec as master. */
-    static const struct
-    {
-        uint32_t plln  : 8;
-        uint32_t pllk1 : 6;
-        uint32_t pllk2 : 9;
-        uint32_t pllk3 : 9;
-        unsigned char mclkdiv;
-        unsigned char filter;
-    } srctrl_table[HW_NUM_FREQ] =
-    {
-        [HW_FREQ_8] = /* PLL = 65.536MHz */
-        {
-            .plln    = 7 | WMC_PLL_PRESCALE,
-            .pllk1   = 0x2f,            /* 12414886 */
-            .pllk2   = 0x0b7,
-            .pllk3   = 0x1a6,
-            .mclkdiv = WMC_MCLKDIV_8,   /*  2.0480 MHz */
-            .filter  = WMC_SR_8KHZ,
-        },
-        [HW_FREQ_11] = /* PLL = off */
-        {
-            .mclkdiv = WMC_MCLKDIV_6,   /*  2.8224 MHz */
-            .filter  = WMC_SR_12KHZ,
-        },
-        [HW_FREQ_12] = /* PLL = 73.728 MHz */
-        {
-            .plln    = 8 | WMC_PLL_PRESCALE,
-            .pllk1   = 0x2d,            /* 11869595 */
-            .pllk2   = 0x08e,
-            .pllk3   = 0x19b,
-            .mclkdiv = WMC_MCLKDIV_6,   /*  3.0720 MHz */
-            .filter  = WMC_SR_12KHZ,
-        },
-        [HW_FREQ_16] = /* PLL = 65.536MHz */
-        {
-            .plln    = 7 | WMC_PLL_PRESCALE,
-            .pllk1   = 0x2f,            /* 12414886 */
-            .pllk2   = 0x0b7,
-            .pllk3   = 0x1a6,
-            .mclkdiv = WMC_MCLKDIV_4,   /*  4.0960 MHz */
-            .filter  = WMC_SR_16KHZ,
-        },
-        [HW_FREQ_22] = /* PLL = off */
-        {
-            .mclkdiv = WMC_MCLKDIV_3,   /*  5.6448 MHz */
-            .filter  = WMC_SR_24KHZ,
-        },
-        [HW_FREQ_24] = /* PLL = 73.728 MHz */
-        {
-            .plln    = 8 | WMC_PLL_PRESCALE,
-            .pllk1   = 0x2d,            /* 11869595 */
-            .pllk2   = 0x08e,
-            .pllk3   = 0x19b,
-            .mclkdiv = WMC_MCLKDIV_3,   /*  6.1440 MHz */
-            .filter  = WMC_SR_24KHZ,
-        },
-        [HW_FREQ_32] = /* PLL = 65.536MHz */
-        {
-            .plln    = 7 | WMC_PLL_PRESCALE,
-            .pllk1   = 0x2f,            /* 12414886 */
-            .pllk2   = 0x0b7,
-            .pllk3   = 0x1a6,
-            .mclkdiv = WMC_MCLKDIV_2,   /*  8.1920 MHz */
-            .filter  = WMC_SR_32KHZ,
-        },
-        [HW_FREQ_44] = /* PLL = off */
-        {
-            .mclkdiv = WMC_MCLKDIV_1_5, /* 11.2896 MHz */
-            .filter  = WMC_SR_48KHZ,
-        },
-        [HW_FREQ_48] = /* PLL = 73.728 MHz */
-        {
-            .plln    = 8 | WMC_PLL_PRESCALE,
-            .pllk1   = 0x2d,            /* 11869595 */
-            .pllk2   = 0x08e,
-            .pllk3   = 0x19b,
-            .mclkdiv = WMC_MCLKDIV_1_5, /* 12.2880 MHz */
-            .filter  = WMC_SR_48KHZ,
-        },
-    };
-
+    extern const struct wmc_srctrl_entry wmc_srctrl_table[HW_NUM_FREQ];
     unsigned int plln;
     unsigned int mclkdiv;
 
@@ -586,10 +450,10 @@ void audiohw_set_frequency(int fsel)
         fsel = HW_FREQ_DEFAULT;
 
     /* Setup filters. */
-    wmc_write(WMC_ADDITIONAL_CTRL, srctrl_table[fsel].filter);
+    wmc_write(WMC_ADDITIONAL_CTRL, wmc_srctrl_table[fsel].filter);
 
-    plln = srctrl_table[fsel].plln;
-    mclkdiv = srctrl_table[fsel].mclkdiv;
+    plln = wmc_srctrl_table[fsel].plln;
+    mclkdiv = wmc_srctrl_table[fsel].mclkdiv;
 
     if (plln != 0)
     {
@@ -597,9 +461,9 @@ void audiohw_set_frequency(int fsel)
 
         /* Program PLL. */
         wmc_write(WMC_PLL_N, plln);
-        wmc_write(WMC_PLL_K1, srctrl_table[fsel].pllk1);
-        wmc_write(WMC_PLL_K2, srctrl_table[fsel].pllk2);
-        wmc_write(WMC_PLL_K3, srctrl_table[fsel].pllk3);
+        wmc_write(WMC_PLL_K1, wmc_srctrl_table[fsel].pllk1);
+        wmc_write(WMC_PLL_K2, wmc_srctrl_table[fsel].pllk2);
+        wmc_write(WMC_PLL_K3, wmc_srctrl_table[fsel].pllk3);
 
         /* Turn on PLL. */
         wmc_set(WMC_POWER_MANAGEMENT1, WMC_PLLEN);
@@ -635,7 +499,7 @@ void audiohw_enable_depth_3d(bool enable)
     audiohw_set_depth_3d(wmc_vol.enh_3d);
 }
 
-#ifdef HAVE_RECORDING
+#if defined(HAVE_RECORDING) || defined(SAMSUNG_YPR1)
 void audiohw_set_recsrc(int source, bool recording)
 {
     switch (source)
@@ -697,6 +561,23 @@ void audiohw_set_recsrc(int source, bool recording)
             /* Enable bypass to L/R mixers */
             wmc_set(WMC_LEFT_MIXER_CTRL, WMC_BYPL2LMIX);
             wmc_set(WMC_RIGHT_MIXER_CTRL, WMC_BYPR2RMIX);
+#ifdef SAMSUNG_YPR1
+            /* On Samsung YP-R1 we have to do some extra steps to select the AUX
+             * analog input source i.e. where the audio lines of the FM tuner are.
+             */
+            wmc_set(WMC_LEFT_MIXER_CTRL, WMC_AUXL2LMIX);
+            wmc_set(WMC_RIGHT_MIXER_CTRL, WMC_AUXR2RMIX);
+            /* Set L/R AUX input gain to 0dB */
+            wmc_write_masked(WMC_LEFT_MIXER_CTRL, 0x05 << WMC_AUXLMIXVOL_POS,
+                     WMC_AUXLMIXVOL);
+            wmc_write_masked(WMC_RIGHT_MIXER_CTRL, 0x05 << WMC_AUXRMIXVOL_POS,
+                     WMC_AUXRMIXVOL);
+            wmc_set(WMC_LEFT_MIXER_CTRL, WMC_DACL2LMIX);
+            wmc_set(WMC_RIGHT_MIXER_CTRL, WMC_DACR2RMIX);
+            wmc_set(WMC_POWER_MANAGEMENT1, WMC_OUT3MIXEN);
+            wmc_set(WMC_POWER_MANAGEMENT3, WMC_RMIXEN);
+            wmc_set(WMC_POWER_MANAGEMENT3, WMC_LMIXEN);
+#endif
         }
         break;
     }

@@ -15,6 +15,10 @@ menu.c
 menus/menu_common.c
 menus/display_menu.c
 menus/theme_menu.c
+menus/plugin_menu.c
+#if CONFIG_TUNER
+menus/radio_menu.c
+#endif
 #if CONFIG_CODEC == SWCODEC
 #ifdef HAVE_WM8978
 menus/audiohw_eq_menu.c
@@ -22,7 +26,7 @@ menus/audiohw_eq_menu.c
 menus/eq_menu.c
 buffering.c
 voice_thread.c
-replaygain.c
+rbcodec_helpers.c
 #else  /* !SWCODEC */
 mpeg.c
 #endif
@@ -38,7 +42,6 @@ menus/sound_menu.c
 menus/time_menu.c
 #endif
 misc.c
-mp3data.c
 onplay.c
 playlist.c
 playlist_catalog.c
@@ -48,6 +51,7 @@ root_menu.c
 screens.c
 settings.c
 settings_list.c
+shortcuts.c
 status.c
 cuesheet.c
 talk.c
@@ -58,7 +62,14 @@ tagtree.c
 filetree.c
 scrobbler.c
 #ifdef IPOD_ACCESSORY_PROTOCOL
-iap.c
+iap/iap-core.c
+iap/iap-lingo0.c
+#ifdef HAVE_LINE_REC
+iap/iap-lingo1.c
+#endif
+iap/iap-lingo2.c
+iap/iap-lingo3.c
+iap/iap-lingo4.c
 #endif
 
 screen_access.c
@@ -69,18 +80,21 @@ gui/buttonbar.c
 gui/icon.c
 #endif
 gui/list.c
+gui/line.c
 #ifdef HAVE_LCD_BITMAP
 gui/bitmap/list.c
+gui/bitmap/list-skinned.c
 #else
 gui/charcell/list.c
 #endif
 gui/option_select.c
-#ifdef HAVE_PITCHSCREEN
+#ifdef HAVE_PITCHCONTROL
 gui/pitchscreen.c
 #endif
 #ifdef HAVE_QUICKSCREEN
 gui/quickscreen.c
 #endif
+gui/folder_select.c
 
 gui/wps.c
 gui/scrollbar.c
@@ -90,8 +104,8 @@ gui/statusbar.c
 gui/statusbar-skinned.c
 #endif
 #if (CONFIG_PLATFORM&PLATFORM_ANDROID)
-hosted/yesno.c
-hosted/notification.c
+hosted/android/yesno.c
+hosted/android/notification.c
 #else
 gui/yesno.c
 #endif
@@ -100,9 +114,6 @@ gui/viewport.c
 gui/skin_engine/skin_backdrops.c
 gui/skin_engine/skin_display.c
 gui/skin_engine/skin_engine.c
-#ifdef HAVE_LCD_BITMAP
-gui/skin_engine/skin_fonts.c
-#endif
 gui/skin_engine/skin_parser.c
 gui/skin_engine/skin_render.c
 gui/skin_engine/skin_tokens.c
@@ -122,7 +133,7 @@ player/keyboard.c
 recorder/bmp.c
 recorder/icons.c
 #if (CONFIG_PLATFORM&PLATFORM_ANDROID)
-hosted/keyboard.c
+hosted/android/keyboard.c
 #else
 recorder/keyboard.c
 #endif
@@ -160,29 +171,17 @@ radio/radioart.c
 #if INPUT_SRC_CAPS != 0
 audio_path.c
 #endif /* INPUT_SRC_CAPS != 0 */
-fixedpoint.c
+audio_thread.c
 pcmbuf.c
 codec_thread.c
 playback.c
 codecs.c
-dsp.c
-#ifdef HAVE_PITCHSCREEN
-tdspeed.c
+#ifndef HAVE_HARDWARE_BEEP
+beep.c
 #endif
 #ifdef HAVE_RECORDING
 enc_config.c
 recorder/pcm_record.c
-#endif
-eq.c	 	
-#if defined(CPU_COLDFIRE)
-dsp_cf.S
-eq_cf.S	 	
-#elif defined(CPU_ARM)
-dsp_arm.S
-#if ARM_ARCH >= 6
-dsp_arm_v6.S
-#endif
-eq_arm.S
 #endif
 #endif
 #ifdef USB_ENABLE_HID
@@ -190,36 +189,6 @@ usb_keymaps.c
 #endif
 #ifndef USB_NONE
 gui/usb_screen.c
-#endif
-metadata.c
-metadata/id3tags.c
-metadata/mp3.c
-#if CONFIG_CODEC == SWCODEC
-metadata/metadata_common.c
-metadata/aiff.c
-metadata/ape.c
-metadata/asf.c
-metadata/adx.c
-metadata/flac.c
-metadata/monkeys.c
-metadata/mp4.c
-metadata/mpc.c
-metadata/ogg.c
-metadata/sid.c
-metadata/mod.c
-metadata/spc.c
-metadata/vorbis.c
-metadata/wave.c
-metadata/wavpack.c
-metadata/a52.c
-metadata/asap.c
-metadata/rm.c
-metadata/nsf.c
-metadata/oma.c
-metadata/smaf.c
-metadata/au.c
-metadata/vox.c
-metadata/tta.c
 #endif
 #ifdef HAVE_TAGCACHE
 tagcache.c
@@ -276,6 +245,10 @@ keymaps/keymap-meizu-m6sp.c
 keymaps/keymap-creativezvm.c
 #elif CONFIG_KEYPAD == CREATIVEZV_PAD
 keymaps/keymap-creativezv.c
+#elif CONFIG_KEYPAD == CREATIVE_ZENXFI2_PAD
+keymaps/keymap-zenxfi2.c
+#elif CONFIG_KEYPAD == CREATIVE_ZENXFI3_PAD
+keymaps/keymap-zenxfi3.c
 #elif CONFIG_KEYPAD == PHILIPS_SA9200_PAD
 keymaps/keymap-sa9200.c
 #elif CONFIG_KEYPAD == PHILIPS_HDD1630_PAD
@@ -296,7 +269,8 @@ keymaps/keymap-ondavx747.c
 keymaps/keymap-ondavx777.c
 #elif CONFIG_KEYPAD == ONDAVX767_PAD
 keymaps/keymap-ondavx767.c
-#elif CONFIG_KEYPAD == SAMSUNG_YH_PAD
+#elif (CONFIG_KEYPAD == SAMSUNG_YH820_PAD) \
+    || (CONFIG_KEYPAD == SAMSUNG_YH920_PAD)
 keymaps/keymap-yh8xx_yh9xx.c
 #elif CONFIG_KEYPAD == MINI2440_PAD
 keymaps/keymap-mini2440.c
@@ -310,4 +284,30 @@ keymaps/keymap-mpio-hd300.c
 keymaps/keymap-android.c
 #elif CONFIG_KEYPAD == SDL_PAD
 keymaps/keymap-sdl.c
+#elif CONFIG_KEYPAD == SANSA_FUZEPLUS_PAD
+keymaps/keymap-fuzeplus.c
+#elif CONFIG_KEYPAD == RK27XX_GENERIC_PAD
+keymaps/keymap-rk27xx-generic.c
+#elif CONFIG_KEYPAD == HM60X_PAD
+keymaps/keymap-hm60x.c
+#elif CONFIG_KEYPAD == HM801_PAD
+keymaps/keymap-hm801.c
+#elif CONFIG_KEYPAD == SANSA_CONNECT_PAD
+keymaps/keymap-sansa-connect.c
+#elif CONFIG_KEYPAD == SAMSUNG_YPR0_PAD
+keymaps/keymap-ypr0.c
+#elif CONFIG_KEYPAD == CREATIVE_ZEN_PAD
+keymaps/keymap-zen.c
+#elif CONFIG_KEYPAD == MA_PAD
+keymaps/keymap-ma.c
+#elif CONFIG_KEYPAD == SONY_NWZ_PAD
+keymaps/keymap-nwz.c
+#elif CONFIG_KEYPAD == SAMSUNG_YPZ5_PAD
+keymaps/keymap-ypz5.c
+#elif CONFIG_KEYPAD == IHIFI_PAD
+keymaps/keymap-ihifi.c
+#elif CONFIG_KEYPAD == SAMSUNG_YPR1_PAD
+keymaps/keymap-ypr1.c
+#elif CONFIG_KEYPAD == DX50_PAD
+keymaps/keymap-dx50.c
 #endif

@@ -1116,14 +1116,14 @@
     *: "Building database... %d found (OFF to return)"
     iriverh100,iriverh120,iriverh300: "Building database... %d found (STOP to return)"
     ipod*: "Building database... %d found (PREV to return)"
-    iaudiox5,iaudiom5: "Building database... %d found (LEFT to return)"
+    iaudiox5,iaudiom5,gigabeat*,mrobe100,samsungyh*: "Building database... %d found (LEFT to return)"
     iriverh10,iriverh10_5gb,sansae200*,sansac200*,sansafuze*,vibe500: "Building database... %d found (PREV to return)"
   </source>
   <dest>
     *: "डाटाबेस बन रहा है... %d मिले (OFF to बढ़)"
     iriverh100,iriverh120,iriverh300: "डाटाबेस बन रहा है... %d मिले (STOP to बढ़)"
     ipod*: "डाटाबेस बन रहा है... %d मिले (PREV to बढ़)"
-    iaudiox5,iaudiom5: "डाटाबेस बन रहा है... %d मिले (LEFT to बढ़)"
+    iaudiox5,iaudiom5,gigabeat*,mrobe100,samsungyh*: "डाटाबेस बन रहा है... %d मिले (LEFT to बढ़)"
     iriverh10,iriverh10_5gb,sansae200*,sansac200*,sansafuze*,vibe500: "डाटाबेस बन रहा है... %d मिले (PREV to बढ़)"
   </dest>
   <voice>
@@ -1954,6 +1954,7 @@
     iriverh10,iriverh10_5gb: "SELECT=Set PREV=Cancel"
     vibe500: "OK=Set C=Cancel"
     mpiohd300: "ENTER=Set MENU=Cancel"
+    sansafuzeplus: "SELECT=Set  BACK=Cancel"
   </source>
   <dest>
     *: none
@@ -1962,6 +1963,7 @@
     iriverh10,iriverh10_5gb: "SELECT=लगा PREV=बंद"
     vibe500: "OK=लगा C=बंद"
     mpiohd300: "ENTER=लगा MENU=बंद"
+    sansafuzeplus: "SELECT=लगा  BACK=बंद"
   </dest>
   <voice>
     *: none
@@ -2542,19 +2544,19 @@
 </phrase>
 <phrase>
   id: LANG_FM_SAVE_CHANGES
-  desc: When you try to exit radio to confirm save
+  desc: deprecated
   user: core
   <source>
     *: none
-    radio: "Save Changes?"
+    radio: ""
   </source>
   <dest>
     *: none
-    radio: "Changes बचा?"
+    radio: ""
   </dest>
   <voice>
     *: none
-    radio: "Changes बचा?"
+    radio: ""
   </voice>
 </phrase>
 <phrase>
@@ -2946,7 +2948,7 @@
   desc: in onplay menu
   user: core
   <source>
-    *: "Playlist Catalog"
+    *: "Playlist Catalogue"
   </source>
   <dest>
     *: "पलेलिसट काटालोग"
@@ -3195,10 +3197,10 @@
 </phrase>
 <phrase>
   id: LANG_CATALOG_VIEW
-  desc: in onplay playlist catalog submenu
+  desc: in onplay playlist catalogue submenu
   user: core
   <source>
-    *: "View Catalog"
+    *: "View Catalogue"
   </source>
   <dest>
     *: "काटालोग देख"
@@ -3209,7 +3211,7 @@
 </phrase>
 <phrase>
   id: LANG_CATALOG_ADD_TO
-  desc: in onplay playlist catalog submenu
+  desc: in onplay playlist catalogue submenu
   user: core
   <source>
     *: "Add to Playlist"
@@ -3223,7 +3225,7 @@
 </phrase>
 <phrase>
   id: LANG_CATALOG_ADD_TO_NEW
-  desc: in onplay playlist catalog submenu
+  desc: in onplay playlist catalogue submenu
   user: core
   <source>
     *: "Add to New Playlist"
@@ -3237,7 +3239,7 @@
 </phrase>
 <phrase>
   id: LANG_CATALOG_NO_DIRECTORY
-  desc: error message when playlist catalog directory doesn't exist
+  desc: error message when playlist catalogue directory doesn't exist
   user: core
   <source>
     *: "%s doesn't exist"
@@ -3251,7 +3253,7 @@
 </phrase>
 <phrase>
   id: LANG_CATALOG_NO_PLAYLISTS
-  desc: error message when no playlists for playlist catalog
+  desc: error message when no playlists for playlist catalogue
   user: core
   <source>
     *: "No Playlists"
@@ -3809,6 +3811,7 @@
     iriverh100,iriverh120,iriverh300: "The disk is full. Press STOP to continue."
     iaudiom5,iaudiox5: "The disk is full. Press POWER to continue."
     sansae200*,sansac200*,vibe500: "The disk is full. Press PREV to continue."
+    samsungyh*: "Disk full. Press LEFT to continue."
   </source>
   <dest>
     *: none
@@ -3816,6 +3819,7 @@
     iriverh100,iriverh120,iriverh300: "दिसक भरी ह. Press STOP to continue."
     iaudiom5,iaudiox5: "दिसक भरी ह. Press POWER to continue."
     sansae200*,sansac200*,vibe500: "दिसक भरी ह. Press PREV to continue."
+    samsungyh*: "दिसक भरी ह. Press LEFT to continue."
   </dest>
   <voice>
     *: none

@@ -32,7 +32,7 @@
 #define LAP_Y TIMER_Y+1
 #define MAX_LAPS 64
 
-#define STOPWATCH_FILE PLUGIN_APPS_DIR "/stopwatch.dat"
+#define STOPWATCH_FILE PLUGIN_APPS_DATA_DIR "/stopwatch.dat"
 
 /* variable button definitions */
 #if CONFIG_KEYPAD == RECORDER_PAD
@@ -186,6 +186,14 @@
 #define STOPWATCH_SCROLL_UP BUTTON_UP
 #define STOPWATCH_SCROLL_DOWN BUTTON_DOWN
 
+#elif CONFIG_KEYPAD == CREATIVE_ZENXFI3_PAD
+#define STOPWATCH_QUIT BUTTON_POWER
+#define STOPWATCH_START_STOP (BUTTON_PLAY|BUTTON_REL)
+#define STOPWATCH_RESET_TIMER (BUTTON_PLAY|BUTTON_REPEAT)
+#define STOPWATCH_LAP_TIMER BUTTON_MENU
+#define STOPWATCH_SCROLL_UP BUTTON_UP
+#define STOPWATCH_SCROLL_DOWN BUTTON_DOWN
+
 #elif CONFIG_KEYPAD == PHILIPS_HDD1630_PAD
 #define STOPWATCH_QUIT BUTTON_POWER
 #define STOPWATCH_START_STOP BUTTON_SELECT
@@ -215,8 +223,9 @@
 #elif CONFIG_KEYPAD == ONDAVX777_PAD
 #define STOPWATCH_QUIT BUTTON_POWER
 
-#elif CONFIG_KEYPAD == SAMSUNG_YH_PAD
-#define STOPWATCH_QUIT        BUTTON_REC
+#elif (CONFIG_KEYPAD == SAMSUNG_YH820_PAD) || \
+      (CONFIG_KEYPAD == SAMSUNG_YH920_PAD)
+#define STOPWATCH_QUIT        BUTTON_REW
 #define STOPWATCH_START_STOP  BUTTON_PLAY
 #define STOPWATCH_RESET_TIMER BUTTON_LEFT
 #define STOPWATCH_LAP_TIMER   BUTTON_RIGHT
@@ -240,12 +249,61 @@
 #define STOPWATCH_SCROLL_DOWN BUTTON_VOL_DOWN
 
 #elif CONFIG_KEYPAD == MPIO_HD300_PAD
-#define STOPWATCH_QUIT (BUTTON_REC|BUTTON_REPEAT)
+#define STOPWATCH_QUIT (BUTTON_MENU|BUTTON_REPEAT)
 #define STOPWATCH_START_STOP BUTTON_PLAY
 #define STOPWATCH_RESET_TIMER BUTTON_REW
 #define STOPWATCH_LAP_TIMER BUTTON_FF
 #define STOPWATCH_SCROLL_UP BUTTON_UP
 #define STOPWATCH_SCROLL_DOWN BUTTON_DOWN
+
+#elif CONFIG_KEYPAD == SANSA_FUZEPLUS_PAD
+#define STOPWATCH_QUIT BUTTON_POWER
+#define STOPWATCH_START_STOP BUTTON_PLAYPAUSE
+#define STOPWATCH_RESET_TIMER BUTTON_BACK
+#define STOPWATCH_LAP_TIMER BUTTON_RIGHT
+#define STOPWATCH_SCROLL_UP BUTTON_UP
+#define STOPWATCH_SCROLL_DOWN BUTTON_DOWN
+
+#elif CONFIG_KEYPAD == SANSA_CONNECT_PAD
+#define STOPWATCH_QUIT BUTTON_POWER
+#define STOPWATCH_START_STOP BUTTON_SELECT
+#define STOPWATCH_RESET_TIMER BUTTON_LEFT
+#define STOPWATCH_LAP_TIMER BUTTON_RIGHT
+#define STOPWATCH_SCROLL_UP BUTTON_UP
+#define STOPWATCH_SCROLL_DOWN BUTTON_DOWN
+
+#elif CONFIG_KEYPAD == SAMSUNG_YPR0_PAD
+#define STOPWATCH_QUIT BUTTON_BACK
+#define STOPWATCH_START_STOP BUTTON_SELECT
+#define STOPWATCH_RESET_TIMER BUTTON_MENU
+#define STOPWATCH_LAP_TIMER BUTTON_USER
+#define STOPWATCH_SCROLL_UP BUTTON_UP
+#define STOPWATCH_SCROLL_DOWN BUTTON_DOWN
+
+#elif (CONFIG_KEYPAD == HM60X_PAD) || \
+    (CONFIG_KEYPAD == HM801_PAD)
+#define STOPWATCH_QUIT BUTTON_POWER
+#define STOPWATCH_START_STOP BUTTON_SELECT
+#define STOPWATCH_RESET_TIMER BUTTON_LEFT
+#define STOPWATCH_LAP_TIMER BUTTON_RIGHT
+#define STOPWATCH_SCROLL_UP BUTTON_UP
+#define STOPWATCH_SCROLL_DOWN BUTTON_DOWN
+
+#elif (CONFIG_KEYPAD == SONY_NWZ_PAD)
+#define STOPWATCH_QUIT           BUTTON_POWER
+#define STOPWATCH_START_STOP     BUTTON_PLAY
+#define STOPWATCH_RESET_TIMER    BUTTON_BACK
+#define STOPWATCH_LAP_TIMER      BUTTON_RIGHT
+#define STOPWATCH_SCROLL_UP      BUTTON_UP
+#define STOPWATCH_SCROLL_DOWN    BUTTON_DOWN
+
+#elif (CONFIG_KEYPAD == CREATIVE_ZEN_PAD)
+#define STOPWATCH_QUIT           BUTTON_BACK
+#define STOPWATCH_START_STOP     BUTTON_PLAYPAUSE
+#define STOPWATCH_RESET_TIMER    BUTTON_SHORTCUT
+#define STOPWATCH_LAP_TIMER      BUTTON_SELECT
+#define STOPWATCH_SCROLL_UP      BUTTON_UP
+#define STOPWATCH_SCROLL_DOWN    BUTTON_DOWN
 
 #else
 #error No keymap defined!
@@ -330,7 +388,7 @@ static void ticks_to_string(int ticks,int lap,int buflen, char * buf)
 /* 
  * Load saved stopwatch state, if exists.
  */
-void load_stopwatch(void)
+static void load_stopwatch(void)
 {
     int fd;
     
@@ -370,7 +428,7 @@ void load_stopwatch(void)
 /* 
  * Save stopwatch state.
  */
-void save_stopwatch(void)
+static void save_stopwatch(void)
 {
     int fd;
     
@@ -506,9 +564,19 @@ enum plugin_status plugin_start(const void* parameter)
 
             /* Lap timer */
             case STOPWATCH_LAP_TIMER:
-                 lap_times[curr_lap%MAX_LAPS] = stopwatch;
-                 curr_lap++;
-                 update_lap = true;
+                 /*check if we're timing, and start if not*/
+                 if (counting)
+                 {
+                     lap_times[curr_lap%MAX_LAPS] = stopwatch;
+                     curr_lap++;
+                     update_lap = true;
+                 }
+                 else
+                 {
+                     counting = ! counting;
+                     start_at = *rb->current_tick;
+                     stopwatch = prev_total + *rb->current_tick - start_at;
+                 }
                  break;
 
             /* Scroll Lap timer up */

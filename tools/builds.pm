@@ -1,8 +1,8 @@
-$publicrelease="3.7.1";
-$manualrelease="3.7.1";
-$voicerelease="3.7";
-$releasedate="November 26, 2010";
-$releasenotes="/wiki/ReleaseNotes371";
+$publicrelease="3.13";
+$manualrelease="3.13";
+$voicerelease="3.13";
+$releasedate="05 March 2013";
+$releasenotes="/wiki/ReleaseNotes313";
 
 %builds = (
     'archosav300' => {
@@ -63,7 +63,31 @@ $releasenotes="/wiki/ReleaseNotes371";
     },
     'gogearsa9200' => {
         name => 'Philips GoGear SA9200',
-        status => 1,
+        status => 2,
+    },
+    'hifietma9' => {
+        name => 'HiFi E.T MA9',
+        status => 2,
+    },
+    'hifietma9c' => {
+        name => 'HiFi E.T MA9C',
+        status => 2,
+    },
+    'hifietma8' => {
+        name => 'HiFi E.T MA8',
+        status => 2,
+    },
+    'hifietma8c' => {
+        name => 'HiFi E.T MA8C',
+        status => 2,
+    },
+    'hifimanhm60x' => {
+        name => 'HiFiMAN HM-60x',
+        status => 2,
+    },
+    'hifimanhm801' => {
+        name => 'HiFiMAN HM-801',
+        status => 2,
     },
     'iaudio7' => {
         name => 'iAudio 7',
@@ -80,6 +104,14 @@ $releasenotes="/wiki/ReleaseNotes371";
     'iaudiox5' => {
         name => 'iAudio X5',
         status => 3,
+    },
+    'ibassodx50' => {
+        name => 'iBasso DX50',
+        status => 2,
+    },
+    'ibassodx90' => {
+        name => 'iBasso DX90',
+        status => 2,
     },
     'ipod1g2g' => {
         name => 'iPod 1st and 2nd gen',
@@ -113,11 +145,16 @@ $releasenotes="/wiki/ReleaseNotes371";
     },
     'ipodnano2g' => {
         name => 'iPod Nano 2nd gen',
-        status => 3,
+        status => 2,
+        release => '3.10',
     },
     'ipodvideo' => {
         name => 'iPod Video',
         status => 3,
+    },
+    'ipod6g' => {
+        name => 'iPod 6th gen (Classic)',
+        status => 1,
     },
     'iriverh10' => {
         name => 'iriver H10 20GB',
@@ -193,6 +230,10 @@ $releasenotes="/wiki/ReleaseNotes371";
         name => 'Onda VX777',
         status => 1,
     },
+    'rk27generic' => {
+        name => 'Rockchip rk27xx',
+        status => 1,
+    },
     'samsungyh820' => {
         name => 'Samsung YH-820',
         status => 2,
@@ -203,6 +244,10 @@ $releasenotes="/wiki/ReleaseNotes371";
     },
     'samsungyh925' => {
         name => 'Samsung YH-925',
+        status => 2,
+    },
+    'samsungypr0' => {
+        name => 'Samsung YP-R0',
         status => 2,
     },
     'samsungyps3' => {
@@ -219,7 +264,7 @@ $releasenotes="/wiki/ReleaseNotes371";
     },
     'sansac200v2' => {
         name => 'SanDisk Sansa c200 v2',
-        status => 2,
+        status => 3,
         icon => 'sansac200',
     },
     'sansaclip' => {
@@ -233,6 +278,10 @@ $releasenotes="/wiki/ReleaseNotes371";
     },
     'sansaclipplus' => {
         name => 'SanDisk Sansa Clip+',
+        status => 3,
+    },
+    'sansaclipzip' => {
+        name => 'SanDisk Sansa Clip Zip',
         status => 3,
     },
     'sansae200' => {
@@ -252,6 +301,11 @@ $releasenotes="/wiki/ReleaseNotes371";
         name => 'SanDisk Sansa Fuze v2',
         status => 3,
         icon => 'sansafuze',
+    },
+    'sansafuzeplus' => {
+        name => 'SanDisk Sansa Fuze+',
+        status => 2,
+        icon => 'sansafuzeplus',
     },
     'sansam200' => {
         name => 'SanDisk Sansa m200',
@@ -291,7 +345,35 @@ $releasenotes="/wiki/ReleaseNotes371";
     },
     'mpiohd300' => {
         name => 'MPIO HD300',
-        status => 2,
+        status => 3,
+    },
+    'creativezenxfi2' => {
+        name => 'Creative Zen X-Fi2',
+        status => 1,
+    },
+    'creativezenxfi3' => {
+        name => 'Creative Zen X-Fi3',
+        status => 1,
+    },
+    'sonynwze360' => {
+        name => 'Sony NWZ-E360',
+        status => 1,
+    },
+    'sonynwze370' => {
+        name => 'Sony NWZ-E370',
+        status => 1,
+    },
+    'creativezenxfi' => {
+        name => 'Creative Zen X-Fi',
+        status => 1
+    },
+    'creativezen' => {
+        name => 'Creative Zen',
+        status => 1
+    },
+    'creativezenmozaic' => {
+        name => 'Creative Zen Mozaic',
+        status => 1
     },
 );
 
@@ -325,7 +407,17 @@ sub stablebuilds {
     my @list;
 
     for my $b (sort byname keys %builds) {
-        push @list, $b if ($builds{$b}{status} >= 3);
+        push @list, $b if ($builds{$b}{status} >= 3) or $builds{$b}{release};
+    }
+
+    return @list;
+}
+
+sub allbuilds {
+    my @list;
+
+    for my $b (sort byname keys %builds) {
+        push @list, $b if ($builds{$b}{status} >= 1);
     }
 
     return @list;

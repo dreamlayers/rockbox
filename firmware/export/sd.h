@@ -23,7 +23,12 @@
 #define __SD_H__
 
 #include <stdbool.h>
+#include "config.h"
 #include "mv.h" /* for HAVE_MULTIDRIVE or not */
+
+#ifdef HAVE_BOOTLOADER_USB_MODE
+#define SD_DRIVER_CLOSE
+#endif
 
 #define SD_BLOCK_SIZE 512 /* XXX : support other sizes ? */
 
@@ -35,19 +40,19 @@ void sd_sleep(void);
 void sd_sleepnow(void);
 bool sd_disk_is_active(void);
 int  sd_soft_reset(void);
-int  sd_init(void);
+int  sd_init(void) STORAGE_INIT_ATTR;
 void sd_close(void);
-int  sd_read_sectors(IF_MD2(int drive,) unsigned long start, int count, void* buf);
-int  sd_write_sectors(IF_MD2(int drive,) unsigned long start, int count, const void* buf);
+int  sd_read_sectors(IF_MD(int drive,) unsigned long start, int count, void* buf);
+int  sd_write_sectors(IF_MD(int drive,) unsigned long start, int count, const void* buf);
 void sd_spin(void);
 int  sd_spinup_time(void); /* ticks */
 
 #ifdef STORAGE_GET_INFO
-void sd_get_info(IF_MD2(int drive,) struct storage_info *info);
+void sd_get_info(IF_MD(int drive,) struct storage_info *info);
 #endif
 #ifdef HAVE_HOTSWAP
-bool sd_removable(IF_MV_NONVOID(int drive));
-bool sd_present(IF_MV_NONVOID(int drive));
+bool sd_removable(IF_MD_NONVOID(int drive));
+bool sd_present(IF_MD_NONVOID(int drive));
 #endif
 
 long sd_last_disk_activity(void);

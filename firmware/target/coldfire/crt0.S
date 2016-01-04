@@ -21,16 +21,56 @@
 #include "config.h"
 #include "cpu.h"
 
-    .section .init.text,"ax",@progbits
+    .section .startup,"ax",@progbits
 
     .global    start
 start:
+
+#if defined(BOOTLOADER) && defined(HAVE_DUALBOOT) \
+    && (defined(IAUDIO_X5) || defined(IAUDIO_M5))
+
+    /* 8 byte dualboot signature */
+    bra.b   1f           /* 0x6006 */
+    .short  0x4442      /* DB */
+#if defined(IAUDIO_X5)
+    .long   0x69617835  /* iax5 */
+#elif defined(IAUDIO_M5)
+    .long   0x69616d35  /* iam5 */
+#else
+#error Dualboot signature not defined
+#endif
+1:
+    /* As the control registers are write-only, we're relying on MBAR2 being */
+    /* set up correctly by the preloader for button check */
+    /* Only use scratch regs until we're sure that we will boot rockbox */
+    lea     MBAR2, %a1
+    move.l  (%a1), %a0        /* store GPIO_READ result for button check in main() */
+
+    /* Wait ~3 seconds for ON-button release. We need roughly 300ns per
+       iteration, so we check 10000000 times to reach the desired delay */
+    move.l  #10000000, %d0
+.on_button_test:
+    move.l  (%a1), %d1        /* GPIO_READ */
+    and.l   #0x06000000, %d1  /* Check main (bit 25=0) and remote (bit 26=0) */
+    cmp.l   #0x06000000, %d1  /* ON buttons simultaneously */
+    beq.b   .loadrockbox
+    subq.l  #1, %d0
+    bne.b   .on_button_test
+
+.loadoriginal:
+    jmp     0x10010
+
+.loadrockbox:
+    move.l  %a0, %d7          /* keep initial GPIO_READ value in %d7 for now */
+
+#endif /* defined(BOOTLOADER && defined(HAVE_DUALBOOT)
+          && (defined(IAUDIO_X5) || defined(IAUDIO_M5)) */
 
     move.w  #0x2700,%sr
 
     move.l  #vectors,%d0
     movec.l %d0,%vbr
-        
+
     move.l  #MBAR+1,%d0
     movec.l %d0,%mbar
         
@@ -39,7 +79,12 @@ start:
 
     lea     MBAR,%a0
     lea     MBAR2,%a1
-        
+
+#if defined(BOOTLOADER) && !defined(HAVE_DUALBOOT) \
+    && (defined(IAUDIO_X5) || defined(IAUDIO_M5))
+    move.l  (%a1), %d7        /* store GPIO_READ result for button check in main() */
+#endif
+
     clr.l  (0x180,%a1)  /* PLLCR = 0 */
 
     /* 64K DMA-capable SRAM at 0x10000000
@@ -138,7 +183,7 @@ start:
 
     /* Set up the DRAM controller. The refresh is based on the 11.2896MHz
        clock (5.6448MHz bus frequency). We haven't yet started the PLL */
-#if MEM < 32
+#if MEMORYSIZE < 32
     move.w  #0x8004,%d0 /* DCR - Synchronous, 80 cycle refresh */
 #else
     move.w  #0x8001,%d0 /* DCR - Synchronous, 32 cycle refresh */
@@ -153,7 +198,7 @@ start:
        In our case this means that we set the base address 16M ahead and
        use a 64M mask.
     */
-#if MEM < 32
+#if MEMORYSIZE < 32
     move.l  #0x31002324,%d0 /* DACR0 - Base 0x31000000, Banks on 21 and up,
                                CAS latency 2, Page mode, No refresh yet */
     move.l  %d0,(0x108,%a0)
@@ -245,6 +290,17 @@ start:
     /* .iram copy is done first since it is reclaimed for other
      * uninitialized sections */
 
+    /* copy .init section */
+    lea     _initcopy,%a2
+    lea     _initstart,%a3
+    lea     _initend,%a4
+    bra.b   .initstart
+.initloop:
+    move.l  (%a2)+,(%a3)+
+.initstart:
+    cmp.l   %a3,%a4
+    bhi.b   .initloop
+
     /* copy the .iram section */
     lea     _iramcopy,%a2
     lea     _iramstart,%a3
@@ -318,6 +374,10 @@ start:
     move.l  %d0,(%a2)+
     cmp.l   %a2,%a4
     bhi.b   .mungeloop
+    
+#if defined(BOOTLOADER) && (defined(IAUDIO_X5) || defined(IAUDIO_M5))
+    move.l  %d7, initial_gpio_read
+#endif
 
     jsr     main
 .hoo:

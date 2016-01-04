@@ -1,7 +1,6 @@
 /*
  * This config file is for iAudio M3
  */
-#define TARGET_TREE /* this target is using the target tree system */
 
 /* For Rolo and boot loader */
 #define MODEL_NUMBER 25
@@ -48,16 +47,15 @@
 /* define this if you have access to the quickscreen */
 #define HAVE_QUICKSCREEN
 
-/* define this if you have access to the pitchscreen */
-#define HAVE_PITCHSCREEN
-
 /* define this if you would like tagcache to build on this target */
 #define HAVE_TAGCACHE
 
-/* LCD dimensions */
+/* Remote LCD dimensions (no main display) */
 #define LCD_WIDTH  128
 #define LCD_HEIGHT 96
 #define LCD_DEPTH  2
+/* sqrt(128^2 + 96^2) / 1.25 = 128 */
+#define LCD_DPI 128
 
 #define LCD_PIXELFORMAT VERTICAL_INTERLEAVED
 
@@ -113,6 +111,8 @@
 #define BATTERY_CAPACITY_MAX    2250  /* max. capacity selectable */
 #define BATTERY_CAPACITY_INC    50    /* capacity increment */
 #define BATTERY_TYPES_COUNT     1     /* only one type */
+
+#define CONFIG_BATTERY_MEASURE VOLTAGE_MEASURE
 
 /* Hardware controlled charging? FIXME */
 #define CONFIG_CHARGING CHARGING_SIMPLE

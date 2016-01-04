@@ -24,19 +24,19 @@
 
 #include "lcd.h"
 #include "buttonbar.h"
+#include "scroll_engine.h"
 #include "backdrop.h"
+#include "line.h"
 
 #if defined(HAVE_REMOTE_LCD) && !defined (ROCKBOX_HAS_LOGF)
 #define NB_SCREENS 2
+void screen_helper_remote_setfont(int font);
 #else
 #define NB_SCREENS 1
 #endif
+void screen_helper_setfont(int font);
 
-#if NB_SCREENS == 1
-#define FOR_NB_SCREENS(i) i = 0;
-#else
-#define FOR_NB_SCREENS(i) for(i = 0; i < NB_SCREENS; i++)
-#endif
+#define FOR_NB_SCREENS(i) for(int i = 0; i < NB_SCREENS; i++)
 
 #ifdef HAVE_LCD_CHARCELLS
 #define MAX_LINES_ON_SCREEN 2
@@ -67,25 +67,17 @@ struct screen
 #ifdef HAVE_BUTTONBAR
     bool has_buttonbar;
 #endif
+    void (*set_drawmode)(int mode);
     void (*set_viewport)(struct viewport* vp);
     int (*getwidth)(void);
     int (*getheight)(void);
     int (*getstringsize)(const unsigned char *str, int *w, int *h);
 #if defined(HAVE_LCD_BITMAP) || defined(HAVE_REMOTE_LCD) /* always bitmap */
     void (*setfont)(int newfont);
-    int (*getfont)(void);
+    int (*getuifont)(void);
+    void (*setuifont)(int newfont);
 
     void (*scroll_step)(int pixels);
-    void (*puts_style_offset)(int x, int y, const unsigned char *str,
-                              int style, int x_offset);
-    void (*puts_style_xyoffset)(int x, int y, const unsigned char *str,
-                                int style, int x_offset, int y_offset);
-    void (*puts_scroll_style)(int x, int y, const unsigned char *string,
-                                 int style);
-    void (*puts_scroll_style_offset)(int x, int y, const unsigned char *string,
-                                     int style, int x_offset);
-    void (*puts_scroll_style_xyoffset)(int x, int y, const unsigned char *string,
-                                     int style, int x_offset, int y_offset);
     void (*mono_bitmap)(const unsigned char *src,
                         int x, int y, int width, int height);
     void (*mono_bitmap_part)(const unsigned char *src, int src_x, int src_y,
@@ -98,7 +90,9 @@ struct screen
                                int x, int y, int width, int height);
     void (*transparent_bitmap_part)(const void *src, int src_x, int src_y,
                                     int stride, int x, int y, int width, int height);
-    void (*set_drawmode)(int mode);
+    void (*bmp)(const struct bitmap *bm, int x, int y);
+    void (*bmp_part)(const struct bitmap* bm, int src_x, int src_y,
+                                int x, int y, int width, int height);
 #if defined(HAVE_LCD_COLOR) && defined(LCD_REMOTE_DEPTH) && LCD_REMOTE_DEPTH > 1
     unsigned (*color_to_native)(unsigned color);
 #endif
@@ -108,11 +102,6 @@ struct screen
     void (*set_background)(unsigned background);
     void (*set_foreground)(unsigned foreground);
 #endif /* (LCD_DEPTH > 1) || (LCD_REMOTE_DEPTH > 1) */
-#if defined(HAVE_LCD_COLOR)
-    void (*set_selector_start)(unsigned selector);
-    void (*set_selector_end)(unsigned selector);
-    void (*set_selector_text)(unsigned selector_text);
-#endif
     void (*update_rect)(int x, int y, int width, int height);
     void (*update_viewport_rect)(int x, int y, int width, int height);
     void (*fillrect)(int x, int y, int width, int height);
@@ -137,17 +126,17 @@ struct screen
     void (*putsxy)(int x, int y, const unsigned char *str);
     void (*puts)(int x, int y, const unsigned char *str);
     void (*putsf)(int x, int y, const unsigned char *str, ...);
-    void (*puts_offset)(int x, int y, const unsigned char *str, int offset);
-    void (*puts_scroll)(int x, int y, const unsigned char *string);
-    void (*puts_scroll_offset)(int x, int y, const unsigned char *string,
-                                 int x_offset);
+    bool (*puts_scroll)(int x, int y, const unsigned char *string);
+    bool (*putsxy_scroll_func)(int x, int y, const unsigned char *string,
+                               void (*scroll_func)(struct scrollinfo *),
+                               void *data, int x_offset);
     void (*scroll_speed)(int speed);
     void (*scroll_delay)(int ms);
-    void (*stop_scroll)(void);
     void (*clear_display)(void);
     void (*clear_viewport)(void);
-    void (*scroll_stop)(const struct viewport* vp);
-    void (*scroll_stop_line)(const struct viewport* vp, int y);
+    void (*scroll_stop)(void);
+    void (*scroll_stop_viewport)(const struct viewport *vp);
+    void (*scroll_stop_viewport_rect)(const struct viewport* vp, int x, int y, int width, int height);
     void (*update)(void);
     void (*update_viewport)(void);
     void (*backlight_on)(void);
@@ -158,6 +147,20 @@ struct screen
     bool (*backdrop_load)(const char *filename, char* backdrop_buffer);
     void (*backdrop_show)(char* backdrop_buffer);
 #endif
+#if defined(HAVE_LCD_BITMAP)
+    void (*set_framebuffer)(void *framebuffer);
+#if defined(HAVE_LCD_COLOR)    
+    void (*gradient_fillrect)(int x, int y, int width, int height,
+            unsigned start, unsigned end);
+    void (*gradient_fillrect_part)(int x, int y, int width, int height,
+            unsigned start, unsigned end, int src_height, int row_skip);
+#endif
+#endif
+#if defined(HAVE_LCD_BITMAP)
+    void (*nine_segment_bmp)(const struct bitmap* bm, int x, int y,
+                                int width, int height);
+#endif
+    void (*put_line)(int x, int y, struct line_desc *line, const char *fmt, ...);
 };
 
 #if defined(HAVE_LCD_BITMAP) || defined(HAVE_REMOTE_LCD)

@@ -1,4 +1,7 @@
 /* plugins common to all models */
+#if !defined(SIMULATOR) && (CONFIG_BATTERY_MEASURE != 0)
+battery_bench.c
+#endif
 chessclock.c
 credits.c
 cube.c
@@ -8,6 +11,7 @@ keybox.c
 logo.c
 lrcplayer.c
 mosaique.c
+main_menu_config.c
 properties.c
 random_folder_advance_config.c
 rockblox.c
@@ -29,7 +33,6 @@ disktidy.c
 flipit.c
 shopper.c
 resistor.c
-
 
 #ifdef USB_ENABLE_HID
 remote_control.c
@@ -71,7 +74,8 @@ iriverify.c
 /* Overlays loaders */
 #if PLUGIN_BUFFER_SIZE <= 0x20000 && defined(HAVE_LCD_BITMAP)
 
-#if CONFIG_KEYPAD != ONDIO_PAD && CONFIG_KEYPAD != SANSA_M200_PAD
+#if CONFIG_KEYPAD != ONDIO_PAD && CONFIG_KEYPAD != SANSA_M200_PAD \
+    && CONFIG_KEYPAD != HM60X_PAD
 /* not enough buttons for rockboy */
 rockboy.c
 #endif
@@ -116,8 +120,6 @@ iriver_flash.c
 rockbox_flash.c
 #endif /* CONFIG_CPU */
 
-battery_bench.c
-
 #if defined(IPOD_NANO2G)
 crypt_firmware.c
 #endif
@@ -132,17 +134,16 @@ wavrecord.c
 
 #endif /* PLATFORM_NATIVE */
 
-
-
-#if CONFIG_CODEC == SWCODEC || !defined(SIMULATOR) /* Not for hwcodec sims */
 metronome.c
-#endif
-
-
 
 #ifdef HAVE_LCD_BITMAP             /* Not for the Archos Player */
 
+2048.c
+/* Lua needs at least 160 KB to work in */
+#if PLUGIN_BUFFER_SIZE >= 0x80000
 boomshine.lua
+#endif
+
 rockblox1d.c
 brickmania.c
 calendar.c
@@ -165,6 +166,7 @@ jewels.c
 minesweeper.c
 oscilloscope.c
 pegbox.c
+periodic_table.c
 pong.c
 sliding_puzzle.c
 snake.c
@@ -189,7 +191,8 @@ codebuster.c
 fireworks.c
 #endif
 
-#if LCD_DEPTH >= 16
+#if LCD_DEPTH == 16
+/* FIXME: make it work with 24bit (needs lot of memory) */
 rockpaint.c
 #endif
 
@@ -201,8 +204,6 @@ rocklife.c
 euroconverter.c
 nim.c
 #endif /* HAVE_LCD_CHARCELLS */
-
-
 
 #if LCD_DEPTH > 1                  /* non-mono bitmap targets */
 

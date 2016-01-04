@@ -75,7 +75,7 @@ static enum themable_icons list_get_icon_cb(int selected_item, void *data)
         return Icon_NOICON;
 }
 
-bool save_changes(void)
+static bool save_changes(void)
 {
     int fd;
     int i;
@@ -123,7 +123,7 @@ bool save_changes(void)
     return true;
 }
 
-void create_view(struct gui_synclist *lists)
+static void create_view(struct gui_synclist *lists)
 {
     unsigned int cnt = 0;
     int i, j;
@@ -168,7 +168,7 @@ void create_view(struct gui_synclist *lists)
     }
 }
 
-bool toggle(int selected_item)
+static bool toggle(int selected_item)
 {
     if (items_list[view_id_list[selected_item]].flag == FL_CATEGORY)
         return false;
@@ -179,7 +179,7 @@ bool toggle(int selected_item)
     return true;
 }
 
-void update_category_string(void)
+static void update_category_string(void)
 {
     if (show_categories)
         rb->strcpy(category_string,"Hide categories");
@@ -187,7 +187,7 @@ void update_category_string(void)
         rb->strcpy(category_string,"Show categories");
 }
 
-enum plugin_status load_file(void)
+static enum plugin_status load_file(void)
 {
     int fd;
     static char temp_line[DESC_SIZE];
@@ -320,13 +320,13 @@ enum plugin_status plugin_start(const void* parameter)
             continue;
         switch (button)
         {
-            case ACTION_STD_CONTEXT:
             case ACTION_STD_OK:
             {
                 changed |= toggle(cur_sel);
                 break;
             }
             case ACTION_STD_MENU:
+            case ACTION_STD_CONTEXT:
             {
                 switch(view)
                 {
@@ -338,7 +338,9 @@ enum plugin_status plugin_start(const void* parameter)
                                                   "Mark all items",
                                                   category_string,
                                                   "Revert to saved",
-                                                  "Show Playback Menu",);
+                                                  "Show Playback Menu",
+                                                  "Quit without saving",
+                                                  "Quit");
 
                         switch (rb->do_menu(&menu, NULL, NULL, false))
                         {
@@ -394,6 +396,20 @@ enum plugin_status plugin_start(const void* parameter)
                                 playback_control(NULL);
                                 break;
                             }
+                            case 6:
+                            {
+                                /* Quit without saving */
+                                exit = 1;
+                                break;
+                            }
+                            case 7:
+                            {
+                                /* Save and quit */
+                                if (changed)
+                                    save_changes();
+                                exit = 1;
+                                break;
+                            }
                             default:
                             {
                                 break;
@@ -409,7 +425,9 @@ enum plugin_status plugin_start(const void* parameter)
                                                   "Reset list",
                                                   category_string,
                                                   "Revert to saved",
-                                                  "Show Playback Menu",);
+                                                  "Show Playback Menu",
+                                                  "Quit without saving",
+                                                  "Quit");
 
                         switch (rb->do_menu(&menu, NULL, NULL, false))
                         {
@@ -452,6 +470,20 @@ enum plugin_status plugin_start(const void* parameter)
                             {
                                 /* playback menu */
                                 playback_control(NULL);
+                                break;
+                            }
+                            case 5:
+                            {
+                                /* Quit without saving */
+                                exit = 1;
+                                break;
+                            }
+                            case 6:
+                            {
+                                /* Save and quit */
+                                if (changed)
+                                    save_changes();
+                                exit = 1;
                                 break;
                             }
                             default:

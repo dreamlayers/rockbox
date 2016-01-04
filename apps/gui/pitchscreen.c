@@ -26,7 +26,6 @@
 #include <stdlib.h> /* for abs() */
 #include "config.h"
 #include "action.h"
-#include "dsp.h"
 #include "sound.h"
 #include "pcmbuf.h"
 #include "lang.h"
@@ -636,6 +635,7 @@ static int pitchscreen_do_touchscreen(struct viewport vps[])
     short x, y;
     struct viewport *this_vp = &vps[PITCH_TOP];
     int ret;
+    static bool wait_for_release = false;
     ret = action_get_touchscreen_press_in_vp(&x, &y, this_vp);
 
     /* top row */
@@ -651,7 +651,7 @@ static int pitchscreen_do_touchscreen(struct viewport vps[])
         {   /* center column pressed */
             if (ret == BUTTON_REPEAT)
                 return ACTION_PS_INC_BIG;
-            else if (ret == BUTTON_TOUCHSCREEN)
+            else if (ret & BUTTON_REL)
                 return ACTION_PS_INC_SMALL;
         }
         return ACTION_NONE;
@@ -668,21 +668,36 @@ static int pitchscreen_do_touchscreen(struct viewport vps[])
         if (x < column)
         {   /* left column */
             if (ret & BUTTON_REL)
+            {
+                wait_for_release = false;
                 return ACTION_PS_NUDGE_LEFTOFF;
+            }
             else if (ret & BUTTON_REPEAT)
                 return ACTION_PS_SLOWER;
-            return ACTION_PS_NUDGE_LEFT;
+            if (!wait_for_release)
+            {
+                wait_for_release = true;
+                return ACTION_PS_NUDGE_LEFT;
+            }
         }
         else if (x > (2*column))
         {   /* right column */
             if (ret & BUTTON_REL)
-                return ACTION_PS_NUDGE_LEFTOFF;
+            {
+                wait_for_release = false;
+                return ACTION_PS_NUDGE_RIGHTOFF;
+            }
             else if (ret & BUTTON_REPEAT)
                 return ACTION_PS_FASTER;
-            return ACTION_PS_NUDGE_LEFT;
+            if (!wait_for_release)
+            {
+                wait_for_release = true;
+                return ACTION_PS_NUDGE_RIGHT;
+            }
         }
-        /* center column was pressed */
-        return ACTION_PS_RESET;
+        else
+            /* center column was pressed */
+            return ACTION_PS_RESET;
     }
 
     /* now the bottom row */
@@ -698,9 +713,9 @@ static int pitchscreen_do_touchscreen(struct viewport vps[])
             return ACTION_PS_EXIT;
         else if (x >= column && x <= (2*column))
         {   /* center column was pressed */
-            if (ret == BUTTON_REPEAT)
+            if (ret & BUTTON_REPEAT)
                 return ACTION_PS_DEC_BIG;
-            else if (ret == BUTTON_TOUCHSCREEN)
+            else if (ret & BUTTON_REL)
                 return ACTION_PS_DEC_SMALL;
         }
         return ACTION_NONE;
@@ -717,7 +732,7 @@ static int pitchscreen_do_touchscreen(struct viewport vps[])
 
 int gui_syncpitchscreen_run(void)
 {
-    int button, i;
+    int button;
     int32_t pitch = sound_get_pitch();
     int32_t semitone;
 
@@ -729,6 +744,8 @@ int gui_syncpitchscreen_run(void)
     struct viewport parent[NB_SCREENS];
     struct viewport pitch_viewports[NB_SCREENS][PITCH_ITEM_COUNT];
     int max_lines[NB_SCREENS];
+
+    push_current_activity(ACTIVITY_PITCHSCREEN);
 
 #if CONFIG_CODEC == SWCODEC
     int32_t new_speed = 0, new_stretch;
@@ -1044,5 +1061,6 @@ int gui_syncpitchscreen_run(void)
 #if CONFIG_CODEC == SWCODEC
     pcmbuf_set_low_latency(false);
 #endif
+    pop_current_activity();
     return 0;
 }

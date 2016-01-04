@@ -7,7 +7,6 @@
  *                     \/            \/     \/    \/            \/
  *
  *   Copyright (C) 2007 by Dominik Riebeling
- *   $Id$
  *
  * All files in this archive are subject to the GNU General Public License.
  * See the file COPYING in the source tree root for full license agreement.
@@ -87,5 +86,15 @@ void UninstallWindow::UninstallMethodChanged(bool complete)
        ui.smartGroupBox->setEnabled(false);
     else
        ui.smartGroupBox->setEnabled(true);
+}
+
+
+void UninstallWindow::changeEvent(QEvent *e)
+{
+    if(e->type() == QEvent::LanguageChange) {
+        ui.retranslateUi(this);
+    } else {
+        QWidget::changeEvent(e);
+    }
 }
 

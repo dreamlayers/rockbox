@@ -31,8 +31,8 @@
 #include "system.h"
 #include "lcd.h"
 #include "i2c-s5l8700.h"
-#include "kernel.h"
-#include "thread.h"
+#include "../kernel-internal.h"
+#include "file_internal.h"
 #include "storage.h"
 #include "fat.h"
 #include "disk.h"
@@ -44,6 +44,8 @@
 #include "power.h"
 #include "file.h"
 #include "common.h"
+#include "rb-loader.h"
+#include "loader_strerror.h"
 #include "version.h"
 
 /* Safety measure - maximum allowed firmware image size. 
@@ -203,7 +205,7 @@ void main(void)
     lcd_setfont(FONT_SYSFIXED);
 
     printf("Rockbox boot loader");
-    printf("Version: " RBVERSION);
+    printf("Version: %s", rbversion);
 
     i = storage_init();
 
@@ -212,7 +214,8 @@ void main(void)
         fatal_error();
     }
 
-    disk_init();
+    filesystem_init();
+
     rc = disk_mount_all();
     if (rc<=0)
     {
@@ -238,10 +241,10 @@ void main(void)
         printf("Loading Rockbox...");
         rc=load_firmware(loadbuffer, BOOTFILE, MAX_LOADSIZE);
 
-        if (rc != EOK) {
+        if (rc <= EFILE_EMPTY) {
             printf("Error!");
             printf("Can't load " BOOTFILE ": ");
-            printf(strerror(rc));
+            printf(loader_strerror(rc));
             fatal_error();
         }
 

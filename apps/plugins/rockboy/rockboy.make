@@ -11,7 +11,6 @@ ROCKBOY_SRCDIR = $(APPSDIR)/plugins/rockboy
 ROCKBOY_OBJDIR = $(BUILDDIR)/apps/plugins/rockboy
 
 ROCKBOY_SRC := $(call preprocess, $(ROCKBOY_SRCDIR)/SOURCES)
-ROCKBOY_SRC += $(ROOTDIR)/firmware/libc/sscanf.c
 ROCKBOY_OBJ := $(call c2obj, $(ROCKBOY_SRC))
 
 OTHER_SRC += $(ROCKBOY_SRC)
@@ -38,4 +37,4 @@ $(ROCKBOY_OBJDIR)/rockboy.ovl: $(ROCKBOY_OBJ) $(ROCKBOY_OUTLDS)
 		$(filter %.o, $^) \
 		$(filter %.a, $+) \
 		-lgcc $(ROCKBOY_OVLFLAGS)
-	$(call PRINTS,LD $(@F))$(OC) -O binary $(basename $@).elf $@
+	$(call PRINTS,LD $(@F))$(call objcopy,$(basename $@).elf,$@)

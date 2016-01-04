@@ -23,8 +23,6 @@
  * This config file is for the Onda VX747(+)/VX777
  */
 
-#define TARGET_TREE /* this target is using the target tree system */
-
 #define CONFIG_SDRAM_START 0x80004000
 
 #ifdef ONDA_VX747P
@@ -59,9 +57,6 @@
 
 /* define this if you have access to the quickscreen */
 #define HAVE_QUICKSCREEN
-
-/* define this if you have access to the pitchscreen */
-#define HAVE_PITCHSCREEN
 
 /* define this if you would like tagcache to build on this target */
 #define HAVE_TAGCACHE
@@ -137,11 +132,6 @@
 /* has no volume control, so we use the software ones */
 #define HAVE_SW_VOLUME_CONTROL
 
-/* software controlled volume ranges from -73 -> 0 dB, other than that
-   is controlled by hardware */
-#define SW_VOLUME_MIN   -73
-#define SW_VOLUME_MAX   0
-
 /* define the bitmask of hardware sample rates */
 #define HW_SAMPR_CAPS   (SAMPR_CAP_48 | SAMPR_CAP_44 | SAMPR_CAP_32 | \
                          SAMPR_CAP_24 | SAMPR_CAP_22 | SAMPR_CAP_16 | \
@@ -156,6 +146,8 @@
 #define BATTERY_CAPACITY_MAX 2500     /* max. capacity selectable */
 #define BATTERY_CAPACITY_INC 100      /* capacity increment */
 #define BATTERY_TYPES_COUNT  1        /* only one type */
+
+#define CONFIG_BATTERY_MEASURE VOLTAGE_MEASURE
 
 /* Hardware controlled charging with monitoring */
 #define CONFIG_CHARGING CHARGING_MONITOR
@@ -215,7 +207,9 @@ No access to the NAND yet..
 
 #define CONFIG_USBOTG     USBOTG_JZ4740
 #define HAVE_USBSTACK
-#define USE_ROCKBOX_USB
+/* Connect by events, not by tick polling */
+#define USB_STATUS_BY_EVENT
+
 #define USB_VENDOR_ID     0x07C4
 #define USB_PRODUCT_ID    0xA4A5
 

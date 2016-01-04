@@ -1,12 +1,15 @@
 <RCC>
-    <qresource prefix="/" >
+    <qresource prefix="/">
         <file>../../docs/CREDITS</file>
         <file>../../docs/gpl-2.0.html</file>
+        <file alias="docs/COPYING.SPEEX">../../lib/rbcodec/codecs/libspeex/COPYING</file>
+        <file alias="docs/changelog.txt">changelog.txt</file>
     </qresource>
-     <qresource>
+    <qresource>
         <file alias="builtin/VOICE_PAUSE.wav">../../tools/VOICE_PAUSE.wav</file>
+        <file alias="builtin/voice-corrections.txt">../../tools/voice-corrections.txt</file>
     </qresource>
-    <qresource prefix="/" >
+    <qresource prefix="/">
         <file>icons/audio-input-microphone.png</file>
         <file>icons/bootloader_btn.png</file>
         <file>icons/dialog-error.png</file>
@@ -17,26 +20,83 @@
         <file>icons/edit-find.png</file>
         <file>icons/font_btn.png</file>
         <file>icons/go-next.png</file>
+        <file>icons/media-eject.png</file>
         <file>icons/network-idle.png</file>
         <file>icons/package-x-generic.png</file>
         <file>icons/preferences-desktop-locale.png</file>
+        <file>icons/preferences-system.png</file>
         <file>icons/process-stop.png</file>
         <file>icons/rbinstall_btn.png</file>
         <file>icons/rblogo.png</file>
         <file>icons/rbutil.png</file>
         <file>icons/rembootloader_btn.png</file>
         <file>icons/remrb_btn.png</file>
-        <file>icons/rockbox-1.png</file>
-        <file>icons/rockbox-5.png</file>
+        <file>icons/rockbox-16.png</file>
+        <file>icons/rockbox-32.png</file>
+        <file>icons/rockbox-48.png</file>
+        <file>icons/rockbox-64.png</file>
+        <file>icons/rockbox-128.png</file>
+        <file>icons/rockbox-256.png</file>
         <file>icons/system-search.png</file>
         <file>icons/talkfile_btn.png</file>
         <file>icons/themes_btn.png</file>
         <file>icons/user-trash-full.png</file>
         <file>icons/view-refresh.png</file>
-        <file>icons/wizard.xpm</file>
-        <file>icons/rockbox-clef.svg</file>
+        <file>icons/wizard.jpg</file>
+        <file alias="icons/rockbox-clef.svg">../../docs/logo/rockbox-clef.svg</file>
     </qresource>
-    <qresource prefix="/ini" >
+    <qresource>
+        <file>icons/players/archosfmrecorder-small.png</file>
+        <file>icons/players/archosondiofm-small.png</file>
+        <file>icons/players/archosondiosp-small.png</file>
+        <file>icons/players/archosplayer-small.png</file>
+        <file>icons/players/archosrecorder-small.png</file>
+        <file>icons/players/archosrecorderv2-small.png</file>
+        <file>icons/players/cowond2-small.png</file>
+        <file>icons/players/gigabeatfx-small.png</file>
+        <file>icons/players/gigabeats-small.png</file>
+        <file>icons/players/gogearhdd1630-small.png</file>
+        <file>icons/players/gogearhdd6330-small.png</file>
+        <file>icons/players/gogearsa9200-small.png</file>
+        <file>icons/players/hifimanhm60x-small.png</file>
+        <file>icons/players/hifimanhm801-small.png</file>
+        <file>icons/players/iaudiom3-small.png</file>
+        <file>icons/players/iaudiom5-small.png</file>
+        <file>icons/players/iaudiox5-small.png</file>
+        <file>icons/players/ipod1g2g-small.png</file>
+        <file>icons/players/ipod3g-small.png</file>
+        <file>icons/players/ipod4g-small.png</file>
+        <file>icons/players/ipodcolor-small.png</file>
+        <file>icons/players/ipodmini1g-small.png</file>
+        <file>icons/players/ipodnano1g-small.png</file>
+        <file>icons/players/ipodnano2g-small.png</file>
+        <file>icons/players/ipodvideo-small.png</file>
+        <file>icons/players/ipod6g-small.png</file>
+        <file>icons/players/iriverh100-small.png</file>
+        <file>icons/players/iriverh10_5gb-small.png</file>
+        <file>icons/players/iriverh10-small.png</file>
+        <file>icons/players/iriverh300-small.png</file>
+        <file>icons/players/mpiohd200-small.png</file>
+        <file>icons/players/mpiohd300-small.png</file>
+        <file>icons/players/mrobe100-small.png</file>
+        <file>icons/players/mrobe500-small.png</file>
+        <file>icons/players/samsungyh820-small.png</file>
+        <file>icons/players/samsungyh920-small.png</file>
+        <file>icons/players/samsungyh925-small.png</file>
+        <file>icons/players/samsungypr0-small.png</file>
+        <file>icons/players/sansac200-small.png</file>
+        <file>icons/players/sansaclipplus-small.png</file>
+        <file>icons/players/sansaclip-small.png</file>
+        <file>icons/players/sansaclipzip-small.png</file>
+        <file>icons/players/sansaconnect-small.png</file>
+        <file>icons/players/sansae200-small.png</file>
+        <file>icons/players/sansafuzeplus-small.png</file>
+        <file>icons/players/sansafuze-small.png</file>
+        <file>icons/players/vibe500-small.png</file>
+        <file>icons/players/vx747-small.png</file>
+        <file>icons/players/vx777-small.png</file>
+    </qresource>
+    <qresource prefix="/ini">
         <file>rbutil.ini</file>
     </qresource>
 </RCC>

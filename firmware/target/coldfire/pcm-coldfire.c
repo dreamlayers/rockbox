@@ -28,6 +28,7 @@
 #if defined(HAVE_SPDIF_REC) || defined(HAVE_SPDIF_OUT)
 #include "spdif.h"
 #endif
+#include "pcm-internal.h"
 
 #define IIS_PLAY_DEFPARM ( (freq_ent[FPARM_CLOCKSEL] << 12) | \
                            (IIS_PLAY & (7 << 8)) | \
@@ -202,7 +203,7 @@ void pcm_play_dma_init(void)
 #endif
 } /* pcm_play_dma_init */
 
-void pcm_postinit(void)
+void pcm_play_dma_postinit(void)
 {
     audiohw_postinit();
     iis_play_reset();
@@ -219,19 +220,19 @@ void pcm_postinit(void)
 static struct dma_lock dma_play_lock =
 {
     .locked = 0,
-    .state = (0 << 14)  /* bit 14 is DMA0 */
+    .state = (1 << 14)  /* bit 14 is DMA0 */
 };
 
 void pcm_play_lock(void)
 {
     if (++dma_play_lock.locked == 1)
-        or_l((1 << 14), &IMR);
+        coldfire_imr_mod(1 << 14, 1 << 14);
 }
 
 void pcm_play_unlock(void)
 {
     if (--dma_play_lock.locked == 0)
-        and_l(~dma_play_lock.state, &IMR);
+        coldfire_imr_mod(dma_play_lock.state, 1 << 14);
 }
 
 /* Set up the DMA transfer that kicks in when the audio FIFO gets empty */
@@ -248,7 +249,7 @@ void pcm_play_dma_start(const void *addr, size_t size)
     DCR0 = DMA_INT | DMA_EEXT | DMA_CS | DMA_AA | DMA_SINC |
            DMA_SSIZE(DMA_SIZE_LINE) | DMA_START;
 
-    dma_play_lock.state = (1 << 14);
+    dma_play_lock.state = (0 << 14);
 } /* pcm_play_dma_start */
 
 /* Stops the DMA transfer and interrupt */
@@ -260,7 +261,7 @@ void pcm_play_dma_stop(void)
 
     iis_play_reset_if_playback(true);
 
-    dma_play_lock.state = (0 << 14);
+    dma_play_lock.state = (1 << 14);
 } /* pcm_play_dma_stop */
 
 void pcm_play_dma_pause(bool pause)
@@ -271,14 +272,14 @@ void pcm_play_dma_pause(bool pause)
         and_l(~(DMA_EEXT | DMA_INT), &DCR0); /* per request and int OFF */
         DSR0 = 1;                            /* stop channel */
         iis_play_reset_if_playback(true);
-        dma_play_lock.state = (0 << 14);
+        dma_play_lock.state = (1 << 14);
     }
     else
     {
         /* restart playback on current buffer */
         iis_play_reset_if_playback(true);
         or_l(DMA_INT | DMA_EEXT | DMA_START, &DCR0); /* everything ON */
-        dma_play_lock.state = (1 << 14);
+        dma_play_lock.state = (0 << 14);
     }
 } /* pcm_play_dma_pause */
 
@@ -293,8 +294,6 @@ void DMA0(void) __attribute__ ((interrupt_handler, section(".icode")));
 void DMA0(void)
 {
     unsigned long res = DSR0;
-    void *start;
-    size_t size;
 
     and_l(~(DMA_EEXT | DMA_INT), &DCR0); /* per request and int OFF */
     DSR0 = 1; /* Clear interrupt and errors */
@@ -310,14 +309,18 @@ void DMA0(void)
 #endif
     }
 
-    /* Force stop on error */
-    pcm_play_get_more_callback((res & 0x70) ? NULL : &start, &size);
+    const void *addr;
+    size_t size;
 
-    if (size != 0)
+    if (pcm_play_dma_complete_callback((res & 0x70) ?
+                                       PCM_DMAST_ERR_DMA : PCM_DMAST_OK,
+                                       &addr, &size))
     {
-        SAR0 = (unsigned long)start;     /* Source address */
-        BCR0 = size;                     /* Bytes to transfer */
+        SAR0 = (unsigned long)addr;      /* Source address */
+        BCR0 = (unsigned long)size;      /* Bytes to transfer */
         or_l(DMA_EEXT | DMA_INT, &DCR0); /* per request and int ON */
+
+        pcm_play_dma_status_callback(PCM_DMAST_STARTED);
     }
     /* else inished playing */
 } /* DMA0 */
@@ -344,7 +347,7 @@ const void * pcm_play_dma_get_peak_buffer(int *count)
 static struct dma_lock dma_rec_lock =
 {
     .locked = 0,
-    .state = (0 << 15)  /* bit 15 is DMA1 */
+    .state = (1 << 15)  /* bit 15 is DMA1 */
 };
 
 /* For the locks, DMA interrupt must be disabled when manipulating the lock
@@ -353,18 +356,18 @@ static struct dma_lock dma_rec_lock =
 void pcm_rec_lock(void)
 {
     if (++dma_rec_lock.locked == 1)
-        or_l((1 << 15), &IMR);
+        coldfire_imr_mod(1 << 15, 1 << 15);
 }
 
 void pcm_rec_unlock(void)
 {
     if (--dma_rec_lock.locked == 0)
-        and_l(~dma_rec_lock.state, &IMR);
+        coldfire_imr_mod(dma_rec_lock.state, 1 << 15);
 }
 
 void pcm_rec_dma_start(void *addr, size_t size)
 {
-    /* stop any DMA in progress */
+    /* Stop any DMA in progress */
     pcm_rec_dma_stop();
 
     and_l(~PDIR2_FIFO_RESET, &DATAINCONTROL);
@@ -382,7 +385,7 @@ void pcm_rec_dma_start(void *addr, size_t size)
     DCR1 = DMA_INT | DMA_EEXT | DMA_CS | DMA_AA | DMA_DINC |
            DMA_DSIZE(DMA_SIZE_LINE) | DMA_START;
 
-    dma_rec_lock.state = (1 << 15);
+    dma_rec_lock.state = (0 << 15);
 } /* pcm_rec_dma_start */
 
 void pcm_rec_dma_stop(void)
@@ -395,7 +398,7 @@ void pcm_rec_dma_stop(void)
 
     iis_play_reset_if_playback(false);
 
-    dma_rec_lock.state = (0 << 15);
+    dma_rec_lock.state = (1 << 15);
 } /* pcm_rec_dma_stop */
 
 void pcm_rec_dma_init(void)
@@ -426,16 +429,14 @@ void DMA1(void) __attribute__ ((interrupt_handler, section(".icode")));
 void DMA1(void)
 {
     unsigned long res = DSR1;
-    int status = 0;
-    void *start;
-    size_t size;
+    enum pcm_dma_status status = PCM_DMAST_OK;
 
     and_l(~(DMA_EEXT | DMA_INT), &DCR1); /* per request and int OFF */
     DSR1 = 1;                            /* Clear interrupt and errors */
 
     if (res & 0x70)
     {
-        status = DMA_REC_ERROR_DMA;
+        status = PCM_DMAST_ERR_DMA;
         logf("DMA1 err: %02x", res);
 #if 0
         logf("  SAR1: %08x", SAR1);
@@ -452,19 +453,22 @@ void DMA1(void)
          * Ignore valnogood since several sources don't set it properly. */
         /* clear: ebu1cnew, symbolerr, parityerr */
         INTERRUPTCLEAR = (1 << 25) | (1 << 23) | (1 << 22);
-        status = DMA_REC_ERROR_SPDIF;
+        status = PCM_DMAST_ERR_SPDIF;
         logf("spdif err");
     }
 #endif
 
     /* Inform PCM we have more data (or error) */
-    pcm_rec_more_ready_callback(status, &start, &size);
+    void *addr;
+    size_t size;
 
-    if (size != 0)
+    if (pcm_rec_dma_complete_callback(status, &addr, &size))
     {
-        DAR1 = (unsigned long)start;     /* Destination address */
+        DAR1 = (unsigned long)addr;      /* Destination address */
         BCR1 = (unsigned long)size;      /* Bytes to transfer */
         or_l(DMA_EEXT | DMA_INT, &DCR1); /* per request and int ON */
+
+        pcm_rec_dma_status_callback(PCM_DMAST_STARTED);
     }
 } /* DMA1 */
 

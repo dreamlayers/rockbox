@@ -22,17 +22,17 @@
 ****************************************************************************/
 
 #include "plugin.h"
+#include "fixedpoint.h"
 
 #include "lib/xlcd.h"
 #include "lib/pluginlib_actions.h"
-#include "lib/fixedpoint.h"
 #include "lib/playback_control.h"
 #include "lib/highscore.h"
 
 /* files */
-#define SCORE_FILE PLUGIN_GAMES_DIR "/bubbles.score"
-#define SAVE_FILE  PLUGIN_GAMES_DIR "/bubbles.save"
-#define DATA_FILE  PLUGIN_GAMES_DIR "/bubbles.data"
+#define SCORE_FILE PLUGIN_GAMES_DATA_DIR "/bubbles.score"
+#define SAVE_FILE  PLUGIN_GAMES_DATA_DIR "/bubbles.save"
+#define DATA_FILE  PLUGIN_GAMES_DATA_DIR "/bubbles.data"
 
 /* final game return status */
 enum {
@@ -82,7 +82,8 @@ enum {
 #define BUBBLES_QUIT2       PLA_CANCEL
 
 /* these are better off shooting with up */
-#if (CONFIG_KEYPAD == SAMSUNG_YH_PAD) \
+#if (CONFIG_KEYPAD == SAMSUNG_YH820_PAD) \
+ || (CONFIG_KEYPAD == SAMSUNG_YH920_PAD) \
  || (CONFIG_KEYPAD == ONDIO_PAD) \
  || (CONFIG_KEYPAD == IRIVER_H10_PAD)
 #define SHOOT_WITH_UP
@@ -164,19 +165,31 @@ enum {
 
 /* 12x12 bubbles (GoGear SA9200) */
 #elif (LCD_HEIGHT == 160) && (LCD_WIDTH == 128)
-#define XOFS          33
+#define XOFS          16
+#define YOFS          32
 #define ROW_HEIGHT    10
 #define ROW_INDENT     6
 #define MAX_FPS       30
+
+/* custom text positioning */
+#define LEVEL_TXT_X      2
+#define LEVEL_TXT_WIDTH 31
+#define LEVEL_TXT_Y      3
+#define SCORE_TXT_X     34
+#define SCORE_TXT_WIDTH 31
+#define SCORE_TXT_Y      3
+#define NEXT_BB_X       81
+#define NEXT_BB_WIDTH   31
+#define NEXT_BB_Y        2
 
 /* 10x10 bubbles (iPod Mini) */
 #elif (LCD_HEIGHT == 110) && (LCD_WIDTH == 138)
 #define XOFS          33
 #define MAX_FPS       30
 
-/* 9x9 bubbles (iAudio M3) */
+/* 9x9 bubbles (iAudio M3, Samsung YH-820) */
 #elif (LCD_HEIGHT == 96) && (LCD_WIDTH == 128)
-#define XOFS          45
+#define XOFS          29
 #define MAX_FPS       30
 
 /* 8x8 bubbles (Sansa C200) */
@@ -197,6 +210,23 @@ enum {
 #define ROW_HEIGHT     5
 #define MAX_FPS       20
 
+/* 7x7 bubbles (Sansa Clip Zip)  */
+#elif (LCD_HEIGHT == 96 && LCD_WIDTH == 96)
+#define XOFS          33
+#define ROW_HEIGHT     5
+#define MAX_FPS       30
+
+/* custom text positioning */
+#define LEVEL_TXT_X      1
+#define LEVEL_TXT_WIDTH 31
+#define LEVEL_TXT_Y      4
+#define SCORE_TXT_X      1
+#define SCORE_TXT_WIDTH 31
+#define SCORE_TXT_Y     31
+#define NEXT_BB_X        1
+#define NEXT_BB_WIDTH   31
+#define NEXT_BB_Y       72
+
 #else
     #error BUBBLES: Unsupported LCD type
 #endif
@@ -205,7 +235,9 @@ enum {
 #define ROW_HEIGHT    (BUBBLE_WIDTH-(BUBBLE_WIDTH-EMBLEM_WIDTH)/2)
 #endif
 
+#if !defined(ROW_INDENT)
 #define ROW_INDENT    (BUBBLE_WIDTH/2)
+#endif
 
 #define TEXT_LINES (LCD_HEIGHT/8)
 
@@ -1421,7 +1453,7 @@ static void bubbles_drawboard(struct game_context* bb) {
 
     /* clear screen */
     rb->lcd_clear_display();
-    int font = rb->screens[SCREEN_MAIN]->getfont();
+    int font = rb->screens[SCREEN_MAIN]->getuifont();
     h = rb->font_get(font)->height + 1;
     /* draw background */
 #ifdef HAVE_LCD_COLOR
@@ -1556,7 +1588,12 @@ static void bubbles_drawboard(struct game_context* bb) {
 
     if(bb->elapsedshot >= (MAX_SHOTTIME*7)/10) {
         rb->lcd_getstringsize(hurry, &w1, &h);
-        rb->lcd_putsxy(LCD_WIDTH/2-w1/2, LCD_HEIGHT/2-h/2, hurry);
+        /* screen is too small for the message to be centered (Clip Zip) */
+        #if (LCD_WIDTH <= 96)
+            rb->lcd_putsxy(LCD_WIDTH/2-w1/2+LCD_WIDTH/6, LCD_HEIGHT/2-h/2, hurry);
+        #else
+            rb->lcd_putsxy(LCD_WIDTH/2-w1/2, LCD_HEIGHT/2-h/2, hurry);
+        #endif
     }
 }
 
@@ -1939,7 +1976,7 @@ static int bubbles_remove(struct game_context* bb) {
 ******************************************************************************/
 static void bubbles_anchored(struct game_context* bb, int row, int col) {
     int i, adj;
-    int myrow, mycol, mytype;
+    int myrow, mycol;
     int count = 0;
 
     struct coord {
@@ -1957,7 +1994,6 @@ static void bubbles_anchored(struct game_context* bb, int row, int col) {
     for(i=0; i<count; i++) {
         myrow = search[i].row;
         mycol = search[i].col;
-        mytype = bb->playboard[myrow][mycol].type;
         adj = myrow%2;
 
         if(mycol-1 >= 0) {

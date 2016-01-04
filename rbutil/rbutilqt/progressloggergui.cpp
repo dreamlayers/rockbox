@@ -7,7 +7,6 @@
  *                     \/            \/     \/    \/            \/
  *
  *   Copyright (C) 2007 by Dominik Wenger
- *   $Id$
  *
  * All files in this archive are subject to the GNU General Public License.
  * See the file COPYING in the source tree root for full license agreement.
@@ -17,6 +16,7 @@
  *
  ****************************************************************************/
 
+#include <QFileDialog>
 #include "progressloggergui.h"
 
 #include "sysinfo.h"
@@ -142,24 +142,25 @@ void ProgressLoggerGui::show()
 
 void ProgressLoggerGui::saveErrorLog()
 {
-    QString filename = QFileDialog::getSaveFileName(downloadProgress, tr("Save system trace log"),
-                        QDir::homePath(), "*.log");
-    if(filename == "")
+    QString filename = QFileDialog::getSaveFileName(downloadProgress,
+            tr("Save system trace log"), QDir::homePath(), "*.log");
+    if(filename.isEmpty())
         return;
-    
+
     QFile file(filename);
     if(!file.open(QIODevice::WriteOnly))
         return;
 
     //Logger texts
-    QString loggerTexts = "\n*********************************************\n" 
+    QString loggerTexts = "\n*********************************************\n"
                           "***************  Logger   *******************\n"
                           "*********************************************\n";
-    file.write(loggerTexts.toUtf8(), loggerTexts.size());    
 
-    
+    file.write(loggerTexts.toUtf8(), loggerTexts.size());
+
+
     int i=0;
-    loggerTexts = "";    
+    loggerTexts = "";
     while(dp.listProgress->item(i) != NULL)
     {
         loggerTexts.append(dp.listProgress->item(i)->text());
@@ -167,27 +168,24 @@ void ProgressLoggerGui::saveErrorLog()
         i++;
     }
     file.write(loggerTexts.toUtf8(), loggerTexts.size());
-    
+
     //systeminfo
-    QString info = "\n*********************************************\n" 
+    QString info = "\n*********************************************\n"
                    "************  SYSTEMINFO  *******************\n"
                    "*********************************************\n";
-                        
+
     file.write(info.toUtf8(), info.size());
-    info = Sysinfo::getInfo();
-    info.replace(QRegExp("(<[^>]+>)+"),"\n");
+    info = Sysinfo::getInfo(Sysinfo::InfoText);
     file.write(info.toUtf8(), info.size());
 
     // trace
-    QString trace = "\n*********************************************\n" 
+    QString trace = "\n*********************************************\n"
                     "***********  TRACE **************************\n"
                     "*********************************************\n";
     file.write(trace.toUtf8(), trace.size());
-    trace = SysTrace::getTrace(); 
+    trace = SysTrace::getTrace();
     file.write(trace.toUtf8(), trace.size());
 
-    file.close();    
+    file.close();
 }
-
-
 

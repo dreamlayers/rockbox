@@ -22,7 +22,6 @@
 /*
  * This config file is for the Mini2440
  */
-#define TARGET_TREE /* this target is using the target tree system */
 
 /* For Rolo and boot loader */
 #define MODEL_NUMBER 131
@@ -60,6 +59,9 @@
 /* LCD dimensions */
 #define LCD_WIDTH  240
 #define LCD_HEIGHT 320
+/* sqrt(240^2 + 320^2) / 3.5 = 114.3 */
+#define LCD_DPI 114
+#define LCD_DPI    114  /* 400 pixels diagonally / 3.5 inch */
 /* The LCD is configured for RGB565 */
 #define LCD_DEPTH  16          /* 65536 colours */
 #define LCD_PIXELFORMAT RGB565 /* rgb565 */
@@ -94,6 +96,8 @@
 #define BATTERY_CAPACITY_INC      100   /* capacity increment */
 #define BATTERY_TYPES_COUNT         1   /* only one type */
 
+#define CONFIG_BATTERY_MEASURE VOLTAGE_MEASURE
+
 
 
 /***************************************************************************/
@@ -104,8 +108,7 @@
 #define HAVE_BMP_SCALING
 /* define this to enable JPEG decoding */
 #define HAVE_JPEG
-/* define this if you have access to the pitchscreen */
-#define HAVE_PITCHSCREEN
+
 #define HAVE_QUICKSCREEN
 
 /* define this if you have a real-time clock */

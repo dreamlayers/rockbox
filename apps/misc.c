@@ -1,10 +1,10 @@
 /***************************************************************************
- *             __________               __   ___.                  
- *   Open      \______   \ ____   ____ |  | _\_ |__   _______  ___  
- *   Source     |       _//  _ \_/ ___\|  |/ /| __ \ /  _ \  \/  /  
- *   Jukebox    |    |   (  <_> )  \___|    < | \_\ (  <_> > <  <   
- *   Firmware   |____|_  /\____/ \___  >__|_ \|___  /\____/__/\_ \  
- *                     \/            \/     \/    \/            \/ 
+ *             __________               __   ___.
+ *   Open      \______   \ ____   ____ |  | _\_ |__   _______  ___
+ *   Source     |       _//  _ \_/ ___\|  |/ /| __ \ /  _ \  \/  /
+ *   Jukebox    |    |   (  <_> )  \___|    < | \_\ (  <_> > <  <
+ *   Firmware   |____|_  /\____/ \___  >__|_ \|___  /\____/__/\_ \
+ *                     \/            \/     \/    \/            \/
  * $Id$
  *
  * Copyright (C) 2002 by Daniel Stenberg
@@ -26,20 +26,25 @@
 #include "string-extra.h"
 #include "config.h"
 #include "misc.h"
+#include "system.h"
 #include "lcd.h"
+#ifdef HAVE_DIRCACHE
+#include "dircache.h"
+#endif
 #include "file.h"
-#include "filefuncs.h"
 #ifndef __PCTOOL__
+#include "pathfuncs.h"
 #include "lang.h"
 #include "dir.h"
+#ifdef HAVE_REMOTE_LCD
 #include "lcd-remote.h"
-#include "system.h"
+#endif
+#include "action.h"
 #include "timefuncs.h"
 #include "screens.h"
 #include "usb_screen.h"
 #include "talk.h"
 #include "audio.h"
-#include "mp3_playback.h"
 #include "settings.h"
 #include "storage.h"
 #include "ata_idle_notify.h"
@@ -56,6 +61,9 @@
 #include "playlist.h"
 #include "yesno.h"
 #include "viewport.h"
+#include "list.h"
+
+#include "debug.h"
 
 #if CONFIG_TUNER
 #include "radio.h"
@@ -80,12 +88,21 @@
 #include "bookmark.h"
 #include "wps.h"
 #include "playback.h"
+#if CONFIG_CODEC == SWCODEC
+#include "voice_thread.h"
+#else
+#include "mp3_playback.h"
+#endif
 
 #ifdef BOOTFILE
 #if !defined(USB_NONE) && !defined(USB_HANDLED_BY_OF) \
         || defined(HAVE_HOTSWAP_STORAGE_AS_MAIN)
 #include "rolo.h"
 #endif
+#endif
+
+#ifdef HAVE_HARDWARE_CLICK
+#include "piezo.h"
 #endif
 
 /* units used with output_dyn_value */
@@ -164,7 +181,7 @@ bool warn_on_pl_erase(void)
 
 /* Performance optimized version of the read_line() (see below) function. */
 int fast_readline(int fd, char *buf, int buf_size, void *parameters,
-                  int (*callback)(int n, const char *buf, void *parameters))
+                  int (*callback)(int n, char *buf, void *parameters))
 {
     char *p, *next;
     int rc, pos = 0;
@@ -178,18 +195,17 @@ int fast_readline(int fd, char *buf, int buf_size, void *parameters,
         if (rc >= 0)
             buf[pos+rc] = '\0';
 
-        if ( (p = strchr(buf, '\r')) != NULL)
+        if ( (p = strchr(buf, '\n')) != NULL)
         {
             *p = '\0';
             next = ++p;
         }
-        else
-            p = buf;
 
-        if ( (p = strchr(p, '\n')) != NULL)
+        if ( (p = strchr(buf, '\r')) != NULL)
         {
             *p = '\0';
-            next = ++p;
+            if (!next)
+                next = ++p;
         }
 
         rc = callback(count, buf, parameters);
@@ -242,7 +258,6 @@ bool settings_parseline(char* line, char** name, char** value)
 
 static void system_flush(void)
 {
-    scrobbler_shutdown();
     playlist_shutdown();
     tree_flush();
     call_storage_idle_notifys(true); /*doesnt work on usb and shutdown from ata thread */
@@ -251,28 +266,20 @@ static void system_flush(void)
 static void system_restore(void)
 {
     tree_restore();
-    scrobbler_init();
 }
 
 static bool clean_shutdown(void (*callback)(void *), void *parameter)
 {
-#if (CONFIG_PLATFORM & PLATFORM_HOSTED)
-    (void)callback;
-    (void)parameter;
-    bookmark_autobookmark(false);
-    call_storage_idle_notifys(true);
-#else
     long msg_id = -1;
-    int i;
-
-    scrobbler_poweroff();
 
 #if CONFIG_CHARGING && !defined(HAVE_POWEROFF_WHILE_CHARGING)
     if(!charger_inserted())
 #endif
     {
         bool batt_safe = battery_level_safe();
+#if CONFIG_CODEC != SWCODEC || defined(HAVE_RECORDING)
         int audio_stat = audio_status();
+#endif
 
         FOR_NB_SCREENS(i)
         {
@@ -282,6 +289,7 @@ static bool clean_shutdown(void (*callback)(void *), void *parameter)
 
         if (batt_safe)
         {
+            int level;
 #ifdef HAVE_TAGCACHE
             if (!tagcache_prepare_shutdown())
             {
@@ -290,7 +298,8 @@ static bool clean_shutdown(void (*callback)(void *), void *parameter)
                 return false;
             }
 #endif
-            if (battery_level() > 10)
+            level = battery_level();
+            if (level > 10 || level < 0)
                 splash(0, str(LANG_SHUTTINGDOWN));
             else
             {
@@ -305,12 +314,13 @@ static bool clean_shutdown(void (*callback)(void *), void *parameter)
             splashf(0, "%s %s", str(LANG_WARNING_BATTERY_EMPTY),
                                 str(LANG_SHUTTINGDOWN));
         }
-
+#if CONFIG_CODEC != SWCODEC
         if (global_settings.fade_on_stop
             && (audio_stat & AUDIO_STATUS_PLAY))
         {
             fade(false, false);
         }
+#endif
 
         if (batt_safe) /* do not save on critical battery */
         {
@@ -340,6 +350,7 @@ static bool clean_shutdown(void (*callback)(void *), void *parameter)
 #if defined(HAVE_RECORDING) && CONFIG_CODEC == SWCODEC
             audio_close_recording();
 #endif
+            scrobbler_shutdown(true);
 
             if(global_settings.talk_menu)
             {
@@ -372,7 +383,6 @@ static bool clean_shutdown(void (*callback)(void *), void *parameter)
 
         shutdown_hw();
     }
-#endif
     return false;
 }
 
@@ -389,8 +399,10 @@ bool list_stop_handler(void)
     {
         if (!global_settings.party_mode)
         {
+#if CONFIG_CODEC != SWCODEC
             if (global_settings.fade_on_stop)
                 fade(false, false);
+#endif
             bookmark_autobookmark(true);
             audio_stop();
             ret = true;  /* bookmarking can make a refresh necessary */
@@ -414,7 +426,7 @@ bool list_stop_handler(void)
 
         if (TIME_BEFORE(current_tick, last_off + HZ/2))
         {
-            if (charger_inserted()) 
+            if (charger_inserted())
             {
                 charging_splash();
                 ret = true;  /* screen is dirty, caller needs to refresh */
@@ -455,10 +467,7 @@ static void car_adapter_mode_processing(bool inserted)
             if ((audio_status() & AUDIO_STATUS_PLAY) &&
                 !(audio_status() & AUDIO_STATUS_PAUSE))
             {
-                if (global_settings.fade_on_stop)
-                    fade(false, false);
-                else
-                    audio_pause();
+                pause_action(true, true);
             }
             waiting_to_resume_play = false;
         }
@@ -496,28 +505,18 @@ static void unplug_change(bool inserted)
         int audio_stat = audio_status();
         if (inserted)
         {
+            backlight_on();
             if ((audio_stat & AUDIO_STATUS_PLAY) &&
                     headphone_caused_pause &&
                     global_settings.unplug_mode > 1 )
-                audio_resume();
-            backlight_on();
+                unpause_action(true, true);
             headphone_caused_pause = false;
         } else {
             if ((audio_stat & AUDIO_STATUS_PLAY) &&
                     !(audio_stat & AUDIO_STATUS_PAUSE))
             {
                 headphone_caused_pause = true;
-                audio_pause();
-
-                if (global_settings.unplug_rw)
-                {
-                    if (audio_current_track()->elapsed >
-                            (unsigned long)(global_settings.unplug_rw*1000))
-                        audio_ff_rewind(audio_current_track()->elapsed -
-                                (global_settings.unplug_rw*1000));
-                    else
-                        audio_ff_rewind(0);
-                }
+                pause_action(false, false);
             }
         }
     }
@@ -526,7 +525,7 @@ static void unplug_change(bool inserted)
 
 long default_event_handler_ex(long event, void (*callback)(void *), void *parameter)
 {
-#if CONFIG_PLATFORM & PLATFORM_ANDROID
+#if CONFIG_PLATFORM & (PLATFORM_ANDROID|PLATFORM_MAEMO)
     static bool resume = false;
 #endif
 
@@ -545,7 +544,7 @@ long default_event_handler_ex(long event, void (*callback)(void *), void *parame
         case SYS_USB_CONNECTED:
             if (callback != NULL)
                 callback(parameter);
-#if (CONFIG_STORAGE & STORAGE_MMC)
+#if (CONFIG_STORAGE & STORAGE_MMC) && (defined(ARCHOS_ONDIOSP) || defined(ARCHOS_ONDIOFM))
             if (!mmc_touched() ||
                 (mmc_remove_request() == SYS_HOTSWAP_EXTRACTED))
 #endif
@@ -582,7 +581,7 @@ long default_event_handler_ex(long event, void (*callback)(void *), void *parame
             return SYS_CHARGER_DISCONNECTED;
 
         case SYS_CAR_ADAPTER_RESUME:
-            audio_resume();
+            unpause_action(true, true);
             return SYS_CAR_ADAPTER_RESUME;
 #endif
 #ifdef HAVE_HOTSWAP_STORAGE_AS_MAIN
@@ -611,15 +610,7 @@ long default_event_handler_ex(long event, void (*callback)(void *), void *parame
             unplug_change(false);
             return SYS_PHONE_UNPLUGGED;
 #endif
-#ifdef IPOD_ACCESSORY_PROTOCOL
-        case SYS_IAP_PERIODIC:
-            iap_periodic();
-            return SYS_IAP_PERIODIC;
-        case SYS_IAP_HANDLEPKT:
-            iap_handlepkt();
-            return SYS_IAP_HANDLEPKT;
-#endif
-#if CONFIG_PLATFORM & PLATFORM_ANDROID
+#if CONFIG_PLATFORM & (PLATFORM_ANDROID|PLATFORM_MAEMO)
         /* stop playback if we receive a call */
         case SYS_CALL_INCOMING:
             resume = audio_status() == AUDIO_STATUS_PLAY;
@@ -630,10 +621,29 @@ long default_event_handler_ex(long event, void (*callback)(void *), void *parame
             if (resume && playlist_resume() != -1)
             {
                 playlist_start(global_status.resume_index,
+                               global_status.resume_elapsed,
                                global_status.resume_offset);
             }
             resume = false;
             return SYS_CALL_HUNG_UP;
+#endif
+#if (CONFIG_PLATFORM & PLATFORM_HOSTED) && defined(PLATFORM_HAS_VOLUME_CHANGE)
+        case SYS_VOLUME_CHANGED:
+        {
+            static bool firstvolume = true;
+            /* kludge: since this events go to the button_queue,
+             * event data is available in the last button data */
+            int volume = button_get_data();
+            DEBUGF("SYS_VOLUME_CHANGED: %d\n", volume);
+            if (global_settings.volume != volume) {
+                global_settings.volume = volume;
+                if (firstvolume) {
+                    setvol();
+                    firstvolume = false;
+                }
+            }
+            return 0;
+        }
 #endif
 #ifdef HAVE_MULTIMEDIA_KEYS
         /* multimedia keys on keyboards, headsets */
@@ -643,14 +653,15 @@ long default_event_handler_ex(long event, void (*callback)(void *), void *parame
             if (status & AUDIO_STATUS_PLAY)
             {
                 if (status & AUDIO_STATUS_PAUSE)
-                    audio_resume();
+                    unpause_action(true, true);
                 else
-                    audio_pause();
+                    pause_action(true, true);
             }
             else
                 if (playlist_resume() != -1)
                 {
                     playlist_start(global_status.resume_index,
+                                   global_status.resume_elapsed,
                                    global_status.resume_offset);
                 }
             return event;
@@ -693,9 +704,9 @@ int show_logo( void )
     lcd_getstringsize((unsigned char *)"A", &font_w, &font_h);
     lcd_putsxy((LCD_WIDTH/2) - ((strlen(version)*font_w)/2),
                0, (unsigned char *)version);
-    lcd_bitmap(rockboxlogo, 0, 16, BMPWIDTH_rockboxlogo, BMPHEIGHT_rockboxlogo);
+    lcd_bmp(&bm_rockboxlogo, (LCD_WIDTH - BMPWIDTH_rockboxlogo) / 2, 16);
 #else
-    lcd_bitmap(rockboxlogo, 0, 10, BMPWIDTH_rockboxlogo, BMPHEIGHT_rockboxlogo);
+    lcd_bmp(&bm_rockboxlogo, (LCD_WIDTH - BMPWIDTH_rockboxlogo) / 2, 10);
     lcd_setfont(FONT_SYSFIXED);
     lcd_getstringsize((unsigned char *)"A", &font_w, &font_h);
     lcd_putsxy((LCD_WIDTH/2) - ((strlen(version)*font_w)/2),
@@ -715,8 +726,7 @@ int show_logo( void )
 
 #ifdef HAVE_REMOTE_LCD
     lcd_remote_clear_display();
-    lcd_remote_bitmap(remote_rockboxlogo, 0, 10, BMPWIDTH_remote_rockboxlogo,
-                      BMPHEIGHT_remote_rockboxlogo);
+    lcd_remote_bmp(&bm_remote_rockboxlogo, 0, 10);
     lcd_remote_setfont(FONT_SYSFIXED);
     lcd_remote_getstringsize((unsigned char *)"A", &font_w, &font_h);
     lcd_remote_putsxy((LCD_REMOTE_WIDTH/2) - ((strlen(version)*font_w)/2),
@@ -737,8 +747,7 @@ int show_logo( void )
 */
 void check_bootfile(bool do_rolo)
 {
-    static unsigned short wrtdate = 0;
-    static unsigned short wrttime = 0;
+    static time_t mtime = 0;
     DIR* dir = NULL;
     struct dirent* entry = NULL;
 
@@ -754,21 +763,22 @@ void check_bootfile(bool do_rolo)
         {
             struct dirinfo info = dir_get_info(dir, entry);
             /* found the bootfile */
-            if(wrtdate && do_rolo)
+            if(mtime && do_rolo)
             {
-                if((info.wrtdate != wrtdate) ||
-                   (info.wrttime != wrttime))
+                if(info.mtime != mtime)
                 {
                     static const char *lines[] = { ID2P(LANG_BOOT_CHANGED),
                                                    ID2P(LANG_REBOOT_NOW) };
                     static const struct text_message message={ lines, 2 };
                     button_clear_queue(); /* Empty the keyboard buffer */
                     if(gui_syncyesno_run(&message, NULL, NULL) == YESNO_YES)
-                    rolo_load(BOOTDIR "/" BOOTFILE);
+                    {
+                        audio_hard_stop();
+                        rolo_load(BOOTDIR "/" BOOTFILE);
+                    }
                 }
             }
-            wrtdate = info.wrtdate;
-            wrttime = info.wrttime;
+            mtime = info.mtime;
         }
     }
     closedir(dir);
@@ -785,6 +795,9 @@ void setvol(void)
         global_settings.volume = min_vol;
     if (global_settings.volume > max_vol)
         global_settings.volume = max_vol;
+    if (global_settings.volume > global_settings.volume_limit)
+        global_settings.volume = global_settings.volume_limit;
+
     sound_set_volume(global_settings.volume);
     global_status.last_volume_change = current_tick;
     settings_save();
@@ -836,6 +849,154 @@ char *strip_extension(char* buffer, int buffer_size, const char *filename)
 
     return buffer;
 }
+
+#if CONFIG_CODEC == SWCODEC
+/* Play a standard sound */
+void system_sound_play(enum system_sound sound)
+{
+    static const struct beep_params
+    {
+        int *setting;
+        unsigned short frequency;
+        unsigned short duration;
+        unsigned short amplitude;
+    } beep_params[] =
+    {
+        [SOUND_KEYCLICK] =
+        { &global_settings.keyclick,
+          4000, KEYCLICK_DURATION, 2500 },
+        [SOUND_TRACK_SKIP] =
+        { &global_settings.beep,
+          2000, 100, 2500 },
+        [SOUND_TRACK_NO_MORE] =
+        { &global_settings.beep,
+          1000, 100, 1500 },
+    };
+
+    const struct beep_params *params = &beep_params[sound];
+
+    if (*params->setting)
+    {
+        beep_play(params->frequency, params->duration,
+                  params->amplitude * *params->setting);
+    }
+}
+
+static keyclick_callback keyclick_current_callback = NULL;
+static void* keyclick_data = NULL;
+void keyclick_set_callback(keyclick_callback cb, void* data)
+{
+    keyclick_current_callback = cb;
+    keyclick_data = data;
+}
+
+/* Produce keyclick based upon button and global settings */
+void keyclick_click(bool rawbutton, int action)
+{
+    int button = action;
+    static long last_button = BUTTON_NONE;
+    bool do_beep = false;
+
+    if (!rawbutton)
+        get_action_statuscode(&button);
+
+    /* Settings filters */
+    if (
+#ifdef HAVE_HARDWARE_CLICK
+        (global_settings.keyclick || global_settings.keyclick_hardware)
+#else
+        global_settings.keyclick
+#endif
+        )
+    {
+        if (global_settings.keyclick_repeats || !(button & BUTTON_REPEAT))
+        {
+            /* Button filters */
+            if (button != BUTTON_NONE && !(button & BUTTON_REL)
+                && !(button & (SYS_EVENT|BUTTON_MULTIMEDIA)) )
+            {
+                do_beep = true;
+            }
+        }
+        else if ((button & BUTTON_REPEAT) && (last_button == BUTTON_NONE))
+        {
+            do_beep = true;
+        }
+#ifdef HAVE_SCROLLWHEEL
+        else if (button & (BUTTON_SCROLL_BACK | BUTTON_SCROLL_FWD))
+        {
+            do_beep  = true;
+        }
+#endif
+    }
+    if (button&BUTTON_REPEAT)
+        last_button = button;
+    else
+        last_button = BUTTON_NONE;
+
+    if (do_beep && keyclick_current_callback)
+        do_beep = keyclick_current_callback(action, keyclick_data);
+    keyclick_current_callback = NULL;
+
+    if (do_beep)
+    {
+#ifdef HAVE_HARDWARE_CLICK
+        if (global_settings.keyclick)
+        {
+            system_sound_play(SOUND_KEYCLICK);
+        }
+        if (global_settings.keyclick_hardware)
+        {
+#if !defined(SIMULATOR)
+            piezo_button_beep(false, false);
+#endif
+        }
+#else
+        system_sound_play(SOUND_KEYCLICK);
+#endif
+    }
+}
+
+/* Return the ReplayGain mode adjusted by other relevant settings */
+static int replaygain_setting_mode(int type)
+{
+    switch (type)
+    {
+    case REPLAYGAIN_SHUFFLE:
+        type = global_settings.playlist_shuffle ?
+            REPLAYGAIN_TRACK : REPLAYGAIN_ALBUM;
+    case REPLAYGAIN_ALBUM:
+    case REPLAYGAIN_TRACK:
+    case REPLAYGAIN_OFF:
+    default:
+        break;
+    }
+
+    return type;
+}
+
+/* Return the ReplayGain mode adjusted for display purposes */
+int id3_get_replaygain_mode(const struct mp3entry *id3)
+{
+    if (!id3)
+        return -1;
+
+    int type = global_settings.replaygain_settings.type;
+    type = replaygain_setting_mode(type);
+
+    return (type != REPLAYGAIN_TRACK && id3->album_gain != 0) ?
+        REPLAYGAIN_ALBUM : (id3->track_gain != 0 ? REPLAYGAIN_TRACK : -1);
+}
+
+/* Update DSP's replaygain from global settings */
+void replaygain_update(void)
+{
+    struct replaygain_settings settings = global_settings.replaygain_settings;
+    settings.type = replaygain_setting_mode(settings.type);
+    dsp_replaygain_set_settings(&settings);
+}
+#endif /* CONFIG_CODEC == SWCODEC */
+
 #endif /* !defined(__PCTOOL__) */
 
 /* Read (up to) a line of text from fd into buffer and return number of bytes
@@ -893,17 +1054,52 @@ char* skip_whitespace(char* const str)
  */
 void format_time(char* buf, int buf_size, long t)
 {
-    if ( t < 3600000 ) 
+    int const time = abs(t / 1000);
+    int const hours = time / 3600;
+    int const minutes = time / 60 - hours * 60;
+    int const seconds = time % 60;
+    const char * const sign = &"-"[t < 0 ? 0 : 1];
+
+    if ( hours == 0 )
     {
-        snprintf(buf, buf_size, "%d:%02d",
-                 (int) (t / 60000), (int) (t % 60000 / 1000));
+        snprintf(buf, buf_size, "%s%d:%02d", sign, minutes, seconds);
     }
     else
     {
-        snprintf(buf, buf_size, "%d:%02d:%02d",
-                 (int) (t / 3600000), (int) (t % 3600000 / 60000),
-                 (int) (t % 60000 / 1000));
+        snprintf(buf, buf_size, "%s%d:%02d:%02d", sign, hours, minutes,
+                 seconds);
     }
+}
+
+/**
+ * Splits str at each occurence of split_char and puts the substrings into vector,
+ * but at most vector_lenght items. Empty substrings are ignored.
+ *
+ * Modifies str by replacing each split_char following a substring with nul
+ *
+ * Returns the number of substrings found, i.e. the number of valid strings
+ * in vector
+ */
+int split_string(char *str, const char split_char, char *vector[], const int vector_length)
+{
+    int i;
+    char *p = str;
+
+    /* skip leading splitters */
+    while(*p == split_char) p++;
+
+    /* *p in the condition takes care of trailing splitters */
+    for(i = 0; p && *p && i < vector_length; i++)
+    {
+        vector[i] = p;
+        if ((p = strchr(p, split_char)))
+        {
+            *p++ = '\0';
+            while(*p == split_char) p++; /* skip successive splitters */
+        }
+    }
+
+    return i;
 }
 
 
@@ -912,13 +1108,12 @@ void format_time(char* buf, int buf_size, long t)
  *  If the file is opened for writing and O_TRUNC is set, write a BOM to
  *  the opened file and leave the file pointer set after the BOM.
  */
-#define BOM "\xef\xbb\xbf"
-#define BOM_SIZE 3
 
 int open_utf8(const char* pathname, int flags)
 {
+    ssize_t ret;
     int fd;
-    unsigned char bom[BOM_SIZE];
+    unsigned char bom[BOM_UTF_8_SIZE];
 
     fd = open(pathname, flags, 0666);
     if(fd < 0)
@@ -926,16 +1121,23 @@ int open_utf8(const char* pathname, int flags)
 
     if(flags & (O_TRUNC | O_WRONLY))
     {
-        write(fd, BOM, BOM_SIZE);
+        ret = write(fd, BOM_UTF_8, BOM_UTF_8_SIZE);
     }
     else
     {
-        read(fd, bom, BOM_SIZE);
+        ret = read(fd, bom, BOM_UTF_8_SIZE);
         /* check for BOM */
-        if(memcmp(bom, BOM, BOM_SIZE))
-            lseek(fd, 0, SEEK_SET);
+        if (ret == BOM_UTF_8_SIZE)
+        {
+            if(memcmp(bom, BOM_UTF_8, BOM_UTF_8_SIZE))
+                lseek(fd, 0, SEEK_SET);
+        }
     }
-    return fd;
+    /* read or write failure, do not continue */
+    if (ret < 0)
+        close(fd);
+
+    return ret >= 0 ? fd : -1;
 }
 
 
@@ -979,7 +1181,7 @@ bool parse_color(enum screen_type screen, char *text, int *value)
 {
     (void)text; (void)value; /* silence warnings on mono bitmap */
     (void)screen;
-    
+
 #ifdef HAVE_LCD_COLOR
     if (screens[screen].depth > 2)
     {
@@ -1014,4 +1216,41 @@ int clamp_value_wrap(int value, int max, int min)
     return value;
 }
 #endif
+#endif
+
+
+#ifndef __PCTOOL__
+
+#define MAX_ACTIVITY_DEPTH 12
+static enum current_activity
+        current_activity[MAX_ACTIVITY_DEPTH] = {ACTIVITY_UNKNOWN};
+static int current_activity_top = 0;
+void push_current_activity(enum current_activity screen)
+{
+    current_activity[current_activity_top++] = screen;
+#ifdef HAVE_LCD_BITMAP
+    FOR_NB_SCREENS(i)
+    {
+        skinlist_set_cfg(i, NULL);
+        skin_update(CUSTOM_STATUSBAR, i, SKIN_REFRESH_ALL);
+    }
+#endif
+}
+
+void pop_current_activity(void)
+{
+    current_activity_top--;
+#ifdef HAVE_LCD_BITMAP
+    FOR_NB_SCREENS(i)
+    {
+        skinlist_set_cfg(i, NULL);
+        skin_update(CUSTOM_STATUSBAR, i, SKIN_REFRESH_ALL);
+    }
+#endif
+}
+enum current_activity get_current_activity(void)
+{
+    return current_activity[current_activity_top?current_activity_top-1:0];
+}
+
 #endif

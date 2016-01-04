@@ -7,7 +7,6 @@
  *                     \/            \/     \/    \/            \/
  *
  *   Copyright (C) 2007 by Dominik Wenger
- *   $Id$
  *
  * All files in this archive are subject to the GNU General Public License.
  * See the file COPYING in the source tree root for full license agreement.
@@ -17,7 +16,8 @@
  *
  ****************************************************************************/
 
-#include <QtGui>
+#include <QDialog>
+#include <QMouseEvent>
 
 #include "preview.h"
 
@@ -52,6 +52,16 @@ void PreviewDlg::leaveEvent(QEvent * event)
 {
     (void) event;
     this->close();
+}
+
+
+void PreviewDlg::changeEvent(QEvent *e)
+{
+    if(e->type() == QEvent::LanguageChange) {
+        ui.retranslateUi(this);
+    } else {
+        QWidget::changeEvent(e);
+    }
 }
 
 PreviewLabel::PreviewLabel(QWidget * parent, Qt::WindowFlags f)

@@ -42,41 +42,60 @@
 
 #define CUE_DIR ROCKBOX_DIR "/cue"
 
-bool look_for_cuesheet_file(const char *trackpath, char *found_cue_path)
+static bool search_for_cuesheet(const char *path, struct cuesheet_file *cue_file)
 {
-    /* DEBUGF("look for cue file\n"); */
-
+    size_t len;
     char cuepath[MAX_PATH];
-    char *dot, *slash;
+    char *dot, *slash, *slash_cuepath;
 
-    slash = strrchr(trackpath, '/');
+    cue_file->pos = 0;
+    cue_file->size = 0;
+    cue_file->path[0] = '\0';
+    slash = strrchr(path, '/');
     if (!slash)
-    {
-        found_cue_path = NULL;
         return false;
-    }
+    len = strlcpy(cuepath, path, MAX_PATH);
+    slash_cuepath = &cuepath[slash - path];
+    dot = strrchr(slash_cuepath, '.');
+    if (dot)
+        strlcpy(dot, ".cue", MAX_PATH - (dot-cuepath));
 
-    strlcpy(cuepath, trackpath, MAX_PATH);
-    dot = strrchr(cuepath, '.');
-    strcpy(dot, ".cue");
-
-    if (!file_exists(cuepath))
+    if (!dot || !file_exists(cuepath))
     {
         strcpy(cuepath, CUE_DIR);
-        strcat(cuepath, slash);
+        if (strlcat(cuepath, slash, MAX_PATH) >= MAX_PATH)
+            goto skip; /* overflow */   
         char *dot = strrchr(cuepath, '.');
         strcpy(dot, ".cue");
         if (!file_exists(cuepath))
         {
-            if (found_cue_path)
-                found_cue_path = NULL;
-            return false;
+skip:
+            if ((len+4) >= MAX_PATH)
+                return false;
+            strlcpy(cuepath, path, MAX_PATH);
+            strlcat(cuepath, ".cue", MAX_PATH);
+            if (!file_exists(cuepath))
+                return false;
         }
     }
 
-    if (found_cue_path)
-        strlcpy(found_cue_path, cuepath, MAX_PATH);
+    strlcpy(cue_file->path, cuepath, MAX_PATH);
     return true;
+}
+
+bool look_for_cuesheet_file(struct mp3entry *track_id3, struct cuesheet_file *cue_file)
+{
+    /* DEBUGF("look for cue file\n"); */
+    if (track_id3->has_embedded_cuesheet)
+    {
+        cue_file->pos = track_id3->embedded_cuesheet.pos;
+        cue_file->size = track_id3->embedded_cuesheet.size;
+        cue_file->encoding = track_id3->embedded_cuesheet.encoding;
+        strlcpy(cue_file->path, track_id3->path, MAX_PATH);
+        return true;
+    }
+
+    return search_for_cuesheet(track_id3->path, cue_file);
 }
 
 static char *get_string(const char *line)
@@ -99,29 +118,84 @@ static char *get_string(const char *line)
     return start;
 }
 
-/* parse cuesheet "file" and store the information in "cue" */
-bool parse_cuesheet(char *file, struct cuesheet *cue)
+/* parse cuesheet "cue_file" and store the information in "cue" */
+bool parse_cuesheet(struct cuesheet_file *cue_file, struct cuesheet *cue)
 {
     char line[MAX_PATH];
     char *s;
-    bool utf8 = false;
+    unsigned char char_enc = CHAR_ENC_ISO_8859_1;
+    bool is_embedded = false;
+    int line_len;
+    int bytes_left = 0;
+    int read_bytes = MAX_PATH;
+    unsigned char utf16_buf[MAX_PATH];
 
-    int fd = open_utf8(file,O_RDONLY);
-    if (fd < 0)
-    {
-        /* couln't open the file */
+    int fd = open(cue_file->path, O_RDONLY, 0644);
+    if(fd < 0)
         return false;
+    if (cue_file->pos > 0)
+    {
+        is_embedded = true;
+        lseek(fd, cue_file->pos, SEEK_SET);
+        bytes_left = cue_file->size;
+        char_enc = cue_file->encoding;
     }
-    if(lseek(fd, 0, SEEK_CUR) > 0)
-        utf8 = true;
+
+    /* Look for a Unicode BOM */
+    unsigned char bom_read = 0;
+    read(fd, line, BOM_UTF_8_SIZE);
+    if(!memcmp(line, BOM_UTF_8, BOM_UTF_8_SIZE))
+    {
+        char_enc = CHAR_ENC_UTF_8;
+        bom_read = BOM_UTF_8_SIZE;
+    }
+    else if(!memcmp(line, BOM_UTF_16_LE, BOM_UTF_16_SIZE))
+    {
+        char_enc = CHAR_ENC_UTF_16_LE;
+        bom_read = BOM_UTF_16_SIZE;
+    }
+    else if(!memcmp(line, BOM_UTF_16_BE, BOM_UTF_16_SIZE))
+    {
+        char_enc = CHAR_ENC_UTF_16_BE;
+        bom_read = BOM_UTF_16_SIZE;
+    }
+    if (bom_read < BOM_UTF_8_SIZE)
+        lseek(fd, cue_file->pos + bom_read, SEEK_SET);
+    if (is_embedded)
+    {
+        if (bom_read  > 0)
+            bytes_left -= bom_read;
+        if (read_bytes > bytes_left)
+            read_bytes = bytes_left;
+    }
 
     /* Initialization */
     memset(cue, 0, sizeof(struct cuesheet));
-    strcpy(cue->path, file);
+    strcpy(cue->path, cue_file->path);
     cue->curr_track = cue->tracks;
 
-    while ( read_line(fd,line,MAX_PATH) && cue->track_count < MAX_TRACKS )
+    if (is_embedded)
+        strcpy(cue->file, cue->path);
+
+    while ((line_len = read_line(fd, line, read_bytes)) > 0
+        && cue->track_count < MAX_TRACKS )
     {
+        if (char_enc == CHAR_ENC_UTF_16_LE)
+        {
+            s = utf16LEdecode(line, utf16_buf, line_len);
+            /* terminate the string at the newline */
+            *s = '\0';
+            strcpy(line, utf16_buf);
+            /* chomp the trailing 0 after the newline */
+            lseek(fd, 1, SEEK_CUR);
+            line_len++;
+        }
+        else if (char_enc == CHAR_ENC_UTF_16_BE)
+        {
+            s = utf16BEdecode(line, utf16_buf, line_len);
+            *s = '\0';
+            strcpy(line, utf16_buf);
+        }
         s = skip_whitespace(line);
 
         if (!strncmp(s, "TRACK", 5))
@@ -142,12 +216,16 @@ bool parse_cuesheet(char *file, struct cuesheet *cue)
         }
         else if (!strncmp(s, "TITLE", 5)
                  || !strncmp(s, "PERFORMER", 9)
-                 || !strncmp(s, "SONGWRITER", 10))
+                 || !strncmp(s, "SONGWRITER", 10)
+                 || !strncmp(s, "FILE", 4))
         {
             char *dest = NULL;
             char *string = get_string(s);
             if (!string)
                 break;
+
+            size_t count = MAX_NAME*3 + 1;
+            size_t count8859 = MAX_NAME;
 
             switch (*s)
             {
@@ -165,23 +243,51 @@ bool parse_cuesheet(char *file, struct cuesheet *cue)
                     dest = (cue->track_count <= 0) ? cue->songwriter :
                             cue->tracks[cue->track_count-1].songwriter;
                     break;
+
+                case 'F': /* FILE */
+                    if (is_embedded || cue->track_count > 0)
+                        break;
+
+                    dest = cue->file;
+                    count = MAX_PATH;
+                    count8859 = MAX_PATH/3;
+                    break;
             }
 
             if (dest) 
             {
-                if (!utf8)
+                if (char_enc == CHAR_ENC_ISO_8859_1)
                 {
-                    dest = iso_decode(string, dest, -1, MIN(strlen(string), MAX_NAME));
+                    dest = iso_decode(string, dest, -1,
+                        MIN(strlen(string), count8859));
                     *dest = '\0';
                 }
                 else
                 {
-                    strlcpy(dest, string, MAX_NAME*3 + 1);
+                    strlcpy(dest, string, count);
                 }
             }    
         }
+        if (is_embedded)
+        {
+            bytes_left -= line_len;
+            if (bytes_left <= 0)
+                break;
+            if (bytes_left < read_bytes)
+                read_bytes = bytes_left;
+        }
     }
     close(fd);
+
+    /* If just a filename, add path information from cuesheet path */
+    if (*cue->file && !strrchr(cue->file, '/'))
+    {
+        strcpy(line, cue->file);
+        strcpy(cue->file, cue->path);
+        char *slash = strrchr(cue->file, '/');
+        if (!slash++) slash = cue->file;
+        strlcpy(slash, line, MAX_PATH - (slash - cue->file));
+    }
 
     /* If some songs don't have performer info, we copy the cuesheet performer */
     int i;
@@ -254,9 +360,8 @@ void browse_cuesheet(struct cuesheet *cue)
     struct gui_synclist lists;
     int action;
     bool done = false;
-    int sel;
     char title[MAX_PATH];
-    char cuepath[MAX_PATH];
+    struct cuesheet_file cue_file;
     struct mp3entry *id3 = audio_current_track();
 
     snprintf(title, MAX_PATH, "%s: %s", cue->performer, cue->title);
@@ -280,17 +385,41 @@ void browse_cuesheet(struct cuesheet *cue)
         switch (action)
         {
             case ACTION_STD_OK:
+            {
+                bool startit = true;
+                unsigned long elapsed =
+                    cue->tracks[gui_synclist_get_sel_pos(&lists)/2].offset;
+
                 id3 = audio_current_track();
-                if (id3 && *id3->path && strcmp(id3->path, "No file!"))
+                if (id3 && *id3->path)
                 {
-                    look_for_cuesheet_file(id3->path, cuepath);
-                    if (id3->cuesheet && !strcmp(cue->path, cuepath))
-                    {
-                        sel = gui_synclist_get_sel_pos(&lists);
-                        seek(cue->tracks[sel/2].offset);
-                    }
+                    look_for_cuesheet_file(id3, &cue_file);
+                    if (!strcmp(cue->path, cue_file.path))
+                        startit = false;
+                }
+
+                if (!startit)
+                    startit = !seek(elapsed);
+
+                if (!startit || !*cue->file)
+                    break;
+
+                /* check that this cue is the same one that would be found by
+                   a search from playback */
+                char file[MAX_PATH];
+                strlcpy(file, cue->file, MAX_PATH);
+
+                if (!strcmp(cue->path, file) || /* if embedded */
+                    (search_for_cuesheet(file, &cue_file) &&
+                     !strcmp(cue->path, cue_file.path)))
+                {
+                    char *fname = strrsplt(file, '/');
+                    char *dirname = fname <= file + 1 ? "/" : file;
+                    bookmark_play(dirname, 0, elapsed, 0, current_tick, fname);
                 }
                 break;
+                } /* ACTION_STD_OK */
+
             case ACTION_STD_CANCEL:
                 done = true;
         }
@@ -300,11 +429,16 @@ void browse_cuesheet(struct cuesheet *cue)
 bool display_cuesheet_content(char* filename)
 {
     size_t bufsize = 0;
+    struct cuesheet_file cue_file;
     struct cuesheet *cue = (struct cuesheet *)plugin_get_buffer(&bufsize);
     if (!cue || bufsize < sizeof(struct cuesheet))
         return false;
 
-    if (!parse_cuesheet(filename, cue))
+    strlcpy(cue_file.path, filename, MAX_PATH);
+    cue_file.pos = 0;
+    cue_file.size = 0;
+
+    if (!parse_cuesheet(&cue_file, cue))
         return false;
 
     browse_cuesheet(cue);
@@ -362,9 +496,12 @@ void cue_draw_markers(struct screen *screen, struct cuesheet *cue,
                       int x, int y, int w, int h)
 {
     int i,xi;
+    unsigned long tracklen_seconds = tracklen/1000; /* duration in seconds */
+    
     for (i=1; i < cue->track_count; i++)
     {
-        xi = x + (w * cue->tracks[i].offset)/tracklen;
+        /* Convert seconds prior to multiplication to avoid overflow. */
+        xi = x + (w * (cue->tracks[i].offset/1000)) / tracklen_seconds;
         draw_veritcal_line_mark(screen, xi, y, h);
     }
 }

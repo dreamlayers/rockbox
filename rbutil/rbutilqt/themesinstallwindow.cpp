@@ -7,7 +7,6 @@
  *                     \/            \/     \/    \/            \/
  *
  *   Copyright (C) 2007 by Dominik Riebeling
- *   $Id$
  *
  * All files in this archive are subject to the GNU General Public License.
  * See the file COPYING in the source tree root for full license agreement.
@@ -17,7 +16,8 @@
  *
  ****************************************************************************/
 
-#include <QtGui>
+#include <QDialog>
+#include <QMessageBox>
 
 #include "ui_themesinstallfrm.h"
 #include "themesinstallwindow.h"
@@ -28,6 +28,7 @@
 #include "systeminfo.h"
 #include "rockboxinfo.h"
 #include "version.h"
+#include "Logger.h"
 
 ThemesInstallWindow::ThemesInstallWindow(QWidget *parent) : QDialog(parent)
 {
@@ -47,11 +48,26 @@ ThemesInstallWindow::ThemesInstallWindow(QWidget *parent) : QDialog(parent)
             this, SLOT(updateDetails(QListWidgetItem*, QListWidgetItem*)));
     connect(ui.listThemes, SIGNAL(itemSelectionChanged()), this, SLOT(updateSize()));
     connect(&igetter, SIGNAL(done(bool)), this, SLOT(updateImage(bool)));
+
+    if(!RbSettings::value(RbSettings::CacheDisabled).toBool())
+        igetter.setCache(true);
+    else
+    {
+        if(infocachedir.isEmpty())
+        {
+            infocachedir = QDir::tempPath() + "rbutil-themeinfo";
+            QDir d = QDir::temp();
+            d.mkdir("rbutil-themeinfo");
+        }
+        igetter.setCache(infocachedir);
+    }
+
+    logger = NULL;
 }
 
 ThemesInstallWindow::~ThemesInstallWindow()
 {
-    if(infocachedir!="")
+    if(!infocachedir.isEmpty())
         Utils::recursiveRmdir(infocachedir);
 }
 
@@ -64,7 +80,7 @@ void ThemesInstallWindow::downloadInfo()
         = RockboxInfo(RbSettings::value(RbSettings::Mountpoint).toString());
 
     themesInfo.open();
-    qDebug() << "[Themes] downloading info to" << themesInfo.fileName();
+    LOG_INFO() << "downloading info to" << themesInfo.fileName();
     themesInfo.close();
 
     QString infoUrl = SystemInfo::value(SystemInfo::ThemesInfoUrl).toString();
@@ -74,9 +90,7 @@ void ThemesInstallWindow::downloadInfo()
     infoUrl.replace("%RELEASE%", installInfo.release());
     infoUrl.replace("%RBUTILVER%", VERSION);
     QUrl url = QUrl(infoUrl);
-    qDebug() << "[Themes] Info URL:" << url << "Query:" << url.queryItems();
-    if(RbSettings::value(RbSettings::CacheOffline).toBool())
-        getter->setCache(true);
+    LOG_INFO() << "Info URL:" << url;
     getter->setFile(&themesInfo);
 
     connect(getter, SIGNAL(done(bool)), this, SLOT(downloadDone(bool)));
@@ -88,13 +102,13 @@ void ThemesInstallWindow::downloadInfo()
 void ThemesInstallWindow::downloadDone(int id, bool error)
 {
     downloadDone(error);
-    qDebug() << "[Themes] Download" << id << "done, error:" << error;
+    LOG_INFO() << "Download" << id << "done, error:" << error;
 }
 
 
 void ThemesInstallWindow::downloadDone(bool error)
 {
-    qDebug() << "[Themes] Download done, error:" << error;
+    LOG_INFO() << "Download done, error:" << error;
 
     disconnect(logger, SIGNAL(aborted()), getter, SLOT(abort()));
     disconnect(logger, SIGNAL(aborted()), this, SLOT(close()));
@@ -102,10 +116,10 @@ void ThemesInstallWindow::downloadDone(bool error)
 
     QSettings iniDetails(themesInfo.fileName(), QSettings::IniFormat, this);
     QStringList tl = iniDetails.childGroups();
-    qDebug() << "[Themes] Theme site result:"
-             << iniDetails.value("error/code").toString()
-             << iniDetails.value("error/description").toString()
-             << iniDetails.value("error/query").toString();
+    LOG_INFO() << "Theme site result:"
+               << iniDetails.value("error/code").toString()
+               << iniDetails.value("error/description").toString()
+               << iniDetails.value("error/query").toString();
 
     if(error) {
         logger->addItem(tr("Network error: %1.\n"
@@ -119,8 +133,8 @@ void ThemesInstallWindow::downloadDone(bool error)
     }
     // handle possible error codes
     if(iniDetails.value("error/code").toInt() != 0 || !iniDetails.contains("error/code")) {
-        qDebug() << "[Themes] Theme site returned an error:"
-                 << iniDetails.value("error/code");
+        LOG_ERROR() << "Theme site returned an error:"
+                    << iniDetails.value("error/code");
         logger->addItem(tr("the following error occured:\n%1")
             .arg(iniDetails.value("error/description", "unknown error").toString()), LOGERROR);
         logger->setFinished();
@@ -139,7 +153,7 @@ void ThemesInstallWindow::downloadDone(bool error)
             iniDetails.endGroup();
             continue;
         }
-        qDebug() << "[Themes] adding to list:" << tl.at(i);
+        LOG_INFO() << "adding to list:" << tl.at(i);
         // convert to unicode and replace HTML-specific entities
         QByteArray raw = iniDetails.value("name").toByteArray();
         QTextCodec* codec = QTextCodec::codecForHtml(raw);
@@ -162,7 +176,7 @@ void ThemesInstallWindow::downloadDone(bool error)
             msg = iniDetails.value("status/msg." + lang).toString();
         else
             msg = iniDetails.value("status/msg").toString();
-        qDebug() << "[Themes] MOTD" << msg;
+        LOG_INFO() << "MOTD" << msg;
         if(!msg.isEmpty())
             QMessageBox::information(this, tr("Information"), msg);
     }
@@ -217,32 +231,17 @@ void ThemesInstallWindow::updateDetails(QListWidgetItem* cur, QListWidgetItem* p
     text += tr("<b>Description:</b> %1<hr/>").arg(codec->toUnicode(iniDetails
                     .value("about", tr("no description")).toByteArray()));
 
-    text.trimmed();
     text.replace("\n", "<br/>");
     ui.themeDescription->setHtml(text);
     iniDetails.endGroup();
-
     igetter.abort();
-    if(!RbSettings::value(RbSettings::CacheDisabled).toBool())
-        igetter.setCache(true);
-    else
-    {
-        if(infocachedir=="")
-        {
-            infocachedir = QDir::tempPath() + "rbutil-themeinfo";
-            QDir d = QDir::temp();
-            d.mkdir("rbutil-themeinfo");
-        }
-        igetter.setCache(infocachedir);
-    }
-
     igetter.getFile(img);
 }
 
 
 void ThemesInstallWindow::updateImage(bool error)
 {
-    qDebug() << "[Themes] Updating image:"<< !error;
+    LOG_INFO() << "Updating image:"<< !error;
 
     if(error) {
         ui.themePreview->clear();
@@ -268,8 +267,7 @@ void ThemesInstallWindow::updateImage(bool error)
 
 void ThemesInstallWindow::resizeEvent(QResizeEvent* e)
 {
-    qDebug() << "[Themes]" << e;
-
+    (void)e;
     QPixmap p, q;
     QSize img;
     img.setHeight(ui.themePreview->height());
@@ -287,13 +285,20 @@ void ThemesInstallWindow::resizeEvent(QResizeEvent* e)
 void ThemesInstallWindow::show()
 {
     QDialog::show();
-    logger = new ProgressLoggerGui(this);
-    logger->show();
-    logger->addItem(tr("getting themes information ..."), LOGINFO);
+    if(windowSelectOnly)
+        ui.buttonOk->setText(tr("Select"));
 
-    connect(logger, SIGNAL(aborted()), this, SLOT(close()));
+    if(!logger)
+        logger = new ProgressLoggerGui(this);
 
-    downloadInfo();
+    if(ui.listThemes->count() == 0) {
+        logger->show();
+        logger->addItem(tr("getting themes information ..."), LOGINFO);
+
+        connect(logger, SIGNAL(aborted()), this, SLOT(close()));
+
+        downloadInfo();
+    }
 
 }
 
@@ -306,10 +311,20 @@ void ThemesInstallWindow::abort()
 }
 
 
-void ThemesInstallWindow::accept()
+void ThemesInstallWindow::accept(void)
+{
+    if(!windowSelectOnly)
+        install();
+    else
+        close();
+}
+
+
+void ThemesInstallWindow::install()
 {
     if(ui.listThemes->selectedItems().size() == 0) {
-        this->close();
+        logger->addItem(tr("No themes selected, skipping"), LOGINFO);
+        emit done(false);
         return;
     }
     QStringList themes;
@@ -329,12 +344,13 @@ void ThemesInstallWindow::accept()
                 QDate().currentDate().toString("yyyyMMdd")).toString());
         iniDetails.endGroup();
     }
-    qDebug() << "[Themes] installing:" << themes;
+    LOG_INFO() << "installing:" << themes;
 
-    logger = new ProgressLoggerGui(this);
+    if(logger == NULL)
+        logger = new ProgressLoggerGui(this);
     logger->show();
     QString mountPoint = RbSettings::value(RbSettings::Mountpoint).toString();
-    qDebug() << "[Themes] mountpoint:" << mountPoint;
+    LOG_INFO() << "mountpoint:" << mountPoint;
     // show dialog with error if mount point is wrong
     if(!QFileInfo(mountPoint).isDir()) {
         logger->addItem(tr("Mount point is wrong!"),LOGERROR);
@@ -350,12 +366,24 @@ void ThemesInstallWindow::accept()
     if(!RbSettings::value(RbSettings::CacheDisabled).toBool())
         installer->setCache(true);
 
-    connect(logger, SIGNAL(closed()), this, SLOT(close()));
+    if(!windowSelectOnly) {
+        connect(logger, SIGNAL(closed()), this, SLOT(close()));
+        connect(installer, SIGNAL(done(bool)), logger, SLOT(setFinished()));
+    }
     connect(installer, SIGNAL(logItem(QString, int)), logger, SLOT(addItem(QString, int)));
     connect(installer, SIGNAL(logProgress(int, int)), logger, SLOT(setProgress(int, int)));
-    connect(installer, SIGNAL(done(bool)), logger, SLOT(setFinished()));
+    connect(installer, SIGNAL(done(bool)), this, SIGNAL(done(bool)));
     connect(logger, SIGNAL(aborted()), installer, SLOT(abort()));
     installer->install();
+}
 
+
+void ThemesInstallWindow::changeEvent(QEvent *e)
+{
+    if(e->type() == QEvent::LanguageChange) {
+        ui.retranslateUi(this);
+    } else {
+        QWidget::changeEvent(e);
+    }
 }
 

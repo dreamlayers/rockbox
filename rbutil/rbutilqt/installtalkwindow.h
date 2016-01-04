@@ -7,7 +7,6 @@
  *                     \/            \/     \/    \/            \/
  *
  *   Copyright (C) 2007 by Dominik Wenger
- *   $Id$
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -22,7 +21,8 @@
 #ifndef INSTALLTALKWINDOW_H
 #define INSTALLTALKWINDOW_H
 
-#include <QtGui>
+#include <QDialog>
+#include <QFileSystemModel>
 
 #include "ui_installtalkfrm.h"
 #include "progressloggergui.h"
@@ -33,22 +33,24 @@ class InstallTalkWindow : public QDialog
     Q_OBJECT
     public:
         InstallTalkWindow(QWidget *parent = 0);
-        
+
     public slots:
         void accept(void);
         void change(void);
 
     private slots:
-        void browseFolder(void);
         void updateSettings(void);
+        void saveSettings(void);
 
     signals:
         void settingsUpdated(void);
 
     private:
+        void changeEvent(QEvent *event);
         TalkFileCreator* talkcreator;
         Ui::InstallTalkFrm ui;
         ProgressLoggerGui* logger;
+        QFileSystemModel *fsm;
 };
 
 #endif

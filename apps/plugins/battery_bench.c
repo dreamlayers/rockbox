@@ -24,7 +24,7 @@
 #include "plugin.h"
 
 
-#define BATTERY_LOG "/battery_bench.txt"
+#define BATTERY_LOG  HOME_DIR"/battery_bench.txt"
 #define BUF_SIZE 16000
 
 #define EV_EXIT 1337
@@ -125,7 +125,9 @@
 #define BATTERY_ON_TXT  "SELECT - start"
 #define BATTERY_OFF_TXT "POWER"
 
-#elif CONFIG_KEYPAD == GIGABEAT_S_PAD
+#elif CONFIG_KEYPAD == GIGABEAT_S_PAD \
+   || CONFIG_KEYPAD == SAMSUNG_YPR0_PAD \
+   || CONFIG_KEYPAD == CREATIVE_ZEN_PAD
 
 #define BATTERY_ON  BUTTON_SELECT
 #define BATTERY_OFF BUTTON_BACK
@@ -134,9 +136,7 @@
 
 #elif CONFIG_KEYPAD == MROBE500_PAD
 
-#define BATTERY_ON  BUTTON_RC_PLAY
 #define BATTERY_OFF BUTTON_POWER
-#define BATTERY_ON_TXT  "PLAY - start"
 #define BATTERY_OFF_TXT "POWER"
 
 #elif CONFIG_KEYPAD == MROBE100_PAD
@@ -203,7 +203,8 @@
 #define BATTERY_OFF BUTTON_POWER
 #define BATTERY_OFF_TXT "POWER"
 
-#elif CONFIG_KEYPAD == SAMSUNG_YH_PAD
+#elif (CONFIG_KEYPAD == SAMSUNG_YH820_PAD) || \
+      (CONFIG_KEYPAD == SAMSUNG_YH920_PAD)
       
 #define BATTERY_ON      BUTTON_LEFT
 #define BATTERY_OFF     BUTTON_RIGHT
@@ -228,6 +229,43 @@
 #define BATTERY_OFF BUTTON_REC
 #define BATTERY_ON_TXT  "PLAY - start"
 #define BATTERY_OFF_TXT "REC"
+
+#elif CONFIG_KEYPAD == SANSA_FUZEPLUS_PAD
+#define BATTERY_ON  BUTTON_PLAYPAUSE
+#define BATTERY_OFF BUTTON_POWER
+#define BATTERY_ON_TXT  "PLAYPAUSE - start"
+#define BATTERY_OFF_TXT "POWER"
+
+#elif CONFIG_KEYPAD == SANSA_CONNECT_PAD
+#define BATTERY_ON BUTTON_SELECT
+#define BATTERY_OFF BUTTON_POWER
+#define BATTERY_ON_TXT  "SELECT - start"
+#define BATTERY_OFF_TXT "POWER"
+
+#elif CONFIG_KEYPAD == CREATIVE_ZENXFI3_PAD
+#define BATTERY_ON BUTTON_PLAY
+#define BATTERY_OFF BUTTON_POWER
+#define BATTERY_ON_TXT  "PLAY - start"
+#define BATTERY_OFF_TXT "POWER"
+
+#elif (CONFIG_KEYPAD == HM60X_PAD) || (CONFIG_KEYPAD == HM801_PAD)
+#define BATTERY_ON BUTTON_SELECT
+#define BATTERY_OFF BUTTON_POWER
+#define BATTERY_ON_TXT  "SELECT - start"
+
+#define BATTERY_OFF_TXT "POWER"
+
+#elif CONFIG_KEYPAD == SONY_NWZ_PAD
+#define BATTERY_ON BUTTON_PLAY
+#define BATTERY_OFF BUTTON_POWER
+#define BATTERY_ON_TXT "PLAY - start"
+#define BATTERY_OFF_TXT "Power"
+
+#elif CONFIG_KEYPAD == DX50_PAD
+#define BATTERY_ON      BUTTON_PLAY
+#define BATTERY_OFF     BUTTON_POWER_LONG
+#define BATTERY_OFF_TXT "Power Long"
+#define BATTERY_ON_TXT  "Play - start"
 
 #else
 #error No keymap defined!
@@ -266,7 +304,7 @@ static struct batt_info
 #define BUF_ELEMENTS    (sizeof(bat)/sizeof(struct batt_info))
 
 static unsigned int thread_id;
-static struct event_queue thread_q;
+static struct event_queue thread_q SHAREDBSS_ATTR;
 static bool in_usb_mode;
 static unsigned int buf_idx;
 
@@ -320,18 +358,18 @@ static unsigned int charge_state(void)
         ret |= BIT_CHARGING;
 #endif
 #endif
+    /* USB insertion means nothing if USB cannot power the device */
 #ifdef HAVE_USB_POWER
-    if (rb->usb_powered())
+    if (rb->usb_inserted())
         ret |= BIT_USB_POWER;
 #endif
-    return ret; 
+    return ret;
 }
 #endif
 
 
-static void flush_buffer(void* data)
+static void flush_buffer(void)
 {
-    (void)data;
     int fd;
     unsigned int i;
 
@@ -403,7 +441,9 @@ static void thread(void)
             bat[buf_idx].flags = charge_state();
 #endif
             buf_idx++;
+#if USING_STORAGE_CALLBACK
             rb->register_storage_idle_func(flush_buffer);
+#endif
         }
         
         /* What to do when the measurement buffer is full:
@@ -413,7 +453,7 @@ static void thread(void)
            for this to occur because it requires > 16 hours of no disk activity.
          */
         if (buf_idx == BUF_ELEMENTS) {
-            flush_buffer(NULL);
+            flush_buffer();
         }
         
         /* sleep some time until next measurement */
@@ -426,7 +466,6 @@ static void thread(void)
                 break;
             case SYS_USB_DISCONNECTED:
                 in_usb_mode = false;
-                rb->usb_acknowledge(SYS_USB_DISCONNECTED_ACK);
                 break;
             case SYS_POWEROFF:
                 exit_reason = "power off";
@@ -444,8 +483,12 @@ static void thread(void)
         }
     }
 
+#if USING_STORAGE_CALLBACK
     /* unregister flush callback and flush to disk */
     rb->unregister_storage_idle_func(flush_buffer, true);
+#else
+    flush_buffer();
+#endif
     
     /* log end of bench and exit reason */
     fd = rb->open(BATTERY_LOG, O_RDWR | O_CREAT | O_APPEND, 0666);
@@ -537,11 +580,11 @@ enum plugin_status plugin_start(const void* parameter)
                 "# file (%s) every minute.\n"
                 "# To properly test your battery:\n"
                 "# 1) Select and playback an album. "
-                "# (Be sure to be more than the player's buffer)\n"
+                "(Be sure to be more than the player's buffer)\n"
                 "# 2) Set to repeat.\n"
                 "# 3) Let the player run completely out of battery.\n"
                 "# 4) Recharge and copy (or whatever you want) the txt file to "
-                "# your computer.\n"
+                "your computer.\n"
                 "# Now you can make graphs with the data of the battery log.\n"
                 "# Do not enter another plugin during the test or else the \n"
                 "# logging activity will end.\n\n"

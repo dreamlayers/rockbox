@@ -145,6 +145,17 @@
 #define ROCKPAINT_LEFT      BUTTON_LEFT
 #define ROCKPAINT_RIGHT     BUTTON_RIGHT
 
+#elif CONFIG_KEYPAD == CREATIVE_ZENXFI3_PAD
+#define ROCKPAINT_QUIT      BUTTON_POWER
+#define ROCKPAINT_DRAW      BUTTON_VOL_UP
+#define ROCKPAINT_MENU      BUTTON_PLAY
+#define ROCKPAINT_TOOLBAR   BUTTON_VOL_DOWN
+#define ROCKPAINT_TOOLBAR2  ( BUTTON_VOL_DOWN | BUTTON_MENU )
+#define ROCKPAINT_UP        BUTTON_UP
+#define ROCKPAINT_DOWN      BUTTON_DOWN
+#define ROCKPAINT_LEFT      BUTTON_BACK
+#define ROCKPAINT_RIGHT     BUTTON_MENU
+
 #elif CONFIG_KEYPAD == PHILIPS_HDD1630_PAD
 #define ROCKPAINT_QUIT      BUTTON_POWER
 #define ROCKPAINT_DRAW      BUTTON_SELECT
@@ -188,12 +199,23 @@
 #elif CONFIG_KEYPAD == MROBE500_PAD
 #define ROCKPAINT_QUIT      BUTTON_POWER
 
-#elif ( CONFIG_KEYPAD == SAMSUNG_YH_PAD )
-#define ROCKPAINT_QUIT      BUTTON_REC
+#elif ( CONFIG_KEYPAD == SAMSUNG_YH920_PAD )
+#define ROCKPAINT_QUIT      ( BUTTON_REW | BUTTON_REPEAT )
 #define ROCKPAINT_DRAW      BUTTON_PLAY
-#define ROCKPAINT_MENU      BUTTON_FFWD
-#define ROCKPAINT_TOOLBAR   BUTTON_REW
-#define ROCKPAINT_TOOLBAR2  ( BUTTON_REW | BUTTON_LEFT )
+#define ROCKPAINT_MENU      ( BUTTON_REW | BUTTON_REL )
+#define ROCKPAINT_TOOLBAR   BUTTON_FFWD
+#define ROCKPAINT_TOOLBAR2  ( BUTTON_FFWD | BUTTON_LEFT )
+#define ROCKPAINT_UP        BUTTON_UP
+#define ROCKPAINT_DOWN      BUTTON_DOWN
+#define ROCKPAINT_LEFT      BUTTON_LEFT
+#define ROCKPAINT_RIGHT     BUTTON_RIGHT
+
+#elif ( CONFIG_KEYPAD == SAMSUNG_YH820_PAD )
+#define ROCKPAINT_QUIT      ( BUTTON_REW | BUTTON_REPEAT )
+#define ROCKPAINT_DRAW      BUTTON_PLAY
+#define ROCKPAINT_MENU      ( BUTTON_REW | BUTTON_REL )
+#define ROCKPAINT_TOOLBAR   BUTTON_FFWD
+#define ROCKPAINT_TOOLBAR2  BUTTON_REC
 #define ROCKPAINT_UP        BUTTON_UP
 #define ROCKPAINT_DOWN      BUTTON_DOWN
 #define ROCKPAINT_LEFT      BUTTON_LEFT
@@ -209,6 +231,97 @@
 #define ROCKPAINT_DOWN      BUTTON_DOWN
 #define ROCKPAINT_LEFT      BUTTON_PREV
 #define ROCKPAINT_RIGHT     BUTTON_NEXT
+
+#elif CONFIG_KEYPAD == SANSA_FUZEPLUS_PAD
+#define ROCKPAINT_QUIT      BUTTON_POWER
+#define ROCKPAINT_DRAW      BUTTON_VOL_UP
+#define ROCKPAINT_MENU      BUTTON_VOL_DOWN
+#define ROCKPAINT_TOOLBAR   BUTTON_BOTTOMRIGHT
+#define ROCKPAINT_TOOLBAR2  BUTTON_BOTTOMLEFT
+#define ROCKPAINT_UP        BUTTON_UP
+#define ROCKPAINT_DOWN      BUTTON_DOWN
+#define ROCKPAINT_LEFT      BUTTON_LEFT
+#define ROCKPAINT_RIGHT     BUTTON_RIGHT
+
+#elif CONFIG_KEYPAD == SANSA_CLIP_PAD
+#define ROCKPAINT_QUIT      BUTTON_POWER
+#define ROCKPAINT_DRAW      BUTTON_SELECT
+#define ROCKPAINT_MENU      BUTTON_HOME
+#define ROCKPAINT_TOOLBAR   BUTTON_VOL_UP
+#define ROCKPAINT_TOOLBAR2  BUTTON_VOL_DOWN
+#define ROCKPAINT_UP        BUTTON_UP
+#define ROCKPAINT_DOWN      BUTTON_DOWN
+#define ROCKPAINT_LEFT      BUTTON_LEFT
+#define ROCKPAINT_RIGHT     BUTTON_RIGHT
+
+#elif CONFIG_KEYPAD == SANSA_CONNECT_PAD
+#define ROCKPAINT_QUIT      BUTTON_POWER
+#define ROCKPAINT_DRAW      BUTTON_SELECT
+#define ROCKPAINT_MENU      BUTTON_VOL_DOWN
+#define ROCKPAINT_TOOLBAR   BUTTON_PREV
+#define ROCKPAINT_TOOLBAR2  BUTTON_NEXT
+#define ROCKPAINT_UP        BUTTON_UP
+#define ROCKPAINT_DOWN      BUTTON_DOWN
+#define ROCKPAINT_LEFT      BUTTON_LEFT
+#define ROCKPAINT_RIGHT     BUTTON_RIGHT
+
+#elif CONFIG_KEYPAD == SAMSUNG_YPR0_PAD
+#define ROCKPAINT_QUIT      BUTTON_BACK
+#define ROCKPAINT_DRAW      BUTTON_SELECT
+#define ROCKPAINT_MENU      BUTTON_MENU
+#define ROCKPAINT_TOOLBAR   BUTTON_USER
+#define ROCKPAINT_TOOLBAR2  ( BUTTON_USER | BUTTON_REPEAT )
+#define ROCKPAINT_UP        BUTTON_UP
+#define ROCKPAINT_DOWN      BUTTON_DOWN
+#define ROCKPAINT_LEFT      BUTTON_LEFT
+#define ROCKPAINT_RIGHT     BUTTON_RIGHT
+
+#elif (CONFIG_KEYPAD == HM60X_PAD)
+#define ROCKPAINT_QUIT      BUTTON_POWER
+#define ROCKPAINT_DRAW      BUTTON_SELECT
+#define ROCKPAINT_MENU      (BUTTON_POWER | BUTTON_SELECT)
+#define ROCKPAINT_TOOLBAR   (BUTTON_POWER | BUTTON_UP)
+#define ROCKPAINT_TOOLBAR2  (BUTTON_POWER | BUTTON_LEFT)
+#define ROCKPAINT_UP        BUTTON_UP
+#define ROCKPAINT_DOWN      BUTTON_DOWN
+#define ROCKPAINT_LEFT      BUTTON_LEFT
+#define ROCKPAINT_RIGHT     BUTTON_RIGHT
+
+#elif (CONFIG_KEYPAD == HM801_PAD)
+#define ROCKPAINT_QUIT      BUTTON_POWER
+#define ROCKPAINT_DRAW      BUTTON_SELECT
+#define ROCKPAINT_MENU      BUTTON_PLAY
+#define ROCKPAINT_TOOLBAR   BUTTON_PREV
+#define ROCKPAINT_TOOLBAR2  BUTTON_NEXT
+#define ROCKPAINT_UP        BUTTON_UP
+#define ROCKPAINT_DOWN      BUTTON_DOWN
+#define ROCKPAINT_LEFT      BUTTON_LEFT
+#define ROCKPAINT_RIGHT     BUTTON_RIGHT
+
+#elif CONFIG_KEYPAD == SONY_NWZ_PAD
+#define ROCKPAINT_QUIT        (BUTTON_BACK|BUTTON_REPEAT)
+#define ROCKPAINT_DRAW        BUTTON_PLAY
+#define ROCKPAINT_MENU        BUTTON_BACK
+#define ROCKPAINT_UP          BUTTON_UP
+#define ROCKPAINT_DOWN        BUTTON_DOWN
+#define ROCKPAINT_LEFT        BUTTON_LEFT
+#define ROCKPAINT_RIGHT       BUTTON_RIGHT
+#define ROCKPAINT_TOOLBAR     BUTTON_POWER
+#define ROCKPAINT_TOOLBAR2    (BUTTON_POWER|BUTTON_REPEAT)
+
+#elif CONFIG_KEYPAD == CREATIVE_ZEN_PAD
+#define ROCKPAINT_QUIT        BUTTON_BACK
+#define ROCKPAINT_DRAW        BUTTON_SELECT
+#define ROCKPAINT_MENU        BUTTON_MENU
+#define ROCKPAINT_UP          BUTTON_UP
+#define ROCKPAINT_DOWN        BUTTON_DOWN
+#define ROCKPAINT_LEFT        BUTTON_LEFT
+#define ROCKPAINT_RIGHT       BUTTON_RIGHT
+#define ROCKPAINT_TOOLBAR     BUTTON_SHORTCUT
+#define ROCKPAINT_TOOLBAR2    BUTTON_PLAYPAUSE
+
+#elif ( CONFIG_KEYPAD == DX50_PAD )
+#define ROCKPAINT_QUIT      (BUTTON_POWER|BUTTON_REL)
 
 #else
 #error "Please define keys for this keypad"
@@ -562,6 +675,180 @@ static void buffer_mono_bitmap_part(
     } while( src < src_end );
 }
 
+/* draw alpha bitmap for anti-alias font */
+#define ALPHA_COLOR_FONT_DEPTH 2
+#define ALPHA_COLOR_LOOKUP_SHIFT (1 << ALPHA_COLOR_FONT_DEPTH)
+#define ALPHA_COLOR_LOOKUP_SIZE ((1 << ALPHA_COLOR_LOOKUP_SHIFT) - 1)
+#define ALPHA_COLOR_PIXEL_PER_BYTE (8 >> ALPHA_COLOR_FONT_DEPTH)
+#define ALPHA_COLOR_PIXEL_PER_WORD (32 >> ALPHA_COLOR_FONT_DEPTH)
+#ifdef CPU_ARM
+#define BLEND_INIT do {} while (0)
+#define BLEND_START(acc, color, alpha) \
+    asm volatile("mul %0, %1, %2" : "=&r" (acc) : "r" (color), "r" (alpha))
+#define BLEND_CONT(acc, color, alpha) \
+    asm volatile("mla %0, %1, %2, %0" : "+&r" (acc) : "r" (color), "r" (alpha))
+#define BLEND_OUT(acc) do {} while (0)
+#elif defined(CPU_COLDFIRE)
+#define ALPHA_BITMAP_READ_WORDS
+#define BLEND_INIT coldfire_set_macsr(EMAC_UNSIGNED)
+#define BLEND_START(acc, color, alpha) \
+    asm volatile("mac.l %0, %1, %%acc0" :: "%d" (color), "d" (alpha))
+#define BLEND_CONT BLEND_START
+#define BLEND_OUT(acc) asm volatile("movclr.l %%acc0, %0" : "=d" (acc))
+#else
+#define BLEND_INIT do {} while (0)
+#define BLEND_START(acc, color, alpha) ((acc) = (color) * (alpha))
+#define BLEND_CONT(acc, color, alpha) ((acc) += (color) * (alpha))
+#define BLEND_OUT(acc) do {} while (0)
+#endif
+
+/* Blend the given two colors */
+static inline unsigned blend_two_colors(unsigned c1, unsigned c2, unsigned a)
+{
+    a += a >> (ALPHA_COLOR_LOOKUP_SHIFT - 1);
+#if (LCD_PIXELFORMAT == RGB565SWAPPED)
+    c1 = swap16(c1);
+    c2 = swap16(c2);
+#endif
+    unsigned c1l = (c1 | (c1 << 16)) & 0x07e0f81f;
+    unsigned c2l = (c2 | (c2 << 16)) & 0x07e0f81f;
+    unsigned p;
+    BLEND_START(p, c1l, a);
+    BLEND_CONT(p, c2l, ALPHA_COLOR_LOOKUP_SIZE + 1 - a);
+    BLEND_OUT(p);
+    p = (p >> ALPHA_COLOR_LOOKUP_SHIFT) & 0x07e0f81f;
+    p |= (p >> 16);
+#if (LCD_PIXELFORMAT == RGB565SWAPPED)
+    return swap16(p);
+#else
+    return p;
+#endif
+}
+
+static void buffer_alpha_bitmap_part(
+                              fb_data *buf, int buf_width, int buf_height,
+                              const unsigned char *src, int src_x, int src_y,
+                              int stride, int x, int y, int width, int height )
+{
+    fb_data *dst;
+    unsigned fg_pattern = rb->lcd_get_foreground();
+
+    /* nothing to draw? */
+    if ((width <= 0) || (height <= 0) || (x >= buf_width) ||
+         (y >= buf_height) || (x + width <= 0) || (y + height <= 0))
+        return;
+
+    /* initialize blending */
+    BLEND_INIT;
+
+    /* clipping */
+    if (x < 0)
+    {
+        width += x;
+        src_x -= x;
+        x = 0;
+    }
+    if (y < 0)
+    {
+        height += y;
+        src_y -= y;
+        y = 0;
+    }
+    if (x + width > buf_width)
+        width = buf_width - x;
+    if (y + height > buf_height)
+        height = buf_height - y;
+
+    dst = buf + y*buf_width + x;
+
+    int col, row = height;
+    unsigned data, pixels;
+    unsigned skip_end = (stride - width);
+    unsigned skip_start = src_y * stride + src_x;
+
+#ifdef ALPHA_BITMAP_READ_WORDS
+    uint32_t *src_w = (uint32_t *)((uintptr_t)src & ~3);
+    skip_start += ALPHA_COLOR_PIXEL_PER_BYTE * ((uintptr_t)src & 3);
+    src_w += skip_start / ALPHA_COLOR_PIXEL_PER_WORD;
+    data = letoh32(*src_w++);
+#else
+    src += skip_start / ALPHA_COLOR_PIXEL_PER_BYTE;
+    data = *src;
+#endif
+    pixels = skip_start % ALPHA_COLOR_PIXEL_PER_WORD;
+    data >>= pixels * ALPHA_COLOR_LOOKUP_SHIFT;
+#ifdef ALPHA_BITMAP_READ_WORDS
+    pixels = 8 - pixels;
+#endif
+
+    do
+    {
+        col = width;
+#ifdef ALPHA_BITMAP_READ_WORDS
+#define UPDATE_SRC_ALPHA    do { \
+            if (--pixels) \
+                data >>= ALPHA_COLOR_LOOKUP_SHIFT; \
+            else \
+            { \
+                data = letoh32(*src_w++); \
+                pixels = ALPHA_COLOR_PIXEL_PER_WORD; \
+            } \
+        } while (0)
+#elif ALPHA_COLOR_PIXEL_PER_BYTE == 2
+#define UPDATE_SRC_ALPHA    do { \
+            if (pixels ^= 1) \
+                data >>= ALPHA_COLOR_LOOKUP_SHIFT; \
+            else \
+                data = *(++src); \
+        } while (0)
+#else
+#define UPDATE_SRC_ALPHA    do { \
+            if (pixels = (++pixels % ALPHA_COLOR_PIXEL_PER_BYTE)) \
+                data >>= ALPHA_COLOR_LOOKUP_SHIFT; \
+            else \
+                data = *(++src); \
+        } while (0)
+#endif
+
+        do
+        {
+            *dst=blend_two_colors(*dst, fg_pattern,
+                                  data & ALPHA_COLOR_LOOKUP_SIZE );
+            dst++;
+            UPDATE_SRC_ALPHA;
+        }
+        while (--col);
+#ifdef ALPHA_BITMAP_READ_WORDS
+        if (skip_end < pixels)
+        {
+            pixels -= skip_end;
+            data >>= skip_end * ALPHA_COLOR_LOOKUP_SHIFT;
+        } else {
+            pixels = skip_end - pixels;
+            src_w += pixels / ALPHA_COLOR_PIXEL_PER_WORD;
+            pixels %= ALPHA_COLOR_PIXEL_PER_WORD;
+            data = letoh32(*src_w++);
+            data >>= pixels * ALPHA_COLOR_LOOKUP_SHIFT;
+            pixels = 8 - pixels;
+        }
+#else
+        if (skip_end)
+        {
+            pixels += skip_end;
+            if (pixels >= ALPHA_COLOR_PIXEL_PER_BYTE)
+            {
+                src += pixels / ALPHA_COLOR_PIXEL_PER_BYTE;
+                pixels %= ALPHA_COLOR_PIXEL_PER_BYTE;
+                data = *src;
+                data >>= pixels * ALPHA_COLOR_LOOKUP_SHIFT;
+            } else
+                data >>= skip_end * ALPHA_COLOR_LOOKUP_SHIFT;
+        }
+#endif
+        dst += LCD_WIDTH - width;
+    } while (--row);
+}
+
 static void buffer_putsxyofs( fb_data *buf, int buf_width, int buf_height,
                               int x, int y, int ofs, const unsigned char *str )
 {
@@ -589,8 +876,12 @@ static void buffer_putsxyofs( fb_data *buf, int buf_width, int buf_height,
 
         bits = rb->font_get_bits( pf, ch );
 
-        buffer_mono_bitmap_part( buf, buf_width, buf_height, bits, ofs, 0,
-                                 width, x, y, width - ofs, pf->height);
+        if (pf->depth)
+            buffer_alpha_bitmap_part( buf, buf_width, buf_height, bits, ofs, 0,
+                                      width, x, y, width - ofs, pf->height);
+        else
+            buffer_mono_bitmap_part( buf, buf_width, buf_height, bits, ofs, 0,
+                                     width, x, y, width - ofs, pf->height);
 
         x += width - ofs;
         ofs = 0;
@@ -684,136 +975,33 @@ static bool check_extention(const char *filename, const char *ext)
     return ( p != NULL && !rb->strcasecmp( p, ext ) );
 }
 
-static const char* browse_get_name_cb(int selected_item, void *data,
-                                      char *buffer, size_t buffer_len)
+/* only displayes directories and .bmp files */
+static bool callback_show_item(char *name, int attr, struct tree_context *tc)
 {
-    int *indexes = (int *) data;
-    struct entry* dc = tree->dircache;
-    struct entry* e = &dc[indexes[selected_item]];
-    (void) buffer;
-    (void) buffer_len;
-
-    return e->name;
+    (void) tc;
+    if( ( attr & ATTR_DIRECTORY ) ||
+        ( !(attr & ATTR_DIRECTORY) && check_extention( name, ".bmp" ) ) )
+    {
+        return true;
+    }
+    return false;
 }
 
 static bool browse( char *dst, int dst_size, const char *start )
 {
-    struct gui_synclist browse_list;
-    int item_count = 0, selected, button;
-    struct tree_context backup;
-    struct entry *dc, *e;
-    bool reload = true;
-    int dirfilter = SHOW_ALL;
-    int *indexes = (int *) buffer;
-    size_t bbuf_len, len;
+    struct browse_context browse;
 
-    char *a;
+    rb->browse_context_init(&browse, SHOW_ALL,
+                            BROWSE_SELECTONLY|BROWSE_NO_CONTEXT_MENU,
+                            NULL, NOICON, start, NULL);
 
-    rb->strcpy( bbuf, start );
-    bbuf_len = rb->strlen(bbuf);
-    if( bbuf[bbuf_len-1] != '/' )
-    {
-        bbuf[bbuf_len++] = '/';
-        bbuf[bbuf_len] = '\0';
-    }
-    bbuf_s[0] = '\0';
+    browse.callback_show_item = callback_show_item;
+    browse.buf = dst;
+    browse.bufsize = dst_size;
 
-    rb->gui_synclist_init(&browse_list, browse_get_name_cb,
-                            (void*) indexes, false, 1, NULL);
+    rb->rockbox_browse(&browse);
 
-    tree = rb->tree_get_context();
-    backup = *tree;
-    dc = tree->dircache;
-    a = backup.currdir+rb->strlen(backup.currdir)-1;
-    if( *a != '/' )
-    {
-        *++a = '/';
-    }
-    rb->strcpy( a+1, dc[tree->selected_item].name );
-    tree->dirfilter = &dirfilter;
-    tree->browse = NULL;
-    while( 1 )
-    {
-        if( reload )
-        {
-            int i;
-            rb->set_current_file(bbuf);
-            item_count = 0;
-            selected = 0;
-            for( i = 0; i < tree->filesindir ; i++)
-            {
-                e = &dc[i];
-                /* only displayes directories and .bmp files */
-                if( ( e->attr & ATTR_DIRECTORY ) ||
-                    ( !(e->attr & ATTR_DIRECTORY) &&
-                        check_extention( e->name, ".bmp" ) ) )
-                {
-                    if( bbuf_s[0] && !rb->strcmp( e->name, bbuf_s ) )
-                        selected = item_count;
-                    indexes[item_count++] = i;
-                }
-            }
-
-            rb->gui_synclist_set_nb_items(&browse_list,item_count);
-            rb->gui_synclist_select_item(&browse_list, selected);
-            rb->gui_synclist_set_title(&browse_list, bbuf, NOICON);
-            rb->gui_synclist_draw(&browse_list);
-            reload = false;
-        }
-        button = rb->get_action(CONTEXT_LIST,TIMEOUT_BLOCK);
-        if (rb->gui_synclist_do_button(&browse_list,&button,LIST_WRAP_UNLESS_HELD))
-            continue;
-        switch( button )
-        {
-            case ACTION_STD_CANCEL:
-                if( !rb->strcmp( bbuf, "/" ) )
-                {
-                    *tree = backup;
-                    rb->set_current_file( backup.currdir );
-                    return false;
-                }
-                a = bbuf + bbuf_len - 1;
-                if( a == bbuf ) break;
-                while( *a == '/' ) a--;
-                *(a+1) = '\0';
-                while( *a != '/' ) a--;
-                /* select parent directory */
-                rb->strcpy( bbuf_s, ++a );
-                *a = '\0';
-                bbuf_len = a - bbuf;
-                reload = true;
-                break;
-
-            case ACTION_STD_OK:
-                selected = rb->gui_synclist_get_sel_pos( &browse_list );
-                if( selected < 0 || selected >= item_count )
-                    break;
-                e = &dc[indexes[selected]];
-                if( !( e->attr & ATTR_DIRECTORY ) )
-                {
-                    rb->snprintf( dst, dst_size, "%s%s", bbuf, e->name );
-                    *tree = backup;
-                    rb->set_current_file( backup.currdir );
-                    return true;
-                }
-                len = rb->strlen(e->name);
-                if( bbuf_len + len + 2 < (int)sizeof(bbuf) )
-                {
-                    bbuf_s[0] = '\0';
-                    rb->strcpy( bbuf+bbuf_len, e->name );
-                    bbuf_len += len;
-                    bbuf[bbuf_len++] = '/';
-                    bbuf[bbuf_len] = '\0';
-                    reload = true;
-                }
-                break;
-
-            case ACTION_STD_MENU:
-                *tree = backup;
-                rb->set_current_file( backup.currdir );
-                return false;
-        }
-    }
+    return (browse.flags & BROWSE_SELECTED);
 }
 
 /***********************************************************************
@@ -873,7 +1061,7 @@ static bool browse_fonts( char *dst, int dst_size )
 
     tree = rb->tree_get_context();
     backup = *tree;
-    dc = tree->dircache;
+    dc = rb->tree_get_entries(tree);
     a = backup.currdir+rb->strlen(backup.currdir)-1;
     if( *a != '/' )
     {
@@ -941,7 +1129,6 @@ static bool browse_fonts( char *dst, int dst_size )
                     size_t siz;
                     reset_font = true;
                     rb->snprintf( bbuf, MAX_PATH, FONT_DIR "/%s", e->name );
-                    rb->font_load(NULL, bbuf );
                     rb->font_getstringsize( e->name, &fw, &fh, FONT_UI );
                     if( fw > LCD_WIDTH ) fw = LCD_WIDTH;
                     siz = (sizeof(struct font_preview) + fw*fh*FB_DATA_SZ+3) & ~3;
@@ -1008,7 +1195,7 @@ static bool browse_fonts( char *dst, int dst_size )
             li = tree->filesindir-1;
             if( reset_font )
             {
-                rb->font_load(NULL, bbuf_s );
+             // fixme   rb->font_load(NULL, bbuf_s );
                 reset_font = false;
             }
             if( lvi-fvi+1 < tree->filesindir )
@@ -1561,6 +1748,7 @@ static void show_grid( bool update )
 static void draw_text( int x, int y )
 {
     int selected = 0;
+    int current_font_id = rb->global_status->font_id[SCREEN_MAIN];
     buffer->text.text[0] = '\0';
     buffer->text.font[0] = '\0';
     while( 1 )
@@ -1573,9 +1761,12 @@ static void draw_text( int x, int y )
                 break;
 
             case TEXT_MENU_FONT:
-                if( browse_fonts( buffer->text.font, MAX_PATH ) )
+                if (current_font_id != rb->global_status->font_id[SCREEN_MAIN])
+                    rb->font_unload(current_font_id);
+                if(browse_fonts( buffer->text.font, MAX_PATH ) )
                 {
-                    rb->font_load(NULL, buffer->text.font );
+                    current_font_id = rb->font_load(buffer->text.font );
+                    rb->lcd_setfont(current_font_id);
                 }
                 break;
 
@@ -1629,7 +1820,9 @@ static void draw_text( int x, int y )
                     rb->snprintf( buffer->text.font, MAX_PATH,
                                   FONT_DIR "/%s.fnt",
                                   rb->global_settings->font_file );
-                    rb->font_load(NULL, buffer->text.font );
+                    if (current_font_id != rb->global_status->font_id[SCREEN_MAIN])
+                        rb->font_unload(current_font_id);
+                    rb->lcd_setfont(FONT_UI);
                 }
                 return;
         }

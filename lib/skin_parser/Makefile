@@ -4,7 +4,6 @@
 #   Jukebox    |    |   (  <_> )  \___|    < | \_\ (  <_> > <  <
 #   Firmware   |____|_  /\____/ \___  >__|_ \|___  /\____/__/\_ \
 #                     \/            \/     \/    \/            \/
-# $Id$
 #
 
 ifndef V
@@ -18,7 +17,9 @@ TARGET_DIR ?= ./
 
 # construct build directory if BUILDDIR is not set.
 BUILDDIR ?= $(TARGET_DIR)build
+TARGETPLATFORM ?= $(shell uname)
 
+CFLAGS += -D__PCTOOL__
 ifdef RBARCH
 CFLAGS += -arch $(RBARCH)
 OBJDIR = $(BUILDDIR)/$(RBARCH)/
@@ -37,7 +38,7 @@ $(OBJDIR)%.o: %.c
 	$(SILENT)mkdir -p $(dir $@)
 	$(SILENT)$(CC) $(CFLAGS) -c -o $@ $<
 
-ifeq ($(findstring Darwin,$(shell uname)),Darwin)
+ifeq ($(findstring Darwin,$(TARGETPLATFORM)),Darwin)
 # some trickery to build ppc and i386 from a single call
 $(OUTPUT).a: $(TARGET_DIR)$(OUTPUT)i386.a $(TARGET_DIR)$(OUTPUT)ppc.a
 	@echo lipo $(TARGET_DIR)$@

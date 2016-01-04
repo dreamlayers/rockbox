@@ -24,9 +24,9 @@
 #include "cpu.h"
 #include "system.h"
 #include "lcd.h"
-#include "kernel.h"
-#include "thread.h"
+#include "../kernel-internal.h"
 #include "storage.h"
+#include "file_internal.h"
 #include "fat.h"
 #include "disk.h"
 #include "font.h"
@@ -38,6 +38,8 @@
 #include "power.h"
 #include "file.h"
 #include "common.h"
+#include "rb-loader.h"
+#include "loader_strerror.h"
 #include "rbunicode.h"
 #include "usb.h"
 #include "spi.h"
@@ -64,8 +66,8 @@ void main(void)
     set_irq_level(IRQ_ENABLED);
     set_fiq_status(FIQ_ENABLED);
 
-    backlight_init();
     lcd_init();
+    backlight_init();
     font_init();
     button_init();
     usb_init();
@@ -84,7 +86,7 @@ void main(void)
         verbose = true;
 
     printf("Rockbox boot loader");
-    printf("Version " RBVERSION);
+    printf("Version %s", rbversion);
 
     /* Enter USB mode without USB thread */
     if(usb_detect() == USB_INSERTED)
@@ -122,8 +124,8 @@ void main(void)
         error(EATA, rc, true);
     }
 
-    printf("disk");
-    disk_init();
+    printf("filesystem");
+    filesystem_init();
 
     printf("mount");
     rc = disk_mount_all();
@@ -138,12 +140,12 @@ void main(void)
     buffer_size = (unsigned char*)0x01900000 - loadbuffer;
 
     rc = load_firmware(loadbuffer, BOOTFILE, buffer_size);
-    if(rc < 0)
+    if(rc <= EFILE_EMPTY)
         error(EBOOTFILE, rc, true);
 
-    if (rc == EOK)
-    {
-        kernel_entry = (void*) loadbuffer;
-        rc = kernel_entry();
-    }
+    kernel_entry = (void*) loadbuffer;
+    rc = kernel_entry();
+
+    /* Should not get here! */
+    return rc;
 }

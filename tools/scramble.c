@@ -30,6 +30,7 @@
 #include "telechips.h"
 #include "creative.h"
 #include "iaudio_bl_flash.h"
+#include "rkw.h"
 
 static int iaudio_encode(char *iname, char *oname, char *idstring);
 static int ipod_encode(char *iname, char *oname, int fw_ver, bool fake_rsrc);
@@ -106,9 +107,9 @@ void usage(void)
     printf("\t-ipod3g ipod firmware partition format (3rd Gen)\n"
            "\t-ipod4g ipod firmware partition format (4th Gen, Mini, Nano, Photo/Color)\n"
            "\t-ipod5g ipod firmware partition format (5th Gen - aka Video)\n"
-           "\t-creative=X Creative firmware structure format\n"
-           "\t            (X values: zvm, zvm60, zenvision\n"
-           "\t                       zenv, zen\n");
+           "\t-creative=X [-no-ciff] Creative firmware structure format\n"
+           "\t            (X values: zvm, zvm60, zenvision, zenv, zen,\n"
+           "\t             zenxfi, zenmozaic)\n");
     printf("\t-gigabeat Toshiba Gigabeat F/X format\n"
            "\t-gigabeats Toshiba Gigabeat S format\n"
            "\t-mi4v2  PortalPlayer .mi4 format (revision 010201)\n"
@@ -119,14 +120,16 @@ void usage(void)
            "\t        -type=XXXX    where XXXX is a string indicating the \n"
            "\t                      type of binary, eg. RBOS, RBBL\n"
            "\t-tcc=X  Telechips generic firmware format (X values: sum, crc)\n"
+           "\t-rkw Rockchip RKW format\n"
            "\t-add=X  Rockbox generic \"add-up\" checksum format\n"
            "\t        (X values: h100, h120, h140, h300, ipco, nano, ipvd, mn2g\n"
-           "\t                   ip3g, ip4g, mini, iax5, iam5, iam3, h10, h10_5gb,\n"
-           "\t                   tpj2, c200, e200, giga, gigs, m100, m500, d2,\n");
-    printf("\t                   9200, 1630, 6330, ldax, m200, c100, clip, e2v2,\n"
+           "\t                   ip3g, ip4g, mini, iax5, iam5, iam3, h10, h10_5gb,\n");
+    printf("\t                   tpj2, c200, e200, giga, gigs, m100, m500, d2,\n"
+           "\t                   9200, 1630, 6330, ldax, m200, c100, clip, e2v2,\n"
            "\t                   m2v4, fuze, c2v2, clv2, y820, y920, y925, x747,\n"
            "\t                   747p, x777, nn2g, m244, cli+, fuz2, hd20, hd30,\n"
-           "\t                   ip6g)\n");
+           "\t                   ip6g, rk27, clzp, zxf2, zxf3, fuz+, e370, e360,\n"
+           "\t                   zxfi, zmoz, zen, zenv, ypz5, zxfs)\n");
     printf("\nNo option results in Archos standard player/recorder format.\n");
 
     exit(1);
@@ -148,7 +151,7 @@ int main (int argc, char** argv)
     unsigned long modelnum;
     char modelname[5];
     int model_id;
-    enum { none, scramble, xor, tcc_sum, tcc_crc, add } method = scramble;
+    enum { none, scramble, xor, tcc_sum, tcc_crc, rkw, add } method = scramble;
     bool creative_enable_ciff;
 
     model_id = ARCHOS_PLAYER;
@@ -221,6 +224,24 @@ int main (int argc, char** argv)
             fprintf(stderr, "unsupported TCC method: %s\n", &argv[1][5]);
             return 2;
         }
+    }
+    else if(!strncmp(argv[1], "-rkw", 4)) {
+        iname = argv[3];
+        oname = argv[4];
+        modelnum = 0;
+
+        if(!strncmp(argv[2], "-modelnum=", 10)) {
+            modelnum = atoi(&argv[2][10]);
+        }
+
+        if (!modelnum)
+        {
+            modelnum = 73; /* rk27generic */
+            fprintf(stderr, "modelnum not supplied."
+                            " using default value for rk27generic target\n");
+        }
+
+        return (rkw_encode(iname, oname, modelnum) != 0) ? -1 : 0;
     }
     else if(!strncmp(argv[1], "-add=", 5)) {
         iname = argv[2];
@@ -335,6 +356,32 @@ int main (int argc, char** argv)
             modelnum = 70;
         else if (!strcmp(&argv[1][5], "ip6g")) /* iPod Classic/6G */
             modelnum = 71;
+        else if (!strcmp(&argv[1][5], "fuz+")) /* Sansa Fuze+ */
+            modelnum = 72;
+        else if (!strcmp(&argv[1][5], "clzp")) /* Sansa Clip Zip */
+            modelnum = 79;
+        else if (!strcmp(&argv[1][5], "conn")) /* Sansa Connect */
+            modelnum = 81;
+        else if (!strcmp(&argv[1][5], "zxf2")) /* Creative Zen X-Fi2 */
+            modelnum = 82;
+        else if (!strcmp(&argv[1][5], "zxf3")) /* Creative Zen X-Fi3 */
+            modelnum = 83;
+        else if (!strcmp(&argv[1][5], "ypz5")) /* Samsung YP-Z5 */
+            modelnum = 84;
+        else if (!strcmp(&argv[1][5], "zenv")) /* Creative Zen V */
+            modelnum = 85;
+        else if (!strcmp(&argv[1][5], "zxfi")) /* Creative ZEN X-Fi */
+            modelnum = 86;
+        else if (!strcmp(&argv[1][5], "zmoz")) /* Creative ZEN Mozaic*/
+            modelnum = 87;
+        else if (!strcmp(&argv[1][5], "e370")) /* Sony NWZ-E370 series */
+            modelnum = 88;
+        else if (!strcmp(&argv[1][5], "e360")) /* Sony NWZ-E360 series */
+            modelnum = 89;
+        else if (!strcmp(&argv[1][5], "zen")) /* Creative ZEN */
+            modelnum = 90;
+        else if (!strcmp(&argv[1][5], "zxfs")) /* Creative ZEN X-Fi Style */
+            modelnum = 94;
         else {
             fprintf(stderr, "unsupported model: %s\n", &argv[1][5]);
             return 2;
@@ -421,6 +468,10 @@ int main (int argc, char** argv)
             return zvm_encode(iname, oname, ZENV, creative_enable_ciff);
         else if(!strcmp(&argv[1][10], "zen"))
             return zvm_encode(iname, oname, ZEN, creative_enable_ciff);
+        else if(!strcmp(&argv[1][10], "zenxfi"))
+            return zvm_encode(iname, oname, ZENXFI, creative_enable_ciff);
+        else if(!strcmp(&argv[1][10], "zenmozaic"))
+            return zvm_encode(iname, oname, ZENMOZAIC, creative_enable_ciff);
         else
         {
             fprintf(stderr, "unsupported Creative device: %s\n", &argv[1][10]);

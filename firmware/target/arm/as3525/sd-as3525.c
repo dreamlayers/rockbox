@@ -136,8 +136,8 @@ static bool hs_card = false;
 #define EXT_SD_BITS (1<<2)
 #endif
 
-static struct wakeup transfer_completion_signal;
-static volatile unsigned int transfer_error[NUM_VOLUMES];
+static struct semaphore transfer_completion_signal;
+static volatile unsigned int transfer_error[NUM_DRIVES];
 #define PL180_MAX_TRANSFER_ERRORS 10
 
 #define UNALIGNED_NUM_SECTORS 10
@@ -178,10 +178,12 @@ static int sd1_oneshot_callback(struct timeout *tmo)
 void sd_gpioa_isr(void)
 {
     static struct timeout sd1_oneshot;
+
     if (GPIOA_MIS & EXT_SD_BITS)
+    {
         timeout_register(&sd1_oneshot, sd1_oneshot_callback, (3*HZ/10), 0);
-    /* acknowledge interrupt */
-    GPIOA_IC = EXT_SD_BITS;
+        GPIOA_IC = EXT_SD_BITS; /* acknowledge interrupt */
+    }
 }
 #endif  /* HAVE_HOTSWAP */
 
@@ -191,7 +193,7 @@ void INT_NAND(void)
 
     transfer_error[INTERNAL_AS3525] = status & MCI_DATA_ERROR;
 
-    wakeup_signal(&transfer_completion_signal);
+    semaphore_release(&transfer_completion_signal);
     MCI_CLEAR(INTERNAL_AS3525) = status;
 }
 
@@ -202,7 +204,7 @@ void INT_MCI0(void)
 
     transfer_error[SD_SLOT_AS3525] = status & MCI_DATA_ERROR;
 
-    wakeup_signal(&transfer_completion_signal);
+    semaphore_release(&transfer_completion_signal);
     MCI_CLEAR(SD_SLOT_AS3525) = status;
 }
 #endif
@@ -349,7 +351,7 @@ static int sd_init_card(const int drive)
         /* CMD6 */
         if(!send_cmd(drive, SD_SWITCH_FUNC, 0x80fffff1, MCI_NO_RESP, NULL))
             return -7;
-        mci_delay();
+        sleep(HZ/10);
 
         /*  go back to STBY state so we can read csd */
         /*  CMD7 w/rca=0:  Deselect card to put it in STBY state */
@@ -447,21 +449,12 @@ static void sd_thread(void)
         {
 #ifdef HAVE_HOTSWAP
         case SYS_HOTSWAP_INSERTED:
-        case SYS_HOTSWAP_EXTRACTED:
-        {
-            int microsd_init = 1;
-            fat_lock();          /* lock-out FAT activity first -
-                                    prevent deadlocking via disk_mount that
-                                    would cause a reverse-order attempt with
-                                    another thread */
-            mutex_lock(&sd_mtx); /* lock-out card activity - direct calls
-                                    into driver that bypass the fat cache */
+        case SYS_HOTSWAP_EXTRACTED:;
+            int success = 1;
 
-            /* We now have exclusive control of fat cache and ata */
+            disk_unmount(SD_SLOT_AS3525); /* release "by force" */
 
-            disk_unmount(SD_SLOT_AS3525);     /* release "by force", ensure file
-                                    descriptors aren't leaked and any busy
-                                    ones are invalid if mounting */
+            mutex_lock(&sd_mtx); /* lock-out card activity */
 
             /* Force card init for new card, re-init for re-inserted one or
              * clear if the last attempt to init failed with an error. */
@@ -469,29 +462,32 @@ static void sd_thread(void)
 
             if (ev.id == SYS_HOTSWAP_INSERTED)
             {
+                success = 0;
                 sd_enable(true);
                 init_pl180_controller(SD_SLOT_AS3525);
-                microsd_init = sd_init_card(SD_SLOT_AS3525);
-                if (microsd_init < 0) /* initialisation failed */
-                    panicf("microSD init failed : %d", microsd_init);
-
-                microsd_init = disk_mount(SD_SLOT_AS3525); /* 0 if fail */
+                int rc = sd_init_card(SD_SLOT_AS3525);
+                sd_enable(false);
+                if (rc >= 0)
+                    success = 2;
+                else /* initialisation failed */
+                    panicf("microSD init failed : %d", rc);
             }
+
+            mutex_unlock(&sd_mtx);
+
+            if (success > 1)
+                success = disk_mount(SD_SLOT_AS3525); /* 0 if fail */
 
             /*
              * Mount succeeded, or this was an EXTRACTED event,
              * in both cases notify the system about the changed filesystems
              */
-            if (microsd_init)  
+            if (success)
                 queue_broadcast(SYS_FS_CHANGED, 0);
 
-            /* Access is now safe */
-            mutex_unlock(&sd_mtx);
-            fat_unlock();
-            sd_enable(false);
-        }
             break;
-#endif
+#endif /* HAVE_HOTSWAP */
+
         case SYS_TIMEOUT:
             if (TIME_BEFORE(current_tick, last_disk_activity+(3*HZ)))
             {
@@ -515,9 +511,6 @@ static void sd_thread(void)
             /* Wait until the USB cable is extracted again */
             usb_wait_for_disconnect(&sd_queue);
 
-            break;
-        case SYS_USB_DISCONNECTED:
-            usb_acknowledge(SYS_USB_DISCONNECTED_ACK);
             break;
         }
     }
@@ -567,11 +560,10 @@ int sd_init(void)
     bitset32(&CGU_PERI, CGU_NAF_CLOCK_ENABLE);
 #ifdef HAVE_MULTIDRIVE
     bitset32(&CGU_PERI, CGU_MCI_CLOCK_ENABLE);
-    bitclr32(&CCU_IO, 1<<3);    /* bits 3:2 = 01, xpd is SD interface */
-    bitset32(&CCU_IO, 1<<2);
+    bitmod32(&CCU_IO, 1<<2, 3<<2);  /* bits 3:2 = 01, xpd is SD interface */
 #endif
 
-    wakeup_init(&transfer_completion_signal);
+    semaphore_init(&transfer_completion_signal, 1, 0);
 
     init_pl180_controller(INTERNAL_AS3525);
     ret = sd_init_card(INTERNAL_AS3525);
@@ -597,12 +589,12 @@ int sd_init(void)
 #ifdef HAVE_HOTSWAP
 bool sd_removable(IF_MD_NONVOID(int drive))
 {
-    return (drive==1);
+    return (drive == SD_SLOT_AS3525);
 }
 
 bool sd_present(IF_MD_NONVOID(int drive))
 {
-    return (drive == 0) ? true : card_detect_target();
+    return (drive == INTERNAL_AS3525) ? true : card_detect_target();
 }
 #endif /* HAVE_HOTSWAP */
 
@@ -669,7 +661,7 @@ static int sd_select_bank(signed char bank)
         dma_retain();
         /* we don't use the uncached buffer here, because we need the
          * physical memory address for DMA transfers */
-        dma_enable_channel(0, AS3525_PHYSICAL_ADDR(&aligned_buffer[0]),
+        dma_enable_channel(1, AS3525_PHYSICAL_ADDR(&aligned_buffer[0]),
             MCI_FIFO(INTERNAL_AS3525), DMA_PERI_SD,
             DMAC_FLOWCTRL_PERI_MEM_TO_PERI, true, false, 0, DMA_S8, NULL);
 
@@ -681,7 +673,7 @@ static int sd_select_bank(signed char bank)
                                 (9<<4) /* 2^9 = 512 */ ;
 
         /* Wakeup signal from NAND/MCIO isr on MCI_DATA_ERROR | MCI_DATA_END */
-        wakeup_wait(&transfer_completion_signal, TIMEOUT_BLOCK);
+        semaphore_wait(&transfer_completion_signal, TIMEOUT_BLOCK);
 
         /*  Wait for FIFO to empty, card may still be in PRG state  */
         while(MCI_STATUS(INTERNAL_AS3525) & MCI_TX_ACTIVE );
@@ -695,7 +687,7 @@ static int sd_select_bank(signed char bank)
     return 0;
 }
 
-static int sd_transfer_sectors(IF_MD2(int drive,) unsigned long start,
+static int sd_transfer_sectors(IF_MD(int drive,) unsigned long start,
                                int count, void* buf, const bool write)
 {
 #ifndef HAVE_MULTIDRIVE
@@ -813,7 +805,7 @@ static int sd_transfer_sectors(IF_MD2(int drive,) unsigned long start,
 
         if(write)
         {
-            dma_enable_channel(0, dma_buf, MCI_FIFO(drive),
+            dma_enable_channel(1, dma_buf, MCI_FIFO(drive),
                 (drive == INTERNAL_AS3525) ? DMA_PERI_SD : DMA_PERI_SD_SLOT,
                 DMAC_FLOWCTRL_PERI_MEM_TO_PERI, true, false, 0, DMA_S8, NULL);
 
@@ -827,7 +819,7 @@ static int sd_transfer_sectors(IF_MD2(int drive,) unsigned long start,
 #endif
         }
         else
-            dma_enable_channel(0, MCI_FIFO(drive), dma_buf,
+            dma_enable_channel(1, MCI_FIFO(drive), dma_buf,
                 (drive == INTERNAL_AS3525) ? DMA_PERI_SD : DMA_PERI_SD_SLOT,
                 DMAC_FLOWCTRL_PERI_PERI_TO_MEM, false, true, 0, DMA_S8, NULL);
 
@@ -840,7 +832,7 @@ static int sd_transfer_sectors(IF_MD2(int drive,) unsigned long start,
                                 (9<<4) /* 2^9 = 512 */ ;
 
         /* Wakeup signal from NAND/MCIO isr on MCI_DATA_ERROR | MCI_DATA_END */
-        wakeup_wait(&transfer_completion_signal, TIMEOUT_BLOCK);
+        semaphore_wait(&transfer_completion_signal, TIMEOUT_BLOCK);
 
         /*  Wait for FIFO to empty, card may still be in PRG state for writes */
         while(MCI_STATUS(drive) & MCI_TX_ACTIVE);
@@ -850,7 +842,7 @@ static int sd_transfer_sectors(IF_MD2(int drive,) unsigned long start,
          * dma channel here, otherwise there are still 4 words in the fifo
          * and the retried write will get corrupted.
          */
-        dma_disable_channel(0);
+        dma_disable_channel(1);
 
         last_disk_activity = current_tick;
 
@@ -889,19 +881,19 @@ sd_transfer_error_nodma:
     return ret;
 }
 
-int sd_read_sectors(IF_MD2(int drive,) unsigned long start, int count,
+int sd_read_sectors(IF_MD(int drive,) unsigned long start, int count,
                      void* buf)
 {
     int ret;
 
     mutex_lock(&sd_mtx);
-    ret = sd_transfer_sectors(IF_MD2(drive,) start, count, buf, false);
+    ret = sd_transfer_sectors(IF_MD(drive,) start, count, buf, false);
     mutex_unlock(&sd_mtx);
 
     return ret;
 }
 
-int sd_write_sectors(IF_MD2(int drive,) unsigned long start, int count,
+int sd_write_sectors(IF_MD(int drive,) unsigned long start, int count,
                      const void* buf)
 {
 #ifdef VERIFY_WRITE
@@ -913,7 +905,7 @@ int sd_write_sectors(IF_MD2(int drive,) unsigned long start, int count,
 
     mutex_lock(&sd_mtx);
 
-    ret = sd_transfer_sectors(IF_MD2(drive,) start, count, (void*)buf, true);
+    ret = sd_transfer_sectors(IF_MD(drive,) start, count, (void*)buf, true);
 
 #ifdef VERIFY_WRITE
     if (ret) {
@@ -930,10 +922,10 @@ int sd_write_sectors(IF_MD2(int drive,) unsigned long start, int count,
         if(transfer > UNALIGNED_NUM_SECTORS)
             transfer = UNALIGNED_NUM_SECTORS;
 
-        sd_transfer_sectors(IF_MD2(drive,) start, transfer, aligned_buffer, false);
+        sd_transfer_sectors(IF_MD(drive,) start, transfer, aligned_buffer, false);
         if (memcmp(buf, aligned_buffer, transfer * 512) != 0) {
             /* try the write again in the hope to repair the damage */
-            sd_transfer_sectors(IF_MD2(drive,) saved_start, saved_count, saved_buf, true);
+            sd_transfer_sectors(IF_MD(drive,) saved_start, saved_count, saved_buf, true);
             panicf("sd: verify failed: sec=%ld n=%d!", start, transfer);
         }
 
@@ -973,11 +965,11 @@ void sd_enable(bool on)
 #if defined(HAVE_BUTTON_LIGHT) && defined(HAVE_MULTIDRIVE)
         /* buttonlight AMSes need a bit of special handling for the buttonlight
          * here due to the dual mapping of GPIOD and XPD */
-        bitset32(&CCU_IO, 1<<2);    /* XPD is SD-MCI interface (b3:2 = 01) */
+        bitmod32(&CCU_IO, 1<<2, 3<<2);  /* XPD is SD-MCI interface (b3:2 = 01) */
         if (buttonlight_is_on)
             GPIOD_DIR &= ~(1<<7);
         else
-            _buttonlight_off();
+           buttonlight_hw_off();
 #endif
 
 #if defined(HAVE_HOTSWAP) && defined (HAVE_ADJUSTABLE_CPU_VOLTAGE)
@@ -999,9 +991,9 @@ void sd_enable(bool on)
 #endif  /* defined(HAVE_HOTSWAP) && defined (HAVE_ADJUSTABLE_CPU_VOLTAGE) */
 
 #if defined(HAVE_BUTTON_LIGHT) && defined(HAVE_MULTIDRIVE)
-        bitclr32(&CCU_IO, 1<<2);    /* XPD is general purpose IO (b3:2 = 00) */
+        bitmod32(&CCU_IO, 0<<2, 3<<2);  /* XPD is general purpose IO (b3:2 = 00) */
         if (buttonlight_is_on)
-            _buttonlight_on();
+           buttonlight_hw_on();
 #endif
     }
 }

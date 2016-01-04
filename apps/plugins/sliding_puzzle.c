@@ -136,7 +136,8 @@
 #define PUZZLE_SHUFFLE BUTTON_REW
 #define PUZZLE_PICTURE BUTTON_PLAY
 
-#elif (CONFIG_KEYPAD == GIGABEAT_S_PAD)
+#elif (CONFIG_KEYPAD == GIGABEAT_S_PAD) || \
+      (CONFIG_KEYPAD == SAMSUNG_YPR0_PAD)
 #define PUZZLE_QUIT BUTTON_BACK
 #define PUZZLE_LEFT BUTTON_LEFT
 #define PUZZLE_RIGHT BUTTON_RIGHT
@@ -176,6 +177,15 @@
 #define PUZZLE_SHUFFLE BUTTON_PLAY
 #define PUZZLE_PICTURE BUTTON_MENU
 
+#elif (CONFIG_KEYPAD == CREATIVE_ZENXFI3_PAD)
+#define PUZZLE_QUIT BUTTON_POWER
+#define PUZZLE_LEFT BUTTON_BACK
+#define PUZZLE_RIGHT BUTTON_MENU
+#define PUZZLE_UP BUTTON_UP
+#define PUZZLE_DOWN BUTTON_DOWN
+#define PUZZLE_SHUFFLE BUTTON_VOL_UP
+#define PUZZLE_PICTURE BUTTON_PLAY
+
 #elif CONFIG_KEYPAD == PHILIPS_HDD1630_PAD
 #define PUZZLE_QUIT BUTTON_POWER
 #define PUZZLE_LEFT BUTTON_LEFT
@@ -209,13 +219,14 @@ CONFIG_KEYPAD == MROBE500_PAD
 #define PUZZLE_QUIT BUTTON_POWER
 #define PUZZLE_QUIT_TEXT "[POWER]"
 
-#elif (CONFIG_KEYPAD == SAMSUNG_YH_PAD)
-#define PUZZLE_QUIT    BUTTON_REC
+#elif (CONFIG_KEYPAD == SAMSUNG_YH820_PAD) || \
+      (CONFIG_KEYPAD == SAMSUNG_YH920_PAD)
+#define PUZZLE_QUIT    BUTTON_REW
 #define PUZZLE_LEFT    BUTTON_LEFT
 #define PUZZLE_RIGHT   BUTTON_RIGHT
 #define PUZZLE_UP      BUTTON_UP
 #define PUZZLE_DOWN    BUTTON_DOWN
-#define PUZZLE_SHUFFLE BUTTON_REW
+#define PUZZLE_SHUFFLE BUTTON_FFWD
 #define PUZZLE_PICTURE BUTTON_PLAY
 
 #elif (CONFIG_KEYPAD == PBELL_VIBE500_PAD)
@@ -237,13 +248,73 @@ CONFIG_KEYPAD == MROBE500_PAD
 #define PUZZLE_PICTURE BUTTON_PLAY
 
 #elif CONFIG_KEYPAD == MPIO_HD300_PAD
-#define PUZZLE_QUIT    (BUTTON_REC | BUTTON_REPEAT)
-#define PUZZLE_LEFT BUTTON_REW
-#define PUZZLE_RIGHT BUTTON_FF
-#define PUZZLE_UP      BUTTON_UP
-#define PUZZLE_DOWN    BUTTON_DOWN
+#define PUZZLE_QUIT    (BUTTON_MENU | BUTTON_REPEAT)
+#define PUZZLE_LEFT BUTTON_FF
+#define PUZZLE_RIGHT BUTTON_REW
+#define PUZZLE_UP      BUTTON_DOWN
+#define PUZZLE_DOWN    BUTTON_UP
 #define PUZZLE_SHUFFLE BUTTON_ENTER
 #define PUZZLE_PICTURE BUTTON_PLAY
+
+#elif CONFIG_KEYPAD == SANSA_FUZEPLUS_PAD
+#define PUZZLE_QUIT    BUTTON_POWER
+#define PUZZLE_LEFT    BUTTON_LEFT
+#define PUZZLE_RIGHT   BUTTON_RIGHT
+#define PUZZLE_UP      BUTTON_UP
+#define PUZZLE_DOWN    BUTTON_DOWN
+#define PUZZLE_SHUFFLE BUTTON_PLAYPAUSE|BUTTON_REPEAT
+#define PUZZLE_PICTURE BUTTON_SELECT|BUTTON_REPEAT
+
+#elif CONFIG_KEYPAD == SANSA_CONNECT_PAD
+#define PUZZLE_QUIT    BUTTON_POWER
+#define PUZZLE_LEFT    BUTTON_LEFT
+#define PUZZLE_RIGHT   BUTTON_RIGHT
+#define PUZZLE_UP      BUTTON_UP
+#define PUZZLE_DOWN    BUTTON_DOWN
+#define PUZZLE_SHUFFLE BUTTON_VOL_DOWN
+#define PUZZLE_PICTURE BUTTON_SELECT
+
+#elif (CONFIG_KEYPAD == HM60X_PAD)
+#define PUZZLE_QUIT    BUTTON_POWER
+#define PUZZLE_LEFT    BUTTON_LEFT
+#define PUZZLE_RIGHT   BUTTON_RIGHT
+#define PUZZLE_UP      BUTTON_UP
+#define PUZZLE_DOWN    BUTTON_DOWN
+#define PUZZLE_SHUFFLE BUTTON_SELECT
+#define PUZZLE_PICTURE (BUTTON_POWER|BUTTON_SELECT)
+
+#elif (CONFIG_KEYPAD == HM801_PAD)
+#define PUZZLE_QUIT    BUTTON_POWER
+#define PUZZLE_LEFT    BUTTON_LEFT
+#define PUZZLE_RIGHT   BUTTON_RIGHT
+#define PUZZLE_UP      BUTTON_UP
+#define PUZZLE_DOWN    BUTTON_DOWN
+#define PUZZLE_SHUFFLE BUTTON_SELECT
+#define PUZZLE_PICTURE BUTTON_PLAY
+
+#elif (CONFIG_KEYPAD == SONY_NWZ_PAD)
+#define PUZZLE_QUIT    BUTTON_BACK
+#define PUZZLE_LEFT    BUTTON_LEFT
+#define PUZZLE_RIGHT   BUTTON_RIGHT
+#define PUZZLE_UP      BUTTON_UP
+#define PUZZLE_DOWN    BUTTON_DOWN
+#define PUZZLE_SHUFFLE BUTTON_POWER
+#define PUZZLE_PICTURE BUTTON_PLAY
+
+#elif (CONFIG_KEYPAD == CREATIVE_ZEN_PAD)
+#define PUZZLE_QUIT    BUTTON_BACK
+#define PUZZLE_LEFT    BUTTON_LEFT
+#define PUZZLE_RIGHT   BUTTON_RIGHT
+#define PUZZLE_UP      BUTTON_UP
+#define PUZZLE_DOWN    BUTTON_DOWN
+#define PUZZLE_SHUFFLE BUTTON_SHORTCUT
+#define PUZZLE_PICTURE BUTTON_PLAYPAUSE
+
+#elif (CONFIG_KEYPAD == DX50_PAD)
+#define PUZZLE_QUIT (BUTTON_POWER|BUTTON_REL)
+#define PUZZLE_SHUFFLE BUTTON_PLAY
+#define PUZZLE_PICTURE BUTTON_RIGHT
+#define PUZZLE_QUIT_TEXT "[Power]"
 
 #else
 #error No keymap defined!
@@ -350,7 +421,7 @@ static const fb_data * puzzle_bmp_ptr;
 static const char * initial_bmp_path=NULL;
 
 #ifdef HAVE_ALBUMART
-const char * get_albumart_bmp_path(void)
+static const char * get_albumart_bmp_path(void)
 {
     struct mp3entry* track = rb->audio_current_track();
 
@@ -365,10 +436,12 @@ const char * get_albumart_bmp_path(void)
 }
 #endif
 
-const char * get_random_bmp_path(void)
+#if 0 /* unused */
+static const char * get_random_bmp_path(void)
 {
     return(initial_bmp_path);
 }
+#endif
 
 static bool load_resize_bitmap(void)
 {
@@ -618,7 +691,9 @@ static void puzzle_init(void)
 static int puzzle_loop(void)
 {
     int button;
+#if defined(PUZZLE_SHUFFLE_PICTURE_PRE)
     int lastbutton = BUTTON_NONE;
+#endif
     bool load_success;
 
     puzzle_init();
@@ -689,8 +764,10 @@ static int puzzle_loop(void)
                     return PLUGIN_USB_CONNECTED;
                 break;
         }
+#if defined(PUZZLE_SHUFFLE_PICTURE_PRE)
         if (button != BUTTON_NONE)
             lastbutton = button;
+#endif
     }
 }
 
@@ -760,7 +837,8 @@ enum plugin_status plugin_start(
         rb->lcd_putsxy(0, 18, "[OFF] to stop");
         rb->lcd_putsxy(0, 28, "[REW] shuffle");
         rb->lcd_putsxy(0, 38, "[PLAY] change pic");
-#elif CONFIG_KEYPAD == GIGABEAT_S_PAD
+#elif CONFIG_KEYPAD == GIGABEAT_S_PAD || \
+      CONFIG_KEYPAD == SAMSUNG_YPR0_PAD
         rb->lcd_putsxy(0, 18, "[BACK] to stop");
         rb->lcd_putsxy(0, 28, "[SELECT] shuffle");
         rb->lcd_putsxy(0, 38, "[MENU] change pic");

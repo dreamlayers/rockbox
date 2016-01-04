@@ -24,7 +24,8 @@
 
 
 
-#if (CONFIG_KEYPAD == SANSA_E200_PAD)
+#if (CONFIG_KEYPAD == SANSA_E200_PAD) || \
+    (CONFIG_KEYPAD == SANSA_CONNECT_PAD)
 #define CLIX_BUTTON_QUIT        BUTTON_POWER
 #define CLIX_BUTTON_UP          BUTTON_UP
 #define CLIX_BUTTON_DOWN        BUTTON_DOWN
@@ -82,7 +83,8 @@
 #define CLIX_BUTTON_UP      BUTTON_UP
 #define CLIX_BUTTON_DOWN    BUTTON_DOWN
 
-#elif (CONFIG_KEYPAD == GIGABEAT_S_PAD)
+#elif (CONFIG_KEYPAD == GIGABEAT_S_PAD) || \
+      (CONFIG_KEYPAD == SAMSUNG_YPR0_PAD)
 #define CLIX_BUTTON_QUIT    BUTTON_BACK
 #define CLIX_BUTTON_LEFT    BUTTON_LEFT
 #define CLIX_BUTTON_RIGHT   BUTTON_RIGHT
@@ -130,6 +132,14 @@
 #define CLIX_BUTTON_UP      BUTTON_UP
 #define CLIX_BUTTON_DOWN    BUTTON_DOWN
 
+#elif CONFIG_KEYPAD == CREATIVE_ZENXFI3_PAD
+#define CLIX_BUTTON_QUIT    BUTTON_POWER
+#define CLIX_BUTTON_LEFT    BUTTON_BACK
+#define CLIX_BUTTON_RIGHT   BUTTON_MENU
+#define CLIX_BUTTON_CLICK   BUTTON_PLAY
+#define CLIX_BUTTON_UP      BUTTON_UP
+#define CLIX_BUTTON_DOWN    BUTTON_DOWN
+
 #elif (CONFIG_KEYPAD == PHILIPS_HDD1630_PAD)
 #define CLIX_BUTTON_QUIT    BUTTON_POWER
 #define CLIX_BUTTON_LEFT    BUTTON_LEFT
@@ -160,14 +170,20 @@
 #elif (CONFIG_KEYPAD == ONDAVX747_PAD)
 #define CLIX_BUTTON_QUIT    BUTTON_POWER
 #define CLIX_BUTTON_CLICK   BUTTON_MENU
+
 #elif (CONFIG_KEYPAD == ONDAVX777_PAD)
 #define CLIX_BUTTON_QUIT    BUTTON_POWER
+
+#elif (CONFIG_KEYPAD == ANDROID_PAD) \
+   || (CONFIG_KEYPAD == SDL_PAD)
+#define CLIX_BUTTON_QUIT    BUTTON_BACK
 
 #elif (CONFIG_KEYPAD == MROBE500_PAD)
 #define CLIX_BUTTON_QUIT    BUTTON_POWER
 
-#elif (CONFIG_KEYPAD == SAMSUNG_YH_PAD)
-#define CLIX_BUTTON_QUIT    BUTTON_REC
+#elif (CONFIG_KEYPAD == SAMSUNG_YH820_PAD) || \
+      (CONFIG_KEYPAD == SAMSUNG_YH920_PAD)
+#define CLIX_BUTTON_QUIT    BUTTON_REW
 #define CLIX_BUTTON_LEFT    BUTTON_LEFT
 #define CLIX_BUTTON_RIGHT   BUTTON_RIGHT
 #define CLIX_BUTTON_CLICK   BUTTON_PLAY
@@ -184,6 +200,62 @@
 #define CLIX_BUTTON_RIGHT       BUTTON_NEXT
 #define CLIX_BUTTON_CLICK       BUTTON_OK
 
+#elif (CONFIG_KEYPAD == SANSA_FUZEPLUS_PAD)
+#define CLIX_BUTTON_QUIT        BUTTON_POWER
+#define CLIX_BUTTON_UP          BUTTON_UP
+#define CLIX_BUTTON_DOWN        BUTTON_DOWN
+#define CLIX_BUTTON_LEFT        BUTTON_LEFT
+#define CLIX_BUTTON_RIGHT       BUTTON_RIGHT
+#define CLIX_BUTTON_SCROLL_FWD  BUTTON_BOTTOMRIGHT
+#define CLIX_BUTTON_SCROLL_BACK BUTTON_BOTTOMLEFT
+#define CLIX_BUTTON_CLICK       BUTTON_SELECT
+
+#elif (CONFIG_KEYPAD == HM60X_PAD)
+#define CLIX_BUTTON_QUIT          BUTTON_POWER
+#define CLIX_BUTTON_UP            BUTTON_UP
+#define CLIX_BUTTON_DOWN          BUTTON_DOWN
+#define CLIX_BUTTON_SCROLL_FWD    (BUTTON_POWER | BUTTON_UP)
+#define CLIX_BUTTON_SCROLL_BACK   (BUTTON_POWER | BUTTON_DOWN)
+#define CLIX_BUTTON_LEFT          BUTTON_LEFT
+#define CLIX_BUTTON_RIGHT         BUTTON_RIGHT
+#define CLIX_BUTTON_CLICK         BUTTON_SELECT
+
+#elif (CONFIG_KEYPAD == HM801_PAD)
+#define CLIX_BUTTON_QUIT          BUTTON_POWER
+#define CLIX_BUTTON_UP            BUTTON_UP
+#define CLIX_BUTTON_DOWN          BUTTON_DOWN
+#define CLIX_BUTTON_SCROLL_FWD    BUTTON_NEXT
+#define CLIX_BUTTON_SCROLL_BACK   BUTTON_PREV
+#define CLIX_BUTTON_LEFT          BUTTON_LEFT
+#define CLIX_BUTTON_RIGHT         BUTTON_RIGHT
+#define CLIX_BUTTON_CLICK         BUTTON_SELECT
+
+#elif CONFIG_KEYPAD == SONY_NWZ_PAD
+#define CLIX_BUTTON_QUIT          BUTTON_BACK
+#define CLIX_BUTTON_UP            BUTTON_UP
+#define CLIX_BUTTON_DOWN          BUTTON_DOWN
+#define CLIX_BUTTON_SCROLL_FWD    (BUTTON_POWER|BUTTON_RIGHT)
+#define CLIX_BUTTON_SCROLL_BACK   (BUTTON_POWER|BUTTON_LEFT)
+#define CLIX_BUTTON_LEFT          BUTTON_LEFT
+#define CLIX_BUTTON_RIGHT         BUTTON_RIGHT
+#define CLIX_BUTTON_CLICK         BUTTON_PLAY
+
+#elif CONFIG_KEYPAD == CREATIVE_ZEN_PAD
+#define CLIX_BUTTON_QUIT          BUTTON_BACK
+#define CLIX_BUTTON_UP            BUTTON_UP
+#define CLIX_BUTTON_DOWN          BUTTON_DOWN
+#define CLIX_BUTTON_SCROLL_FWD    BUTTON_PLAYPAUSE
+#define CLIX_BUTTON_SCROLL_BACK   BUTTON_MENU
+#define CLIX_BUTTON_LEFT          BUTTON_LEFT
+#define CLIX_BUTTON_RIGHT         BUTTON_RIGHT
+#define CLIX_BUTTON_CLICK         BUTTON_SELECT
+
+#elif (CONFIG_KEYPAD == SAMSUNG_YPR1_PAD)
+#define CLIX_BUTTON_QUIT    BUTTON_POWER
+
+#elif (CONFIG_KEYPAD == DX50_PAD)
+#define CLIX_BUTTON_QUIT          BUTTON_POWER
+
 #else
 #error "no keymap"
 #endif
@@ -192,7 +264,7 @@
 #define CLIX_BUTTON_CLICK   BUTTON_CENTER
 #endif
 
-#define SCORE_FILE PLUGIN_GAMES_DIR "/clix.score"
+#define SCORE_FILE PLUGIN_GAMES_DATA_DIR "/clix.score"
 #define NUM_SCORES 5
 struct highscore highscores[NUM_SCORES];
 
@@ -214,6 +286,9 @@ struct highscore highscores[NUM_SCORES];
 #else
 #define CELL_SIZE (LCD_WIDTH/BOARD_WIDTH)
 #endif
+
+#elif (LCD_WIDTH >= 312 && LCD_HEIGHT >= 468)
+#define CELL_SIZE 24
 
 #elif (LCD_WIDTH >= 306 && LCD_HEIGHT>= 204)
 #define CELL_SIZE 16
@@ -634,11 +709,6 @@ static int clix_menu(struct clix_game_state_t* state, bool ingame)
                              "Playback Control",
                              "Quit");
 
-#ifdef HAVE_TOUCHSCREEN
-    /* Entering Menu, set the touchscreen to the global setting */
-    rb->touchscreen_set_mode(rb->global_settings->touch_mode);
-#endif
-
     while (!leave_menu) {
 
         switch (rb->do_menu(&main_menu, &choice, NULL, false)) {
@@ -672,11 +742,6 @@ static int clix_menu(struct clix_game_state_t* state, bool ingame)
                 break;
         }
     }
-
-#ifdef HAVE_TOUCHSCREEN
-    /* Leaving the menu, set back to pointer mode */
-    rb->touchscreen_set_mode(TOUCHSCREEN_POINT);
-#endif
 
     return ret;
 }
@@ -772,7 +837,7 @@ static int clix_handle_game(struct clix_game_state_t* state)
                     if(x < BOARD_WIDTH && y < BOARD_HEIGHT
                        && state->board[XYPOS(x, y)] != CC_BLACK)
                     {
-                        if(state->x == x && state->y == y)
+                        if(state->x == x && state->y == y && button & BUTTON_REL)
                             button = CLIX_BUTTON_CLICK;
                         else
                         {

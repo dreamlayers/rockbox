@@ -27,10 +27,10 @@
 #include "cpu.h"
 #include "system.h"
 #include "lcd.h"
-#include "kernel.h"
-#include "thread.h"
+#include "../kernel-internal.h"
 #include "storage.h"
 #include "fat.h"
+#include "file_internal.h"
 #include "disk.h"
 #include "font.h"
 #include "adc.h"
@@ -41,6 +41,8 @@
 #include "power.h"
 #include "file.h"
 #include "common.h"
+#include "rb-loader.h"
+#include "loader_strerror.h"
 #include "rbunicode.h"
 #include "usb.h"
 #include "mmu-arm.h"
@@ -61,7 +63,7 @@ void shutdown(void)
         ata_sleepnow();
     }
     
-    _backlight_off();
+    backlight_hw_off();
 
     power_off();
 }
@@ -173,7 +175,7 @@ void main(void)
         verbose = true;
 
     printf("Rockbox boot loader");
-    printf("Version " RBVERSION);
+    printf("Version %s", rbversion);
 
     sleep(50); /* ATA seems to error without this pause */
 
@@ -184,7 +186,7 @@ void main(void)
         error(EATA, rc, true);
     }
 
-    disk_init();
+    filesystem_init();
 
     rc = disk_mount_all();
     if (rc<=0)
@@ -195,24 +197,21 @@ void main(void)
     printf("Loading firmware");
 
     /* Flush out anything pending first */
-    cpucache_invalidate();
+    commit_discard_idcache();
 
     loadbuffer = (unsigned char*) 0x31000000;
     buffer_size = (unsigned char*)0x31400000 - loadbuffer;
 
     rc = load_firmware(loadbuffer, BOOTFILE, buffer_size);
-    if(rc < 0)
+    if(rc <= EFILE_EMPTY)
         error(EBOOTFILE, rc, true);
 
     storage_close();
     system_prepare_fw_start();
 
-    if (rc == EOK)
-    {
-        cpucache_invalidate();
-        kernel_entry = (void*) loadbuffer;
-        rc = kernel_entry();
-    }
+    commit_discard_idcache();
+    kernel_entry = (void*) loadbuffer;
+    rc = kernel_entry();
 
 #if 0
     /* Halt */

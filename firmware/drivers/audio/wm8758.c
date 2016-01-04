@@ -25,35 +25,22 @@
  * KIND, either express or implied.
  *
  ****************************************************************************/
+
 #include "system.h"
+#include "kernel.h"
 #include "string.h"
 #include "audio.h"
 
 #include "wmcodec.h"
 #include "audiohw.h"
-
-const struct sound_settings_info audiohw_settings[] = {
-    [SOUND_VOLUME]        = {"dB", 0,  1, -90,   6, -25},
-    [SOUND_BASS]          = {"dB", 0,  1, -12,  12,   0},
-    [SOUND_TREBLE]        = {"dB", 0,  1, -12,  12,   0},
-    [SOUND_BALANCE]       = {"%",  0,  1,-100, 100,   0},
-    [SOUND_CHANNELS]      = {"",   0,  1,   0,   5,   0},
-    [SOUND_STEREO_WIDTH]  = {"%",  0,  5,   0, 250, 100},
-#ifdef HAVE_RECORDING
-    [SOUND_LEFT_GAIN]     = {"dB", 1,  1,   0,  63,  16},
-    [SOUND_RIGHT_GAIN]    = {"dB", 1,  1,   0,  63,  16},
-    [SOUND_MIC_GAIN]      = {"dB", 1,  1,   0,  63,  16},
-#endif
-    [SOUND_BASS_CUTOFF]   = {"",   0,  1,   1,   4,   1},
-    [SOUND_TREBLE_CUTOFF] = {"",   0,  1,   1,   4,   1},
-};
+#include "sound.h"
 
 /* shadow registers */
 static unsigned short eq1_reg = EQ1_EQ3DMODE | EQ_GAIN_VALUE(0);
 static unsigned short eq5_reg = EQ_GAIN_VALUE(0);
 
 /* convert tenth of dB volume (-89..6) to master volume register value */
-int tenthdb2master(int db)
+static int vol_tenthdb2hw(int db)
 {
     /*   att  DAC  AMP  result
         +6dB    0   +6     96
@@ -62,10 +49,10 @@ int tenthdb2master(int db)
        -58dB   -1  -57     32
        -89dB  -32  -57      1
        -90dB  -oo  -oo      0 */
-    if (db < VOLUME_MIN) {
+    if (db <= -900) {
         return 0;
     } else {
-        return (db-VOLUME_MIN)/10 + 1;
+        return db / 10 - -90;
     }
 }
 
@@ -95,87 +82,90 @@ static void get_volume_params(int db, int *dac, int *amp)
     }
 }
 
-int sound_val2phys(int setting, int value)
-{
-    int result;
-
-    switch(setting)
-    {
-#ifdef HAVE_RECORDING
-    case SOUND_LEFT_GAIN:
-    case SOUND_RIGHT_GAIN:
-    case SOUND_MIC_GAIN:
-        result = ((value - 16) * 15) / 2;
-        break;
-#endif
-    default:
-        result = value;
-        break;
-    }
-
-    return result;
-}
-
 static void audiohw_mute(bool mute)
 {
     if (mute) {
         wmcodec_write(DACCTRL, DACCTRL_SOFTMUTE);
     } else {
-        wmcodec_write(DACCTRL, 0);
+        wmcodec_write(DACCTRL, DACCTRL_DACOSR128);
     }
 }
 
 void audiohw_preinit(void)
 {
-    wmcodec_write(RESET, RESET_RESET);
-
-    wmcodec_write(PWRMGMT1, PWRMGMT1_PLLEN | PWRMGMT1_BIASEN
-                          | PWRMGMT1_VMIDSEL_5K);
+    /* Set low bias mode */
+    wmcodec_write(BIASCTRL, BIASCTRL_BIASCUT);
+    /* Enable HPCOM, LINECOM */
+    wmcodec_write(OUTCTRL, OUTCTRL_HP_COM | OUTCTRL_LINE_COM
+                         | OUTCTRL_TSOPCTRL | OUTCTRL_TSDEN | OUTCTRL_VROI);
+    /* Mute all Outputs and set PGAs minimum gain */
+    wmcodec_write(LOUT1VOL, 0x140);
+    wmcodec_write(ROUT1VOL, 0x140);
+    wmcodec_write(LOUT2VOL, 0x140);
+    wmcodec_write(ROUT2VOL, 0x140);
+    wmcodec_write(OUT3MIX,  0x40);
+    wmcodec_write(OUT4MIX,  0x40);
+    /* Enable L/ROUT1 */
     wmcodec_write(PWRMGMT2, PWRMGMT2_ROUT1EN | PWRMGMT2_LOUT1EN);
-    wmcodec_write(PWRMGMT3, PWRMGMT3_LOUT2EN | PWRMGMT3_ROUT2EN
-                          | PWRMGMT3_RMIXEN | PWRMGMT3_LMIXEN
+    /* Enable VMID independent current bias */
+    wmcodec_write(OUT4TOADC, OUT4TOADC_POBCTRL);
+    /* Enable required DACs and mixers */
+    wmcodec_write(PWRMGMT3, PWRMGMT3_RMIXEN | PWRMGMT3_LMIXEN
                           | PWRMGMT3_DACENR | PWRMGMT3_DACENL);
-                          
+    /* Enable VMIDSEL, BIASEN, BUFIOEN */
+    wmcodec_write(PWRMGMT1, PWRMGMT1_PLLEN | PWRMGMT1_BIASEN
+                          | PWRMGMT1_BUFIOEN | PWRMGMT1_VMIDSEL_10K);
+    /* Setup digital interface, input amplifiers, PLL, ADCs and DACs */
     wmcodec_write(AINTFCE, AINTFCE_IWL_16BIT | AINTFCE_FORMAT_I2S);
-    wmcodec_write(OUTCTRL, OUTCTRL_VROI);
     wmcodec_write(CLKCTRL, CLKCTRL_MS); /* WM8758 is clock master */
 
     audiohw_set_frequency(HW_FREQ_44);
-    
+
     wmcodec_write(LOUTMIX, LOUTMIX_DACL2LMIX);
     wmcodec_write(ROUTMIX, ROUTMIX_DACR2RMIX);
+    /* Disable VMID independent current bias */
+    wmcodec_write(OUT4TOADC, 0);
 }
 
 void audiohw_postinit(void)
 {
     wmcodec_write(PWRMGMT1, PWRMGMT1_PLLEN | PWRMGMT1_BIASEN
-                          | PWRMGMT1_VMIDSEL_75K); 
+                          | PWRMGMT1_BUFIOEN | PWRMGMT1_VMIDSEL_500K);
                           /* lower the VMID power consumption */
+    wmcodec_write(BIASCTRL, 0);
     audiohw_mute(false);
 }
 
-void audiohw_set_master_vol(int vol_l, int vol_r)
+void audiohw_set_volume(int vol_l, int vol_r)
 {
     int dac_l, amp_l, dac_r, amp_r;
+
+    vol_l = vol_tenthdb2hw(vol_l);
+    vol_r = vol_tenthdb2hw(vol_r);
+
     get_volume_params(vol_l, &dac_l, &amp_l);
     get_volume_params(vol_r, &dac_r, &amp_r);
-    
-    /* set DAC 
+
+    /* set DAC
        Important: DAC is global and will also affect lineout */
     wmcodec_write(LDACVOL, dac_l);
     wmcodec_write(RDACVOL, dac_r | RDACVOL_DACVU);
-    
+
     /* set headphone amp OUT1 */
     wmcodec_write(LOUT1VOL, amp_l | LOUT1VOL_LOUT1ZC);
     wmcodec_write(ROUT1VOL, amp_r | ROUT1VOL_ROUT1ZC | ROUT1VOL_OUT1VU);
 }
 
-void audiohw_set_lineout_vol(int vol_l, int vol_r)
+void audiohw_set_lineout_volume(int vol_l, int vol_r)
 {
     int dac_l, amp_l, dac_r, amp_r;
+
+    vol_l = vol_tenthdb2hw(vol_l);
+    vol_r = vol_tenthdb2hw(vol_r);
+
     get_volume_params(vol_l, &dac_l, &amp_l);
     get_volume_params(vol_r, &dac_r, &amp_r);
-    
+
     /* set lineout amp OUT2 */
     wmcodec_write(LOUT2VOL, amp_l | LOUT2VOL_LOUT2ZC);
     wmcodec_write(ROUT2VOL, amp_r | ROUT2VOL_ROUT2ZC | ROUT2VOL_OUT2VU);
@@ -186,7 +176,7 @@ void audiohw_enable_lineout(bool enable)
     /* Initialize data without lineout enabling. */
     int pwrmgmt3_data  = PWRMGMT3_RMIXEN  | PWRMGMT3_LMIXEN
                        | PWRMGMT3_DACENR  | PWRMGMT3_DACENL;
-    /* Set lineout (OUT2), if enabled. */ 
+    /* Set lineout (OUT2), if enabled. */
     if (enable)
         pwrmgmt3_data |= PWRMGMT3_LOUT2EN | PWRMGMT3_ROUT2EN;
 
@@ -209,13 +199,13 @@ void audiohw_set_bass_cutoff(int value)
 void audiohw_set_treble(int value)
 {
     eq5_reg = (eq5_reg & ~EQ_GAIN_MASK) | EQ_GAIN_VALUE(value);
-    wmcodec_write(EQ5, eq5_reg); 
+    wmcodec_write(EQ5, eq5_reg);
 }
 
 void audiohw_set_treble_cutoff(int value)
 {
     eq5_reg = (eq5_reg & ~EQ_CUTOFF_MASK) | EQ_CUTOFF_VALUE(value);
-    wmcodec_write(EQ5, eq5_reg); 
+    wmcodec_write(EQ5, eq5_reg);
 }
 
 /* Nice shutdown of WM8758 codec */
@@ -223,19 +213,29 @@ void audiohw_close(void)
 {
     audiohw_mute(true);
 
+    /* Disable Thermal shutdown */
+    wmcodec_write(OUTCTRL, OUTCTRL_HP_COM | OUTCTRL_VROI);
+    /* Enable VMIDTOG */
+    wmcodec_write(OUT4TOADC, OUT4TOADC_VMIDTOG);
+    /* Disable VMIDSEL and BUFIOEN */
+    wmcodec_write(PWRMGMT1, PWRMGMT1_PLLEN | PWRMGMT1_BIASEN
+                          | PWRMGMT1_VMIDSEL_OFF);
+    /* Wait for VMID to discharge */
+    sleep(3*HZ/10);
+    /* Power off registers */
+    wmcodec_write(PWRMGMT2, 0);
     wmcodec_write(PWRMGMT3, 0);
     wmcodec_write(PWRMGMT1, 0);
-    wmcodec_write(PWRMGMT2, PWRMGMT2_SLEEP);
 }
 
 /* Note: Disable output before calling this function */
 void audiohw_set_frequency(int fsel)
 {
     /* CLKCTRL_MCLKDIV_MASK and ADDCTRL_SR_MASK don't overlap,
-       so they can both fit in one byte.  Bit 0 selects PLL 
+       so they can both fit in one byte.  Bit 0 selects PLL
        configuration via pll_setups.
      */
-    static const unsigned char freq_setups[HW_NUM_FREQ] = 
+    static const unsigned char freq_setups[HW_NUM_FREQ] =
     {
         [HW_FREQ_48] = CLKCTRL_MCLKDIV_2 | ADDCTRL_SR_48kHz | 1,
         [HW_FREQ_44] = CLKCTRL_MCLKDIV_2 | ADDCTRL_SR_48kHz,
@@ -248,11 +248,11 @@ void audiohw_set_frequency(int fsel)
         [HW_FREQ_8] = CLKCTRL_MCLKDIV_12 | ADDCTRL_SR_8kHz | 1
     };
 
-    /* Each PLL configuration is an array consisting of 
+    /* Each PLL configuration is an array consisting of
        { PLLN, PLLK1, PLLK2, PLLK3 }.  The WM8983 datasheet requires
        5 < PLLN < 13, and states optimum is PLLN = 8, f2 = 90 MHz
      */
-    static const unsigned short pll_setups[2][4] = 
+    static const unsigned short pll_setups[2][4] =
     {
         /* f1 = 12 MHz, R = 7.5264, f2 = 90.3168 MHz, fPLLOUT = 22.5792 MHz */
         { PLLN_PLLPRESCALE | 0x7, 0x21, 0x161, 0x26 },
@@ -267,12 +267,12 @@ void audiohw_set_frequency(int fsel)
         wmcodec_write(PLLN + i, pll_setups[freq_setups[fsel] & 1][i]);
 
     /* CLKCTRL_MCLKDIV divides fPLLOUT to get SYSCLK (256 * sample rate) */
-    wmcodec_write(CLKCTRL, CLKCTRL_CLKSEL 
+    wmcodec_write(CLKCTRL, CLKCTRL_CLKSEL
                          | (freq_setups[fsel] & CLKCTRL_MCLKDIV_MASK)
                          | CLKCTRL_BCLKDIV_2 | CLKCTRL_MS);
 
     /* set ADC and DAC filter characteristics according to sample rate */
-    wmcodec_write(ADDCTRL, (freq_setups[fsel] & ADDCTRL_SR_MASK) 
+    wmcodec_write(ADDCTRL, (freq_setups[fsel] & ADDCTRL_SR_MASK)
                          | ADDCTRL_SLOWCLKEN);
     /* SLOWCLK enabled for zero cross timeout to work */
 }
@@ -280,7 +280,7 @@ void audiohw_set_frequency(int fsel)
 void audiohw_enable_recording(bool source_mic)
 {
     (void)source_mic; /* We only have a line-in (I think) */
-    
+
     wmcodec_write(PWRMGMT2, PWRMGMT2_ROUT1EN | PWRMGMT2_LOUT1EN
                           | PWRMGMT2_INPGAENR | PWRMGMT2_INPGAENL
                           | PWRMGMT2_ADCENR | PWRMGMT2_ADCENL);
@@ -297,7 +297,7 @@ void audiohw_enable_recording(bool source_mic)
                          | ROUTMIX_BYPR2RMIX | ROUTMIX_DACR2RMIX);
 }
 
-void audiohw_disable_recording(void) 
+void audiohw_disable_recording(void)
 {
     wmcodec_write(LOUTMIX, LOUTMIX_DACL2LMIX);
     wmcodec_write(ROUTMIX, ROUTMIX_DACR2RMIX);
@@ -323,8 +323,7 @@ void audiohw_set_recvol(int left, int right, int type)
     }
 }
 
-void audiohw_set_monitor(bool enable) 
+void audiohw_set_monitor(bool enable)
 {
     (void)enable;
 }
-

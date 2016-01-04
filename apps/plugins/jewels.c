@@ -123,7 +123,30 @@
 #define HK_SELECT "SELECT"
 #define HK_CANCEL "POWER"
 
-#elif CONFIG_KEYPAD == SANSA_E200_PAD
+
+#elif CONFIG_KEYPAD == SONY_NWZ_PAD
+#define JEWELS_UP      BUTTON_UP
+#define JEWELS_DOWN    BUTTON_DOWN
+#define JEWELS_LEFT    BUTTON_LEFT
+#define JEWELS_RIGHT   BUTTON_RIGHT
+#define JEWELS_SELECT  BUTTON_PLAY
+#define JEWELS_CANCEL  BUTTON_BACK
+#define HK_SELECT      "PLAY"
+#define HK_CANCEL      "BACK"
+
+#elif CONFIG_KEYPAD == CREATIVE_ZEN_PAD
+#define JEWELS_UP      BUTTON_UP
+#define JEWELS_DOWN    BUTTON_DOWN
+#define JEWELS_LEFT    BUTTON_LEFT
+#define JEWELS_RIGHT   BUTTON_RIGHT
+#define JEWELS_SELECT  BUTTON_SELECT
+#define JEWELS_CANCEL  BUTTON_BACK
+#define HK_SELECT      "SELECT"
+#define HK_CANCEL      "BACK"
+
+
+#elif (CONFIG_KEYPAD == SANSA_E200_PAD) || \
+      (CONFIG_KEYPAD == SANSA_CONNECT_PAD)
 #define JEWELS_SCROLLWHEEL
 #define JEWELS_UP     BUTTON_UP
 #define JEWELS_DOWN   BUTTON_DOWN
@@ -171,7 +194,8 @@ CONFIG_KEYPAD == SANSA_M200_PAD
 #define HK_SELECT "PLAY"
 #define HK_CANCEL "POWER"
 
-#elif CONFIG_KEYPAD == GIGABEAT_S_PAD
+#elif CONFIG_KEYPAD == GIGABEAT_S_PAD || \
+      CONFIG_KEYPAD == SAMSUNG_YPR0_PAD
 #define JEWELS_UP     BUTTON_UP
 #define JEWELS_DOWN   BUTTON_DOWN
 #define JEWELS_LEFT   BUTTON_LEFT
@@ -227,6 +251,16 @@ CONFIG_KEYPAD == SANSA_M200_PAD
 #define HK_SELECT "MIDDLE"
 #define HK_CANCEL "BACK"
 
+#elif CONFIG_KEYPAD == CREATIVE_ZENXFI3_PAD
+#define JEWELS_UP     BUTTON_UP
+#define JEWELS_DOWN   BUTTON_DOWN
+#define JEWELS_LEFT   BUTTON_BACK
+#define JEWELS_RIGHT  BUTTON_MENU
+#define JEWELS_SELECT BUTTON_VOL_UP
+#define JEWELS_CANCEL BUTTON_VOL_DOWN
+#define HK_SELECT "VOL+"
+#define HK_CANCEL "VOL-"
+
 #elif CONFIG_KEYPAD == PHILIPS_HDD1630_PAD
 #define JEWELS_UP     BUTTON_UP
 #define JEWELS_DOWN   BUTTON_DOWN
@@ -263,7 +297,8 @@ CONFIG_KEYPAD == MROBE500_PAD
 #define JEWELS_CANCEL BUTTON_POWER
 #define HK_CANCEL "POWER"
 
-#elif CONFIG_KEYPAD == SAMSUNG_YH_PAD
+#elif (CONFIG_KEYPAD == SAMSUNG_YH820_PAD) || \
+      (CONFIG_KEYPAD == SAMSUNG_YH920_PAD)
 #define JEWELS_UP     BUTTON_UP
 #define JEWELS_DOWN   BUTTON_DOWN
 #define JEWELS_LEFT   BUTTON_LEFT
@@ -302,6 +337,31 @@ CONFIG_KEYPAD == MROBE500_PAD
 #define JEWELS_CANCEL BUTTON_MENU
 #define HK_SELECT "ENTER"
 #define HK_CANCEL "MENU"
+
+#elif CONFIG_KEYPAD == SANSA_FUZEPLUS_PAD
+#define JEWELS_LEFT   BUTTON_LEFT
+#define JEWELS_RIGHT  BUTTON_RIGHT
+#define JEWELS_UP     BUTTON_UP
+#define JEWELS_DOWN   BUTTON_DOWN
+#define JEWELS_SELECT BUTTON_SELECT
+#define JEWELS_CANCEL BUTTON_POWER
+#define HK_SELECT "SELECT"
+#define HK_CANCEL "POWER"
+
+#elif (CONFIG_KEYPAD == HM60X_PAD) || \
+    (CONFIG_KEYPAD == HM801_PAD)
+#define JEWELS_LEFT   BUTTON_LEFT
+#define JEWELS_RIGHT  BUTTON_RIGHT
+#define JEWELS_UP     BUTTON_UP
+#define JEWELS_DOWN   BUTTON_DOWN
+#define JEWELS_SELECT BUTTON_SELECT
+#define JEWELS_CANCEL BUTTON_POWER
+#define HK_SELECT "SELECT"
+#define HK_CANCEL "POWER"
+
+#elif CONFIG_KEYPAD == DX50_PAD
+#define JEWELS_CANCEL BUTTON_POWER
+#define HK_CANCEL "Power"
 
 #else
 #error No keymap defined!
@@ -461,8 +521,8 @@ struct puzzle_level puzzle_levels[NUM_PUZZLE_LEVELS] = {
               {4, 7, PUZZLE_TILE_LEFT|PUZZLE_TILE_UP} } },
 };
 
-#define SAVE_FILE  PLUGIN_GAMES_DIR "/jewels.save"
-#define SCORE_FILE PLUGIN_GAMES_DIR "/jewels.score"
+#define SAVE_FILE  PLUGIN_GAMES_DATA_DIR "/jewels.save"
+#define SCORE_FILE PLUGIN_GAMES_DATA_DIR "/jewels.score"
 struct highscore highscores[NUM_SCORES];
 
 static bool resume_file = false;
@@ -1433,7 +1493,6 @@ static int jewels_main(struct game_context* bj) {
     int button;
     int position;
     bool selected = false;
-    bool no_movesavail;
     int x=0, y=0;
 
     bool loaded = jewels_loadgame(bj);
@@ -1443,8 +1502,6 @@ static int jewels_main(struct game_context* bj) {
 
     resume_file = false;
     while(true) {
-        no_movesavail = false;
-
         /* refresh the board */
         jewels_drawboard(bj);
 
@@ -1470,7 +1527,6 @@ static int jewels_main(struct game_context* bj) {
                 if(selected) {
                     bj->score += jewels_swapjewels(bj, x, y, SWAP_LEFT);
                     selected = false;
-                    if (!jewels_movesavail(bj)) no_movesavail = true;
                 } else {
                     x = (x+BJ_WIDTH-1)%BJ_WIDTH;
                 }
@@ -1481,7 +1537,6 @@ static int jewels_main(struct game_context* bj) {
                 if(selected) {
                     bj->score += jewels_swapjewels(bj, x, y, SWAP_RIGHT);
                     selected = false;
-                    if (!jewels_movesavail(bj)) no_movesavail = true;
                 } else {
                     x = (x+1)%BJ_WIDTH;
                 }
@@ -1492,7 +1547,6 @@ static int jewels_main(struct game_context* bj) {
                 if(selected) {
                     bj->score += jewels_swapjewels(bj, x, y, SWAP_DOWN);
                     selected = false;
-                    if (!jewels_movesavail(bj)) no_movesavail = true;
                 } else {
                     y = (y+1)%(BJ_HEIGHT-1);
                 }
@@ -1503,7 +1557,6 @@ static int jewels_main(struct game_context* bj) {
                 if(selected) {
                     bj->score += jewels_swapjewels(bj, x, y, SWAP_UP);
                     selected = false;
-                    if (!jewels_movesavail(bj)) no_movesavail = true;
                 } else {
                     y = (y+(BJ_HEIGHT-1)-1)%(BJ_HEIGHT-1);
                 }
@@ -1569,7 +1622,7 @@ static int jewels_main(struct game_context* bj) {
                 }
         }
 
-        if (no_movesavail) {
+        if (!jewels_movesavail(bj)) {
             switch(bj->type) {
                 case GAME_TYPE_NORMAL:
                     rb->splash(HZ*2, "Game Over!");

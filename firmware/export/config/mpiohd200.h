@@ -1,7 +1,6 @@
 /*
  * This config file is for MPIO HD200
  */
-#define TARGET_TREE /* this target is using the target tree system */
 
 /* For Rolo and boot loader */
 #define MODEL_NUMBER 69
@@ -48,15 +47,14 @@
 /* define this if you have access to the quickscreen */
 /* #define HAVE_QUICKSCREEN */
 
-/* define this if you have access to the pitchscreen */
-#define HAVE_PITCHSCREEN
-
 /* define this if you would like tagcache to build on this target */
 #define HAVE_TAGCACHE
 
 /* LCD dimensions */
 #define LCD_WIDTH  128
 #define LCD_HEIGHT 128
+/* sqrt(128^2 + 128^2) / 1.6 = 113.1 */
+#define LCD_DPI 113
 #define LCD_DEPTH  2
 
 #define LCD_PIXELFORMAT VERTICAL_INTERLEAVED
@@ -116,6 +114,8 @@
 #define CODEC_SRCTRL_88200HZ (0x1E << 1)
 
 #define BATTERY_TYPES_COUNT 1
+
+#define CONFIG_BATTERY_MEASURE VOLTAGE_MEASURE
 #define BATTERY_CAPACITY_DEFAULT  850  /* this is wild guess */
 #define BATTERY_CAPACITY_MIN      800  /* min. capacity selectable */
 #define BATTERY_CAPACITY_MAX     2500  /* max. capacity selectable */

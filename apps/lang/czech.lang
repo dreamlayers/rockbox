@@ -140,10 +140,10 @@
     *: "Loading..."
   </source>
   <dest>
-    *: "Nahrávám..."
+    *: "Otevírám..."
   </dest>
   <voice>
-    *: "Nahrávám"
+    *: "Otevírám"
   </voice>
 </phrase>
 <phrase>
@@ -154,7 +154,7 @@
     *: "Loading... %d%% done (%s)"
   </source>
   <dest>
-    *: "Nahrávám... %d%% hotovo (%s)"
+    *: "Otevírám... %d%% hotovo (%s)"
   </dest>
   <voice>
     *: ""
@@ -168,10 +168,10 @@
     *: "Scanning disk..."
   </source>
   <dest>
-    *: "Procházím disk..."
+    *: "Aktualizuji..."
   </dest>
   <voice>
-    *: "Procházím disk"
+    *: "Aktualizuji"
   </voice>
 </phrase>
 <phrase>
@@ -210,10 +210,10 @@
     *: "Failed"
   </source>
   <dest>
-    *: "Selhalo"
+    *: "Operace selhala"
   </dest>
   <voice>
-    *: "Selhalo"
+    *: "Operace selhala"
   </voice>
 </phrase>
 <phrase>
@@ -252,17 +252,17 @@
     *: "PLAY = Yes"
     cowond2*: "MENU, or top-right = Yes"
     iriverh100,iriverh120,iriverh300: "NAVI = Yes"
-    samsungyh*,ipod*,iaudiox5,iaudiom5,gigabeat*,sansae200*,sansac200*,iriverh10,iriverh10_5gb,mrobe100,sansaclip*,sansafuze*: "SELECT = Yes"
+    ipod*,iaudiox5,iaudiom5,gigabeat*,sansae200*,sansac200*,iriverh10,iriverh10_5gb,mrobe100,sansaclip*,sansafuze*,sansaconnect: "SELECT = Yes"
     mrobe500: "PLAY, POWER, or top-right = Yes"
     archosplayer: "(PLAY/STOP)"
     vibe500: "OK = Yes"
   </source>
   <dest>
   *: "PLAY = Ano"
-    cowond2*: "MENU, or top-right = Ano"
+    cowond2*: "MENU, nebo vpravo nahoře = Ano"
     iriverh100,iriverh120,iriverh300: "NAVI = Ano"
-    samsungyh*,ipod*,iaudiox5,iaudiom5,gigabeat*,sansae200*,sansac200*,iriverh10,iriverh10_5gb,mrobe100,sansaclip*,sansafuze*: "SELECT = Ano"
-    mrobe500: "PLAY, POWER, or top-right = Ano"
+    ipod*,iaudiox5,iaudiom5,gigabeat*,sansae200*,sansac200*,iriverh10,iriverh10_5gb,mrobe100,sansaclip*,sansafuze*,sansaconnect: "SELECT = Ano"
+    mrobe500: "PLAY, POWER, nebo vpravo nahoře = Ano"
     archosplayer: "(PLAY/STOP)"
     vibe500: "OK = Ano"
   </dest>
@@ -421,7 +421,7 @@
 </phrase>
 <phrase>
   id: LANG_PLAYLISTS
-  desc: in the main menu and file view setting
+  desc: in the file view setting
   user: core
   <source>
     *: "Playlists"
@@ -430,7 +430,7 @@
     *: "Playlisty"
   </dest>
   <voice>
-    *: "Plejlisty, neozvučené"
+    *: "Plejlisty"
   </voice>
 </phrase>
 <phrase>
@@ -444,7 +444,7 @@
     *: "Pluginy"
   </dest>
   <voice>
-    *: "Plaginy, neozvučitelné"
+    *: "Plaginy, neozvučené"
   </voice>
 </phrase>
 <phrase>
@@ -483,10 +483,10 @@
     *: "<Don't Resume>"
   </source>
   <dest>
-    *: "<Neopakovat>"
+    *: "<Nepokračovat>"
   </dest>
   <voice>
-    *: "Neopakovat"
+    *: "Nepokračovat"
   </voice>
 </phrase>
 <phrase>
@@ -497,7 +497,7 @@
     *: ", Shuffle"
   </source>
   <dest>
-    *: ", Promíchat"
+    *: ", Náhodně"
   </dest>
   <voice>
     *: ""
@@ -539,10 +539,10 @@
     *: "Resume"
   </source>
   <dest>
-    *: "Pokračovat"
+    *: "Pokračovat v přehrávání"
   </dest>
   <voice>
-    *: "Pokračovat"
+    *: "Pokračovat v přehrávání"
   </voice>
 </phrase>
 <phrase>
@@ -595,10 +595,10 @@
     *: "Bookmark Failed!"
   </source>
   <dest>
-    *: "Záložka selhala!"
+    *: "Vytvoření záložky selhalo!"
   </dest>
   <voice>
-    *: "Záložka selhala!"
+    *: "Vytvoření záložky selhalo!"
   </voice>
 </phrase>
 <phrase>
@@ -609,10 +609,10 @@
     *: "Bookmark Empty"
   </source>
   <dest>
-    *: "Prázdné záložky"
+    *: "Žádné záložky"
   </dest>
   <voice>
-    *: "Prázdné záložky"
+    *: "Žádné záložky"
   </voice>
 </phrase>
 <phrase>
@@ -1011,11 +1011,11 @@
   </source>
   <dest>
     *: none
-    swcodec: "Uložit předvolbu EQ"
+    swcodec: "Uložit konfiguraci EQ"
   </dest>
   <voice>
     *: none
-    swcodec: "Uložit předvolbu ekvalizéru"
+    swcodec: "Uložit konfiguraci ekvalizéru"
   </voice>
 </phrase>
 <phrase>
@@ -1045,7 +1045,7 @@
   </source>
   <dest>
     *: none
-    swcodec: "Editační mód: %s"
+    swcodec: "Režim: %s"
   </dest>
   <voice>
     *: none
@@ -1377,10 +1377,10 @@
     *: "Shuffle"
   </source>
   <dest>
-    *: "Promíchání"
+    *: "Náhodně"
   </dest>
   <voice>
-    *: "Promíchání"
+    *: "Náhodně"
   </voice>
 </phrase>
 <phrase>
@@ -1419,10 +1419,10 @@
     *: "One"
   </source>
   <dest>
-    *: "Jednou"
+    *: "Skladba"
   </dest>
   <voice>
-    *: "Jednou"
+    *: "Skladba"
   </voice>
 </phrase>
 <phrase>
@@ -1475,10 +1475,10 @@
     *: "FF/RW Min Step"
   </source>
   <dest>
-    *: "Skok převíjení"
+    *: "Minimální skok přetáčení"
   </dest>
   <voice>
-    *: "Skok převíjení"
+    *: "Minimální skok přetáčení"
   </voice>
 </phrase>
 <phrase>
@@ -1489,10 +1489,10 @@
     *: "FF/RW Accel"
   </source>
   <dest>
-    *: "Urychlené převíjení"
+    *: "Urychlené přetáčení"
   </dest>
   <voice>
-    *: "Urychlené převíjení"
+    *: "Urychlené přetáčení"
   </voice>
 </phrase>
 <phrase>
@@ -1601,11 +1601,11 @@
   </source>
   <dest>
     *: none
-    crossfade: "Zamíchat a přeskočit"
+    crossfade: "Náhodně nebo manuálně přeskočit skladbu"
   </dest>
   <voice>
     *: none
-    crossfade: "Zamíchat a přeskočit"
+    crossfade: "Náhodně nebo manuálně přeskočit skladbu"
   </voice>
 </phrase>
 <phrase>
@@ -1686,11 +1686,11 @@
   </source>
   <dest>
     *: none
-    crossfade: "Mód zeslabení"
+    crossfade: "Režim zeslabení"
   </dest>
   <voice>
     *: none
-    crossfade: "Mód zeslabení"
+    crossfade: "Režim zeslabení"
   </voice>
 </phrase>
 <phrase>
@@ -1904,10 +1904,10 @@
     *: "Auto-Change Directory"
   </source>
   <dest>
-    *: "Pokračovat další složkou"
+    *: "Pokračovat do další složky"
   </dest>
   <voice>
-    *: "Pokračovat další složkou"
+    *: "Pokračovat do další složky"
   </voice>
 </phrase>
 <phrase>
@@ -1979,28 +1979,25 @@
   </source>
   <dest>
     *: none
-    headphone_detection: "Pauza a pokračování"
+    headphone_detection: "Pauza a pokračování v přehrávání"
   </dest>
   <voice>
     *: none
-    headphone_detection: "Pauza a pokračování"
+    headphone_detection: "Pauza a pokračování v přehrávání"
   </voice>
 </phrase>
 <phrase>
   id: LANG_HEADPHONE_UNPLUG_RW
-  desc: in pause_phones_menu.
+  desc: deprecated
   user: core
   <source>
-    *: none
-    headphone_detection: "Duration to Rewind"
+    *: ""
   </source>
   <dest>
-    *: none
-    headphone_detection: "Délka přetočení"
+    *: ""
   </dest>
   <voice>
-    *: none
-    headphone_detection: "Délka přetočení"
+    *: ""
   </voice>
 </phrase>
 <phrase>
@@ -2013,11 +2010,11 @@
   </source>
   <dest>
     *: none
-    headphone_detection: "Zrušit pokračování přehrávání při zapnutí pokud jsou sluchátka odpojena"
+    headphone_detection: "Zrušit pokračování v přehrávání po zapnutí pokud jsou sluchátka odpojena"
   </dest>
   <voice>
     *: none
-    headphone_detection: "Zrušit pokračování přehrávání při zapnutí pokud jsou sluchátka odpojena"
+    headphone_detection: "Zrušit pokračování v přehrávání po zapnutí pokud jsou sluchátka odpojena"
   </voice>
 </phrase>
 <phrase>
@@ -2056,10 +2053,10 @@
     *: "Sort Directories"
   </source>
   <dest>
-    *: "Řadit adresáře"
+    *: "Řadit složky"
   </dest>
   <voice>
-    *: "Řadit adresáře"
+    *: "Řadit složky"
   </voice>
 </phrase>
 <phrase>
@@ -2210,10 +2207,10 @@
     *: "Current Directory Only"
   </source>
   <dest>
-    *: "Pouze aktuální adresář"
+    *: "Pouze aktuální složka"
   </dest>
   <voice>
-    *: "Pouze aktuální adresář"
+    *: "Pouze aktuální složka"
   </voice>
 </phrase>
 <phrase>
@@ -2235,23 +2232,25 @@
   desc: splash database building progress
   user: core
   <source>
-*: "Building database... %d found (OFF to return)"
+    *: "Building database... %d found (OFF to return)"
     iriverh100,iriverh120,iriverh300: "Building database... %d found (STOP to return)"
     ipod*: "Building database... %d found (PREV to return)"
-    iaudiox5,iaudiom5,gigabeat*,mrobe100: "Building database... %d found (LEFT to return)"
+    iaudiox5,iaudiom5,gigabeat*,mrobe100,samsungyh*: "Building database... %d found (LEFT to return)"
     iriverh10,iriverh10_5gb,sansae200*,sansac200*,sansafuze*,vibe500: "Building database... %d found (PREV to return)"
     gogearsa9200: "Building database... %d found (REW to return)"
+    archosplayer: "Building DB %d found"
   </source>
   <dest>
     *: "Vytvářím databázi... %d nalezeno (OFF pro návrat)"
     iriverh100,iriverh120,iriverh300: "Vytvářím databázi... %d nalezeno (STOP pro návrat)"
-    ipod*: "Vytvářím databázi... %d found (PREV pro návrat)"
-    iaudiox5,iaudiom5,gigabeat*,mrobe100: "Vytvářím databázi... %d nalezeno (LEFT pro návrat)"
+    ipod*: "Vytvářím databázi... %d nalezeno (PREV pro návrat)"
+    iaudiox5,iaudiom5,gigabeat*,mrobe100,samsungyh*: "Vytvářím databázi... %d nalezeno (LEFT pro návrat)"
     iriverh10,iriverh10_5gb,sansae200*,sansac200*,sansafuze*,vibe500: "Vytvářím databázi... %d nalezeno (PREV pro návrat)"
     gogearsa9200: "Vytvářím databázi.. %d nalezeno (REW pro návrat)"
-</dest>
+    archosplayer: "Vytvář. DB %d nalez."
+  </dest>
   <voice>
-    *: "záznamů vytvořeno do databáze"
+    *: "Vytváření záznamů do databáze"
   </voice>
 </phrase>
 <phrase>
@@ -2282,7 +2281,7 @@
     *: "Automaticky aktualizovat"
   </dest>
   <voice>
-    *: "Automaticky aktualizovat"
+    *: "Automatycky aktualizovat"
   </voice>
 </phrase>
 <phrase>
@@ -2293,10 +2292,10 @@
     *: "Initialize Now"
   </source>
   <dest>
-    *: "Inicializovat teď"
+    *: "Inicializovat nyní"
   </dest>
   <voice>
-    *: "Inycializovat teď"
+    *: "Inycializovat nyní"
   </voice>
 </phrase>
 <phrase>
@@ -2307,10 +2306,10 @@
     *: "Update Now"
   </source>
   <dest>
-    *: "Aktualizovat teď"
+    *: "Aktualizovat nyní"
   </dest>
   <voice>
-    *: "Aktualizovat teď"
+    *: "Aktualizovat nyní"
   </voice>
 </phrase>
 <phrase>
@@ -2481,10 +2480,10 @@
     *: "LCD Settings"
   </source>
   <dest>
-    *: "Nastavení LCD"
+    *: "Možnosti LCD"
   </dest>
   <voice>
-    *: "Nastavení elcédé"
+    *: "Možnosti elcédé"
   </voice>
 </phrase>
 <phrase>
@@ -2672,11 +2671,11 @@
   </source>
   <dest>
     *: none
-    lcd_invert,remote_lcd_invert: "Mód displeje"
+    lcd_invert,remote_lcd_invert: "Režim displeje"
   </dest>
   <voice>
     *: none
-    lcd_invert,remote_lcd_invert: "Mód dyspleje"
+    lcd_invert,remote_lcd_invert: "Režim dyspleje"
   </voice>
 </phrase>
 <phrase>
@@ -2910,7 +2909,7 @@
   </source>
   <dest>
     *: none
-    remote_ticking: "Zredukova tikání"
+    remote_ticking: "Zredukovat tikání"
   </dest>
   <voice>
     *: none
@@ -3442,10 +3441,10 @@
     *: "Default Codepage"
   </source>
   <dest>
-    *: "Nastavení kódování textu"
+    *: "Kódování znaků"
   </dest>
   <voice>
-    *: "Nastavení kódování textu"
+    *: "Kódování znaků"
   </voice>
 </phrase>
 <phrase>
@@ -3850,11 +3849,11 @@
   </source>
   <dest>
     *: none
-    dircache: "Mezipaměť adresářů"
+    dircache: "Mezipaměť složek"
   </dest>
   <voice>
     *: none
-    dircache: "Mezipaměť adresářů"
+    dircache: "Mezipaměť složek"
   </voice>
 </phrase>
 <phrase>
@@ -3951,8 +3950,8 @@
     rtc: "ON = Set"
     mrobe500: "HEART = Set"
     iriverh100,iriverh120,iriverh300: "NAVI = Set"
-    ipod*,iaudiox5,iaudiom5,iriverh10,iriverh10_5gb,sansae200*,sansac200*,gigabeat*,mrobe100,sansaclip*,sansafuze*: "SELECT = Set"
-    gogearsa9200: "PLAY = Set"
+    ipod*,iaudiox5,iaudiom5,iriverh10,iriverh10_5gb,sansae200*,sansac200*,gigabeat*,mrobe100,sansaclip*,sansafuze*,sansaconnect: "SELECT = Set"
+    gogearsa9200,samsungyh*: "PLAY = Set"
     vibe500: "OK = Set"
     mpiohd300: "ENTER = Set"
   </source>
@@ -3961,14 +3960,14 @@
     rtc: "ON = Nastavit"
     mrobe500: "HEART = Nastavit"
     iriverh100,iriverh120,iriverh300: "NAVI = Nastavit"
-    ipod*,iaudiox5,iaudiom5,iriverh10,iriverh10_5gb,sansae200*,sansac200*,gigabeat*,mrobe100,sansaclip*,sansafuze*: "SELECT = Nastavit"
-    gogearsa9200: "PLAY = Nastavit"
+    ipod*,iaudiox5,iaudiom5,iriverh10,iriverh10_5gb,sansae200*,sansac200*,gigabeat*,mrobe100,sansaclip*,sansafuze*,sansaconnect: "SELECT = Nastavit"
+    gogearsa9200,samsungyh*: "PLAY = Nastavit"
     vibe500: "OK = Nastavit"
     mpiohd300: "ENTER = Nastavit"
   </dest>
   <voice>
     *: none
-    rtc,iriverh100,iriverh120,iriverh300,iriverh10,iriverh10_5gb,iaudiox5,iaudiom5,ipod*,sansae200*,sansac200*,gigabeat*,mrobe100,gogearsa9200: ""
+    rtc,iriverh100,iriverh120,iriverh300,iriverh10,iriverh10_5gb,iaudiox5,iaudiom5,ipod*,sansae200*,sansac200*,gigabeat*,mrobe100,gogearsa9200,samsungyh*: ""
   </voice>
 </phrase>
 <phrase>
@@ -3984,10 +3983,12 @@
     iaudiox5,iaudiom5: "RECORD = Revert"
     iriverh10,iriverh10_5gb,sansae200*,sansafuze*: "PREV = Revert"
     gigabeatfx: "POWER = Revert"
+    sansafuzeplus: "BACK = Revert"
     mrobe100: "DISPLAY = Revert"
     gigabeats: "BACK = Revert"
     gogearsa9200: "LEFT = Revert"
     vibe500: "CANCEL = Revert"
+    samsungyh*: "REW = Revert"
   </source>
   <dest>
     *: none
@@ -3998,10 +3999,12 @@
     iaudiox5,iaudiom5: "RECORD = Vrátit zpět"
     iriverh10,iriverh10_5gb,sansae200*,sansafuze*: "PREV = Vrátit zpět"
     gigabeatfx: "POWER = Vrátit zpět"
+    sansafuzeplus: "BACK = Vrátit zpět"
     mrobe100: "DISPLAY = Vrátit zpět"
     gigabeats: "BACK = Vrátit zpět"
     gogearsa9200: "LEFT = Vrátit zpět"
     vibe500: "CANCEL = Vrátit zpět"
+    samsungyh*: "REW = Vrátit zpět"
   </dest>
   <voice>
     *: none
@@ -4353,10 +4356,10 @@
     *: "Sleep Timer"
   </source>
   <dest>
-    *: "Časovač usnutí"
+    *: "Časovač vypnutí"
   </dest>
   <voice>
-    *: "Časovač usnutí"
+    *: "Časovač vypnutí"
   </voice>
 </phrase>
 <phrase>
@@ -4381,10 +4384,10 @@
     *: "Max Entries in File Browser"
   </source>
   <dest>
-    *: "Max.poč. souborů v adresáři"
+    *: "Max.počet položek v prohlížeči souborů"
   </dest>
   <voice>
-    *: "Maximální počet souborů v adresáři"
+    *: "Maximální počet položek v prohlížeči souborů"
   </voice>
 </phrase>
 <phrase>
@@ -4532,6 +4535,7 @@
     gigabeats: "SELECT=Set POWER=Cancel"
     vibe500: "OK=Set C=Cancel"
     mpiohd300: "ENTER=Set MENU=Cancel"
+    sansafuzeplus: "SELECT=Set  BACK=Cancel"
   </source>
   <dest>
     *: none
@@ -4541,6 +4545,7 @@
     gigabeats: "SELECT=Nastavit POWER=Storno"
     vibe500: "OK=Nastavit C=Storno"
     mpiohd300: "ENTER=Nastavit MENU=Storno"
+    sansafuzeplus: "SELECT=Nastavit  BACK=Storno"
   </dest>
   <voice>
     *: none
@@ -4557,11 +4562,11 @@
   </source>
   <dest>
     *: none
-    alarm: "Budík vypnutý"
+    alarm: "Budík vypnut"
   </dest>
   <voice>
     *: none
-    alarm: "Budík vypnutý"
+    alarm: "Budík vypnut"
   </voice>
 </phrase>
 <phrase>
@@ -4726,10 +4731,10 @@
     *: "Voice Directories"
   </source>
   <dest>
-    *: "Ozvučit adresáře"
+    *: "Ozvučit složky"
   </dest>
   <voice>
-    *: "Ozvučit adresáře"
+    *: "Ozvučit složky"
   </voice>
 </phrase>
 <phrase>
@@ -4740,10 +4745,10 @@
     *: "Use Directory .talk Clips"
   </source>
   <dest>
-    *: "Použít .talk klipy pro adresáře"
+    *: "Použít .talk klipy pro složky"
   </dest>
   <voice>
-    *: "Použít talk klipy pro adresáře"
+    *: "Použít talk klipy pro složky"
   </voice>
 </phrase>
 <phrase>
@@ -5024,7 +5029,7 @@
   </dest>
   <voice>
     *: none
-    radio: "Editovat stanici"
+    radio: "Edytovat stanici"
   </voice>
 </phrase>
 <phrase>
@@ -5228,7 +5233,7 @@
   </dest>
   <voice>
     *: none
-    radio: "Automatické vyhledání stanic"
+    radio: "Automatycké vyhledání stanic"
   </voice>
 </phrase>
 <phrase>
@@ -5241,11 +5246,11 @@
   </source>
   <dest>
     *: none
-    radio: "Vymazat uložené stanice?"
+    radio: "Zrušit aktuální seznam stanic?"
   </dest>
   <voice>
     *: none
-    radio: "Vymazat uložené stanice?"
+    radio: "Zrušit aktuální seznam stanic?"
   </voice>
 </phrase>
 <phrase>
@@ -5343,11 +5348,11 @@
   </source>
   <dest>
     *: none
-    radio: "Vymazat seznam stanic"
+    radio: "Zrušit seznam stanic"
   </dest>
   <voice>
     *: none
-    radio: "Vymazat seznam stanic"
+    radio: "Zrušit seznam stanic"
   </voice>
 </phrase>
 <phrase>
@@ -5386,19 +5391,19 @@
 </phrase>
 <phrase>
   id: LANG_FM_SAVE_CHANGES
-  desc: When you try to exit radio to confirm save
+  desc: deprecated
   user: core
   <source>
     *: none
-    radio: "Save Changes?"
+    radio: ""
   </source>
   <dest>
     *: none
-    radio: "Uložit změny?"
+    radio: ""
   </dest>
   <voice>
     *: none
-    radio: "Uložit změny?"
+    radio: ""
   </voice>
 </phrase>
 <phrase>
@@ -5640,20 +5645,20 @@
   </voice>
 </phrase>
 <phrase>
-  id: LANG_RECORDING_FREQUENCY
-  desc: in the recording settings
+  id: LANG_FREQUENCY
+  desc: in recording and playback settings
   user: core
   <source>
     *: none
-    recording: "Frequency"
+    recording,play_frequency: "Frequency"
   </source>
   <dest>
     *: none
-    recording: "Frekvence"
+    recording,play_frequency: "Frekvence"
   </dest>
   <voice>
     *: none
-    recording: "Frekvence"
+    recording,play_frequency: "Frekvence"
   </voice>
 </phrase>
 <phrase>
@@ -5701,8 +5706,8 @@
   </source>
   <dest>
     *: none
-    recording: "Mikrofón"
-    iriverh100,iriverh120,iriverh300: "Interní mikrofón"
+    recording: "Mikrofon"
+    iriverh100,iriverh120,iriverh300: "Interní mikrofon"
   </dest>
   <voice>
     *: none
@@ -5881,20 +5886,6 @@
   </voice>
 </phrase>
 <phrase>
-  id: LANG_REC_SIZE
-  desc: deprecated
-  user:
-  <source>
-    *: none
-  </source>
-  <dest>
-    *: none
-  </dest>
-  <voice>
-    *: none
-  </voice>
-</phrase>
-<phrase>
   id: LANG_RECORD_PRERECORD_TIME
   desc: in recording settings_menu
   user: core
@@ -5921,11 +5912,11 @@
   </source>
   <dest>
     *: none
-    recording: "Adresář"
+    recording: "Složka"
   </dest>
   <voice>
     *: none
-    recording: "Adresář"
+    recording: "Složka"
   </voice>
 </phrase>
 <phrase>
@@ -5938,11 +5929,11 @@
   </source>
   <dest>
     *: none
-    recording: "Nastavit jako adresář pro nahrávání"
+    recording: "Nastavit jako složku pro nahrávání"
   </dest>
   <voice>
     *: none
-    recording: "Nastavit jako adresář pro nahrávání"
+    recording: "Nastavit jako složku pro nahrávání"
   </voice>
 </phrase>
 <phrase>
@@ -5955,11 +5946,11 @@
   </source>
   <dest>
     *: none
-    recording: "Vymazat obsah adresář s nahrávkami"
+    recording: "Vymazat obsah složky s nahrávkami"
   </dest>
   <voice>
     *: none
-    recording: "Vymazat obsah adresář s nahrávkami"
+    recording: "Vymazat obsah složky s nahrávkami"
   </voice>
 </phrase>
 <phrase>
@@ -5972,11 +5963,11 @@
   </source>
   <dest>
     *: none
-    recording: "Nelze zapsat do adresáře pro nahrávání"
+    recording: "Nelze zapsat do složky pro nahrávání"
   </dest>
   <voice>
     *: none
-    recording: "Nelze zapsat do adresáře pro nahrávání"
+    recording: "Nelze zapsat do složky pro nahrávání"
   </voice>
 </phrase>
 <phrase>
@@ -6061,7 +6052,7 @@
   </dest>
   <voice>
     *: none
-    recording: "Automatická spoušť"
+    recording: "Automatycká spoušť"
   </voice>
 </phrase>
 <phrase>
@@ -6478,10 +6469,10 @@
 </phrase>
 <phrase>
   id: LANG_CATALOG
-  desc: in onplay menu
+  desc: in main menu and onplay menu
   user: core
   <source>
-    *: "Playlist Catalog"
+    *: "Playlist Catalogue"
   </source>
   <dest>
     *: "Katalog playlistů"
@@ -6498,10 +6489,10 @@
     *: "Recursively Insert Directories"
   </source>
   <dest>
-    *: "Vkládat adresáře rekurzivně"
+    *: "Vkládat podsložky"
   </dest>
   <voice>
-    *: "Vkládat adresáře rekurzivně"
+    *: "Vkládat podsložky"
   </voice>
 </phrase>
 <phrase>
@@ -6512,10 +6503,10 @@
     *: "Recursively?"
   </source>
   <dest>
-    *: "Rekurzivně?"
+    *: "Vložit i podsložky?"
   </dest>
   <voice>
-    *: "Rekurzivně?"
+    *: "Vložit i podsložky?"
   </voice>
 </phrase>
 <phrase>
@@ -6540,10 +6531,10 @@
     *: "Erase dynamic playlist?"
   </source>
   <dest>
-    *: "Smazat dymanický playlist?"
+    *: "Smazat dynamický playlist?"
   </dest>
   <voice>
-    *: "Smazat dymanický plejlist?"
+    *: "Smazat dynamický plejlist?"
   </voice>
 </phrase>
 <phrase>
@@ -6663,19 +6654,19 @@
   <source>
     *: none
     multivolume: "HD1"
-    sansae200*,sansac200*,sansafuze*: "mSD:"
+    sansae200*,sansac200*,sansafuze*,sansaclipplus: "mSD:"
     archosondio*: "MMC:"
   </source>
   <dest>
     *: none
     multivolume: "HD1"
-    sansae200*,sansac200*,sansafuze*: "mSD:"
+    sansae200*,sansac200*,sansafuze*,sansaclipplus: "mSD:"
     archosondio*: "MMC:"
   </dest>
   <voice>
     *: none
     multivolume: "hárdisk há dé 1"
-    sansae200*,sansac200*,sansafuze*: "paměťová karta mikro es dé"
+    sansae200*,sansac200*,sansafuze*,sansaclipplus: "paměťová karta mikro es dé"
     archosondio*: "paměťová karta em em cé"
   </voice>
 </phrase>
@@ -6715,10 +6706,10 @@
     *: "Top Time"
   </source>
   <dest>
-    *: "Nejdelší doba běhu"
+    *: "Celková doba běhu"
   </dest>
   <voice>
-    *: "Nejdelší doba běhu"
+    *: "Celková doba běhu"
   </voice>
 </phrase>
 <phrase>
@@ -6967,18 +6958,18 @@
     *: "Reshuffle"
   </source>
   <dest>
-    *: "Znovu promíchat"
+    *: "Nový náhodný výběr"
   </dest>
   <voice>
-    *: "Znovu promíchat"
+    *: "Nový náhodný výběr"
   </voice>
 </phrase>
 <phrase>
   id: LANG_CATALOG_VIEW
-  desc: in onplay playlist catalog submenu
+  desc: in onplay playlist catalogue submenu
   user: core
   <source>
-    *: "View Catalog"
+    *: "View Catalogue"
   </source>
   <dest>
     *: "Zobrazit katalog playlistů"
@@ -6989,7 +6980,7 @@
 </phrase>
 <phrase>
   id: LANG_CATALOG_ADD_TO
-  desc: in onplay playlist catalog submenu
+  desc: in onplay playlist catalogue submenu
   user: core
   <source>
     *: "Add to Playlist"
@@ -7003,7 +6994,7 @@
 </phrase>
 <phrase>
   id: LANG_CATALOG_ADD_TO_NEW
-  desc: in onplay playlist catalog submenu
+  desc: in onplay playlist catalogue submenu
   user: core
   <source>
     *: "Add to New Playlist"
@@ -7017,7 +7008,7 @@
 </phrase>
 <phrase>
   id: LANG_CATALOG_NO_DIRECTORY
-  desc: error message when playlist catalog directory doesn't exist
+  desc: error message when playlist catalogue directory doesn't exist
   user: core
   <source>
     *: "%s doesn't exist"
@@ -7026,12 +7017,12 @@
     *: "%s neexistuje"
   </dest>
   <voice>
-    *: "Adresář plejlistů neexistuje"
+    *: "Složka plejlistů neexistuje"
   </voice>
 </phrase>
 <phrase>
   id: LANG_CATALOG_NO_PLAYLISTS
-  desc: error message when no playlists for playlist catalog
+  desc: error message when no playlists for playlist catalogue
   user: core
   <source>
     *: "No Playlists"
@@ -7457,10 +7448,10 @@
     *: "File/directory exists. Overwrite?"
   </source>
   <dest>
-    *: "Soubor nebo adresář již existuje. Přepsat?"
+    *: "Soubor nebo složka již existuje. Přepsat?"
   </dest>
   <voice>
-    *: "Soubor nebo adresář již existuje Přepsat?"
+    *: "Soubor nebo složka již existuje Přepsat?"
   </voice>
 </phrase>
 <phrase>
@@ -7485,10 +7476,10 @@
     *: "Delete Directory"
   </source>
   <dest>
-    *: "Smazat adresář"
+    *: "Smazat složku"
   </dest>
   <voice>
-    *: "Smazat adresář"
+    *: "Smazat složku"
   </voice>
 </phrase>
 <phrase>
@@ -7580,15 +7571,15 @@
 </phrase>
 <phrase>
   id: LANG_BACKDROP_LOADED
-  desc: text for splash to indicate a new backdrop has been loaded successfully
+  desc: deprecated
   user: core
   <source>
     *: none
-    lcd_non-mono: "Backdrop Loaded"
+    lcd_non-mono: ""
   </source>
   <dest>
     *: none
-    lcd_non-mono: "Pozadí nahráno"
+    lcd_non-mono: ""
   </dest>
   <voice>
     *: none
@@ -7597,15 +7588,15 @@
 </phrase>
 <phrase>
   id: LANG_BACKDROP_FAILED
-  desc: text for splash to indicate a failure to load a bitmap as backdrop
+  desc: deprecated
   user: core
   <source>
     *: none
-    lcd_non-mono: "Backdrop Failed"
+    lcd_non-mono: ""
   </source>
   <dest>
     *: none
-    lcd_non-mono: "Nastavení pozadí selhalo"
+    lcd_non-mono: ""
   </dest>
   <voice>
     *: none
@@ -7634,10 +7625,10 @@
     *: "Create Directory"
   </source>
   <dest>
-    *: "Vytvořit adresář"
+    *: "Vytvořit složku"
   </dest>
   <voice>
-    *: "Vytvořit adresář"
+    *: "Vytvořit složku"
   </voice>
 </phrase>
 <phrase>
@@ -7662,10 +7653,10 @@
     *: "Add to Shortcuts"
   </source>
   <dest>
-    *: "Přidat do záložek"
+    *: "Přidat do zástupců"
   </dest>
   <voice>
-    *: "Přidat do záložek"
+    *: "Přidat do zástupců, položka ale nebude ozvučená"
   </voice>
 </phrase>
 <phrase>
@@ -7819,10 +7810,10 @@
     *: "Error updating playlist control file"
   </source>
   <dest>
-    *: "Chyba aktualizace nastavení playlistu"
+    *: "Chyba aktualizace konfigurace playlistu"
   </dest>
   <voice>
-    *: "Chyba aktualizace nastavení plejlistu"
+    *: "Chyba aktualizace konfigurace plejlistu"
   </voice>
 </phrase>
 <phrase>
@@ -7847,10 +7838,10 @@
     *: "Error accessing playlist control file"
   </source>
   <dest>
-    *: "Chyba přístupu k nastavení playlistu"
+    *: "Chyba přístupu ke konfiguraci playlistu"
   </dest>
   <voice>
-    *: "Chyba přístupu k nastavení plejlistu"
+    *: "Chyba přístupu ke konfiguraci plejlistu"
   </voice>
 </phrase>
 <phrase>
@@ -7861,10 +7852,10 @@
     *: "Error accessing directory"
   </source>
   <dest>
-    *: "Chyba přístupu k adresáři"
+    *: "Chyba přístupu ke složce"
   </dest>
   <voice>
-    *: "Chyba přístupu k adresáři"
+    *: "Chyba přístupu ke složce"
   </voice>
 </phrase>
 <phrase>
@@ -7875,10 +7866,10 @@
     *: "Playlist control file is invalid"
   </source>
   <dest>
-    *: "Neplatný soubor nastavení playlistu"
+    *: "Neplatný konfigurační soubor playlistu"
   </dest>
   <voice>
-    *: "Neplatný soubor nastavení plejlistu"
+    *: "Neplatný konfigurační soubor plejlistu"
   </voice>
 </phrase>
 <phrase>
@@ -7903,10 +7894,10 @@
     *: "Mode:"
   </source>
   <dest>
-    *: "Mód:"
+    *: "Režim:"
   </dest>
   <voice>
-    *: ""
+    *: "V režimu"
   </voice>
 </phrase>
 <phrase>
@@ -7995,6 +7986,7 @@
     iriverh100,iriverh120,iriverh300: "The disk is full. Press STOP to continue."
     iaudiom5,iaudiox5: "The disk is full. Press POWER to continue."
     sansae200*,sansac200*,vibe500: "The disk is full. Press PREV to continue."
+    samsungyh*: "Disk full. Press LEFT to continue."
   </source>
   <dest>
     *: none
@@ -8002,6 +7994,7 @@
     iriverh100,iriverh120,iriverh300: "Disk je plný. Pro pokračování stiskněte STOP."
     iaudiom5,iaudiox5: "Disk je plný. Pro pokračování stiskněte POWER."
     sansae200*,sansac200*,vibe500: "Disk je plný. Pro pokračování stiskněte PREV."
+    samsungyh*: "Disk je plný. Pro pokračování stiskněte LEFT."
   </dest>
   <voice>
     *: none
@@ -8099,6 +8092,7 @@
     iriverh10,iriverh10_5gb,sansae200*,sansac200*,vibe500: "PREV to abort"
     gigabeats: "BACK to abort"
     gigabeatfx: "POWER to abort"
+    sansafuzeplus: "BACK to abort"
   </source>
   <dest>
     *: "OFF pro zrušení"
@@ -8108,6 +8102,7 @@
     iriverh10,iriverh10_5gb,sansae200*,sansac200*,vibe500: "PREV pro zrušení"
     gigabeats: "BACK pro zrušení"
     gigabeatfx: "POWER pro zrušení"
+    sansafuzeplus: "BACK pro zrušení"
   </dest>
   <voice>
     *: ""
@@ -8233,10 +8228,10 @@
     *: "Dir Buffer is Full!"
   </source>
   <dest>
-    *: "Adresářová mezipaměť je zaplňená!"
+    *: "Mezipaměť složek je zaplněná!"
   </dest>
   <voice>
-    *: "Adresářová mezipaměť je zaplňená!"
+    *: "Mezipaměť složek je zaplněná!"
   </voice>
 </phrase>
 <phrase>
@@ -8281,7 +8276,7 @@
   </dest>
   <voice>
     *: none
-    charging: "Baterie: Nabíjení"
+    charging: "Baterie se nabíjí"
   </voice>
 </phrase>
 <phrase>
@@ -8294,11 +8289,11 @@
   </source>
   <dest>
     *: none
-    archosrecorder: "Baterie: uplně vybitá"
+    archosrecorder: "Baterie: úplně vybitá"
   </dest>
   <voice>
     *: none
-    archosrecorder: "Baterie je uplně vybitá"
+    archosrecorder: "Baterie je úplně vybitá"
   </voice>
 </phrase>
 <phrase>
@@ -8315,7 +8310,7 @@
   </dest>
   <voice>
     *: none
-    charging: "Baterie: Přerušované nabíjení"
+    charging: "Baterie, Přerušované nabíjení"
   </voice>
 </phrase>
 <phrase>
@@ -8340,10 +8335,10 @@
     *: "Battery empty! RECHARGE!"
   </source>
   <dest>
-    *: "Prázdná baterie! DOBIJTE!"
+    *: "Prázdná baterie! NABIJTE JÍ!"
   </dest>
   <voice>
-    *: "Prázdná baterie! DOBIJTE!"
+    *: "Prázdná baterie! NABIJTE JÍ!"
   </voice>
 </phrase>
 <phrase>
@@ -9693,7 +9688,7 @@
   </dest>
   <voice>
     *: none
-    rtc: "Aktualní čas:"
+    rtc: "Aktuální čas:"
   </voice>
 </phrase>
 <phrase>
@@ -9706,7 +9701,7 @@
   </source>
   <dest>
     *: none
-    swcodec: "Editační mód: %s %s"
+    swcodec: "Režim: %s %s"
   </dest>
   <voice>
     *: none
@@ -9757,7 +9752,7 @@
   </source>
   <dest>
     *: none
-    lcd_bitmap: "Mód:"
+    lcd_bitmap: "Režim:"
   </dest>
   <voice>
     *: none
@@ -9982,7 +9977,7 @@
   </dest>
   <voice>
     *: none
-    recording: "Automatická spoušť"
+    recording: "Automatycká spoušť"
   </voice>
 </phrase>
 <phrase>
@@ -10176,7 +10171,7 @@
   </dest>
   <voice>
     *: none
-    rtc: "celá"
+    rtc: "nula"
   </voice>
 </phrase>
 <phrase>
@@ -10354,7 +10349,7 @@
     *: ""
   </dest>
   <voice>
-    *: "Upravit"
+    *: "Edytace"
   </voice>
 </phrase>
 <phrase>
@@ -10368,7 +10363,7 @@
     *: ""
   </dest>
   <voice>
-    *: "Prázdný"
+    *: "Mezera"
   </voice>
 </phrase>
 <phrase>
@@ -10424,10 +10419,10 @@
     *: "Say File Type"
   </source>
   <dest>
-    *: "Vyslovit typ souboru"
+    *: "Vyslovovat typ souboru"
   </dest>
   <voice>
-    *: "Vyslovit typ souboru"
+    *: "Vyslovovat typ souboru"
   </voice>
 </phrase>
 <phrase>
@@ -10436,15 +10431,15 @@
   user: core
   <source>
     *: none
-    ipodvideo: "Bass Cutoff"
+    ipodvideo,ipod6g,mpiohd200,mpiohd300,gigabeatfx,mrobe100: "Bass Cutoff"
   </source>
   <dest>
     *: none
-    ipodvideo: "Oříznutí basů"
+    ipodvideo,ipod6g,mpiohd200,mpiohd300,gigabeatfx,mrobe100: "Oříznutí basů"
   </dest>
   <voice>
     *: none
-    ipodvideo: "Oříznutí basů"
+    ipodvideo,ipod6g,mpiohd200,mpiohd300,gigabeatfx,mrobe100: "Oříznutí basů"
   </voice>
 </phrase>
 <phrase>
@@ -10453,15 +10448,15 @@
   user: core
   <source>
     *: none
-    ipodvideo: "Treble Cutoff"
+    ipodvideo,ipod6g,mpiohd200,mpiohd300,gigabeatfx,mrobe100: "Treble Cutoff"
   </source>
   <dest>
     *: none
-    ipodvideo: "Oříznutí výšek"
+    ipodvideo,ipod6g,mpiohd200,mpiohd300,gigabeatfx,mrobe100: "Oříznutí výšek"
   </dest>
   <voice>
     *: none
-    ipodvideo: "Oříznutí výšek"
+    ipodvideo,ipod6g,mpiohd200,mpiohd300,gigabeatfx,mrobe100: "Oříznutí výšek"
   </voice>
 </phrase>
 <phrase>
@@ -10608,11 +10603,11 @@
   user: core
   <source>
     *: none
-    gigabeatfx: "Touchpad Sensitivity"
+    gigabeatfx,sansafuzeplus: "Touchpad Sensitivity"
   </source>
   <dest>
     *: none
-    gigabeatfx: "Citlivost touchpadu"
+    gigabeatfx,sansafuzeplus: "Citlivost touchpadu"
   </dest>
   <voice>
     *: none
@@ -10646,11 +10641,11 @@
   </source>
   <dest> 
     *: none
-    serial_port: "Bitrate seriového portu"
+    serial_port: "Bitrate sériového portu"
   </dest>
   <voice> 
     *: none
-    serial_port: "Bitrejt seriového portu"
+    serial_port: "Bitrejt sériového portu"
   </voice>
 </phrase>
 <phrase>
@@ -10667,7 +10662,7 @@
   </dest>
   <voice> 
     *: none
-    serial_port: "Automatický"
+    serial_port: "Automatycký"
   </voice>
 </phrase>
 <phrase>
@@ -10884,7 +10879,7 @@
   </dest>
   <voice>
     *: none
-    agc: "Automatické řízení zisku"
+    agc: "Automatycké řízení zisku"
   </voice>
 </phrase>
 <phrase>
@@ -11374,11 +11369,11 @@
   </source>
   <dest>
     *: none
-    remote: "Dalkový stavový řádek"
+    remote: "Dálkový stavový řádek"
   </dest>
   <voice>
     *: none
-    remote: "Dalkový stavový řádek"
+    remote: "Dálkový stavový řádek"
   </voice>
 </phrase>
 <phrase>
@@ -11442,11 +11437,11 @@
   </source>
   <dest>
     *: none
-    usb_hid: "Režim USB klávesnice"
+    usb_hid: "Mód USB klávesnice"
   </dest>
   <voice>
     *: none
-    usb_hid: "Režim ÚESBÉ klávesnice"
+    usb_hid: "Mód ÚESBÉ klávesnice"
   </voice>
 </phrase>
 <phrase>
@@ -11519,16 +11514,16 @@
 </phrase>
 <phrase>
   id: LANG_SKIN_RAM_USAGE
-  desc: how much RAM the skins are using
+  desc: deprecated
   user: core
   <source>
-    *: "Skin RAM usage:"
+    *: ""
   </source>
   <dest>
-    *: "Využití RAM pro skiny:"
+    *: ""
   </dest>
   <voice>
-    *: "Využití RAM pro skiny"
+    *: ""
   </voice>
 </phrase>
 <phrase>
@@ -11783,7 +11778,7 @@
   </dest>
   <voice>
     *: none
-    swcodec: "Automaticky"
+    swcodec: "Automatycky"
   </voice>
 </phrase>
 <phrase>
@@ -11893,7 +11888,7 @@
     *: ""
   </dest>
   <voice>
-    *: "vzhled statusbáru"
+    *: "vzhled stavové lišty"
   </voice>
 </phrase>
 <phrase>
@@ -11989,7 +11984,7 @@
   </dest>
   <voice>
     *: none
-    crossfade: "Automatická změna pouze skladby"
+    crossfade: "Automatycká změna pouze skladby"
   </voice>
 </phrase>
 <phrase>
@@ -12103,20 +12098,20 @@
   </voice>
 </phrase>
 <phrase>
-  id: LANG_RECORDING_HISTOGRAM_INTERVAL
+  id: LANG_HISTOGRAM_INTERVAL
   desc: in record settings menu
   user: core
   <source>
     *: none
-    recording_histogram: "Histogram interval"
+    histogram: "Histogram interval"
   </source>
   <dest>
     *: none
-    recording_histogram: "Rozsah histogramu"
+    histogram: "Rozsah histogramu"
   </dest>
   <voice>
     *: none
-    recording_histogram: "Rozsah histogramu"
+    histogram: "Rozsah histogramu"
   </voice>
 </phrase>
 <phrase>
@@ -12146,11 +12141,11 @@
   </source>
   <dest>
     *: none
-    hotkey: "Zkratková klávesa"
+    hotkey: "Zkratkové klávesy"
   </dest>
   <voice>
     *: none
-    hotkey: "Zkratková klávesa"
+    hotkey: "Zkratkové klávesy"
   </voice>
 </phrase>
 <phrase>
@@ -12397,15 +12392,15 @@
   user: core
   <source>
     *: none
-    gigabeats: "3-D Enhancement"
+    gigabeats,mpiohd200,mpiohd300,sansafuzeplus,creativezenxfi2,creativezenxfi3: "3-D Enhancement"
   </source>
   <dest>
     *: none
-    gigabeats: "3-D vylepšení"
+    gigabeats,mpiohd200,mpiohd300,sansafuzeplus,creativezenxfi2,creativezenxfi3: "3-D vylepšení"
   </dest>
   <voice>
     *: none
-    gigabeats: "TŘIDÉ vylepšení"
+    gigabeats,mpiohd200,mpiohd300,sansafuzeplus,creativezenxfi2,creativezenxfi3: "TŘIDÉ vylepšení"
   </voice>
 </phrase>
 <phrase>
@@ -12554,10 +12549,10 @@
     *: "Start File Browser Here"
   </source>
   <dest>
-    *: "Začít prohlížení souborů zde"
+    *: "Nastavit jako výchozí složku"
   </dest>
   <voice>
-    *: "Začít prohlížení souborů zde"
+    *: "Nastavit jako výchozí složku"
   </voice>
 </phrase>
 <phrase>
@@ -12568,10 +12563,10 @@
     *: "Start File Browser at /"
   </source>
   <dest>
-    *: "Začít prohlížení souborů na rootu"
+    *: "Výchozí složku nastavit na root"
   </dest>
   <voice>
-    *: "Začít prohlížení souborů na růtu"
+    *: "Výchozí složku nastavit na růt"
   </voice>
 </phrase>
 <phrase>
@@ -12603,5 +12598,446 @@
   </dest>
   <voice>
     *: "Velikost souboru"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_AUTORESUME_ENABLE
+  desc: deprecated
+  user: core
+  <source>
+    *: ""
+  </source>
+  <dest>
+    *: ""
+  </dest>
+  <voice>
+    *: ""
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_AUTORESUME_ENABLE_YES
+  desc: deprecated
+  user: core
+  <source>
+    *: ""
+  </source>
+  <dest>
+    *: ""
+  </dest>
+  <voice>
+    *: ""
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_AUTORESUME
+  desc: resume settings menu
+  user: core
+  <source>
+    *: "Automatic resume"
+  </source>
+  <dest>
+    *: "Pokračování přehrávání u všech skladeb"
+  </dest>
+  <voice>
+    *: "Pokračování přehrávání u všech skladeb"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_AUTORESUME_AUTOMATIC
+  desc: resume on automatic track change
+  user: core
+  <source>
+    *: "Resume on automatic track change"
+  </source>
+  <dest>
+    *: "Při automatické změně skladby"
+  </dest>
+  <voice>
+    *: "Při automatické změně skladby"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_AUTORESUME_CUSTOM
+  desc: enable customization of resume on automatic track change
+  user: core
+  <source>
+    *: "In custom directories only"
+  </source>
+  <dest>
+    *: "Pouze ve vlastních složkách"
+  </dest>
+  <voice>
+    *: "Pouze ve vlastních složkách"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_PAUSE_REWIND
+  desc: Seconds to rewind when rewind on pause is enabled.
+  user: core
+  <source>
+    *: "Rewind on Pause"
+  </source>
+  <dest>
+    *: "Přetočit zpět při pauze"
+  </dest>
+  <voice>
+    *: "Přetočit zpět při pauze"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_SET_AS_PLAYLISTCAT_DIR
+  desc: used in the onplay menu to set a playlist catalogue dir
+  user: core
+  <source>
+    *: "Set As Playlist Catalogue Directory"
+  </source>
+  <dest>
+    *: "Nastavit jako složku pro katalog playlistů"
+  </dest>
+  <voice>
+    *: "Nastavit jako složku pro katalog plejlistů"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_RESET_PLAYLISTCAT_DIR
+  desc:
+  user: core
+  <source>
+    *: "Reset Playlist Catalogue Directory"
+  </source>
+  <dest>
+    *: "Zrušit přiřazení složky pro katalog playlistů"
+  </dest>
+  <voice>
+    *: "Zrušit přiřazení složky pro katalog plejlistů"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_CURRENT_PLAYLIST
+  desc: Used when you need to say playlist, also voiced
+  user: core
+  <source>
+    *: "Current Playlist"
+  </source>
+  <dest>
+    *: "Aktuální playlist"
+  </dest>
+  <voice>
+    *: "Aktuální plejlist"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_SAVE_CHANGES
+  desc: When you try to exit screens to confirm save
+  user: core
+  <source>
+    *: "Save Changes?"
+  </source>
+  <dest>
+    *: "Uložit změny?"
+  </dest>
+  <voice>
+    *: "Uložit změny?"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_USB_SKIP_FIRST_DRIVE
+  desc: in settings_menu
+  user: core
+  <source>
+    *: none
+    multidrive_usb: "USB Hide Internal Drive"
+  </source>
+  <dest>
+    *: none
+    multidrive_usb: "Skrýt interní pamět přes USB"
+  </dest>
+  <voice>
+    *: none
+    multidrive_usb: "Skrýt interní pamět přes ÚESBÉ"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_LIST_LINE_PADDING
+  desc: list padding, in display settings
+  user: core
+  <source>
+    *: none
+    touchscreen: "Line Padding in Lists"
+  </source>
+  <dest>
+    *: none
+    touchscreen: "Vyplnění řádky v seznamech"
+  </dest>
+  <voice>
+    *: none
+    touchscreen: "Vyplnění řádky v seznamech"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_AUTOMATIC
+  desc: generic automatic
+  user: core
+  <source>
+    *: "Automatic"
+  </source>
+  <dest>
+    *: "Automaticky"
+  </dest>
+  <voice>
+    *: "Automatycky"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_SLEEP_TIMER_DURATION
+  desc: default sleep timer duration in minutes
+  user: core
+  <source>
+    *: "Default Sleep Timer Duration"
+  </source>
+  <dest>
+    *: "Výchozí doba časovače vypnutí"
+  </dest>
+  <voice>
+    *: "Výchozí doba časovače vypnutí"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_SLEEP_TIMER_ON_POWER_UP
+  desc: whether sleep timer starts on power up
+  user: core
+  <source>
+    *: "Start Sleep Timer On Boot"
+  </source>
+  <dest>
+    *: "Aktivovat časovač vypnutí při startu přehrávače"
+  </dest>
+  <voice>
+    *: "Aktivovat časovač vypnutí při startu přehrávače"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_SLEEP_TIMER_CANCEL_CURRENT
+  desc: shown instead of sleep timer when it's running
+  user: core
+  <source>
+    *: "Cancel Sleep Timer"
+  </source>
+  <dest>
+    *: "Zrušit časovač vypnutí"
+  </dest>
+  <voice>
+    *: "Zrušit časovač vypnutí, zbývá"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_SHORTCUTS
+  desc: Title in the shortcuts menu
+  user: core
+  <source>
+    *: "Shortcuts"
+  </source>
+  <dest>
+    *: "Zástupci"
+  </dest>
+  <voice>
+    *: "Zástupci"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_KEYCLICK_SOFTWARE
+  desc: in keyclick settings menu
+  user: core
+  <source>
+    *: none
+    hardware_click: "Headphone Keyclick"
+  </source>
+  <dest>
+    *: none
+    hardware_click: "Kliknutí přes sluchátka"
+  </dest>
+  <voice>
+    *: none
+    hardware_click: "Kliknutí přes sluchátka"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_KEYCLICK_HARDWARE
+  desc: in keyclick settings menu
+  user: core
+  <source>
+    *: none
+    hardware_click: "Speaker Keyclick"
+  </source>
+  <dest>
+    *: none
+    hardware_click: "Kliknutí přes reproduktor"
+  </dest>
+  <voice>
+    *: none
+    hardware_click: "Kliknutí přes reproduktor"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_GLYPHS
+  desc: in settings_menu
+  user: core
+  <source>
+    *: "Glyphs To Cache"
+  </source>
+  <dest>
+    *: "Vyrovnávací paměť pro glyphy"
+  </dest>
+  <voice>
+    *: "Vyrovnávací paměť pro glyphy"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_STARTUP_SHUTDOWN
+  desc: in the general settings menu
+  user: core
+  <source>
+    *: "Startup/Shutdown"
+  </source>
+  <dest>
+    *: "Spouštění / vypínání"
+  </dest>
+  <voice>
+    *: "Spouštění a vypínání"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_KEYPRESS_RESTARTS_SLEEP_TIMER
+  desc: whether to restart running sleep timer on keypress
+  user: core
+  <source>
+    *: "Restart Sleep Timer On Keypress"
+  </source>
+  <dest>
+    *: "Stisk klávesy restartuje časovač vypnutí"
+  </dest>
+  <voice>
+    *: "Stisk klávesy restartuje časovač vypnutí"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_CONSTRAIN_NEXT_FOLDER
+  desc: in settings_menu. Whether LANG_NEXT_FOLDER should be constrained to directories within LANG_SET_AS_START_DIR
+  user: core
+  <source>
+    *: "Constrain Auto-Change"
+  </source>
+  <dest>
+    *: "Omezit pokračování do další složky"
+  </dest>
+  <voice>
+    *: "Omezit pokračování do další složky"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_USE_SHORTCUTS_INSTEAD_OF_QS
+  desc: in settings_menu.
+  user: core
+  <source>
+    *: none
+    quickscreen: "Use Shortcuts Menu Instead of Quick Screen"
+  </source>
+  <dest>
+    *: none
+    quickscreen: "Použít menu Zástupci místo Rychlé nabídky"
+  </dest>
+  <voice>
+    *: none
+    quickscreen: "Použít menu Zástupci místo Rychlé nabídky"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_CROSSFEED_MEIER
+  desc: in sound settings
+  user: core
+  <source>
+    *: none
+    swcodec: "Simple (Meier)"
+  </source>
+  <dest>
+    *: none
+    swcodec: "Jednoduchý (Meier)"
+  </dest>
+  <voice>
+    *: none
+    swcodec: "Jednoduchý"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_SLEEP_TIMER_START_CURRENT
+  desc: shown when a sleep timer isn't running
+  user: core
+  <source>
+    *: "Start Sleep Timer"
+  </source>
+  <dest>
+    *: "Zapnout časovač vypnutí"
+  </dest>
+  <voice>
+    *: "Zapnout časovač vypnutí"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_CODEPAGE_WESTERN_EUROPEAN
+  desc: in codepage setting menu
+  user: core
+  <source>
+    *: "Western European (CP1252)"
+  </source>
+  <dest>
+    *: "Západní Evropa (CP1252)"
+  </dest>
+  <voice>
+    *: "Západní Evropa"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_CROSSFEED_CUSTOM
+  desc: in sound settings
+  user: core
+  <source>
+    *: none
+    swcodec: "Custom"
+  </source>
+  <dest>
+    *: none
+    swcodec: "Vlastní"
+  </dest>
+  <voice>
+    *: none
+    swcodec: "Vlastní"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_SELECT_FOLDER
+  desc: in settings_menu
+  user: core
+  <source>
+    *: "Select one or more directories"
+  </source>
+  <dest>
+    *: "Vybrat jeden nebo více adresářů"
+  </dest>
+  <voice>
+    *: "Vybrat jeden nebo více adresářů"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_SELECT_DATABASE_DIRS
+  desc: in settings_menu
+  user: core
+  <source>
+    *: "Select directories to scan"
+  </source>
+  <dest>
+    *: "Vybrat adresáře pro prohledávání"
+  </dest>
+  <voice>
+    *: "Vybrat adresáře pro prohledávání"
   </voice>
 </phrase>

@@ -23,7 +23,7 @@
 #include "adc.h"
 #include "powermgmt.h"
 #include "kernel.h"
-#include "power-target.h"
+#include "pmu-target.h"
 #include "pcf50606.h"
 #include "pcf50635.h"
 
@@ -61,7 +61,7 @@ const unsigned short percent_to_volt_charge[11] =
 /* full-scale ADC readout (2^10) in millivolt */
 
 /* Returns battery voltage from ADC [millivolts] */
-unsigned int battery_adc_voltage(void)
+int _battery_voltage(void)
 {
     static unsigned last_tick = 0;
 

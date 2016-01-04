@@ -1,7 +1,6 @@
 /*
  * This config file is for the Sansa M200 V4 series
  */
-#define TARGET_TREE /* this target is using the target tree system */
 
 /* For Rolo and boot loader */
 #define MODEL_NUMBER 42
@@ -16,7 +15,14 @@
 /* define this if you have recording possibility */
 #define HAVE_RECORDING
 
-#define REC_SAMPR_CAPS      SAMPR_CAP_ALL
+#define REC_SAMPR_CAPS      (SAMPR_CAP_48 | SAMPR_CAP_44 | SAMPR_CAP_32 | \
+                             SAMPR_CAP_24 | SAMPR_CAP_22 | SAMPR_CAP_16 | \
+                             SAMPR_CAP_12 | SAMPR_CAP_11 | SAMPR_CAP_8)
+
+/* because the samplerates don't match at each point, we must be able to
+ * tell PCM which set of rates to use. not needed if recording rates are
+ * a simple subset of playback rates and are equal values. */
+#define CONFIG_SAMPR_TYPES
 
 /* Define bitmask of input sources - recordable bitmask can be defined
    explicitly if different */
@@ -33,8 +39,6 @@
 
 /* define this if you have access to the quickscreen */
 //#define HAVE_QUICKSCREEN
-/* define this if you have access to the pitchscreen */
-#define HAVE_PITCHSCREEN
 
 /* define this if you would like tagcache to build on this target */
 //#define HAVE_TAGCACHE
@@ -48,6 +52,8 @@
 /* LCD dimensions */
 #define LCD_WIDTH  128
 #define LCD_HEIGHT 64
+/* sqrt(128^2 + 64^2) / 1.8 = 79.5 */
+#define LCD_DPI 80
 #define LCD_DEPTH  1
 
 #define LCD_PIXELFORMAT VERTICAL_PACKING
@@ -111,6 +117,8 @@
 #define BATTERY_CAPACITY_INC 50   /* capacity increment */
 #define BATTERY_TYPES_COUNT  1    /* only one type */
 
+#define CONFIG_BATTERY_MEASURE VOLTAGE_MEASURE
+
 /* define this if the unit should not shut down on low battery. */
 #define NO_LOW_BATTERY_SHUTDOWN
 
@@ -137,26 +145,16 @@
 /* enable these for the experimental usb stack */
 #define HAVE_USBSTACK
 //#define USB_HANDLED_BY_OF
-#define USE_ROCKBOX_USB
 #define USB_VENDOR_ID 0x0781
 #define USB_PRODUCT_ID 0x7431
 #define HAVE_USB_HID_MOUSE
+#define HAVE_BOOTLOADER_USB_MODE
 
 #define CONFIG_LCD LCD_SSD1815
 
 #define BOOTFILE_EXT "sansa"
 #define BOOTFILE "rockbox." BOOTFILE_EXT
 #define BOOTDIR "/.rockbox"
-
-#define IBSS_ATTR_VOICE_STACK
-#define ICODE_ATTR_TREMOR_NOT_MDCT
-#define ICODE_ATTR_TREMOR_MDCT
-#define ICODE_ATTR_FLAC
-#define IBSS_ATTR_FLAC_DECODED0
-#define ICONST_ATTR_MPA_HUFFMAN
-#define IBSS_ATTR_MPC_SAMPLE_BUF
-#define ICODE_ATTR_ALAC
-#define IBSS_ATTR_SHORTEN_DECODED0
 
 #define IRAM_LCDFRAMEBUFFER IBSS_ATTR /* put the lcd frame buffer in IRAM */
 

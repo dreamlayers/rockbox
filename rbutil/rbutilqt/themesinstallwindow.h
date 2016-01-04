@@ -7,7 +7,6 @@
  *                     \/            \/     \/    \/            \/
  *
  *   Copyright (C) 2007 by Dominik Riebeling
- *   $Id$
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -39,9 +38,15 @@ class ThemesInstallWindow : public QDialog
         ~ThemesInstallWindow();
         void downloadInfo(void);
         void show(void);
+        void setLogger(ProgressLoggerGui* l) { logger = l; }
+        void setSelectOnly(bool state) { windowSelectOnly = state; }
+        void install(void);
 
     public slots:
         void accept(void);
+
+    signals:
+        void done(bool);
 
     private:
         Ui::ThemeInstallFrm ui;
@@ -49,6 +54,7 @@ class ThemesInstallWindow : public QDialog
         HttpGet igetter;
         QTemporaryFile themesInfo;
         void resizeEvent(QResizeEvent*);
+        void changeEvent(QEvent *event);
         QByteArray imgData;
         ProgressLoggerGui *logger;
         ZipInstaller *installer;
@@ -56,6 +62,7 @@ class ThemesInstallWindow : public QDialog
         QString fileName;
 
         QString infocachedir;
+        bool windowSelectOnly;
 
     private slots:
         void downloadDone(bool);

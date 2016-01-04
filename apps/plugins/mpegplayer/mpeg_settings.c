@@ -160,6 +160,14 @@ struct mpeg_settings settings;
 #define MPEG_START_TIME_RIGHT2      BUTTON_MENU
 #define MPEG_START_TIME_EXIT        BUTTON_BACK
 
+#elif (CONFIG_KEYPAD == CREATIVE_ZENXFI3_PAD)
+#define MPEG_START_TIME_SELECT      (BUTTON_PLAY|BUTTON_REL)
+#define MPEG_START_TIME_LEFT        BUTTON_BACK
+#define MPEG_START_TIME_RIGHT       BUTTON_MENU
+#define MPEG_START_TIME_UP          BUTTON_UP
+#define MPEG_START_TIME_DOWN        BUTTON_DOWN
+#define MPEG_START_TIME_EXIT        (BUTTON_PLAY|BUTTON_REPEAT)
+
 #elif CONFIG_KEYPAD == PHILIPS_HDD1630_PAD
 #define MPEG_START_TIME_SELECT      BUTTON_SELECT
 #define MPEG_START_TIME_LEFT        BUTTON_LEFT
@@ -196,15 +204,14 @@ struct mpeg_settings settings;
 #elif CONFIG_KEYPAD == ONDAVX777_PAD
 #define MPEG_START_TIME_EXIT        BUTTON_POWER
 
-#elif CONFIG_KEYPAD == SAMSUNG_YH_PAD
+#elif (CONFIG_KEYPAD == SAMSUNG_YH820_PAD) || \
+      (CONFIG_KEYPAD == SAMSUNG_YH920_PAD)
 #define MPEG_START_TIME_SELECT      BUTTON_PLAY
 #define MPEG_START_TIME_LEFT        BUTTON_LEFT
 #define MPEG_START_TIME_RIGHT       BUTTON_RIGHT
 #define MPEG_START_TIME_UP          BUTTON_UP
 #define MPEG_START_TIME_DOWN        BUTTON_DOWN
-#define MPEG_START_TIME_LEFT2       BUTTON_REW
-#define MPEG_START_TIME_RIGHT2      BUTTON_FFWD
-#define MPEG_START_TIME_EXIT        BUTTON_REC
+#define MPEG_START_TIME_EXIT        BUTTON_REW
 
 #elif CONFIG_KEYPAD == PBELL_VIBE500_PAD
 #define MPEG_START_TIME_SELECT      BUTTON_PLAY
@@ -231,6 +238,62 @@ struct mpeg_settings settings;
 #define MPEG_START_TIME_UP          BUTTON_UP
 #define MPEG_START_TIME_DOWN        BUTTON_DOWN
 #define MPEG_START_TIME_EXIT        BUTTON_REC
+
+#elif CONFIG_KEYPAD == SANSA_FUZEPLUS_PAD
+#define MPEG_START_TIME_SELECT      BUTTON_SELECT
+#define MPEG_START_TIME_LEFT        BUTTON_LEFT
+#define MPEG_START_TIME_RIGHT       BUTTON_RIGHT
+#define MPEG_START_TIME_UP          BUTTON_UP
+#define MPEG_START_TIME_DOWN        BUTTON_DOWN
+#define MPEG_START_TIME_EXIT        BUTTON_POWER
+
+#elif CONFIG_KEYPAD == SANSA_CONNECT_PAD
+#define MPEG_START_TIME_SELECT      BUTTON_SELECT
+#define MPEG_START_TIME_LEFT        BUTTON_LEFT
+#define MPEG_START_TIME_RIGHT       BUTTON_RIGHT
+#define MPEG_START_TIME_UP          BUTTON_UP
+#define MPEG_START_TIME_DOWN        BUTTON_DOWN
+#define MPEG_START_TIME_EXIT        BUTTON_POWER
+
+#elif CONFIG_KEYPAD == SAMSUNG_YPR0_PAD
+#define MPEG_START_TIME_SELECT      BUTTON_SELECT
+#define MPEG_START_TIME_LEFT        BUTTON_LEFT
+#define MPEG_START_TIME_RIGHT       BUTTON_RIGHT
+#define MPEG_START_TIME_UP          BUTTON_UP
+#define MPEG_START_TIME_DOWN        BUTTON_DOWN
+#define MPEG_START_TIME_EXIT        BUTTON_BACK
+
+#elif (CONFIG_KEYPAD == HM60X_PAD) || (CONFIG_KEYPAD == HM801_PAD)
+#define MPEG_START_TIME_SELECT      BUTTON_SELECT
+#define MPEG_START_TIME_LEFT        BUTTON_LEFT
+#define MPEG_START_TIME_RIGHT       BUTTON_RIGHT
+#define MPEG_START_TIME_UP          BUTTON_UP
+#define MPEG_START_TIME_DOWN        BUTTON_DOWN
+#define MPEG_START_TIME_EXIT        BUTTON_POWER
+
+#elif CONFIG_KEYPAD == SONY_NWZ_PAD
+#define MPEG_START_TIME_SELECT      BUTTON_PLAY
+#define MPEG_START_TIME_LEFT        BUTTON_LEFT
+#define MPEG_START_TIME_RIGHT       BUTTON_RIGHT
+#define MPEG_START_TIME_UP          BUTTON_UP
+#define MPEG_START_TIME_DOWN        BUTTON_DOWN
+#define MPEG_START_TIME_EXIT        BUTTON_BACK
+
+#elif CONFIG_KEYPAD == CREATIVE_ZEN_PAD
+#define MPEG_START_TIME_SELECT      BUTTON_SELECT
+#define MPEG_START_TIME_LEFT        BUTTON_LEFT
+#define MPEG_START_TIME_RIGHT       BUTTON_RIGHT
+#define MPEG_START_TIME_UP          BUTTON_UP
+#define MPEG_START_TIME_DOWN        BUTTON_DOWN
+#define MPEG_START_TIME_EXIT        BUTTON_BACK
+
+#elif CONFIG_KEYPAD == DX50_PAD
+#define MPEG_START_TIME_EXIT        BUTTON_POWER
+#define MPEG_START_TIME_SELECT      BUTTON_PLAY
+#define MPEG_START_TIME_LEFT        BUTTON_LEFT
+#define MPEG_START_TIME_RIGHT       BUTTON_RIGHT
+#define MPEG_START_TIME_UP          BUTTON_VOL_UP
+#define MPEG_START_TIME_DOWN        BUTTON_VOL_DOWN
 
 #else
 #error No keymap defined!
@@ -389,75 +452,50 @@ static const char* backlight_brightness_formatter(char *buf, size_t length,
 /* Sync a particular audio setting to global or mpegplayer forced off */
 static void sync_audio_setting(int setting, bool global)
 {
-    int val0, val1;
-
     switch (setting)
     {
     case MPEG_AUDIO_TONE_CONTROLS:
-    #if defined(AUDIOHW_HAVE_BASS) || defined(AUDIOHW_HAVE_TREBLE)
-        if (global || settings.tone_controls)
-        {
     #ifdef AUDIOHW_HAVE_BASS
-            val0 = rb->global_settings->bass;
-    #endif
-    #ifdef AUDIOHW_HAVE_TREBLE 
-            val1 = rb->global_settings->treble;
-    #endif
-        }
-        else
-        {
-    #ifdef AUDIOHW_HAVE_BASS
-            val0 = rb->sound_default(SOUND_BASS);
+        rb->sound_set(SOUND_BASS, (global || settings.tone_controls)
+            ? rb->global_settings->bass
+            : rb->sound_default(SOUND_BASS));
     #endif
     #ifdef AUDIOHW_HAVE_TREBLE
-            val1 = rb->sound_default(SOUND_TREBLE);
+        rb->sound_set(SOUND_TREBLE, (global || settings.tone_controls)
+            ? rb->global_settings->treble
+            : rb->sound_default(SOUND_TREBLE));
     #endif
-        }
-    #ifdef AUDIOHW_HAVE_BASS
-        rb->sound_set(SOUND_BASS, val0);
-    #endif
-    #ifdef AUDIOHW_HAVE_TREBLE
-        rb->sound_set(SOUND_TREBLE, val1);
-    #endif
-    #endif /* AUDIOHW_HAVE_BASS || AUDIOHW_HAVE_TREBLE */
 
     #ifdef AUDIOHW_HAVE_EQ
-        for (val1 = 0;; val1++)
+        for (int band = 0;; band++)
         {
-            int setting = rb->sound_enum_hw_eq_band_setting(val1, AUDIOHW_EQ_GAIN);
+            int setting = rb->sound_enum_hw_eq_band_setting(band, AUDIOHW_EQ_GAIN);
 
             if (setting == -1)
                 break;
 
-            if (global || settings.tone_controls)
-            {
-                val0 = rb->global_settings->hw_eq_bands[val1].gain;
-            }
-            else
-            {
-                val0 = rb->sound_default(setting);
-            }
-
-            rb->sound_set(setting, val0);
+            rb->sound_set(setting, (global || settings.tone_controls)
+                    ? rb->global_settings->hw_eq_bands[band].gain
+                    : rb->sound_default(setting));
         }
     #endif /* AUDIOHW_HAVE_EQ */
         break;
 
     case MPEG_AUDIO_CHANNEL_MODES:
-        val0 = (global || settings.channel_modes) ?
-                rb->global_settings->channel_config :
-                SOUND_CHAN_STEREO;
-        rb->sound_set(SOUND_CHANNELS, val0);
+        rb->sound_set(SOUND_CHANNELS, (global || settings.channel_modes)
+                ? rb->global_settings->channel_config
+                : SOUND_CHAN_STEREO);
         break;
 
     case MPEG_AUDIO_CROSSFEED:
-        rb->dsp_set_crossfeed((global || settings.crossfeed) ?
-                              rb->global_settings->crossfeed : false);
+        rb->dsp_set_crossfeed_type((global || settings.crossfeed) ?
+                                   rb->global_settings->crossfeed :
+                                   CROSSFEED_TYPE_NONE);
         break;
 
     case MPEG_AUDIO_EQUALIZER:
-        rb->dsp_set_eq((global || settings.equalizer) ?
-                       rb->global_settings->eq_enabled : false);
+        rb->dsp_eq_enable((global || settings.equalizer) ?
+                          rb->global_settings->eq_enabled : false);
         break;
 
     case MPEG_AUDIO_DITHERING:
@@ -670,8 +708,9 @@ static uint32_t increment_time(uint32_t val, int32_t amount, uint32_t range)
 }
 
 #if defined(HAVE_LCD_ENABLE) || defined(HAVE_LCD_SLEEP)
-static void get_start_time_lcd_enable_hook(void *param)
+static void get_start_time_lcd_enable_hook(unsigned short id, void *param)
 {
+    (void)id;
     (void)param;
     rb->queue_post(rb->button_queue, LCD_ENABLE_EVENT_0, 0);
 }
@@ -691,7 +730,7 @@ static int get_start_time(uint32_t duration)
     mylcd_update();
 
 #if defined(HAVE_LCD_ENABLE) || defined(HAVE_LCD_SLEEP)
-    rb->add_event(LCD_EVENT_ACTIVATION, false, get_start_time_lcd_enable_hook);
+    rb->add_event(LCD_EVENT_ACTIVATION, get_start_time_lcd_enable_hook);
 #endif
 
     draw_slider(0, 100, &rc_bound);

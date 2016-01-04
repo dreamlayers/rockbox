@@ -465,15 +465,6 @@ start_loc:
     bhi     1b
 #endif
 
-    /* Set up some stack and munge it with 0xdeadbeef */
-    ldr     sp, =stackend
-    ldr     r2, =stackbegin
-    ldr     r3, =0xdeadbeef
-1:
-    cmp     sp, r2
-    strhi   r3, [r2], #4
-    bhi     1b
-
     /* Set up stack for IRQ mode */ 
     msr     cpsr_c, #0xd2
     ldr     sp, =_irqstackend
@@ -482,14 +473,25 @@ start_loc:
     msr     cpsr_c, #0xd1
     ldr     sp, =_fiqstackend
 
-    /* Let abort and undefined modes use IRQ stack */
+    /* Let svc, abort and undefined modes use irq stack */
+    msr     cpsr_c, #0xd3
+    ldr     sp, =_irqstackend
     msr     cpsr_c, #0xd7
     ldr     sp, =_irqstackend
     msr     cpsr_c, #0xdb
     ldr     sp, =_irqstackend
 
-    /* Switch back to supervisor mode */
-    msr     cpsr_c, #0xd3
+    /* Switch to sys mode */
+    msr     cpsr_c, #0xdf
+
+    /* Set up some stack and munge it with 0xdeadbeef */
+    ldr     sp, =stackend
+    ldr     r2, =stackbegin
+    ldr     r3, =0xdeadbeef
+1:
+    cmp     sp, r2
+    strhi   r3, [r2], #4
+    bhi     1b
 
 // if we did not switch remap on, device
 // would crash when MENU is pressed,
@@ -505,31 +507,3 @@ start_loc:
 #endif
 
     bl      main
-
-    .text
-/*    .global UIE*/
-
-/* All illegal exceptions call into UIE with exception address as first
- * parameter. This is calculated differently depending on which exception
- * we're in. Second parameter is exception number, used for a string lookup
- * in UIE. */
-undef_instr_handler:
-    sub    r0, lr, #4
-    mov    r1, #0
-    b      UIE
-
-/* We run supervisor mode most of the time, and should never see a software
- * exception being thrown. Perhaps make it illegal and call UIE? */
-software_int_handler:
-reserved_handler:
-    movs   pc, lr
-
-prefetch_abort_handler:
-    sub    r0, lr, #4
-    mov    r1, #1
-    b      UIE
-
-data_abort_handler:
-    sub    r0, lr, #8 
-    mov    r1, #2
-    b      UIE

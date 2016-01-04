@@ -37,11 +37,15 @@
 
 bool debug_wps = true;
 int wps_verbose_level = 0;
+char *skin_buffer;
 
-int errno;
-
+const char *sim_root_dir = ".";
 const struct settings_list *settings;
 const int nb_settings = 0;
+
+#ifdef SIMULATOR
+#error beep beep
+#endif
 
 /* static endianness conversion */
 #define SWAP_16(x) ((typeof(x))(unsigned short)(((unsigned short)(x) >> 8) | \
@@ -149,8 +153,11 @@ struct user_settings global_settings = {
 #endif
 };
 
+struct system_status global_status;
+
 int getwidth(void) { return LCD_WIDTH; }
 int getheight(void) { return LCD_HEIGHT; }
+int getuifont(void) { return 0; }
 #ifdef HAVE_REMOTE_LCD
 int remote_getwidth(void) { return LCD_REMOTE_WIDTH; }
 int remote_getheight(void) { return LCD_REMOTE_HEIGHT; }
@@ -175,6 +182,9 @@ struct screen screens[NB_SCREENS] =
 #endif
         .getwidth = getwidth,
         .getheight = getheight,
+#ifdef HAVE_LCD_BITMAP
+        .getuifont = getuifont,
+#endif
 #if LCD_DEPTH > 1
         .get_foreground=dummy_func2,
         .get_background=dummy_func2,
@@ -187,6 +197,7 @@ struct screen screens[NB_SCREENS] =
         .lcdwidth=LCD_REMOTE_WIDTH,
         .lcdheight=LCD_REMOTE_HEIGHT,
         .depth=LCD_REMOTE_DEPTH,
+        .getuifont = getuifont,
         .is_color=false,/* No color remotes yet */
         .getwidth=remote_getwidth,
         .getheight=remote_getheight,
@@ -218,9 +229,10 @@ bool radio_hardware_present(void)
 
 #ifdef HAVE_LCD_BITMAP
 static int loaded_fonts = 0;
-int font_load(struct font* pf, const char *path)
+static struct font _font;
+int font_load(const char *path)
 {
-    int id = SYSTEMFONTCOUNT + loaded_fonts;
+    int id = 2 + loaded_fonts;
     loaded_fonts++;
     return id;
 }
@@ -229,7 +241,15 @@ void font_unload(int font_id)
 {
     (void)font_id;
 }
+
+struct font* font_get(int font)
+{
+    return &_font;
+}
 #endif
+
+/* This is no longer defined in ROCKBOX builds so just use a huge value */
+#define SKIN_BUFFER_SIZE (200*1024)
 
 int main(int argc, char **argv)
 {
@@ -239,8 +259,6 @@ int main(int argc, char **argv)
     struct wps_data wps={0};
     enum screen_type screen = SCREEN_MAIN;
     struct screen* wps_screen;
-    
-    char* buffer = NULL;
 
     /* No arguments -> print the help text
      * Also print the help text upon -h or --help */
@@ -265,33 +283,49 @@ int main(int argc, char **argv)
             wps_verbose_level++;
         }
     }
-    buffer = malloc(SKIN_BUFFER_SIZE);
-    if (!buffer)
+    skin_buffer = malloc(SKIN_BUFFER_SIZE);
+    if (!skin_buffer)
     {
         printf("mallloc fail!\n");
         return 1;
     }
 
-    skin_buffer_init(buffer, SKIN_BUFFER_SIZE);
-#ifdef HAVE_LCD_BITMAP
-    skin_font_init();
-#endif
+    skin_buffer_init(skin_buffer, SKIN_BUFFER_SIZE);
 
     /* Go through every skin that was thrown at us, error out at the first
      * flawed wps */
     while (argv[filearg]) {
-        printf("Checking %s...\n", argv[filearg]);
+        const char* name = argv[filearg++];
+        char *ext = strrchr(name, '.');
+        struct skin_stats stats;
+        printf("Checking %s...\n", name);
+        if (!ext)
+        {
+            printf("Invalid extension\n");
+            return 2;
+        }
+        ext++;
+        if (!strcmp(ext, "rwps") || !strcmp(ext, "rsbs") || !strcmp(ext, "rfms"))
+        {
 #ifdef HAVE_REMOTE_LCD
-        if((strcmp(&argv[filearg][strlen(argv[filearg])-4], "rwps") == 0) || 
-           (strcmp(&argv[filearg][strlen(argv[filearg])-4], "rsbs") == 0) ||
-           (strcmp(&argv[filearg][strlen(argv[filearg])-4], "rfms") == 0))
             screen = SCREEN_REMOTE;
-        else
+#else
+            /* skip rwps etc. if not supported on this target (not an error) */
+            continue;
+#endif
+        }
+        else if (!strcmp(ext, "wps")  || !strcmp(ext, "sbs")  || !strcmp(ext, "fms"))
+        {
             screen = SCREEN_MAIN;
-#endif    
+        }
+        else
+        {
+            printf("Invalid extension\n");
+            return 2;
+        }
         wps_screen = &screens[screen];
 
-        res = skin_data_load(screen, &wps, argv[filearg], true);
+        res = skin_data_load(screen, &wps, name, true, &stats);
 
         if (!res) {
             printf("WPS parsing failure\n");
@@ -301,8 +335,7 @@ int main(int argc, char **argv)
 
         printf("WPS parsed OK\n\n");
         if (wps_verbose_level>2)
-            skin_debug_tree(wps.tree);
-        filearg++;
+            skin_debug_tree(SKINOFFSETTOPTR(skin_buffer, wps.tree));
     }
     return 0;
 }

@@ -23,9 +23,9 @@
 #include "kernel.h"
 #include "audio.h"
 #include "sound.h"
-#include "ccm-imx31.h"
 #include "sdma-imx31.h"
 #include "mmu-imx31.h"
+#include "pcm-internal.h"
 
 #define DMA_PLAY_CH_NUM 2
 #define DMA_REC_CH_NUM 1
@@ -78,12 +78,20 @@ static struct dma_data dma_play_data =
     .state = 0
 };
 
+static void play_start_dma(const void *addr, size_t size)
+{
+    commit_dcache_range(addr, size);
+
+    dma_play_bd.buf_addr = (void *)addr_virt_to_phys((unsigned long)addr);
+    dma_play_bd.mode.count = size;
+    dma_play_bd.mode.command = TRANSFER_16BIT;
+    dma_play_bd.mode.status = BD_DONE | BD_WRAP | BD_INTR;
+
+    sdma_channel_run(DMA_PLAY_CH_NUM);
+}
+
 static void play_dma_callback(void)
 {
-    void *start;
-    size_t size;
-    bool rror;
-
     if (dma_play_data.locked != 0)
     {
         /* Callback is locked out */
@@ -91,51 +99,35 @@ static void play_dma_callback(void)
         return;
     }
 
-    rror = dma_play_bd.mode.status & BD_RROR;
+    /* Inform of status and get new buffer */
+    enum pcm_dma_status status = (dma_play_bd.mode.status & BD_RROR) ?
+                  PCM_DMAST_ERR_DMA : PCM_DMAST_OK;
+    const void *addr;
+    size_t size;
 
-    pcm_play_get_more_callback(rror ? NULL : &start, &size);
-
-    if (size == 0)
-        return;
-
-     /* Flush any pending cache writes */
-    clean_dcache_range(start, size);
-    dma_play_bd.buf_addr = (void *)addr_virt_to_phys((unsigned long)start);
-    dma_play_bd.mode.count = size;
-    dma_play_bd.mode.command = TRANSFER_16BIT;
-    dma_play_bd.mode.status = BD_DONE | BD_WRAP | BD_INTR;
-    sdma_channel_run(DMA_PLAY_CH_NUM);
+    if (pcm_play_dma_complete_callback(status, &addr, &size))
+    {
+        play_start_dma(addr, size);
+        pcm_play_dma_status_callback(PCM_DMAST_STARTED);
+    }
 }
 
 void pcm_play_lock(void)
 {
-    /* Need to prevent DVFS from causing interrupt priority inversion if audio
-     * is locked and a DVFS interrupt fires, blocking reenabling of audio by a 
-     * low-priority mode for at least the duration of the lengthy DVFS routine.
-     * Not really an issue with state changes but lockout when playing.
-     *
-     * Keep direct use of DVFS code away from here though. This could provide
-     * more services in the future anyway. */
-    kernel_audio_locking(true);
     ++dma_play_data.locked;
 }
 
 void pcm_play_unlock(void)
 {
-    if (--dma_play_data.locked == 0)
+    if (--dma_play_data.locked == 0 && dma_play_data.state != 0)
     {
-        if (dma_play_data.state != 0)
-        {
-            int oldstatus = disable_irq_save();
-            int pending = dma_play_data.callback_pending;
-            dma_play_data.callback_pending = 0;
-            restore_irq(oldstatus);
+        int oldstatus = disable_irq_save();
+        int pending = dma_play_data.callback_pending;
+        dma_play_data.callback_pending = 0;
+        restore_irq(oldstatus);
 
-            if (pending != 0)
-                play_dma_callback();
-        }
-
-        kernel_audio_locking(false);
+        if (pending != 0)
+            play_dma_callback();
     }
 }
 
@@ -146,105 +138,15 @@ void pcm_dma_apply_settings(void)
 
 void pcm_play_dma_init(void)
 {
-    /* Init channel information */
+    /* Init DMA channel information */
     sdma_channel_init(DMA_PLAY_CH_NUM, &dma_play_cd, &dma_play_bd);
     sdma_channel_set_priority(DMA_PLAY_CH_NUM, DMA_PLAY_CH_PRIORITY);
 
-    ccm_module_clock_gating(CG_SSI1, CGM_ON_RUN_WAIT);
-    ccm_module_clock_gating(CG_SSI2, CGM_ON_RUN_WAIT);
-
-    /* Reset & disable SSIs */
-    SSI_SCR1 &= ~SSI_SCR_SSIEN;
-    SSI_SCR2 &= ~SSI_SCR_SSIEN;
-
-    SSI_SIER1 = 0;
-    SSI_SIER2 = 0;
-
-    /* Set up audio mux */
-
-    /* Port 2 (internally connected to SSI2)
-     * All clocking is output sourced from port 4 */
-    AUDMUX_PTCR2 = AUDMUX_PTCR_TFS_DIR | AUDMUX_PTCR_TFSEL_PORT4 |
-                   AUDMUX_PTCR_TCLKDIR | AUDMUX_PTCR_TCSEL_PORT4 |
-                   AUDMUX_PTCR_SYN;
- 
-    /* Receive data from port 4 */
-    AUDMUX_PDCR2 = AUDMUX_PDCR_RXDSEL_PORT4;
-    /* All clock lines are inputs sourced from the master mode codec and
-     * sent back to SSI2 through port 2 */
-    AUDMUX_PTCR4 = AUDMUX_PTCR_SYN;
-
-    /* Receive data from port 2 */
-    AUDMUX_PDCR4 = AUDMUX_PDCR_RXDSEL_PORT2;
-
-    /* PORT1 (internally connected to SSI1) routes clocking to PORT5 to
-     * provide MCLK to the codec */
-    /* TX clocks are inputs taken from SSI2 */
-    /* RX clocks are outputs taken from PORT4 */
-    AUDMUX_PTCR1 = AUDMUX_PTCR_RFS_DIR | AUDMUX_PTCR_RFSSEL_PORT4 |
-                   AUDMUX_PTCR_RCLKDIR | AUDMUX_PTCR_RCSEL_PORT4;
-    /* RX data taken from PORT4 */
-    AUDMUX_PDCR1 = AUDMUX_PDCR_RXDSEL_PORT4;
-
-    /* PORT5 outputs TCLK sourced from PORT1 (SSI1) */
-    AUDMUX_PTCR5 = AUDMUX_PTCR_TCLKDIR | AUDMUX_PTCR_TCSEL_PORT1;
-    AUDMUX_PDCR5 = 0;
-
-    /* Setup SSIs */
-
-    /* SSI2 - SoC software interface for all I2S data out */
-    SSI_SCR2 = SSI_SCR_SYN | SSI_SCR_I2S_MODE_SLAVE;
-    SSI_STCR2 = SSI_STCR_TXBIT0 | SSI_STCR_TSCKP | SSI_STCR_TFSI |
-                SSI_STCR_TEFS | SSI_STCR_TFEN0;
-
-    /* 16 bits per word, 2 words per frame */
-    SSI_STCCR2 = SSI_STRCCR_WL16 | ((2-1) << SSI_STRCCR_DC_POS) |
-                 ((4-1) << SSI_STRCCR_PM_POS);
-
-    /* Transmit low watermark */
-    SSI_SFCSR2 = (SSI_SFCSR2 & ~SSI_SFCSR_TFWM0) |
-                 ((8-SDMA_SSI_TXFIFO_WML) << SSI_SFCSR_TFWM0_POS);
-    SSI_STMSK2 = 0;
-
-    /* SSI1 - provides MCLK to codec. Receives data from codec. */
-    SSI_STCR1 = SSI_STCR_TXDIR;
-
-    /* f(INT_BIT_CLK) =
-     * f(SYS_CLK) / [(DIV2 + 1)*(7*PSR + 1)*(PM + 1)*2] =
-     * 677737600 / [(1 + 1)*(7*0 + 1)*(0 + 1)*2] =
-     * 677737600 / 4 = 169344000 Hz
-     *
-     * 45.4.2.2 DIV2, PSR, and PM Bit Description states:
-     * Bits DIV2, PSR, and PM should not be all set to zero at the same
-     * time.
-     *
-     * The hardware seems to force a divide by 4 even if all bits are
-     * zero but comply by setting DIV2 and the others to zero.
-     */
-    SSI_STCCR1 = SSI_STRCCR_DIV2 | ((1-1) << SSI_STRCCR_PM_POS);
-
-    /* SSI1 - receive - asynchronous clocks */
-    SSI_SCR1 = SSI_SCR_I2S_MODE_SLAVE;
-
-    SSI_SRCR1 = SSI_SRCR_RXBIT0 | SSI_SRCR_RSCKP | SSI_SRCR_RFSI |
-                SSI_SRCR_REFS;
-
-    /* 16 bits per word, 2 words per frame */
-    SSI_SRCCR1 = SSI_STRCCR_WL16 | ((2-1) << SSI_STRCCR_DC_POS) |
-                 ((4-1) << SSI_STRCCR_PM_POS);
-
-    /* Receive high watermark */
-    SSI_SFCSR1 = (SSI_SFCSR1 & ~SSI_SFCSR_RFWM0) |
-                 (SDMA_SSI_RXFIFO_WML << SSI_SFCSR_RFWM0_POS);
-    SSI_SRMSK1 = 0;
-
-    /* Enable SSI1 (codec clock) */
-    SSI_SCR1 |= SSI_SCR_SSIEN;
-
+    /* Init audio interfaces */
     audiohw_init();
 }
 
-void pcm_postinit(void)
+void pcm_play_dma_postinit(void)
 {
     audiohw_postinit();
 }
@@ -290,7 +192,7 @@ static void play_stop_pcm(void)
         unsigned long dsa = 0;
         dma_play_bd.buf_addr = NULL;
         dma_play_bd.mode.count = 0;
-        clean_dcache_range(&dsa, sizeof(dsa));
+        discard_dcache_range(&dsa, sizeof(dsa));
         sdma_write_words(&dsa, CHANNEL_CONTEXT_ADDR(DMA_PLAY_CH_NUM)+0x0b, 1);
     }
 
@@ -309,15 +211,11 @@ void pcm_play_dma_start(const void *addr, size_t size)
     if (!sdma_channel_reset(DMA_PLAY_CH_NUM))
         return;
 
-    clean_dcache_range(addr, size);
-    dma_play_bd.buf_addr =
-        (void *)addr_virt_to_phys((unsigned long)(void *)addr);
-    dma_play_bd.mode.count = size;
-    dma_play_bd.mode.command = TRANSFER_16BIT;
-    dma_play_bd.mode.status = BD_DONE | BD_WRAP | BD_INTR;
-
+    /* Begin I2S transmission */
     play_start_pcm();
-    sdma_channel_run(DMA_PLAY_CH_NUM);
+
+    /* Begin DMA transfer */
+    play_start_dma(addr, size);
 }
 
 void pcm_play_dma_stop(void)
@@ -420,32 +318,13 @@ static struct dma_data dma_rec_data =
     .state = 0
 };
 
-static void rec_dma_callback(void)
+static void rec_start_dma(void *addr, size_t size)
 {
-    int status = 0;
-    void *start;
-    size_t size;
+    discard_dcache_range(addr, size);
 
-    if (dma_rec_data.locked != 0)
-    {
-        dma_rec_data.callback_pending = dma_rec_data.state;
-        return; /* Callback is locked out */
-    }
+    addr = (void *)addr_virt_to_phys((unsigned long)addr);
 
-    if (dma_rec_bd.mode.status & BD_RROR)
-        status = DMA_REC_ERROR_DMA;
-
-    pcm_rec_more_ready_callback(status, &start, &size);
-
-    if (size == 0)
-        return;
-
-    /* Invalidate - buffer must be coherent */
-    dump_dcache_range(start, size);
-
-    start = (void *)addr_virt_to_phys((unsigned long)start);
-
-    dma_rec_bd.buf_addr = start;
+    dma_rec_bd.buf_addr = addr;
     dma_rec_bd.mode.count = size;
     dma_rec_bd.mode.command = TRANSFER_16BIT;
     dma_rec_bd.mode.status = BD_DONE | BD_WRAP | BD_INTR;
@@ -453,28 +332,43 @@ static void rec_dma_callback(void)
     sdma_channel_run(DMA_REC_CH_NUM);
 }
 
+static void rec_dma_callback(void)
+{
+    if (dma_rec_data.locked != 0)
+    {
+        dma_rec_data.callback_pending = dma_rec_data.state;
+        return; /* Callback is locked out */
+    }
+
+    /* Inform middle layer */
+    enum pcm_dma_status status = (dma_rec_bd.mode.status & BD_RROR) ?
+                                  PCM_DMAST_ERR_DMA : PCM_DMAST_OK;
+    void *addr;
+    size_t size;
+
+    if (pcm_rec_dma_complete_callback(status, &addr, &size))
+    {
+        rec_start_dma(addr, size);
+        pcm_rec_dma_status_callback(PCM_DMAST_STARTED);
+    }
+}
+
 void pcm_rec_lock(void)
 {
-    kernel_audio_locking(true);    
     ++dma_rec_data.locked;
 }
 
 void pcm_rec_unlock(void)
 {
-    if (--dma_rec_data.locked == 0)
+    if (--dma_rec_data.locked == 0 && dma_rec_data.state != 0)
     {
-        if (dma_rec_data.state != 0)
-        {
-            int oldstatus = disable_irq_save();
-            int pending = dma_rec_data.callback_pending;
-            dma_rec_data.callback_pending = 0;
-            restore_irq(oldstatus);
+        int oldstatus = disable_irq_save();
+        int pending = dma_rec_data.callback_pending;
+        dma_rec_data.callback_pending = 0;
+        restore_irq(oldstatus);
 
-            if (pending != 0)
-                rec_dma_callback();
-        }
-
-        kernel_audio_locking(false);
+        if (pending != 0)
+            rec_dma_callback();
     }
 }
 
@@ -500,7 +394,7 @@ void pcm_rec_dma_stop(void)
         unsigned long pda = 0;
         dma_rec_bd.buf_addr = NULL;
         dma_rec_bd.mode.count = 0;
-        clean_dcache_range(&pda, sizeof(pda));
+        discard_dcache_range(&pda, sizeof(pda));
         sdma_write_words(&pda, CHANNEL_CONTEXT_ADDR(DMA_REC_CH_NUM)+0x0a, 1);
     }
 
@@ -514,17 +408,6 @@ void pcm_rec_dma_start(void *addr, size_t size)
 
     if (!sdma_channel_reset(DMA_REC_CH_NUM))
         return;
-    
-    /* Invalidate - buffer must be coherent */
-    dump_dcache_range(addr, size);
-
-    addr = (void *)addr_virt_to_phys((unsigned long)addr);
-    dma_rec_bd.buf_addr = addr;
-    dma_rec_bd.mode.count = size;
-    dma_rec_bd.mode.command = TRANSFER_16BIT;
-    dma_rec_bd.mode.status = BD_DONE | BD_WRAP | BD_INTR;
-
-    dma_rec_data.state = 1; /* Check callback on unlock */
 
     SSI_SRCR1 |= SSI_SRCR_RFEN0; /* Enable RX FIFO */
 
@@ -536,7 +419,10 @@ void pcm_rec_dma_start(void *addr, size_t size)
     SSI_SCR1 |= SSI_SCR_RE;
     SSI_SIER1 |= SSI_SIER_RDMAE; /* Enable DMA req. */
 
-    sdma_channel_run(DMA_REC_CH_NUM);
+    /* Begin DMA transfer */
+    rec_start_dma(addr, size);
+
+    dma_rec_data.state = 1; /* Check callback on unlock */
 }
 
 void pcm_rec_dma_close(void)

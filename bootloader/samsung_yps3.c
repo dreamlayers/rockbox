@@ -30,8 +30,7 @@
 #include "cpu.h"
 #include "system.h"
 #include "lcd.h"
-#include "kernel.h"
-#include "thread.h"
+#include "../kernel-internal.h"
 #include "backlight.h"
 #include "backlight-target.h"
 #include "button.h"
@@ -115,7 +114,7 @@ void main(void)
     i2c_init();
     fmradio_i2c_init();
     adc_init();
-    _backlight_init();
+    backlight_hw_init();
     button_init_device();
         
     // FM power
@@ -260,13 +259,13 @@ void main(void)
         if (button & BUTTON_MENU) {
             if (brightness < MAX_BRIGHTNESS_SETTING) {
                 brightness++;
-                _backlight_set_brightness(brightness);
+                backlight_hw_brightness(brightness);
             }
         }
         else  if (button & BUTTON_BACK) {
             if (brightness > MIN_BRIGHTNESS_SETTING) {
                 brightness--;
-                _backlight_set_brightness(brightness);
+                backlight_hw_brightness(brightness);
             }
         }
         snprintf(mystring, 64, "brightness %3d", brightness);

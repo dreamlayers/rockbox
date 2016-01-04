@@ -46,13 +46,13 @@
 #include "keyboard.h"
 #include "bookmark.h"
 #include "onplay.h"
-#include "buffer.h"
+#include "core_alloc.h"
 #include "power.h"
 #include "action.h"
 #include "talk.h"
 #include "filetypes.h"
 #include "misc.h"
-#include "filefuncs.h"
+#include "pathfuncs.h"
 #include "filetree.h"
 #include "tagtree.h"
 #ifdef HAVE_RECORDING
@@ -88,14 +88,11 @@ static struct gui_buttonbar tree_buttonbar;
 #endif
 static struct tree_context tc;
 
-bool boot_changed = false;
-
 char lastfile[MAX_PATH];
 static char lastdir[MAX_PATH];
 #ifdef HAVE_TAGCACHE
 static int lasttable, lastextra, lastfirstpos;
 #endif
-static int max_files = 0;
 
 static bool reload_dir = false;
 
@@ -106,6 +103,18 @@ static int dirbrowse(void);
 static int ft_play_dirname(char* name);
 static void ft_play_filename(char *dir, char *file);
 static void say_filetype(int attr);
+
+struct entry* tree_get_entries(struct tree_context *t)
+{
+    return core_get_data(t->cache.entries_handle);
+}
+
+struct entry* tree_get_entry_at(struct tree_context *t, int index)
+{
+    struct entry* entries = tree_get_entries(t);
+    return &entries[index];
+}
+
 
 static const char* tree_get_filename(int selected_item, void *data,
                                      char *buffer, size_t buffer_len)
@@ -119,13 +128,12 @@ static const char* tree_get_filename(int selected_item, void *data,
 
     if (id3db)
     {
-        return tagtree_get_entry(&tc, selected_item)->name;
+        return tagtree_get_entry_name(&tc, selected_item, buffer, buffer_len);
     }
     else 
 #endif
     {
-        struct entry* dc = local_tc->dircache;
-        struct entry* e = &dc[selected_item];
+        struct entry* e = tree_get_entry_at(local_tc, selected_item);
         name = e->name;
         attr = e->attr;
     }
@@ -167,8 +175,7 @@ static int tree_get_filecolor(int selected_item, void * data)
     if (*tc.dirfilter == SHOW_ID3DB)
         return -1;
     struct tree_context * local_tc=(struct tree_context *)data;
-    struct entry* dc = local_tc->dircache;
-    struct entry* e = &dc[selected_item];
+    struct entry* e = tree_get_entry_at(local_tc, selected_item);
     return filetype_get_color(e->name, e->attr);
 }
 #endif
@@ -183,9 +190,8 @@ static enum themable_icons tree_get_fileicon(int selected_item, void * data)
     }
     else
 #endif
-        {
-        struct entry* dc = local_tc->dircache;
-        struct entry* e = &dc[selected_item];
+    {
+        struct entry* e = tree_get_entry_at(local_tc, selected_item);
         return filetype_get_icon(e->attr);
     }
 }
@@ -197,17 +203,17 @@ static int tree_voice_cb(int selected_item, void * data)
     int attr=0;
 #ifdef HAVE_TAGCACHE
     bool id3db = *(local_tc->dirfilter) == SHOW_ID3DB;
+    char buf[AVERAGE_FILENAME_LENGTH*2];
 
     if (id3db)
     {
         attr = tagtree_get_attr(local_tc);
-        name = tagtree_get_entry(local_tc, selected_item)->name;
+        name = tagtree_get_entry_name(local_tc, selected_item, buf, sizeof(buf));
     }
     else
 #endif
     {
-        struct entry* dc = local_tc->dircache;
-        struct entry* e = &dc[selected_item];
+        struct entry* e = tree_get_entry_at(local_tc, selected_item);
         name = e->name;
         attr = e->attr;
     }
@@ -264,7 +270,6 @@ bool check_rockboxdir(void)
     if(!dir_exists(ROCKBOX_DIR))
     {   /* No need to localise this message.
            If .rockbox is missing, it wouldn't work anyway */
-        int i;
         FOR_NB_SCREENS(i)
             screens[i].clear_display();
         splash(HZ*2, "No .rockbox directory");
@@ -284,7 +289,6 @@ void tree_gui_init(void)
     strcpy(tc.currdir, "/");
 
 #ifdef HAVE_LCD_CHARCELLS
-    int i;
     FOR_NB_SCREENS(i)
         screens[i].double_height(false);
 #endif
@@ -303,16 +307,6 @@ void tree_gui_init(void)
 }
 
 
-/* drawer function for the GUI_EVENT_REDRAW callback */
-void tree_drawlists(void)
-{
-    /* band-aid to fix the bar/list redrawing properly after leaving a plugin */
-    send_event(GUI_EVENT_THEME_CHANGED, NULL);
-    /* end bandaid */
-    gui_synclist_draw(&tree_lists);
-}
-
-
 struct tree_context* tree_get_context(void)
 {
     return &tc;
@@ -325,12 +319,12 @@ struct tree_context* tree_get_context(void)
 static int tree_get_file_position(char * filename)
 {
     int i;
+    struct entry* e;
 
     /* use lastfile to determine the selected item (default=0) */
     for (i=0; i < tc.filesindir; i++)
     {
-        struct entry* dc = tc.dircache;
-        struct entry* e = &dc[i];
+        e = tree_get_entry_at(&tc, i);
         if (!strcasecmp(e->name, filename))
             return(i);
     }
@@ -391,7 +385,7 @@ static int update_dir(void)
 #ifdef HAVE_TAGCACHE
         !id3db && 
 #endif
-        (tc.dirfull || tc.filesindir == global_settings.max_files_in_dir) )
+        tc.dirfull )
         {
             splash(HZ, ID2P(LANG_SHOWDIR_BUFFER_FULL));
         }
@@ -532,8 +526,7 @@ char* get_current_file(char* buffer, size_t buffer_len)
         return NULL;
 #endif
 
-    struct entry* dc = tc.dircache;
-    struct entry* e = &dc[tc.selected_item];
+    struct entry* e = tree_get_entry_at(&tc, tc.selected_item);
     if (getcwd(buffer, buffer_len))
     {
         if (tc.dirlength)
@@ -614,7 +607,10 @@ static int dirbrowse(void)
 {
     int numentries=0;
     char buf[MAX_PATH];
-    int button, oldbutton;
+    int button;
+#ifdef HAVE_LCD_BITMAP
+    int oldbutton;
+#endif
     bool reload_root = false;
     int lastfilter = *tc.dirfilter;
     bool lastsortcase = global_settings.sort_case;
@@ -652,23 +648,18 @@ static int dirbrowse(void)
     
     gui_synclist_draw(&tree_lists);
     while(1) {
-        struct entry *dircache = tc.dircache;
         bool restore = false;
         if (tc.dirlevel < 0)
             tc.dirlevel = 0; /* shouldnt be needed.. this code needs work! */
-#ifdef BOOTFILE
-        if (boot_changed) {
-            static const char *lines[]={ID2P(LANG_BOOT_CHANGED), ID2P(LANG_REBOOT_NOW)};
-            static const struct text_message message={lines, 2};
-            if(gui_syncyesno_run(&message, NULL, NULL)==YESNO_YES)
-                rolo_load("/" BOOTFILE);
-            restore = true;
-            boot_changed = false;
-        }
+
+#if CONFIG_CODEC == SWCODEC
+        keyclick_set_callback(gui_synclist_keyclick_callback, &tree_lists);
 #endif
         button = get_action(CONTEXT_TREE,
                             list_do_action_timeout(&tree_lists, HZ/2));
+#ifdef HAVE_LCD_BITMAP
         oldbutton = button;
+#endif
         gui_synclist_do_button(&tree_lists, &button,LIST_WRAP_UNLESS_HELD);
         tc.selected_item = gui_synclist_get_sel_pos(&tree_lists);
         switch ( button ) {
@@ -677,8 +668,9 @@ static int dirbrowse(void)
                 if ( numentries == 0 )
                     break;
 
+                short attr = tree_get_entry_at(&tc, tc.selected_item)->attr;
                 if ((tc.browse->flags & BROWSE_SELECTONLY) &&
-                    !(dircache[tc.selected_item].attr & ATTR_DIRECTORY))
+                    !(attr & ATTR_DIRECTORY))
                 {
                     tc.browse->flags |= BROWSE_SELECTED;
                     get_current_file(tc.browse->buf, tc.browse->bufsize);
@@ -803,15 +795,14 @@ static int dirbrowse(void)
                     else
 #endif
                     {
-                        attr = dircache[tc.selected_item].attr;
+                        struct entry *entry = tree_get_entry_at(&tc, tc.selected_item);
+                        attr = entry->attr;
 
                         if (currdir[1]) /* Not in / */
                             snprintf(buf, sizeof buf, "%s/%s",
-                                     currdir,
-                                     dircache[tc.selected_item].name);
+                                     currdir, entry->name);
                         else /* In / */
-                            snprintf(buf, sizeof buf, "/%s",
-                                     dircache[tc.selected_item].name);
+                            snprintf(buf, sizeof buf, "/%s", entry->name);
                     }
                     onplay_result = onplay(buf, attr, curr_context, hotkey);
                 }
@@ -918,8 +909,15 @@ bool create_playlist(void)
 {
     char filename[MAX_PATH];
 
-    snprintf(filename, sizeof filename, "%s.m3u8",
-             tc.currdir[1] ? tc.currdir : "/root");
+    if (tc.currdir[1])
+        snprintf(filename, sizeof filename, "%s.m3u8", tc.currdir);
+    else
+        snprintf(filename, sizeof filename, "%s/all.m3u8",
+                catalog_get_directory());
+        
+    
+    if (kbd_input(filename, MAX_PATH))
+        return false;
     splashf(0, "%s %s", str(LANG_CREATING), filename);
 
     trigger_cpu_boost();
@@ -995,7 +993,10 @@ int rockbox_browse(struct browse_context *browse)
         tc.browse = browse;
         strcpy(current, browse->root);
         set_current_file(current);
-        ret_val = dirbrowse();
+        if (browse->flags&BROWSE_RUNFILE)
+            ret_val = ft_enter(&tc);
+        else
+            ret_val = dirbrowse();
     }
     backup_count--;
     if (backup_count >= 0)
@@ -1003,27 +1004,56 @@ int rockbox_browse(struct browse_context *browse)
     return ret_val;
 }
 
+static int move_callback(int handle, void* current, void* new)
+{
+    struct tree_cache* cache = &tc.cache;
+    if (cache->lock_count > 0)
+        return BUFLIB_CB_CANNOT_MOVE;
+
+    size_t diff = new - current;
+    /* FIX_PTR makes sure to not accidentally update static allocations */
+#define FIX_PTR(x) \
+    { if ((void*)x >= current && (void*)x < (current+cache->name_buffer_size)) x+= diff; }
+
+    if (handle == cache->name_buffer_handle)
+    {   /* update entry structs, *even if they are struct tagentry */
+        struct entry *this = core_get_data(cache->entries_handle);
+        struct entry *last = this + cache->max_entries;
+        for(; this < last; this++)
+            FIX_PTR(this->name);
+    }
+    /* nothing to do if entries moved */
+    return BUFLIB_CB_OK;
+}
+
+static struct buflib_callbacks ops = {
+    .move_callback = move_callback,
+    .shrink_callback = NULL,
+};
+
 void tree_mem_init(void)
 {
-    /* We copy the settings value in case it is changed by the user. We can't
-       use it until the next reboot. */
-    max_files = global_settings.max_files_in_dir;
-
     /* initialize tree context struct */
+    struct tree_cache* cache = &tc.cache;
     memset(&tc, 0, sizeof(tc));
     tc.dirfilter = &global_settings.dirfilter;
     tc.sort_dir = global_settings.sort_dir;
 
-    tc.name_buffer_size = AVERAGE_FILENAME_LENGTH * max_files;
-    tc.name_buffer = buffer_alloc(tc.name_buffer_size);
+    cache->name_buffer_size = AVERAGE_FILENAME_LENGTH *
+        global_settings.max_files_in_dir;
+    cache->name_buffer_handle = core_alloc_ex("tree names",
+                                    cache->name_buffer_size,
+                                    &ops);
 
-    tc.dircache_size = max_files * sizeof(struct entry);
-    tc.dircache = buffer_alloc(tc.dircache_size);
+    cache->max_entries = global_settings.max_files_in_dir;
+    cache->entries_handle = core_alloc_ex("tree entries",
+                                    cache->max_entries*(sizeof(struct entry)),
+                                    &ops);
     tree_get_filetypes(&filetypes, &filetypes_count);
 }
 
-bool bookmark_play(char *resume_file, int index, int offset, int seed,
-                   char *filename)
+bool bookmark_play(char *resume_file, int index, unsigned long elapsed,
+                   unsigned long offset, int seed, char *filename)
 {
     int i;
     char* suffix = strrchr(resume_file, '.');
@@ -1052,7 +1082,7 @@ bool bookmark_play(char *resume_file, int index, int offset, int seed,
             {
                 if (global_settings.playlist_shuffle)
                     playlist_shuffle(seed, -1);
-                playlist_start(index,offset);
+                playlist_start(index, elapsed, offset);
                 started = true;
             }
             *slash='/';
@@ -1103,7 +1133,7 @@ bool bookmark_play(char *resume_file, int index, int offset, int seed,
                 else
                     return false;
             }
-            playlist_start(index,offset);
+            playlist_start(index, elapsed, offset);
             started = true;
         }
     }
@@ -1175,26 +1205,36 @@ void tree_flush(void)
 #endif
 
 #ifdef HAVE_DIRCACHE
-    {
-        int old_val = global_status.dircache_size;
-        if (global_settings.dircache)
-        {
-            if (!dircache_is_initializing())
-                global_status.dircache_size = dircache_get_cache_size();
-# ifdef HAVE_EEPROM_SETTINGS
-            if (firmware_settings.initialized)
-                dircache_save();
-# endif
-            dircache_disable();
-        }
-        else
-        {
-            global_status.dircache_size = 0;
-        }
-        if (old_val != global_status.dircache_size)
-            status_save();
-    }
+    int old_val = global_status.dircache_size;
+#ifdef HAVE_EEPROM_SETTINGS
+    bool savecache = false;
 #endif
+
+    if (global_settings.dircache)
+    {
+        dircache_suspend();
+
+        struct dircache_info info;
+        dircache_get_info(&info);
+
+        global_status.dircache_size = info.last_size;
+    #ifdef HAVE_EEPROM_SETTINGS
+        savecache = firmware_settings.initialized;
+    #endif            
+    }
+    else
+    {
+        global_status.dircache_size = 0;
+    }
+
+    if (old_val != global_status.dircache_size)
+        status_save();
+
+    #ifdef HAVE_EEPROM_SETTINGS
+        if (savecache)
+            dircache_save();
+    #endif
+#endif /* HAVE_DIRCACHE */
 }
 
 void tree_restore(void)
@@ -1208,15 +1248,14 @@ void tree_restore(void)
 #endif
     
 #ifdef HAVE_DIRCACHE
-    remove(DIRCACHE_FILE);
-    if (global_settings.dircache)
+    if (global_settings.dircache && dircache_resume() > 0)
     {
         /* Print "Scanning disk..." to the display. */
         splash(0, str(LANG_SCANNING_DISK));
-
-        dircache_build(global_status.dircache_size);
+        dircache_wait();
     }
 #endif
+
 #ifdef HAVE_TAGCACHE
     tagcache_start_scan();
 #endif

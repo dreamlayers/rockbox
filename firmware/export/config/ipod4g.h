@@ -1,7 +1,6 @@
 /*
  * This config file is for the Apple iPod 4g Grayscale
  */
-#define TARGET_TREE /* this target is using the target tree system */
 
 #define IPOD_ARCH 1
 
@@ -49,8 +48,6 @@
 
 /* define this if you have access to the quickscreen */
 #define HAVE_QUICKSCREEN
-/* define this if you have access to the pitchscreen */
-#define HAVE_PITCHSCREEN
 
 /* define this if you would like tagcache to build on this target */
 #define HAVE_TAGCACHE
@@ -58,6 +55,8 @@
 /* LCD dimensions */
 #define LCD_WIDTH  160
 #define LCD_HEIGHT 128
+/* sqrt(160^2 + 128^2) / 2.0 = 102.4 */
+#define LCD_DPI 102
 #define LCD_DEPTH  2   /* 4 colours - 2bpp */
 #define LCD_PIXELFORMAT HORIZONTAL_PACKING
 
@@ -78,6 +77,9 @@
 #define HAVE_LCD_FLIP
 
 #define CONFIG_KEYPAD IPOD_4G_PAD
+
+/* Define this to have CPU boosted while scrolling in the UI */
+#define HAVE_GUI_BOOST
 
 /* Define this to enable morse code input */
 #define HAVE_MORSE_INPUT
@@ -140,6 +142,8 @@
 #define BATTERY_CAPACITY_INC 10   /* capacity increment */
 #define BATTERY_TYPES_COUNT  1    /* only one type */
 
+#define CONFIG_BATTERY_MEASURE VOLTAGE_MEASURE
+
 /* Hardware controlled charging? */
 #define CONFIG_CHARGING CHARGING_MONITOR
 
@@ -198,7 +202,6 @@
 
 /* enable these for the experimental usb stack */
 #define HAVE_USBSTACK
-#define USE_ROCKBOX_USB
 #define USB_VENDOR_ID 0x05ac
 #define USB_PRODUCT_ID 0x1203
 #define HAVE_USB_HID_MOUSE
@@ -208,6 +211,8 @@
 
 /* Define this if you can read an absolute wheel position */
 #define HAVE_WHEEL_POSITION
+
+#define HAVE_HARDWARE_CLICK
 
 #define BOOTFILE_EXT "ipod"
 #define BOOTFILE "rockbox." BOOTFILE_EXT
@@ -224,7 +229,9 @@
 /* DMA is used only for reading on PP502x because although reads are ~8x faster
  * writes appear to be ~25% slower.
  */
+#ifndef BOOTLOADER
 #define HAVE_ATA_DMA
+#endif
 
 /* Define this, if you can switch on/off the lineout */
 #define HAVE_LINEOUT_POWEROFF

@@ -30,8 +30,8 @@
 
 
 
-#if (CONFIG_KEYPAD == IPOD_4G_PAD) || \
-    (CONFIG_KEYPAD == IPOD_3G_PAD) || \
+#if (CONFIG_KEYPAD == IPOD_4G_PAD) ||           \
+    (CONFIG_KEYPAD == IPOD_3G_PAD) ||           \
     (CONFIG_KEYPAD == IPOD_1G2G_PAD)
 
 #define ROCKBLOX_OFF           (BUTTON_MENU | BUTTON_SELECT)
@@ -44,8 +44,8 @@
 #define ROCKBLOX_RESTART       (BUTTON_SELECT | BUTTON_PLAY)
 #define ROCKBLOX_DROP          (BUTTON_SELECT | BUTTON_REL)
 
-#elif (CONFIG_KEYPAD == IRIVER_H100_PAD) || \
-      (CONFIG_KEYPAD == IRIVER_H300_PAD)
+#elif (CONFIG_KEYPAD == IRIVER_H100_PAD) ||     \
+    (CONFIG_KEYPAD == IRIVER_H300_PAD)
 
 #define ROCKBLOX_OFF           BUTTON_OFF
 #define ROCKBLOX_ROTATE_CCW    BUTTON_UP
@@ -275,6 +275,17 @@
 #define ROCKBLOX_DROP          BUTTON_SELECT
 #define ROCKBLOX_RESTART       BUTTON_CUSTOM
 
+#elif CONFIG_KEYPAD == CREATIVE_ZENXFI3_PAD
+#define ROCKBLOX_OFF           BUTTON_POWER
+#define ROCKBLOX_ROTATE_CCW    BUTTON_VOL_DOWN
+#define ROCKBLOX_ROTATE_CCW2   BUTTON_UP
+#define ROCKBLOX_ROTATE_CW     BUTTON_VOL_UP
+#define ROCKBLOX_DOWN          BUTTON_DOWN
+#define ROCKBLOX_LEFT          BUTTON_BACK
+#define ROCKBLOX_RIGHT         BUTTON_MENU
+#define ROCKBLOX_DROP          (BUTTON_PLAY|BUTTON_REL)
+#define ROCKBLOX_RESTART       (BUTTON_PLAY|BUTTON_REPEAT)
+
 #elif CONFIG_KEYPAD == PHILIPS_HDD1630_PAD
 
 #define ROCKBLOX_OFF           BUTTON_POWER
@@ -317,16 +328,26 @@
 #elif CONFIG_KEYPAD == ONDAVX777_PAD
 #define ROCKBLOX_OFF           BUTTON_POWER
 
-#elif CONFIG_KEYPAD == SAMSUNG_YH_PAD
+#elif CONFIG_KEYPAD == SAMSUNG_YH920_PAD
 
-#define ROCKBLOX_OFF           (BUTTON_REC|BUTTON_PLAY)
+#define ROCKBLOX_OFF           BUTTON_FFWD
 #define ROCKBLOX_ROTATE_CCW    BUTTON_UP
 #define ROCKBLOX_ROTATE_CW     BUTTON_DOWN
 #define ROCKBLOX_DOWN          BUTTON_REW
 #define ROCKBLOX_LEFT          BUTTON_LEFT
 #define ROCKBLOX_RIGHT         BUTTON_RIGHT
-#define ROCKBLOX_DROP          BUTTON_FFWD
-#define ROCKBLOX_RESTART       (BUTTON_REC|BUTTON_REW)
+#define ROCKBLOX_DROP          BUTTON_PLAY
+
+#elif CONFIG_KEYPAD == SAMSUNG_YH820_PAD
+
+#define ROCKBLOX_OFF           BUTTON_REW
+#define ROCKBLOX_ROTATE_CCW    BUTTON_UP
+#define ROCKBLOX_ROTATE_CW     BUTTON_DOWN
+#define ROCKBLOX_DOWN          BUTTON_FFWD
+#define ROCKBLOX_LEFT          BUTTON_LEFT
+#define ROCKBLOX_RIGHT         BUTTON_RIGHT
+#define ROCKBLOX_DROP          BUTTON_PLAY
+#define ROCKBLOX_RESTART       BUTTON_REC
 
 #elif CONFIG_KEYPAD == PBELL_VIBE500_PAD
 
@@ -350,14 +371,100 @@
 #define ROCKBLOX_RESTART       BUTTON_REC
 
 #elif CONFIG_KEYPAD == MPIO_HD300_PAD
-#define ROCKBLOX_OFF           (BUTTON_REC|BUTTON_REPEAT)
-#define ROCKBLOX_ROTATE_CCW    BUTTON_REW
-#define ROCKBLOX_ROTATE_CW     BUTTON_FF
-#define ROCKBLOX_DOWN          BUTTON_DOWN
-#define ROCKBLOX_LEFT          BUTTON_MENU
-#define ROCKBLOX_RIGHT         BUTTON_ENTER
+#define ROCKBLOX_OFF           (BUTTON_MENU|BUTTON_REPEAT)
+#define ROCKBLOX_ROTATE_CCW    BUTTON_UP
+#define ROCKBLOX_ROTATE_CW     BUTTON_DOWN
+#define ROCKBLOX_DOWN          (BUTTON_ENTER | BUTTON_REL)
+#define ROCKBLOX_LEFT          BUTTON_REW
+#define ROCKBLOX_RIGHT         BUTTON_FF
 #define ROCKBLOX_DROP          BUTTON_PLAY
 #define ROCKBLOX_RESTART       BUTTON_REC
+
+#elif CONFIG_KEYPAD == SANSA_FUZEPLUS_PAD
+#define ROCKBLOX_OFF           BUTTON_POWER
+#define ROCKBLOX_ROTATE_CW     BUTTON_BOTTOMRIGHT
+#define ROCKBLOX_ROTATE_CCW    BUTTON_BOTTOMLEFT
+#define ROCKBLOX_DOWN          BUTTON_SELECT
+#define ROCKBLOX_LEFT          BUTTON_LEFT
+#define ROCKBLOX_RIGHT         BUTTON_RIGHT
+#define ROCKBLOX_DROP_PRE      BUTTON_DOWN
+#define ROCKBLOX_DROP          BUTTON_DOWN|BUTTON_REL
+#define ROCKBLOX_ROTATE_CCW2   BUTTON_VOL_UP
+#define ROCKBLOX_ROTATE_CW2    BUTTON_VOL_DOWN
+
+#elif CONFIG_KEYPAD == SANSA_CONNECT_PAD
+#define ROCKBLOX_OFF           BUTTON_POWER
+#define ROCKBLOX_ROTATE_CW     BUTTON_NEXT
+#define ROCKBLOX_ROTATE_CCW    BUTTON_PREV
+#define ROCKBLOX_DOWN          BUTTON_DOWN
+#define ROCKBLOX_LEFT          BUTTON_LEFT
+#define ROCKBLOX_RIGHT         BUTTON_RIGHT
+#define ROCKBLOX_DROP          BUTTON_SELECT
+#define ROCKBLOX_RESTART       BUTTON_VOL_DOWN
+
+#elif CONFIG_KEYPAD == SAMSUNG_YPR0_PAD
+
+#define ROCKBLOX_OFF           BUTTON_BACK
+#define ROCKBLOX_ROTATE_CCW    BUTTON_POWER
+#define ROCKBLOX_ROTATE_CW     BUTTON_MENU
+#define ROCKBLOX_ROTATE        BUTTON_UP
+#define ROCKBLOX_DOWN          BUTTON_DOWN
+#define ROCKBLOX_LEFT          BUTTON_LEFT
+#define ROCKBLOX_RIGHT         BUTTON_RIGHT
+#define ROCKBLOX_DROP          BUTTON_SELECT
+#define ROCKBLOX_RESTART       BUTTON_USER
+
+#elif CONFIG_KEYPAD == HM60X_PAD
+
+#define ROCKBLOX_OFF           BUTTON_POWER
+#define ROCKBLOX_ROTATE_CCW    (BUTTON_LEFT|BUTTON_POWER)
+#define ROCKBLOX_ROTATE_CW     (BUTTON_RIGHT|BUTTON_POWER)
+#define ROCKBLOX_ROTATE        BUTTON_UP
+#define ROCKBLOX_DOWN          BUTTON_DOWN
+#define ROCKBLOX_LEFT          BUTTON_LEFT
+#define ROCKBLOX_RIGHT         BUTTON_RIGHT
+#define ROCKBLOX_DROP          BUTTON_SELECT
+#define ROCKBLOX_RESTART       (BUTTON_DOWN|BUTTON_POWER)
+
+#elif CONFIG_KEYPAD == HM801_PAD
+
+#define ROCKBLOX_OFF           BUTTON_POWER
+#define ROCKBLOX_ROTATE_CCW    BUTTON_PREV
+#define ROCKBLOX_ROTATE_CW     BUTTON_NEXT
+#define ROCKBLOX_ROTATE        BUTTON_UP
+#define ROCKBLOX_DOWN          BUTTON_DOWN
+#define ROCKBLOX_LEFT          BUTTON_LEFT
+#define ROCKBLOX_RIGHT         BUTTON_RIGHT
+#define ROCKBLOX_DROP          BUTTON_SELECT
+#define ROCKBLOX_RESTART       BUTTON_PLAY
+
+#elif CONFIG_KEYPAD == SONY_NWZ_PAD
+#define ROCKBLOX_OFF           (BUTTON_BACK|BUTTON_REPEAT)
+#define ROCKBLOX_ROTATE_CCW    BUTTON_POWER
+#define ROCKBLOX_ROTATE_CW     BUTTON_UP
+#define ROCKBLOX_DOWN          BUTTON_DOWN
+#define ROCKBLOX_LEFT          BUTTON_LEFT
+#define ROCKBLOX_RIGHT         BUTTON_RIGHT
+#define ROCKBLOX_DROP          BUTTON_PLAY
+#define ROCKBLOX_RESTART       BUTTON_BACK
+
+#elif CONFIG_KEYPAD == CREATIVE_ZEN_PAD
+#define ROCKBLOX_OFF           BUTTON_BACK
+#define ROCKBLOX_ROTATE_CCW    BUTTON_MENU
+#define ROCKBLOX_ROTATE_CW     BUTTON_UP
+#define ROCKBLOX_DOWN          BUTTON_DOWN
+#define ROCKBLOX_LEFT          BUTTON_LEFT
+#define ROCKBLOX_RIGHT         BUTTON_RIGHT
+#define ROCKBLOX_DROP          BUTTON_SELECT
+#define ROCKBLOX_RESTART       BUTTON_SHORTCUT
+
+#elif CONFIG_KEYPAD == DX50_PAD
+#define ROCKBLOX_OFF           BUTTON_POWER
+#define ROCKBLOX_ROTATE        BUTTON_RIGHT
+#define ROCKBLOX_LEFT          BUTTON_LEFT
+#define ROCKBLOX_RIGHT         BUTTON_PLAY
+#define ROCKBLOX_DROP          BUTTON_VOL_DOWN
+#define ROCKBLOX_RESTART       BUTTON_VOL_UP
 
 #else
 #error No keymap defined!
@@ -488,7 +595,7 @@
 #elif (LCD_WIDTH == 176) && (LCD_HEIGHT == 220)
 
 /* no room for the space in the highscore list */
-#define _SPACE ""
+#define HIGHSCORE_SPACE ""
 
 #define BLOCK_WIDTH 10
 #define BLOCK_HEIGHT 10
@@ -557,20 +664,18 @@
 #define LEVEL_Y 49
 #define LINES_Y 82
 
-/* NOTE: This is for the GoGear SA9200 and is only
-   temporary until I can get better coordinates! */
 #elif (LCD_WIDTH == 128) && (LCD_HEIGHT == 160)
 
-#define BLOCK_WIDTH 6
-#define BLOCK_HEIGHT 6
+#define BLOCK_WIDTH 7
+#define BLOCK_HEIGHT 7
 #define BOARD_X 4
-#define BOARD_Y 3
-#define PREVIEW_X 84
-#define PREVIEW_Y 100
-#define LABEL_X 71
-#define SCORE_Y 17
-#define LEVEL_Y 49
-#define LINES_Y 82
+#define BOARD_Y 5
+#define PREVIEW_X 88
+#define PREVIEW_Y 111
+#define LABEL_X 82
+#define SCORE_Y (2+16)
+#define LEVEL_Y (36+16)
+#define LINES_Y (70+16)
 
 #elif (LCD_WIDTH == 128) && (LCD_HEIGHT == 96)
 
@@ -612,6 +717,21 @@
 #define LEVEL_X 78
 #define LINES_Y 51
 
+#elif (LCD_WIDTH == 96) && (LCD_HEIGHT == 96)
+
+#define BLOCK_WIDTH 4
+#define BLOCK_HEIGHT 4
+#define BOARD_X 5
+#define BOARD_Y 4
+#define PREVIEW_X 64
+#define PREVIEW_Y 76
+#define LABEL_X 59
+#define SCORE_Y 15
+#define SCORE_X 58
+#define LEVEL_Y 39
+#define LEVEL_X 58
+#define LINES_Y 62
+#define LINES_X 58
 #endif
 
 #ifndef LEVEL_X
@@ -637,8 +757,8 @@ extern const fb_data rockblox_background[];
 
 #endif
 
-#ifndef _SPACE
-#define _SPACE " "
+#ifndef HIGHSCORE_SPACE
+#define HIGHSCORE_SPACE " "
 #endif
 /* <<Explanation on Rockblox shapes>>
 
@@ -661,14 +781,14 @@ extern const fb_data rockblox_background[];
    %    %  % %%% - L has 4 orientations
    %% %%%  % %
 
-    %     %%
-    % %   %  %%% - J has 4 orientations
+   %     %%
+   % %   %  %%% - J has 4 orientations
    %% %%% %    %
 
    %       % %%%
    %%  %  %%  %  - T has 4 orientations
    %  %%%  %
- */
+*/
 
 /* c=current f=figure o=orientation n=next */
 static struct _rockblox_status
@@ -677,11 +797,13 @@ static struct _rockblox_status
     int lines;
     int level;
     int score;
-    int cx;
-    int cy;
-    int cf;
-    int co;
-    int nf;
+    int cx; /* current piece, x-coord */
+    int cy; /* current piece, y-coord */
+    int cf; /* current figure number, index in figures[] */
+    int co; /* orientation of figure */
+    int nf; /* next figure */
+    int hf; /* hold figure */
+    bool dropped;
     short board[BOARD_HEIGHT][BOARD_WIDTH]; /* 20 rows of 10 blocks */
 } rockblox_status;
 
@@ -705,105 +827,109 @@ static const short scoring[4] = {  /* scoring for each number of lines */
 struct figure
 {
 #if LCD_DEPTH >= 2
-    unsigned short color[3];    /* color of figure (light,middle,shadow) */
+    unsigned int color[3];    /* color of figure (light,middle,shadow) */
 #endif
     unsigned short max_or;      /* max orientations */
     signed short shapeX[4], shapeY[4];  /* implementation of figures */
 }
 
 /* array of figures */
-figures[BLOCKS_NUM] = {
+    figures[BLOCKS_NUM] = {
         /* O */
-    {
+        {
 #if LCD_DEPTH >= 16
-        {LCD_RGBPACK (153, 255, 255), LCD_RGBPACK(0, 255, 255),
-                LCD_RGBPACK(0,153,153)},
+            {LCD_RGBPACK (153, 255, 255), LCD_RGBPACK(0, 255, 255),
+             LCD_RGBPACK(0,153,153)},
 #elif LCD_DEPTH  == 2
-        {LCD_WHITE, LCD_LIGHTGRAY, LCD_DARKGRAY},
+            {LCD_WHITE, LCD_LIGHTGRAY, LCD_DARKGRAY},
 #endif
-        1,
-        {-1, 0, -1, 0},
-        {0, 0, 1, 1}
-    },
+            1,
+            {-1, 0, -1, 0},
+            {0, 0, 1, 1}
+        },
         /* I */
-    {
+        {
 #if LCD_DEPTH >= 16
-        {LCD_RGBPACK (255, 153, 128), LCD_RGBPACK (255, 0, 0),
-                LCD_RGBPACK (153, 0, 0)},
+            {LCD_RGBPACK (255, 153, 128), LCD_RGBPACK (255, 0, 0),
+             LCD_RGBPACK (153, 0, 0)},
 #elif LCD_DEPTH  == 2
-        {LCD_WHITE, LCD_LIGHTGRAY, LCD_DARKGRAY},
+            {LCD_WHITE, LCD_LIGHTGRAY, LCD_DARKGRAY},
 #endif
-        2,
-        {-2, -1, 0, 1},
-        {0, 0, 0, 0}
-    },
+            2,
+            {-2, -1, 0, 1},
+            {0, 0, 0, 0}
+        },
         /* 'Z' */
-    {
+        {
 #if LCD_DEPTH >= 16
-        {LCD_RGBPACK (153, 255, 153), LCD_RGBPACK (0, 255, 0),
-                LCD_RGBPACK (0, 153, 0)},
+            {LCD_RGBPACK (153, 255, 153), LCD_RGBPACK (0, 255, 0),
+             LCD_RGBPACK (0, 153, 0)},
 #elif LCD_DEPTH  == 2
-        {LCD_WHITE, LCD_LIGHTGRAY, LCD_DARKGRAY},
+            {LCD_WHITE, LCD_LIGHTGRAY, LCD_DARKGRAY},
 #endif
-        2,
-        {0, 1, -1, 0},
-        {0, 0, 1, 1}
-    },
+            2,
+            {0, 1, -1, 0},
+            {0, 0, 1, 1}
+        },
         /* 'S' */
-    {
+        {
 #if LCD_DEPTH >= 16
-        {LCD_RGBPACK (153, 153, 255), LCD_RGBPACK (0, 0, 255),
-                LCD_RGBPACK (0, 0, 153)},
+            {LCD_RGBPACK (153, 153, 255), LCD_RGBPACK (0, 0, 255),
+             LCD_RGBPACK (0, 0, 153)},
 #elif LCD_DEPTH  == 2
-        {LCD_WHITE, LCD_LIGHTGRAY, LCD_DARKGRAY},
+            {LCD_WHITE, LCD_LIGHTGRAY, LCD_DARKGRAY},
 #endif
-        2,
-        {-1, 0, 0, 1},
-        {0, 0, 1, 1}
-    },
+            2,
+            {-1, 0, 0, 1},
+            {0, 0, 1, 1}
+        },
         /* 'L' */
-    {
+        {
 #if LCD_DEPTH >= 16
-        {LCD_RGBPACK (255, 255, 153), LCD_RGBPACK (255, 255, 0),
-                LCD_RGBPACK (153, 153, 0)},
+            {LCD_RGBPACK (255, 255, 153), LCD_RGBPACK (255, 255, 0),
+             LCD_RGBPACK (153, 153, 0)},
 #elif LCD_DEPTH  == 2
-        {LCD_WHITE, LCD_LIGHTGRAY, LCD_DARKGRAY},
+            {LCD_WHITE, LCD_LIGHTGRAY, LCD_DARKGRAY},
 #endif
-        4,
-        {-1, 0, 1, 1},
-        {0, 0, 0, 1}
-    },
+            4,
+            {-1, 0, 1, 1},
+            {0, 0, 0, 1}
+        },
         /* 'J' */
-    {
+        {
 #if LCD_DEPTH >= 16
-        {LCD_RGBPACK (255, 153, 255), LCD_RGBPACK (255, 0, 255),
-                LCD_RGBPACK (153, 0, 153)},
+            {LCD_RGBPACK (255, 153, 255), LCD_RGBPACK (255, 0, 255),
+             LCD_RGBPACK (153, 0, 153)},
 #elif LCD_DEPTH  == 2
-        {LCD_WHITE, LCD_LIGHTGRAY, LCD_DARKGRAY},
+            {LCD_WHITE, LCD_LIGHTGRAY, LCD_DARKGRAY},
 #endif
-        4,
-        {-1, 0, 1, -1},
-        {0, 0, 0, 1}
-    },
+            4,
+            {-1, 0, 1, -1},
+            {0, 0, 0, 1}
+        },
         /* 'T' */
-    {
+        {
 #if LCD_DEPTH >= 16
-        {LCD_RGBPACK (204, 204, 204), LCD_RGBPACK (153, 153, 153),
-                LCD_RGBPACK (85, 85, 85)},
+            {LCD_RGBPACK (204, 204, 204), LCD_RGBPACK (153, 153, 153),
+             LCD_RGBPACK (85, 85, 85)},
 #elif LCD_DEPTH  == 2
-        {LCD_WHITE, LCD_LIGHTGRAY, LCD_DARKGRAY},
+            {LCD_WHITE, LCD_LIGHTGRAY, LCD_DARKGRAY},
 #endif
-        4,
-        {-1, 0, 1, 0},
-        {0, 0, 0, 1}
-    }
-};
+            4,
+            {-1, 0, 1, 0},
+            {0, 0, 0, 1}
+        }
+    };
+
+#if LCD_DEPTH >=2
+unsigned int ghost_colors[BLOCKS_NUM][3]; /* same format as figure.colors[] */
+#endif
 bool resume = false;
 bool resume_file = false;
 
 /* Rockbox File System only supports full filenames inc dir */
-#define SCORE_FILE  PLUGIN_GAMES_DIR "/rockblox.score"
-#define RESUME_FILE PLUGIN_GAMES_DIR "/rockblox.resume"
+#define SCORE_FILE  PLUGIN_GAMES_DATA_DIR "/rockblox.score"
+#define RESUME_FILE PLUGIN_GAMES_DATA_DIR "/rockblox.resume"
 #define NUM_SCORES  5
 
 /* Default High Scores... */
@@ -842,7 +968,7 @@ static void show_details (void)
     rb->lcd_putsxyf (LINES_X, LINES_Y, "%d", rockblox_status.lines);
 #else  /* HAVE_LCD_CHARCELLS */
     rb->lcd_putsf (5, 0, "L%d/%d", rockblox_status.level,
-            rockblox_status.lines);
+                   rockblox_status.lines);
     rb->lcd_putsf (5, 1, "S%d", rockblox_status.score);
 #endif
 }
@@ -854,7 +980,7 @@ static void show_highscores (void)
 
     for (i = 0; i<NUM_SCORES; i++)
         rb->lcd_putsxyf (HIGH_LABEL_X, HIGH_SCORE_Y + (10 * i),
-            "%06d" _SPACE "L%1d", highscores[i].score, highscores[i].level);
+                         "%06d" HIGHSCORE_SPACE "L%1d", highscores[i].score, highscores[i].level);
 }
 #endif
 
@@ -868,10 +994,9 @@ static void load_game(void)
     if (fd < 0) return;
 
     if (rb->read(fd, &rockblox_status, sizeof(struct _rockblox_status))
-            < (ssize_t)sizeof(struct _rockblox_status))
+        < (ssize_t)sizeof(struct _rockblox_status))
     {
-        rb->splash(HZ/2, "Loading Rockblox resume info failed");
-        return;
+        rb->splash(HZ/2, "Loading failed");
     } else {
         resume = true;
     }
@@ -890,7 +1015,7 @@ static void dump_resume(void)
         goto fail;
 
     if (rb->write(fd, &rockblox_status, sizeof(struct _rockblox_status))
-            <= 0)
+        <= 0)
     {
         rb->close(fd);
         goto fail;
@@ -899,7 +1024,7 @@ static void dump_resume(void)
     return;
 
 fail:
-    rb->splash(HZ/2, "Writing Rockblox resume info failed");
+    rb->splash(HZ/2, "Saving failed");
     return;
 }
 
@@ -910,8 +1035,8 @@ static void init_rockblox (bool resume)
 
     tm = rb->get_time();
     rb->snprintf(score_name, sizeof(score_name), "%04d%02d%02d %02d%02d%02d",
-            tm->tm_year + 1900, tm->tm_mon + 1, tm->tm_mday,
-            tm->tm_hour, tm->tm_min, tm->tm_sec);
+                 tm->tm_year + 1900, tm->tm_mon + 1, tm->tm_mday,
+                 tm->tm_hour, tm->tm_min, tm->tm_sec);
 
 #ifdef HAVE_LCD_BITMAP
     rb->lcd_bitmap (rockblox_background, 0, 0, LCD_WIDTH, LCD_HEIGHT);
@@ -954,33 +1079,47 @@ static inline int level_speed(int level)
 static int getRelativeX (int figure, int square, int orientation)
 {
     switch (orientation) {
-        case 0:
-            return figures[figure].shapeX[square];
-        case 1:
-            return figures[figure].shapeY[square];
-        case 2:
-            return -figures[figure].shapeX[square];
-        case 3:
-            return -figures[figure].shapeY[square];
-        default:
-            return 0;
+    case 0:
+        return figures[figure].shapeX[square];
+    case 1:
+        return figures[figure].shapeY[square];
+    case 2:
+        return -figures[figure].shapeX[square];
+    case 3:
+        return -figures[figure].shapeY[square];
+    default:
+        return 0;
     }
 }
 
 static int getRelativeY (int figure, int square, int orientation)
 {
     switch (orientation) {
-        case 0:
-            return figures[figure].shapeY[square];
-        case 1:
-            return -figures[figure].shapeX[square];
-        case 2:
-            return -figures[figure].shapeY[square];
-        case 3:
-            return figures[figure].shapeX[square];
-        default:
-            return 0;
+    case 0:
+        return figures[figure].shapeY[square];
+    case 1:
+        return -figures[figure].shapeX[square];
+    case 2:
+        return -figures[figure].shapeY[square];
+    case 3:
+        return figures[figure].shapeX[square];
+    default:
+        return 0;
     }
+}
+
+static bool canMoveTo (int x, int y, int newOrientation)
+{
+    int i, rx, ry;
+    for (i = 0; i < 4; i++) {
+        ry = getRelativeY (rockblox_status.cf, i, newOrientation) + y;
+        rx = getRelativeX (rockblox_status.cf, i, newOrientation) + x;
+        if ((rx < 0 || rx >= BOARD_WIDTH) ||
+            (ry < 0 || ry >= BOARD_HEIGHT) ||
+            (rockblox_status.board[ry][rx] != EMPTY_BLOCK))
+            return false;
+    }
+    return true;
 }
 
 /* redraw the while board on the screen */
@@ -1000,6 +1139,8 @@ static void refresh_board (void)
 #if LCD_DEPTH == 1
     mylcd_set_drawmode (DRMODE_SOLID);
 #endif
+
+    /* draw board (not including current piece) */
 
     for (i = 0; i < BOARD_WIDTH; i++)
         for (j = 0; j < BOARD_HEIGHT; j++) {
@@ -1039,11 +1180,58 @@ static void refresh_board (void)
             }
         }
 
+    /* draw ghost piece first so that it appears underneath the "real" piece */
+
+    int ghost_y=rockblox_status.cy;
+
+    /* find the position to draw it in */
+    while(canMoveTo(rockblox_status.cx, ghost_y+1, rockblox_status.co))
+        ghost_y++;
+
     for (i = 0; i < 4; i++) {
         x = getRelativeX (rockblox_status.cf, i, rockblox_status.co)
-                + rockblox_status.cx;
+            + rockblox_status.cx;
         y = getRelativeY (rockblox_status.cf, i, rockblox_status.co)
-                + rockblox_status.cy;
+            + ghost_y;
+#ifdef HAVE_LCD_BITMAP
+#if LCD_DEPTH >= 2
+        /* middle drawing */
+        rb->lcd_set_foreground (ghost_colors[rockblox_status.cf][0]);
+#endif
+        rb->lcd_fillrect (BOARD_X + x * BLOCK_WIDTH,
+                          BOARD_Y + y * BLOCK_HEIGHT,
+                          BLOCK_WIDTH, BLOCK_HEIGHT);
+#if LCD_DEPTH >= 2
+        /* light drawing */
+        rb->lcd_set_foreground (ghost_colors[rockblox_status.cf][1]);
+#endif
+        rb->lcd_vline (BOARD_X + x * BLOCK_WIDTH, BOARD_Y + y * BLOCK_HEIGHT,
+                       BOARD_Y + (y + 1) * BLOCK_HEIGHT - 2);
+        rb->lcd_hline (BOARD_X + x * BLOCK_WIDTH,
+                       BOARD_X + (x + 1) * BLOCK_WIDTH - 2,
+                       BOARD_Y + y * BLOCK_HEIGHT);
+#if LCD_DEPTH >= 2
+        /* shadow drawing */
+        rb->lcd_set_foreground (ghost_colors[rockblox_status.cf][2]);
+#endif
+        rb->lcd_vline (BOARD_X + (x + 1) * BLOCK_WIDTH - 1,
+                       BOARD_Y + y * BLOCK_HEIGHT + 1,
+                       BOARD_Y + (y + 1) * BLOCK_HEIGHT - 1);
+        rb->lcd_hline (BOARD_X + x * BLOCK_WIDTH + 1,
+                       BOARD_X + (x + 1) * BLOCK_WIDTH - 1,
+                       BOARD_Y + (y + 1) * BLOCK_HEIGHT - 1);
+#else /* HAVE_LCD_CHARCELLS */
+        pgfx_drawpixel (BOARD_X + x, BOARD_Y + y);
+#endif
+    }
+
+    /* draw current piece */
+
+    for (i = 0; i < 4; i++) {
+        x = getRelativeX (rockblox_status.cf, i, rockblox_status.co)
+            + rockblox_status.cx;
+        y = getRelativeY (rockblox_status.cf, i, rockblox_status.co)
+            + rockblox_status.cy;
 #ifdef HAVE_LCD_BITMAP
 #if LCD_DEPTH >= 2
         /* middle drawing */
@@ -1075,21 +1263,8 @@ static void refresh_board (void)
         pgfx_drawpixel (BOARD_X + x, BOARD_Y + y);
 #endif
     }
-    mylcd_update ();
-}
 
-static bool canMoveTo (int x, int y, int newOrientation)
-{
-    int i, rx, ry;
-    for (i = 0; i < 4; i++) {
-        ry = getRelativeY (rockblox_status.cf, i, newOrientation) + y;
-        rx = getRelativeX (rockblox_status.cf, i, newOrientation) + x;
-        if ((rx < 0 || rx >= BOARD_WIDTH) ||
-            (ry < 0 || ry >= BOARD_HEIGHT) ||
-            (rockblox_status.board[ry][rx] != EMPTY_BLOCK))
-            return false;
-    }
-    return true;
+    mylcd_update ();
 }
 
 /* draws the preview of next block in the preview window */
@@ -1164,7 +1339,7 @@ static void draw_next_block (void)
 /* move the block to a relative location */
 static void move_block (int x, int y, int o)
 {
-    if (canMoveTo (rockblox_status.cx + x, rockblox_status.cy + y, o)) {
+    if (!rockblox_status.dropped && canMoveTo (rockblox_status.cx + x, rockblox_status.cy + y, o)) {
         rockblox_status.cy += y;
         rockblox_status.cx += x;
         rockblox_status.co = o;
@@ -1180,7 +1355,8 @@ static void new_block (void)
     rockblox_status.co = 0;                     /* start at the same orientation all time */
     rockblox_status.nf = t_rand (BLOCKS_NUM);
     rockblox_status.gameover = !canMoveTo (rockblox_status.cx,
-            rockblox_status.cy, rockblox_status.co);
+                                           rockblox_status.cy, rockblox_status.co);
+    rockblox_status.dropped = false;
 
     draw_next_block ();
 }
@@ -1195,7 +1371,7 @@ static int check_lines (void)
 
     for (j = 0; j < BOARD_HEIGHT; j++) {
         for (i = 0; ((i < BOARD_WIDTH) &&
-                (rockblox_status.board[j][i] != EMPTY_BLOCK)); i++);
+                     (rockblox_status.board[j][i] != EMPTY_BLOCK)); i++);
         if (i == BOARD_WIDTH) { /* woo hoo, we have a line */
             rockblox++;
             for (y = j; y > 0; y--)
@@ -1294,38 +1470,39 @@ static int rockblox_menu(void)
     rb->button_clear_queue();
     while (true) {
         switch (rb->do_menu(&main_menu, &selected, NULL, false)) {
-            case 0:
-                if(resume_file)
-                    rb->remove(RESUME_FILE);
-                init_rockblox(true);
-                return 0;
-            case 1:
-                init_rockblox(false);
-                return 0;
-            case 2:
-                if (rockblox_help())
-                    return 1;
-                break;
-            case 3:
-                highscore_show(-1, highscores, NUM_SCORES, true);
-                break;
-            case 4:
-                if (playback_control(NULL))
-                    return 1;
-                break;
-            case 5:
+        case 0:
+            if(resume_file)
+                rb->remove(RESUME_FILE);
+            init_rockblox(true);
+            return 0;
+        case 1:
+            init_rockblox(false);
+            return 0;
+        case 2:
+            if (rockblox_help())
                 return 1;
-            case 6:
-                if (resume) {
-                    rb->splash(HZ*1, "Saving game ...");
-                    dump_resume();
-                }
+            break;
+        case 3:
+            highscore_show(-1, highscores, NUM_SCORES, true);
+            break;
+        case 4:
+            if (playback_control(NULL))
                 return 1;
-            case MENU_ATTACHED_USB:
-                return 1;
-            default:
-                return 1;
-                break;
+            break;
+        case 5:
+            return 1;
+        case 6:
+            if (resume) {
+                rb->splash(0, "Saving...");
+                dump_resume();
+                rb->lcd_update();
+            }
+            return 1;
+        case MENU_ATTACHED_USB:
+            return 1;
+        default:
+            return 1;
+            break;
         }
     }
 }
@@ -1334,7 +1511,9 @@ static int rockblox_menu(void)
 static int rockblox_loop (void)
 {
     int button;
+#if defined(ROCKBLOX_OFF_PRE) || defined(ROCKBLOX_DROP_PRE)
     int lastbutton = BUTTON_NONE;
+#endif
     long next_down_tick = *rb->current_tick + level_speed(rockblox_status.level);
 
     if (rockblox_menu()) {
@@ -1347,13 +1526,13 @@ static int rockblox_loop (void)
 #ifdef HAS_BUTTON_HOLD
         if (rb->button_hold ()) {
             /* Turn on backlight timeout (revert to settings) */
-            backlight_use_settings(); /* backlight control in lib/helper.c */
+            backlight_use_settings();
             rb->splash(0, "Paused");
             while (rb->button_hold ())
                 rb->sleep(HZ/10);
 
             /* Turn off backlight timeout */
-            backlight_force_on(); /* backlight control in lib/helper.c */
+            backlight_ignore_timeout();
 
             /* get rid of the splash text */
             rb->lcd_bitmap (rockblox_background, 0, 0, LCD_WIDTH, LCD_HEIGHT);
@@ -1369,44 +1548,44 @@ static int rockblox_loop (void)
         button = rb->button_get_w_tmo (MAX(next_down_tick - *rb->current_tick, 1));
         switch (button) {
 #ifdef ROCKBLOX_RC_OFF
-            case ROCKBLOX_RC_OFF:
+        case ROCKBLOX_RC_OFF:
 #endif
-            case ROCKBLOX_OFF:
+        case ROCKBLOX_OFF:
 #ifdef ROCKBLOX_OFF_PRE
-                if (lastbutton != ROCKBLOX_OFF_PRE)
-                    break;
-#endif
-                resume = true;
-                return 0;
+            if (lastbutton != ROCKBLOX_OFF_PRE)
                 break;
+#endif
+            resume = true;
+            return 0;
+            break;
 
 #if defined(ROCKBLOX_ROTATE)
-            case ROCKBLOX_ROTATE:
+        case ROCKBLOX_ROTATE:
 #endif
-            case ROCKBLOX_ROTATE_CCW:
-            case ROCKBLOX_ROTATE_CCW | BUTTON_REPEAT:
+        case ROCKBLOX_ROTATE_CCW:
+        case ROCKBLOX_ROTATE_CCW | BUTTON_REPEAT:
 #ifdef HAVE_SCROLLWHEEL
-                /* if the wheel is disabled, add an event to the stack. */
-                if(wheel_enabled == false)
-                    wheel_events++;
+            /* if the wheel is disabled, add an event to the stack. */
+            if(wheel_enabled == false)
+                wheel_events++;
 
-                /* if it's enabled, go ahead and rotate.. */
-                if(wheel_enabled)
+            /* if it's enabled, go ahead and rotate.. */
+            if(wheel_enabled)
 #endif
 #ifdef ROCKBLOX_ROTATE_CCW2
                 /* fallback */
             case ROCKBLOX_ROTATE_CCW2:
 #endif
                 move_block (0, 0, (rockblox_status.co + 1) % figures[rockblox_status.cf].max_or);
-                break;
+            break;
 
-            case ROCKBLOX_ROTATE_CW:
-            case ROCKBLOX_ROTATE_CW | BUTTON_REPEAT:
+        case ROCKBLOX_ROTATE_CW:
+        case ROCKBLOX_ROTATE_CW | BUTTON_REPEAT:
 #ifdef HAVE_SCROLLWHEEL
-                if(wheel_enabled == false)
-                    wheel_events++;
+            if(wheel_enabled == false)
+                wheel_events++;
 
-                if(wheel_enabled)
+            if(wheel_enabled)
 #endif
 #ifdef ROCKBLOX_ROTATE_CW2
                 /* fallback */
@@ -1415,45 +1594,48 @@ static int rockblox_loop (void)
                 move_block (0, 0,
                             (rockblox_status.co + figures[rockblox_status.cf].max_or -
                              1) % figures[rockblox_status.cf].max_or);
-                break;
+            break;
 
-            case ROCKBLOX_DOWN:
-            case ROCKBLOX_DOWN | BUTTON_REPEAT:
-                move_block (0, 1, rockblox_status.co);
-                break;
+        case ROCKBLOX_DOWN:
+        case ROCKBLOX_DOWN | BUTTON_REPEAT:
+            move_block (0, 1, rockblox_status.co);
+            break;
 
-            case ROCKBLOX_RIGHT:
-            case ROCKBLOX_RIGHT | BUTTON_REPEAT:
-                move_block (1, 0, rockblox_status.co);
-                break;
+        case ROCKBLOX_RIGHT:
+        case ROCKBLOX_RIGHT | BUTTON_REPEAT:
+            move_block (1, 0, rockblox_status.co);
+            break;
 
-            case ROCKBLOX_LEFT:
-            case ROCKBLOX_LEFT | BUTTON_REPEAT:
-                move_block (-1, 0, rockblox_status.co);
-                break;
+        case ROCKBLOX_LEFT:
+        case ROCKBLOX_LEFT | BUTTON_REPEAT:
+            move_block (-1, 0, rockblox_status.co);
+            break;
 
-            case ROCKBLOX_DROP:
+        case ROCKBLOX_DROP:
 #ifdef ROCKBLOX_DROP_PRE
-                if (lastbutton != ROCKBLOX_DROP_PRE)
-                    break;
+            if (lastbutton != ROCKBLOX_DROP_PRE)
+                break;
 #endif
-                while (canMoveTo (rockblox_status.cx, rockblox_status.cy + 1, rockblox_status.co))
-                    move_block (0, 1, rockblox_status.co);
-                break;
+            while (canMoveTo (rockblox_status.cx, rockblox_status.cy + 1, rockblox_status.co))
+                move_block (0, 1, rockblox_status.co);
+            rockblox_status.dropped = true;
+            break;
 #ifdef ROCKBLOX_RESTART
-            case ROCKBLOX_RESTART:
-                rb->splash (HZ * 1, "Restarting...");
-                init_rockblox (false);
-                break;
+        case ROCKBLOX_RESTART:
+            rb->splash (HZ * 1, "Restarting...");
+            init_rockblox (false);
+            break;
 #endif
 
-            default:
-                if (rb->default_event_handler (button) == SYS_USB_CONNECTED)
-                    return PLUGIN_USB_CONNECTED;
-                break;
+        default:
+            if (rb->default_event_handler (button) == SYS_USB_CONNECTED)
+                return PLUGIN_USB_CONNECTED;
+            break;
         }
+#if defined(ROCKBLOX_OFF_PRE) || defined(ROCKBLOX_DROP_PRE)
         if (button != BUTTON_NONE)
             lastbutton = button;
+#endif
 
 #ifdef HAVE_SCROLLWHEEL
         /* check if we should enable the scroll wheel, if events
@@ -1528,10 +1710,41 @@ enum plugin_status plugin_start (const void *parameter)
         return PLUGIN_OK;
     }
 #endif
+
     /* Turn off backlight timeout */
-    backlight_force_on(); /* backlight control in lib/helper.c */
+    backlight_ignore_timeout();
     load_game();
     resume_file = resume;
+
+#if LCD_DEPTH >= 2
+    /* precalculate ghost piece colors */
+
+#ifdef HAVE_LCD_COLOR
+    for(int p=0;p<BLOCKS_NUM;++p)
+    {
+        for(int i=0;i<3;++i)
+        {
+/* find red average */
+            int red=0;
+            red+=RGB_UNPACK_RED(figures[p].color[i])/4;
+            /* green */
+            int green=0;
+            green+=RGB_UNPACK_GREEN(figures[p].color[i])/4;
+            /* blue */
+            int blue=0;
+            blue+=RGB_UNPACK_BLUE(figures[p].color[i])/4;
+            ghost_colors[p][i]=LCD_RGBPACK(red,green,blue);
+        }
+    }
+#else /* greyscale or monochrome */
+    for(int p=0;p<BLOCKS_NUM;++p)
+    {
+        for(int i=0;i<3;++i)
+            ghost_colors[p][i]=figures[p].color[i]/2;
+    }
+#endif
+#endif /* LCD_DEPTH >= 2 */
+
     while(!rockblox_loop()) {
         if(!resume) {
             int position = highscore_update(rockblox_status.score,
@@ -1539,7 +1752,7 @@ enum plugin_status plugin_start (const void *parameter)
                                             highscores, NUM_SCORES);
             if (position != -1) {
                 if (position == 0)
-                    rb->splash(HZ*2, "New High Score");
+                    rb->splashf(HZ*2, "New High Score: %d", rockblox_status.score);
                 highscore_show(position, highscores, NUM_SCORES, true);
             }
         }
@@ -1550,7 +1763,7 @@ enum plugin_status plugin_start (const void *parameter)
 #endif
     /* Save user's HighScore */
     highscore_save(SCORE_FILE, highscores, NUM_SCORES);
-    backlight_use_settings(); /* backlight control in lib/helper.c */
+    backlight_use_settings();
 
     return PLUGIN_OK;
 }

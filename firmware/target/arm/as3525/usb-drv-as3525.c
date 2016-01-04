@@ -22,7 +22,6 @@
 #include "system.h"
 #include "usb.h"
 #include "usb_drv.h"
-#include "usb-target.h"
 #include "as3525.h"
 #include "clock-target.h"
 #include "ascodec.h"
@@ -40,6 +39,7 @@
 static struct usb_endpoint endpoints[USB_NUM_EPS][2];
 static int got_set_configuration = 0;
 static int usb_enum_timeout = -1;
+static bool initialized = false;
 
 /*
  * dma/setup descriptors and buffers should avoid sharing
@@ -75,7 +75,8 @@ static inline void usb_disable_pll(void)
 
 void usb_attach(void)
 {
-    usb_enable(true);
+    logf("usb-drv: attach");
+    /* Nothing to do */
 }
 
 static void usb_tick(void);
@@ -180,19 +181,19 @@ static void reset_endpoints(int init)
             if (endpoints[i][0].state & EP_STATE_BUSY) {
                 if (endpoints[i][0].state & EP_STATE_ASYNC) {
                     endpoints[i][0].rc = -1;
-                    wakeup_signal(&endpoints[i][0].complete);
+                    semaphore_release(&endpoints[i][0].complete);
                 } else {
                     usb_core_transfer_complete(i, USB_DIR_IN, -1, 0);
                 }
             }
             endpoints[i][0].state = 0;
-            wakeup_init(&endpoints[i][0].complete);
+            semaphore_wait(&endpoints[i][0].complete, TIMEOUT_NOBLOCK);
 
             if (i != 2) { /* Skip the OUT EP0 alias */
                 if (endpoints[i][1].state & EP_STATE_BUSY)
                     usb_core_transfer_complete(i, USB_DIR_OUT, -1, 0);
                 endpoints[i][1].state = 0;
-                wakeup_init(&endpoints[i][1].complete);
+                semaphore_wait(&endpoints[i][1].complete, TIMEOUT_NOBLOCK);
                 USB_OEP_SUP_PTR(i)    = 0;
             }
         }
@@ -224,6 +225,18 @@ static void reset_endpoints(int init)
 void usb_drv_init(void)
 {
     logf("usb_drv_init() !!!!\n");
+
+    if (!initialized)
+    {
+        int i;
+        for (i = 0; i < USB_NUM_EPS; i++)
+        {
+            semaphore_init(&endpoints[i][0].complete, 1, 0);
+            semaphore_init(&endpoints[i][1].complete, 1, 0);
+        }
+
+        initialized = true;
+    }
 
     usb_enable_pll();
 
@@ -322,6 +335,7 @@ void usb_drv_exit(void)
     ascodec_write(AS3515_USB_UTIL, ascodec_read(AS3515_USB_UTIL) & ~(1<<4));
     usb_disable_pll();
     cpu_boost(0);
+    initialized = false;
     logf("usb_drv_exit() !!!!\n");
 }
 
@@ -417,7 +431,7 @@ int usb_drv_recv(int ep, void *ptr, int len)
     endpoints[ep][1].rc  = -1;
 
     /* remove data buffer from cache */
-    invalidate_dcache_range(ptr, len);
+    discard_dcache_range(ptr, len);
 
     /* DMA setup */
     uc_desc->status    = USB_DMA_DESC_BS_HST_RDY |
@@ -494,7 +508,7 @@ static void ep_send(int ep, void *ptr, int len)
         USB_IEP_CTRL(ep) |= USB_EP_CTRL_FLUSH;
 
     /* Make sure data is committed to memory */
-    clean_dcache_range(ptr, len);
+    commit_dcache_range(ptr, len);
 
     logf("xx%s\n", make_hex(ptr, len));
 
@@ -529,7 +543,7 @@ int usb_drv_send(int ep, void *ptr, int len)
     }
 
     ep_send(ep, ptr, len);
-    if (wakeup_wait(&endpoints[ep][0].complete, HZ) == OBJ_WAIT_TIMEDOUT)
+    if (semaphore_wait(&endpoints[ep][0].complete, HZ) == OBJ_WAIT_TIMEDOUT)
         logf("send timed out!\n");
 
     return endpoints[ep][0].rc;
@@ -570,7 +584,7 @@ static void handle_in_ep(int ep)
             endpoints[ep][0].state &= ~EP_STATE_ASYNC;
             usb_core_transfer_complete(ep, USB_DIR_IN, 0, endpoints[ep][0].len);
         } else {
-            wakeup_signal(&endpoints[ep][0].complete);
+            semaphore_release(&endpoints[ep][0].complete);
         }
         ep_sts &= ~USB_EP_STAT_TDC;
     }
@@ -610,7 +624,7 @@ static void handle_out_ep(int ep)
              /*
               * If parts of the just dmaed range are in cache, dump them now.
               */
-             dump_dcache_range(uc_desc->data_ptr, dma_len);
+             discard_dcache_range(uc_desc->data_ptr, dma_len);
         } else{
              logf("EP%d OUT token, st:%08x frm:%x (no data)\n", ep,
                  dma_sts & 0xf8000000, (dma_sts >> 16) & 0x7ff);
@@ -702,7 +716,7 @@ static void usb_tick(void)
 }
 
 /* interrupt service routine */
-void INT_USB(void)
+void INT_USB_FUNC(void)
 {
     int ep = USB_DEV_EP_INTR & ~USB_DEV_EP_INTR_MASK;
     int intr = USB_DEV_INTR & ~USB_DEV_INTR_MASK;
@@ -754,7 +768,6 @@ void INT_USB(void)
         }
         if (intr & USB_DEV_INTR_USB_RESET) {/* usb reset from host? */
             logf("usb reset\n");
-            usb_drv_usb_detect_event();
             reset_endpoints(1);
             usb_core_bus_reset();
             intr &= ~USB_DEV_INTR_USB_RESET;

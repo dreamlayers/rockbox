@@ -19,15 +19,17 @@
 
 #include "system.h"
 #include "lcd.h"
-#include "kernel.h"
-#include "thread.h"
+#include "../kernel-internal.h"
 #include "storage.h"
 #include "ata-target.h"
+#include "file_internal.h"
 #include "disk.h"
 #include "font.h"
 #include "backlight.h"
 #include "button.h"
 #include "common.h"
+#include "loader_strerror.h"
+#include "rb-loader.h"
 #include "usb.h"
 #include "version.h"
 
@@ -67,11 +69,13 @@ void main(void)
     lcd_setfont(FONT_SYSFIXED);
     reset_screen();
     printf("Rockbox boot loader");
-    printf("Version " RBVERSION);
+    printf("Version %s", rbversion);
     
     ret = storage_init();
     if(ret)
         printf("ATA error: %d", ret);
+
+    filesystem_init();
       
     /* If no button is held, start the OF */
     if(button_read_device() == 0)
@@ -92,8 +96,6 @@ void main(void)
     }
     else
     {
-        disk_init();
-
         ret = disk_mount_all();
         if (ret <= 0)
             error(EDISK, ret, true);
@@ -104,15 +106,12 @@ void main(void)
         buffer_size = (unsigned char*)0x01900000 - loadbuffer;
 
         ret = load_firmware(loadbuffer, BOOTFILE, buffer_size);
-        if(ret < 0)
+        if(ret <= EFILE_EMPTY)
             error(EBOOTFILE, ret, true);
-        
-        else if(ret == EOK)
-        {
-            kernel_entry = (void*) loadbuffer;
-            ret = kernel_entry();
-            printf("FAILED!");
-        }
+
+        kernel_entry = (void*) loadbuffer;
+        ret = kernel_entry();
+        printf("FAILED!");
     }
     
     storage_sleepnow();

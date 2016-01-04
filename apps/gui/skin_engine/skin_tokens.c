@@ -35,6 +35,8 @@
 #include "sound.h"
 #include "debug.h"
 #include "cuesheet.h"
+#include "replaygain.h"
+#include "core_alloc.h"
 #ifdef HAVE_LCD_CHARCELLS
 #include "hwcompat.h"
 #endif
@@ -43,10 +45,10 @@
 #include "misc.h"
 #include "led.h"
 #ifdef HAVE_LCD_BITMAP
+#include "peakmeter.h"
 /* Image stuff */
 #include "albumart.h"
 #endif
-#include "dsp.h"
 #include "playlist.h"
 #if CONFIG_CODEC == SWCODEC
 #include "playback.h"
@@ -69,6 +71,7 @@
 #include "radio.h"
 #include "tuner.h"
 #endif
+#include "list.h"
 
 #define NOINLINE __attribute__ ((noinline))
 
@@ -122,7 +125,7 @@ char* get_dir(char* buf, int buf_size, const char* path, int level)
     return buf;
 }
 
-#if (CONFIG_CODEC != MAS3507D) && defined (HAVE_PITCHSCREEN)
+#if (CONFIG_CODEC != MAS3507D) && defined (HAVE_PITCHCONTROL)
 /* A helper to determine the enum value for pitch/speed.
 
    When there are two choices (i.e. boolean), return 1 if the value is
@@ -302,14 +305,20 @@ const char *get_id3_token(struct wps_token *token, struct mp3entry *id3,
                     return "?";
                 return buf;
             case SKIN_TOKEN_TRACK_TIME_ELAPSED:
+                if (intval && limit == TOKEN_VALUE_ONLY)
+                    *intval = elapsed/1000;
                 format_time(buf, buf_size, elapsed);
                 return buf;
 
             case SKIN_TOKEN_TRACK_TIME_REMAINING:
+                if (intval && limit == TOKEN_VALUE_ONLY)
+                    *intval = (length - elapsed)/1000;
                 format_time(buf, buf_size, length - elapsed);
                 return buf;
 
             case SKIN_TOKEN_TRACK_LENGTH:
+                if (intval && limit == TOKEN_VALUE_ONLY)
+                    *intval = length/1000;
                 format_time(buf, buf_size, length);
                 return buf;
 
@@ -562,17 +571,15 @@ static struct mp3entry* get_mp3entry_from_offset(int offset, char **filename)
         fname = playlist_peek(offset, filename_buf, sizeof(filename_buf));
         *filename = (char*)fname;
 #if CONFIG_CODEC == SWCODEC
-#if defined(HAVE_TC_RAMCACHE) && defined(HAVE_DIRCACHE)
         static struct mp3entry tempid3;
-        if (tagcache_fill_tags(&tempid3, fname))
+        if (
+#if defined(HAVE_TC_RAMCACHE) && defined(HAVE_DIRCACHE)
+            tagcache_fill_tags(&tempid3, fname) ||
+#endif 
+            audio_peek_track(&tempid3, offset)
+        )
         {
             pid3 = &tempid3;
-        }
-        else
-#endif 
-        {
-            if (!audio_peek_track(&pid3, offset))
-                pid3 = NULL;
         }
 #endif  
     }
@@ -731,20 +738,30 @@ static const char* NOINLINE get_lif_token_value(struct gui_wps *gwps,
 {
     int a = lif->num_options;
     int b;
-    const char* out_text = get_token_value(gwps, lif->token, offset,
-                                           buf, buf_size, &a);            
-    if (a == -1 && lif->token->type != SKIN_TOKEN_VOLUME)
+    bool number_set = true;
+    struct wps_token *liftoken = SKINOFFSETTOPTR(get_skin_buffer(gwps->data), lif->token);
+    const char* out_text = get_token_value(gwps, liftoken, offset, buf, buf_size, &a);            
+    if (a == -1 && liftoken->type != SKIN_TOKEN_VOLUME)
+    {
         a = (out_text && *out_text) ? 1 : 0;
+        number_set = false;
+    }
     switch (lif->operand.type)
     {
         case STRING:
-            if (lif->op == IF_EQUALS)
-                return (out_text && strcmp(out_text, lif->operand.data.text) == 0)
-                                    ? "eq" : NULL;
-            else
+        {
+            char *cmp = SKINOFFSETTOPTR(get_skin_buffer(gwps->data), lif->operand.data.text);
+            if (out_text == NULL)
                 return NULL;
+            a = strcmp(out_text, cmp);
+            b = 0;
             break;
+        }
         case INTEGER:
+            if (!number_set && out_text && *out_text >= '0' && *out_text <= '9')
+                a = atoi(out_text);
+            /* fall through */
+        case PERCENT:
         case DECIMAL:
             b = lif->operand.data.number;
             break;
@@ -752,11 +769,12 @@ static const char* NOINLINE get_lif_token_value(struct gui_wps *gwps,
         {
             char temp_buf[MAX_PATH];
             const char *outb;
-            struct wps_token *token = lif->operand.data.code->data;
+            struct skin_element *element = SKINOFFSETTOPTR(get_skin_buffer(gwps->data), lif->operand.data.code);
+            struct wps_token *token = SKINOFFSETTOPTR(get_skin_buffer(gwps->data), element->data);
             b = lif->num_options;
             outb = get_token_value(gwps, token, offset, temp_buf,
                                    sizeof(temp_buf), &b);            
-            if (b == -1 && lif->token->type != SKIN_TOKEN_VOLUME)
+            if (b == -1 && liftoken->type != SKIN_TOKEN_VOLUME)
             {
                 if (!out_text || !outb)
                     return (lif->op == IF_EQUALS) ? NULL : "neq";
@@ -865,10 +883,77 @@ const char *get_token_value(struct gui_wps *gwps,
     {
         case SKIN_TOKEN_LOGICAL_IF:
         {
-            struct logical_if *lif = token->value.data;
+            struct logical_if *lif = SKINOFFSETTOPTR(get_skin_buffer(data), token->value.data);
             return get_lif_token_value(gwps, lif, offset, buf, buf_size);
         }
-        break;           
+        break;
+        case SKIN_TOKEN_LOGICAL_AND:
+        case SKIN_TOKEN_LOGICAL_OR:
+        {
+            int i = 0, truecount = 0;
+            char *skinbuffer = get_skin_buffer(data);
+            struct skin_element *element =
+                    SKINOFFSETTOPTR(skinbuffer, token->value.data);
+            struct skin_tag_parameter* params =
+                    SKINOFFSETTOPTR(skinbuffer, element->params);
+            struct skin_tag_parameter* thistag;
+            for (i=0; i<element->params_count; i++)
+            {
+                thistag = &params[i];
+                struct skin_element *tokenelement =
+                        SKINOFFSETTOPTR(skinbuffer, thistag->data.code);
+                out_text  =  get_token_value(gwps,
+                        SKINOFFSETTOPTR(skinbuffer, tokenelement->data),
+                        offset, buf, buf_size, intval);
+                if (out_text && *out_text)
+                    truecount++;
+                else if (token->type == SKIN_TOKEN_LOGICAL_AND)
+                    return NULL;
+            }
+            return truecount ? "true" : NULL;
+        }
+        break;
+        case SKIN_TOKEN_SUBSTRING:
+        {
+            struct substring *ss = SKINOFFSETTOPTR(get_skin_buffer(data), token->value.data);
+            const char *token_val = get_token_value(gwps, 
+                            SKINOFFSETTOPTR(get_skin_buffer(data), ss->token), offset,
+                                                    buf, buf_size, intval);
+            if (token_val)
+            {
+                int start_byte, end_byte, byte_len;
+                int utf8_len = utf8length(token_val);
+
+                if (utf8_len < ss->start)
+                    return NULL;
+
+                if (ss->start < 0)
+                    start_byte = utf8seek(token_val, ss->start + utf8_len);
+                else
+                    start_byte = utf8seek(token_val, ss->start);
+
+                if (ss->length < 0 || (ss->start + ss->length) > utf8_len)
+                    end_byte = strlen(token_val);
+                else
+                    end_byte = utf8seek(token_val, ss->start + ss->length);
+
+                byte_len = end_byte - start_byte;
+
+                if (token_val != buf)
+                    memcpy(buf, &token_val[start_byte], byte_len);
+                else
+                    buf = &buf[start_byte];
+
+                buf[byte_len] = '\0';
+                if (ss->expect_number &&
+                    intval && (buf[0] >= '0' && buf[0] <= '9'))
+                    *intval = atoi(buf) + 1; /* so 0 is the first item */
+                    
+                return buf;
+            }
+            return NULL;
+        }
+        break;        
             
         case SKIN_TOKEN_CHARACTER:
             if (token->value.c == '\n')
@@ -876,7 +961,7 @@ const char *get_token_value(struct gui_wps *gwps,
             return &(token->value.c);
 
         case SKIN_TOKEN_STRING:
-            return (char*)token->value.data;
+            return (char*)SKINOFFSETTOPTR(get_skin_buffer(data), token->value.data);
             
         case SKIN_TOKEN_TRANSLATEDSTRING:
             return (char*)P2STR(ID2P(token->value.i));
@@ -894,6 +979,39 @@ const char *get_token_value(struct gui_wps *gwps,
                 *intval = sb_get_icon(gwps->display->screen_type);
             snprintf(buf, buf_size, "%d",sb_get_icon(gwps->display->screen_type));
             return buf;
+        case SKIN_TOKEN_LIST_ITEM_TEXT:
+        {
+            struct listitem *li = (struct listitem *)SKINOFFSETTOPTR(get_skin_buffer(data), token->value.data);
+            return skinlist_get_item_text(li->offset, li->wrap, buf, buf_size);
+        }
+        case SKIN_TOKEN_LIST_ITEM_ROW:
+            if (intval)
+                *intval = skinlist_get_item_row() + 1;
+            snprintf(buf, buf_size, "%d",skinlist_get_item_row() + 1);
+            return buf;
+        case SKIN_TOKEN_LIST_ITEM_COLUMN:
+            if (intval)
+                *intval = skinlist_get_item_column() + 1;
+            snprintf(buf, buf_size, "%d",skinlist_get_item_column() + 1);
+            return buf;
+        case SKIN_TOKEN_LIST_ITEM_NUMBER:
+            if (intval)
+                *intval = skinlist_get_item_number() + 1;
+            snprintf(buf, buf_size, "%d",skinlist_get_item_number() + 1);
+            return buf;
+        case SKIN_TOKEN_LIST_ITEM_IS_SELECTED:
+            return skinlist_is_selected_item()?"s":"";
+        case SKIN_TOKEN_LIST_ITEM_ICON:
+        {
+            struct listitem *li = (struct listitem *)SKINOFFSETTOPTR(get_skin_buffer(data), token->value.data);
+            int icon = skinlist_get_item_icon(li->offset, li->wrap);
+            if (intval)
+                *intval = icon;
+            snprintf(buf, buf_size, "%d", icon);
+            return buf;
+        }
+        case SKIN_TOKEN_LIST_NEEDS_SCROLLBAR:
+            return skinlist_needs_scrollbar(gwps->display->screen_type) ? "s" : "";
 #endif
         case SKIN_TOKEN_PLAYLIST_NAME:
             return playlist_name(NULL, buf, buf_size);
@@ -941,14 +1059,15 @@ const char *get_token_value(struct gui_wps *gwps,
             return buf;
 #ifdef HAVE_ALBUMART
         case SKIN_TOKEN_ALBUMART_FOUND:
-            if (data->albumart)
+            if (SKINOFFSETTOPTR(get_skin_buffer(data), data->albumart))
             {
                 int handle = -1;
                 handle = playback_current_aa_hid(data->playback_aa_slot);
 #if CONFIG_TUNER
                 if (in_radio_screen() || (get_radio_status() != FMRADIO_OFF))
                 {
-                    struct dim dim = {data->albumart->width, data->albumart->height};
+                    struct skin_albumart *aa = SKINOFFSETTOPTR(get_skin_buffer(data), data->albumart);
+                    struct dim dim = {aa->width, aa->height};
                     handle = radio_get_art_hid(&dim);
                 }
 #endif
@@ -992,9 +1111,13 @@ const char *get_token_value(struct gui_wps *gwps,
 
         case SKIN_TOKEN_BATTERY_VOLTS:
         {
-            unsigned int v = battery_voltage();
-            snprintf(buf, buf_size, "%d.%02d", v / 1000, (v % 1000) / 10);
-            return buf;
+            int v = battery_voltage();
+            if (v >= 0) {
+                snprintf(buf, buf_size, "%d.%02d", v / 1000, (v % 1000) / 10);
+                return buf;
+            } else {
+                return "?";
+            }
         }
 
         case SKIN_TOKEN_BATTERY_TIME:
@@ -1026,12 +1149,10 @@ const char *get_token_value(struct gui_wps *gwps,
             }
         }
 #endif
-#ifdef HAVE_USB_POWER
-        case SKIN_TOKEN_USB_POWERED:
-            if (usb_powered())
+        case SKIN_TOKEN_USB_INSERTED:
+            if (usb_inserted())
                 return "u";
             return NULL;
-#endif
         case SKIN_TOKEN_BATTERY_SLEEPTIME:
         {
             if (get_sleep_timer() == 0)
@@ -1267,6 +1388,23 @@ const char *get_token_value(struct gui_wps *gwps,
 #endif
 
 
+#ifdef HAVE_LCD_BITMAP
+        /* peakmeter */
+        case SKIN_TOKEN_PEAKMETER_LEFT:
+        case SKIN_TOKEN_PEAKMETER_RIGHT:
+        {
+            int left, right, val;
+            peak_meter_current_vals(&left, &right);
+            val = token->type == SKIN_TOKEN_PEAKMETER_LEFT ?
+                    left : right;
+            val = peak_meter_scale_value(val, limit==1 ? MAX_PEAK : limit);
+            if (intval)
+                *intval = val;
+            snprintf(buf, buf_size, "%d", val);
+            data->peak_meter_enabled = true;
+            return buf;
+        }
+#endif
 
 #if (CONFIG_CODEC == SWCODEC)
         case SKIN_TOKEN_CROSSFADE:
@@ -1281,25 +1419,22 @@ const char *get_token_value(struct gui_wps *gwps,
 
         case SKIN_TOKEN_REPLAYGAIN:
         {
+            int globtype = global_settings.replaygain_settings.type;
             int val;
 
-            if (global_settings.replaygain_type == REPLAYGAIN_OFF)
+
+            if (globtype == REPLAYGAIN_OFF)
                 val = 1; /* off */
             else
             {
-                int type;
-                if (LIKELY(id3))
-                    type = get_replaygain_mode(id3->track_gain_string != NULL,
-                                        id3->album_gain_string != NULL);
-                else
-                    type = -1;
+                int type = id3_get_replaygain_mode(id3);
 
                 if (type < 0)
                     val = 6;    /* no tag */
                 else
                     val = type + 2;
 
-                if (global_settings.replaygain_type == REPLAYGAIN_SHUFFLE)
+                if (globtype == REPLAYGAIN_SHUFFLE)
                     val += 2;
             }
 
@@ -1315,18 +1450,18 @@ const char *get_token_value(struct gui_wps *gwps,
                 /* due to above, coming here with !id3 shouldn't be possible */
                 case 2:
                 case 4:
-                    strlcpy(buf, id3->track_gain_string, buf_size);
+                    replaygain_itoa(buf, buf_size, id3->track_level);
                     break;
                 case 3:
                 case 5:
-                    strlcpy(buf, id3->album_gain_string, buf_size);
+                    replaygain_itoa(buf, buf_size, id3->album_level);
                     break;
             }
             return buf;
         }
 #endif  /* (CONFIG_CODEC == SWCODEC) */
 
-#if (CONFIG_CODEC != MAS3507D) && defined (HAVE_PITCHSCREEN)
+#if (CONFIG_CODEC != MAS3507D) && defined (HAVE_PITCHCONTROL)
         case SKIN_TOKEN_SOUND_PITCH:
         {
             int32_t pitch = sound_get_pitch();
@@ -1341,7 +1476,7 @@ const char *get_token_value(struct gui_wps *gwps,
         }
 #endif
 
-#if (CONFIG_CODEC == SWCODEC) && defined (HAVE_PITCHSCREEN)
+#if (CONFIG_CODEC == SWCODEC) && defined (HAVE_PITCHCONTROL)
     case SKIN_TOKEN_SOUND_SPEED:
     {
         int32_t pitch = sound_get_pitch();
@@ -1361,6 +1496,10 @@ const char *get_token_value(struct gui_wps *gwps,
 #endif
 
         case SKIN_TOKEN_MAIN_HOLD:
+#ifdef HAVE_TOUCHSCREEN
+            if (data->touchscreen_locked)
+                return "t";
+#endif
 #ifdef HAS_BUTTON_HOLD
             if (button_hold())
 #else
@@ -1396,8 +1535,14 @@ const char *get_token_value(struct gui_wps *gwps,
             {
 #ifdef HAVE_TOUCHSCREEN
             unsigned int last_touch = touchscreen_last_touch();
+            char *skin_base = get_skin_buffer(data);
+            struct touchregion_lastpress *data = SKINOFFSETTOPTR(skin_base, token->value.data);
+            struct touchregion *region = SKINOFFSETTOPTR(skin_base, data->region);
+            if (region)
+                last_touch = region->last_press;
+
             if (last_touch != 0xffff &&
-                TIME_BEFORE(current_tick, token->value.i + last_touch))
+                TIME_BEFORE(current_tick, data->timeout + last_touch))
                 return "t";
 #endif
             }
@@ -1469,7 +1614,7 @@ const char *get_token_value(struct gui_wps *gwps,
                 }
             }
             /* Special handlng for filenames because we dont want to show the prefix */
-            if ((s->flags&F_T_MASK) == F_T_UCHARPTR ||
+            if ((s->flags&F_T_MASK) == F_T_CHARPTR ||
                 (s->flags&F_T_MASK) == F_T_UCHARPTR)
             {
                 if (s->filename_setting->prefix)
@@ -1709,37 +1854,7 @@ const char *get_token_value(struct gui_wps *gwps,
 
         case SKIN_TOKEN_CURRENT_SCREEN:
         {
-            int curr_screen = current_screen();
-
-#ifdef HAVE_RECORDING
-            /* override current_screen() for recording screen since it may
-             * be entered from the radio screen */
-            if (in_recording_screen())
-                curr_screen = GO_TO_RECSCREEN;
-#endif
-            
-            switch (curr_screen)
-            {
-                case GO_TO_WPS:
-                    curr_screen = 2;
-                    break;
-#ifdef HAVE_RECORDING
-                case GO_TO_RECSCREEN:
-                    curr_screen = 3;
-                    break;
-#endif
-#if CONFIG_TUNER
-                case GO_TO_FM:
-                    curr_screen = 4;
-                    break;
-#endif
-                case GO_TO_PLAYLIST_VIEWER:
-                    curr_screen = 5;
-                    break;
-                default: /* lists */
-                    curr_screen = 1;
-                    break;
-            }
+            int curr_screen = get_current_activity();
             if (intval)
             {
                 *intval = curr_screen;
@@ -1750,6 +1865,31 @@ const char *get_token_value(struct gui_wps *gwps,
 
         case SKIN_TOKEN_LANG_IS_RTL:
             return lang_is_rtl() ? "r" : NULL;
+
+#ifdef HAVE_SKIN_VARIABLES
+        case SKIN_TOKEN_VAR_GETVAL:
+        {
+            char *skin_base = get_skin_buffer(data);
+            struct skin_var* var = SKINOFFSETTOPTR(skin_base, token->value.data);
+            if (intval)
+                *intval = var->value;
+            snprintf(buf, buf_size, "%d", var->value);
+            return buf;
+        }
+        break;
+        case SKIN_TOKEN_VAR_TIMEOUT:
+            {
+            char *skin_base = get_skin_buffer(data);
+            struct skin_var_lastchange *data = SKINOFFSETTOPTR(skin_base, token->value.data);
+            struct skin_var* var = SKINOFFSETTOPTR(skin_base, data->var);
+            unsigned int last_change = var->last_changed;
+
+            if (last_change != 0xffff &&
+                TIME_BEFORE(current_tick, data->timeout + last_change))
+                return "t";
+            }
+            return NULL;
+#endif
 
         default:
             return NULL;

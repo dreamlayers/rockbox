@@ -1,7 +1,6 @@
 /*
  * This config file is for the Iaudio7 series
  */
-#define TARGET_TREE /* this target is using the target tree system */
 
 /* For Rolo and boot loader */
 #define MODEL_NUMBER 32
@@ -51,9 +50,6 @@
 /* define this if you have access to the quickscreen */
 #define HAVE_QUICKSCREEN
 
-/* define this if you have access to the pitchscreen */
-#define HAVE_PITCHSCREEN
-
 /* define this if you have LCD enable function */
 #define HAVE_LCD_ENABLE
 
@@ -78,6 +74,8 @@
 /* LCD dimensions */
 #define LCD_WIDTH  160
 #define LCD_HEIGHT 128
+/* sqrt(160^2 + 128^2) / 1.3 = 157.6 */
+#define LCD_DPI 158
 /* 16bits for now... */
 #define LCD_DEPTH  16   /* 262144 colours */
 #define LCD_PIXELFORMAT RGB565   /*rgb565*/
@@ -130,6 +128,8 @@
 #define BATTERY_CAPACITY_MAX 540 /* max. capacity selectable */
 #define BATTERY_CAPACITY_INC 50   /* capacity increment */
 #define BATTERY_TYPES_COUNT  1    /* only one type */
+
+#define CONFIG_BATTERY_MEASURE VOLTAGE_MEASURE
 
 #define CONFIG_CHARGING CHARGING_SIMPLE
 

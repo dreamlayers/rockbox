@@ -227,6 +227,7 @@ static void setoptions (void)
         options.START   = BUTTON_PLAY;
         options.SELECT  = BUTTON_SELECT;
         options.MENU    = BUTTON_MENU;
+
 #elif CONFIG_KEYPAD == CREATIVEZVM_PAD
         options.UP      = BUTTON_UP;
         options.DOWN    = BUTTON_DOWN;
@@ -236,6 +237,16 @@ static void setoptions (void)
         options.START   = BUTTON_BACK;
         options.SELECT  = BUTTON_SELECT;
         options.MENU    = BUTTON_MENU;
+
+#elif CONFIG_KEYPAD == CREATIVE_ZENXFI3_PAD
+        options.UP      = BUTTON_UP;
+        options.DOWN    = BUTTON_DOWN;
+
+        options.A       = BUTTON_VOL_UP;
+        options.B       = BUTTON_VOL_DOWN;
+        options.START   = BUTTON_PLAY;
+        options.SELECT  = BUTTON_NONE;
+        options.MENU    = BUTTON_POWER;
 
 #elif CONFIG_KEYPAD == PHILIPS_HDD1630_PAD
         options.UP      = BUTTON_UP;
@@ -274,25 +285,25 @@ static void setoptions (void)
 #elif CONFIG_KEYPAD == ONDAVX777_PAD
         options.MENU    = BUTTON_POWER;
 
-#elif CONFIG_KEYPAD == IRIVER_H10_PAD
+#elif CONFIG_KEYPAD == SAMSUNG_YH920_PAD
         options.UP      = BUTTON_UP;
         options.DOWN    = BUTTON_DOWN;
 
         options.A       = BUTTON_PLAY;
         options.B       = BUTTON_FFWD;
         options.START   = BUTTON_REW;
-        options.SELECT  = BUTTON_RIGHT;
-        options.MENU    = BUTTON_LEFT;
+        options.SELECT  = BUTTON_NONE;
+        options.MENU    = BUTTON_REC_SW_ON;
 
-#elif CONFIG_KEYPAD == SAMSUNG_YH_PAD
+#elif CONFIG_KEYPAD == SAMSUNG_YH820_PAD
         options.UP      = BUTTON_UP;
         options.DOWN    = BUTTON_DOWN;
 
         options.A       = BUTTON_PLAY;
-        options.B       = BUTTON_REW;
-        options.START   = BUTTON_REC;
-        options.SELECT  = BUTTON_FFWD;
-        options.MENU    = BUTTON_NONE;
+        options.B       = BUTTON_FFWD;
+        options.START   = BUTTON_REW;
+        options.SELECT  = BUTTON_NONE;
+        options.MENU    = BUTTON_REC;
 
 #elif CONFIG_KEYPAD == PBELL_VIBE500_PAD
         options.UP     = BUTTON_OK;
@@ -312,11 +323,90 @@ static void setoptions (void)
         options.LEFT   = BUTTON_REW;
         options.RIGHT  = BUTTON_FF;
 
-        options.A      = BUTTON_MENU;
-        options.B      = BUTTON_ENTER;
+        options.A      = BUTTON_PLAY;
+        options.B      = BUTTON_REC;
+        options.START  = (BUTTON_PLAY | BUTTON_REPEAT);
+        options.SELECT = BUTTON_ENTER;
+        options.MENU   = BUTTON_MENU;
+
+#elif CONFIG_KEYPAD == SANSA_FUZEPLUS_PAD
+        options.UP     = BUTTON_UP;
+        options.DOWN   = BUTTON_DOWN;
+        options.LEFT   = BUTTON_LEFT;
+        options.RIGHT  = BUTTON_RIGHT;
+
+        options.A      = BUTTON_VOL_UP;
+        options.B      = BUTTON_VOL_DOWN;
+        options.START  = BUTTON_SELECT;
+        options.SELECT = BUTTON_PLAYPAUSE;
+        options.MENU   = BUTTON_BACK;
+
+#elif CONFIG_KEYPAD == SANSA_CONNECT_PAD
+        options.UP     = BUTTON_UP;
+        options.DOWN   = BUTTON_DOWN;
+        options.LEFT   = BUTTON_LEFT;
+        options.RIGHT  = BUTTON_RIGHT;
+
+        options.A      = BUTTON_VOL_UP;
+        options.B      = BUTTON_VOL_DOWN;
+        options.START  = BUTTON_PREV;
+        options.SELECT = BUTTON_NEXT;
+        options.MENU   = BUTTON_SELECT;
+
+#elif CONFIG_KEYPAD == SAMSUNG_YPR0_PAD
+        options.UP     = BUTTON_UP;
+        options.DOWN   = BUTTON_DOWN;
+        options.LEFT   = BUTTON_LEFT;
+        options.RIGHT  = BUTTON_RIGHT;
+
+        options.A      = BUTTON_SELECT;
+        options.B      = BUTTON_BACK;
+        options.START  = BUTTON_POWER;
+        options.SELECT = BUTTON_USER;
+        options.MENU   = BUTTON_MENU;
+
+#elif CONFIG_KEYPAD == HM801_PAD
+        options.UP     = BUTTON_UP;
+        options.DOWN   = BUTTON_DOWN;
+        options.LEFT   = BUTTON_LEFT;
+        options.RIGHT  = BUTTON_RIGHT;
+
+        options.A      = BUTTON_PREV;
+        options.B      = BUTTON_NEXT;
         options.START  = BUTTON_PLAY;
-        options.SELECT = (BUTTON_ENTER | BUTTON_REPEAT);
-        options.MENU   = (BUTTON_MENU | BUTTON_REPEAT);
+        options.SELECT = BUTTON_SELECT;
+        options.MENU   = BUTTON_POWER;
+
+#elif CONFIG_KEYPAD == SONY_NWZ_PAD
+        options.UP     = BUTTON_UP;
+        options.DOWN   = BUTTON_DOWN;
+        options.LEFT   = BUTTON_LEFT;
+        options.RIGHT  = BUTTON_RIGHT;
+
+        options.START  = BUTTON_PLAY;
+        options.MENU   = BUTTON_BACK;
+        options.SELECT = (BUTTON_POWER|BUTTON_PLAY);
+        options.A      = (BUTTON_POWER|BUTTON_LEFT);
+        options.B      = (BUTTON_POWER|BUTTON_RIGHT);
+
+#elif CONFIG_KEYPAD == CREATIVE_ZEN_PAD
+        options.UP     = BUTTON_UP;
+        options.DOWN   = BUTTON_DOWN;
+        options.LEFT   = BUTTON_LEFT;
+        options.RIGHT  = BUTTON_RIGHT;
+
+        options.START  = BUTTON_BACK;
+        options.MENU   = BUTTON_MENU;
+        options.SELECT = BUTTON_SELECT;
+        options.A      = BUTTON_SHORTCUT;
+        options.B      = BUTTON_PLAYPAUSE;
+
+#elif CONFIG_KEYPAD == DX50_PAD
+        options.A       = BUTTON_VOL_UP;
+        options.B       = BUTTON_VOL_DOWN;
+        options.MENU    = BUTTON_POWER;
+        options.START   = BUTTON_LEFT;
+        options.SELECT  = BUTTON_RIGHT;
 
 #else
 #error No Keymap Defined!
@@ -330,7 +420,7 @@ static void setoptions (void)
 #if CONFIG_KEYPAD == MROBE500_PAD
         options.A       = BUTTON_BOTTOMLEFT;
         options.B       = BUTTON_BOTTOMRIGHT;
-#elif CONFIG_KEYPAD != COWON_D2_PAD
+#elif (CONFIG_KEYPAD != COWON_D2_PAD ) || (CONFIG_KEYPAD != DX50_PAD )
         options.A       = BUTTON_BOTTOMLEFT;
         options.B       = BUTTON_BOTTOMRIGHT;
         options.MENU    = BUTTON_TOPLEFT;
@@ -409,7 +499,7 @@ static int gnuboy_main(const char *rom)
 /* this is the plugin entry point */
 enum plugin_status plugin_start(const void* parameter)
 {
-    rb->lcd_setfont(0);
+    rb->lcd_setfont(FONT_SYSFIXED);
 
     rb->lcd_clear_display();
 
@@ -430,7 +520,7 @@ enum plugin_status plugin_start(const void* parameter)
             = rb->plugin_get_audio_buffer(&audio_buffer_free);
         plugbuf=false;
     }
-#if MEM <= 8 && (CONFIG_PLATFORM & PLATFORM_NATIVE)
+#if MEMORYSIZE <= 8 && (CONFIG_PLATFORM & PLATFORM_NATIVE)
     /* loaded as an overlay plugin, protect from overwriting ourselves */
     if ((unsigned)(plugin_start_addr - (unsigned char *)audio_bufferbase)
         < audio_buffer_free)
@@ -450,7 +540,7 @@ enum plugin_status plugin_start(const void* parameter)
 #endif
 
     /* ignore backlight time out */
-    backlight_force_on();
+    backlight_ignore_timeout();
 
     gnuboy_main(parameter);
 

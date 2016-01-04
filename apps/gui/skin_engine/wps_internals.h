@@ -25,6 +25,22 @@
 #ifndef _WPS_ENGINE_INTERNALS_
 #define _WPS_ENGINE_INTERNALS_
 
+#include "tag_table.h"
+#include "skin_parser.h"
+#ifndef __PCTOOL__
+#include "core_alloc.h"
+#endif
+
+struct skin_stats {
+    size_t buflib_handles;
+    size_t tree_size;
+    size_t images_size;
+};
+
+int skin_get_num_skins(void);
+struct skin_stats *skin_get_stats(int number, int screen);
+#define skin_clear_stats(stats) memset(stats, 0, sizeof(struct skin_stats))
+bool skin_backdrop_get_debug(int index, char **path, int *ref_count, size_t *size);
 
 /* Timeout unit expressed in HZ. In WPS, all timeouts are given in seconds
    (possibly with a decimal fraction) but stored as integer values.
@@ -33,24 +49,204 @@
 #define TIMEOUT_UNIT (HZ/10) /* I.e. 0.1 sec */
 #define DEFAULT_SUBLINE_TIME_MULTIPLIER 20 /* In TIMEOUT_UNIT's */
 
-#include "skin_tokens.h"
-#include "tag_table.h"
-#include "skin_parser.h"
-
-
 /* TODO: sort this mess out */
 
 #include "screen_access.h"
 #include "statusbar.h"
 #include "metadata.h"
 
-/* alignments */
-#define WPS_ALIGN_RIGHT 32
-#define WPS_ALIGN_CENTER 64
-#define WPS_ALIGN_LEFT 128
-
-
 #define TOKEN_VALUE_ONLY 0x0DEADC0D
+
+/* wps_data*/
+struct wps_token {
+    union {
+        char c;
+        unsigned short i;
+        long l;
+        OFFSETTYPE(void*) data;
+    } value;
+
+    enum skin_token_type type; /* enough to store the token type */
+    /* Whether the tag (e.g. track name or the album) refers the
+       current or the next song (false=current, true=next) */
+    bool next;
+};
+
+char* get_dir(char* buf, int buf_size, const char* path, int level);
+
+
+struct skin_token_list {
+    OFFSETTYPE(struct wps_token *) token;
+    OFFSETTYPE(struct skin_token_list *) next;
+};
+
+#ifdef HAVE_LCD_BITMAP
+struct gui_img {
+    OFFSETTYPE(struct viewport*) vp;    /* The viewport to display this image in */
+    short int x;                  /* x-pos */
+    short int y;                  /* y-pos */
+    short int num_subimages;      /* number of sub-images */
+    short int subimage_height;    /* height of each sub-image */
+    struct bitmap bm;
+    int buflib_handle;
+    OFFSETTYPE(char*) label;
+    bool loaded;            /* load state */
+    int display;
+    bool using_preloaded_icons; /* using the icon system instead of a bmp */
+    bool is_9_segment;
+};
+
+struct image_display {
+    OFFSETTYPE(char*) label;
+    int subimage;
+    OFFSETTYPE(struct wps_token*) token; /* the token to get the subimage number from */
+    int offset; /* offset into the bitmap strip to start */
+};
+
+struct progressbar {
+    enum skin_token_type type;
+    OFFSETTYPE(struct viewport *) vp;
+    /* regular pb */
+    short x;
+    /* >=0: explicitly set in the tag -> y-coord within the viewport
+       <0 : not set in the tag -> negated 1-based line number within
+            the viewport. y-coord will be computed based on the font height */
+    short y;
+    short width;
+    short height;
+    bool  follow_lang_direction;
+    
+    OFFSETTYPE(struct gui_img *) image;
+    
+    bool invert_fill_direction;
+    bool nofill;
+    bool noborder;
+    bool nobar;
+    OFFSETTYPE(struct gui_img *) slider;
+    bool horizontal;
+    OFFSETTYPE(struct gui_img *) backdrop;
+    int setting_id; /* for the setting bar type */
+    
+};
+
+struct draw_rectangle {
+    int x;
+    int y;
+    int width;
+    int height;
+    unsigned start_colour;
+    unsigned end_colour;
+};
+#endif
+
+
+
+struct align_pos {
+    char* left;
+    char* center;
+    char* right;
+};
+
+#ifdef HAVE_LCD_BITMAP
+#define WPS_MAX_TOKENS      1150
+#else
+#define WPS_MAX_TOKENS      64
+#endif
+
+enum wps_parse_error {
+    PARSE_OK,
+    PARSE_FAIL_UNCLOSED_COND,
+    PARSE_FAIL_INVALID_CHAR,
+    PARSE_FAIL_COND_SYNTAX_ERROR,
+    PARSE_FAIL_COND_INVALID_PARAM,
+    PARSE_FAIL_LIMITS_EXCEEDED,
+};
+#ifdef HAVE_LCD_COLOR
+struct gradient_config {
+    unsigned start;
+    unsigned end;
+    unsigned text;
+    int lines_count;
+};
+#endif
+
+#define VP_DRAW_HIDEABLE    0x1
+#define VP_DRAW_HIDDEN      0x2
+#define VP_DRAW_WASHIDDEN   0x4
+/* these are never drawn, nor cleared, i.e. just ignored */
+#define VP_NEVER_VISIBLE    0x8
+#ifndef __PCTOOL__
+#define VP_DEFAULT_LABEL    -200
+#else
+#define VP_DEFAULT_LABEL    NULL
+#endif
+#define VP_DEFAULT_LABEL_STRING "|"
+struct skin_viewport {
+    struct viewport vp;   /* The LCD viewport struct */
+    char hidden_flags;
+    bool is_infovp;
+    OFFSETTYPE(char*) label;
+    int   parsed_fontid;
+#if (LCD_DEPTH > 1) || (defined(HAVE_REMOTE_LCD) && (LCD_REMOTE_DEPTH > 1))
+    bool output_to_backdrop_buffer;
+    bool fgbg_changed;
+#ifdef HAVE_LCD_COLOR
+    struct gradient_config start_gradient;
+#endif
+#endif
+};
+struct viewport_colour {
+    OFFSETTYPE(struct viewport *) vp;
+    unsigned colour;
+};
+
+#ifdef HAVE_TOUCHSCREEN
+struct touchregion {
+    OFFSETTYPE(char*) label;            /* label to identify this region */
+    OFFSETTYPE(struct skin_viewport*) wvp;/* The viewport this region is in */
+    short int x;             /* x-pos */
+    short int y;             /* y-pos */
+    short int width;         /* width */
+    short int height;        /* height */
+    bool reverse_bar;        /* if true 0% is the left or top */
+    bool allow_while_locked;
+    enum {
+        PRESS,               /* quick press only */
+        LONG_PRESS,          /* Long press without repeat */
+        REPEAT,              /* long press allowing repeats */
+    } press_length;          
+    int action;              /* action this button will return */
+    bool armed;              /* A region is armed on press. Only armed regions are triggered
+                                on repeat or release. */
+    union {                  /* Extra data, action dependant */
+        struct touchsetting {
+            const struct settings_list *setting; /* setting being controlled */
+            union {         /* Value to set the setting to for ACTION_SETTING_SET */
+                int number;
+                OFFSETTYPE(char*) text;
+            } value;
+        } setting_data;
+        int   value;
+    };
+    long last_press;        /* last tick this was pressed */
+    OFFSETTYPE(struct progressbar*) bar;
+};
+
+
+
+struct touchregion_lastpress {
+    OFFSETTYPE(struct touchregion *) region;
+    long timeout;
+};
+#endif
+
+struct playlistviewer {
+    OFFSETTYPE(struct viewport *) vp;
+    bool show_icons;
+    int start_offset;
+    OFFSETTYPE(struct skin_element *) line;
+};
+
 
 #ifdef HAVE_ALBUMART
 
@@ -65,150 +261,6 @@
 #define WPS_ALBUMART_ALIGN_TOP      1    /* y align:   top */
 #define WPS_ALBUMART_ALIGN_BOTTOM   4    /* y align:   bottom */
 
-#endif /* HAVE_ALBUMART */
-
-/* wps_data*/
-
-#ifdef HAVE_LCD_BITMAP
-struct gui_img {
-    struct viewport* vp;    /* The viewport to display this image in */
-    short int x;                  /* x-pos */
-    short int y;                  /* y-pos */
-    short int num_subimages;      /* number of sub-images */
-    short int subimage_height;    /* height of each sub-image */
-    struct bitmap bm;
-    const char *label;
-    bool loaded;            /* load state */
-    bool always_display;    /* not using the preload/display mechanism */
-    int display;
-    bool using_preloaded_icons; /* using the icon system instead of a bmp */
-};
-
-struct image_display {
-    const char *label;
-    int subimage;
-    struct wps_token *token; /* the token to get the subimage number from */
-    int offset; /* offset into the bitmap strip to start */
-};
-
-struct progressbar {
-    enum skin_token_type type;
-    struct viewport *vp;
-    /* regular pb */
-    short x;
-    /* >=0: explicitly set in the tag -> y-coord within the viewport
-       <0 : not set in the tag -> negated 1-based line number within
-            the viewport. y-coord will be computed based on the font height */
-    short y;
-    short width;
-    short height;
-    bool  follow_lang_direction;
-    
-    struct gui_img *image;
-    
-    bool invert_fill_direction;
-    bool nofill;
-    bool nobar;
-    struct gui_img *slider;
-    bool horizontal;
-};
-#endif
-
-
-
-struct align_pos {
-    char* left;
-    char* center;
-    char* right;
-};
-
-#ifdef HAVE_LCD_BITMAP
-
-#define MAX_IMAGES (26*2) /* a-z and A-Z */
-#define MAX_PROGRESSBARS 3
-
-/* The image buffer is big enough to store one full-screen native bitmap,
-   plus two full-screen mono bitmaps. */
-
-#define WPS_MAX_VIEWPORTS   24
-#define WPS_MAX_LINES       ((LCD_HEIGHT/5+1) * 2)
-#define WPS_MAX_SUBLINES    (WPS_MAX_LINES*3)
-#define WPS_MAX_TOKENS      1024
-#define WPS_MAX_STRINGS     128
-#define STRING_BUFFER_SIZE  1024
-#define WPS_MAX_COND_LEVEL  10
-
-#else
-
-#define WPS_MAX_VIEWPORTS   2
-#define WPS_MAX_LINES       2
-#define WPS_MAX_SUBLINES    12
-#define WPS_MAX_TOKENS      64
-#define WPS_MAX_STRINGS     32
-#define STRING_BUFFER_SIZE  64
-#define WPS_MAX_COND_LEVEL  5
-
-#endif
-
-#define SUBLINE_RESET -1
-
-enum wps_parse_error {
-    PARSE_OK,
-    PARSE_FAIL_UNCLOSED_COND,
-    PARSE_FAIL_INVALID_CHAR,
-    PARSE_FAIL_COND_SYNTAX_ERROR,
-    PARSE_FAIL_COND_INVALID_PARAM,
-    PARSE_FAIL_LIMITS_EXCEEDED,
-};
-
-#define VP_DRAW_HIDEABLE    0x1
-#define VP_DRAW_HIDDEN      0x2
-#define VP_DRAW_WASHIDDEN   0x4
-/* these are never drawn, nor cleared, i.e. just ignored */
-#define VP_NEVER_VISIBLE    0x8
-#define VP_DEFAULT_LABEL    "|"
-struct skin_viewport {
-    struct viewport vp;   /* The LCD viewport struct */
-    char hidden_flags;
-    bool is_infovp;
-    char* label;
-    unsigned start_fgcolour;
-    unsigned start_bgcolour;
-};
-struct viewport_colour {
-    struct viewport *vp;
-    unsigned colour;
-};
-#ifdef HAVE_TOUCHSCREEN
-struct touchregion {
-    struct skin_viewport* wvp;/* The viewport this region is in */
-    short int x;             /* x-pos */
-    short int y;             /* y-pos */
-    short int width;         /* width */
-    short int height;        /* height */
-    enum {
-        WPS_TOUCHREGION_ACTION,
-        WPS_TOUCHREGION_SCROLLBAR,
-        WPS_TOUCHREGION_VOLUME
-    } type;                  /* type of touch region */
-    bool reverse_bar;        /* if true 0% is the left or top */
-    bool repeat;             /* requires the area be held for the action */
-    int action;              /* action this button will return */
-    bool armed;              /* A region is armed on press. Only armed regions are triggered
-                                on repeat or release. */
-    void* extradata;
-};
-#endif
-
-struct playlistviewer {
-    struct viewport *vp;
-    bool show_icons;
-    int start_offset;
-    struct skin_element *line;
-};
-
-
-#ifdef HAVE_ALBUMART
 struct skin_albumart {
     /* Album art support */
     int x;
@@ -220,7 +272,7 @@ struct skin_albumart {
     unsigned char yalign; /* WPS_ALBUMART_ALIGN_TOP, _CENTER, _BOTTOM */
     unsigned char state; /* WPS_ALBUMART_NONE, _CHECK, _LOAD */
     
-    struct viewport *vp;
+    OFFSETTYPE(struct viewport *) vp;
     int draw_handle;
 };
 #endif
@@ -237,11 +289,11 @@ struct line_alternator {
 
 struct conditional {
     int last_value;
-    struct wps_token *token;
+    OFFSETTYPE(struct wps_token *) token;
 };
 
 struct logical_if {
-    struct wps_token *token;
+    OFFSETTYPE(struct wps_token *) token;
     enum {
         IF_EQUALS, /* == */
         IF_NOTEQUALS, /* != */
@@ -254,28 +306,68 @@ struct logical_if {
     int num_options;
 };
 
+struct substring {
+    int start;
+    int length;
+    bool expect_number;
+    OFFSETTYPE(struct wps_token *) token;
+};
+
+struct listitem {
+    bool wrap;
+    short offset;
+};
+
+#ifdef HAVE_SKIN_VARIABLES
+struct skin_var {
+    OFFSETTYPE(const char *) label;
+    int value;
+    long last_changed;
+};
+struct skin_var_lastchange {
+    OFFSETTYPE(struct skin_var *) var;
+    long timeout;
+};
+struct skin_var_changer {
+    OFFSETTYPE(struct skin_var *) var;
+    int newval;
+    bool direct; /* true to make val=newval, false for val += newval */
+    int max;
+};
+#endif
+
 /* wps_data
    this struct holds all necessary data which describes the
    viewable content of a wps */
 struct wps_data
 {
-    struct skin_element *tree;
+    int buflib_handle;
+
+    OFFSETTYPE(struct skin_element *) tree;
 #ifdef HAVE_LCD_BITMAP
-    struct skin_token_list *images;
+    OFFSETTYPE(struct skin_token_list *) images;
+    OFFSETTYPE(int *) font_ids;
+    int font_count;
 #endif
-#if LCD_DEPTH > 1 || defined(HAVE_REMOTE_LCD) && LCD_REMOTE_DEPTH > 1
-    struct {
-        char *backdrop;
-        int backdrop_id;
-    };
+#ifdef HAVE_BACKDROP_IMAGE
+    int backdrop_id;
+    bool use_extra_framebuffer;
 #endif
 
 #ifdef HAVE_TOUCHSCREEN
-    struct skin_token_list *touchregions;
+    OFFSETTYPE(struct skin_token_list *) touchregions;
+    bool touchscreen_locked;
 #endif
 #ifdef HAVE_ALBUMART
-    struct skin_albumart *albumart;
+    OFFSETTYPE(struct skin_albumart *) albumart;
     int    playback_aa_slot;
+    /* copy of albumart to survive skin resets, used to check if albumart
+     * dimensions changed on skin change */
+    short last_albumart_width, last_albumart_height;
+#endif
+
+#ifdef HAVE_SKIN_VARIABLES
+    OFFSETTYPE(struct skin_token_list *) skinvars;
 #endif
 
 #ifdef HAVE_LCD_BITMAP
@@ -288,6 +380,17 @@ struct wps_data
 #endif
     bool wps_loaded;
 };
+
+#ifndef __PCTOOL__
+static inline char* get_skin_buffer(struct wps_data* data)
+{
+    if (data->buflib_handle >= 0)
+        return core_get_data(data->buflib_handle);
+    return NULL;
+}
+#else
+#define get_skin_buffer(d) skin_buffer
+#endif
 
 /* wps_data end */
 
@@ -302,7 +405,6 @@ struct wps_state
     int  ff_rewind_count;
     bool ff_rewind;
     bool paused;
-    bool wps_time_countup;
     bool is_fading;
 };
 
@@ -327,7 +429,7 @@ struct gui_wps
 
 /* gui_wps end */
 
-char *get_image_filename(const char *start, const char* bmpdir,
+void get_image_filename(const char *start, const char* bmpdir,
                                 char *buf, int buf_size);
 /***** wps_tokens.c ******/
 
@@ -346,10 +448,21 @@ const char *get_radio_token(struct wps_token *token, int preset_offset,
                             char *buf, int buf_size, int limit, int *intval);
 #endif
 
-struct gui_img* find_image(const char *label, struct wps_data *data);
-struct skin_viewport* find_viewport(const char *label, bool uivp, struct wps_data *data);
-
-
+enum skin_find_what {
+    SKIN_FIND_VP = 0,
+    SKIN_FIND_UIVP,
+#ifdef HAVE_LCD_BITMAP
+    SKIN_FIND_IMAGE,
+#endif
+#ifdef HAVE_TOUCHSCREEN
+    SKIN_FIND_TOUCHREGION,
+#endif
+#ifdef HAVE_SKIN_VARIABLES
+    SKIN_VARIABLE,
+#endif
+};
+void *skin_find_item(const char *label, enum skin_find_what what,
+                     struct wps_data *data);
 #ifdef SIMULATOR
 #define DEBUG_SKIN_ENGINE
 extern bool debug_wps;

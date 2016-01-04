@@ -23,8 +23,10 @@ private
 
     def get_codec(filename)
         case filename
+            when /nero_hev2_.+/
+                self.codec = "Nero AAC-HEv2 (SBR+PS)"
             when /.+aache.+/, /nero_he_.+/
-                self.codec = "Nero AAC-HE"
+                self.codec = "Nero AAC-HE (SBR)"
             when /a52.+/
                 self.codec = "AC3 (A52)"
             when /ape_.+/
@@ -63,6 +65,8 @@ private
                 self.codec = "Speex"
             when /pegase_l1.+/
                 self.codec = "MP1"
+            when /opus.+/
+                self.codec = "Opus"
             else
                 self.codec = "CODEC UNKNOWN (#{name})"
         end

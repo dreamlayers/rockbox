@@ -28,7 +28,6 @@
 #include "button.h"
 #include "lcd.h"
 #include "font.h"
-#include "debug-target.h"
 #include "adc.h"
 
 bool dbg_ports(void)
@@ -36,7 +35,7 @@ bool dbg_ports(void)
     return false;
 }
 
-bool __dbg_hw_info(void)
+bool dbg_hw_info(void)
 {
     int line = 0, i, button, oldline;
     bool done=false;

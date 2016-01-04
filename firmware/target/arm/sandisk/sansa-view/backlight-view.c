@@ -8,6 +8,7 @@
  * $Id$
  *
  * Copyright (C) 2009 by Robert Keevil
+ * Copyright (C) 2014 by Szymon Dziok
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -24,27 +25,58 @@
 #include "lcd.h"
 #include "backlight.h"
 
-void _backlight_set_brightness(int brightness)
+bool backlight_hw_init(void)
+{
+    GPIO_SET_BITWISE(GPIOD_ENABLE, 0x01);
+    GPIO_SET_BITWISE(GPIOD_OUTPUT_EN, 0x01);
+    GPIO_SET_BITWISE(GPIOA_ENABLE, 0x01);
+    GPIO_SET_BITWISE(GPIOA_OUTPUT_EN, 0x01);
+    GPIO_SET_BITWISE(GPIOA_ENABLE, 0x02);
+    GPIO_SET_BITWISE(GPIOA_OUTPUT_EN, 0x02);
+    GPIO_SET_BITWISE(GPIOR_ENABLE, 0x10);
+    GPIO_SET_BITWISE(GPIOR_ENABLE, 0x20);
+    GPIO_SET_BITWISE(GPIOR_ENABLE, 0x40);
+    GPIO_SET_BITWISE(GPIOR_ENABLE, 0x80);
+    GPIO_SET_BITWISE(GPIOA_OUTPUT_EN, 0x10);
+    GPIO_SET_BITWISE(GPIOA_OUTPUT_EN, 0x20);
+    GPIO_SET_BITWISE(GPIOA_OUTPUT_EN, 0x40);
+    GPIO_SET_BITWISE(GPIOA_OUTPUT_EN, 0x80);
+    return true;
+}
+
+void backlight_hw_brightness(int brightness)
 {
     (void)brightness;
 }
 
-void _backlight_off(void)
+void backlight_hw_off(void)
 {
-    GPIO_SET_BITWISE(GPIOD_ENABLE, 1<<8);
+    GPIO_CLEAR_BITWISE(GPIOD_OUTPUT_VAL, 0x01);
 }
 
-void _backlight_on(void)
+void backlight_hw_on(void)
 {
-    GPIO_SET_BITWISE(GPIOD_ENABLE, 1);
+    GPIO_SET_BITWISE(GPIOD_OUTPUT_VAL, 0x01);
 }
 
-void _buttonlight_on(void)
+void buttonlight_hw_off(void)
 {
-    GPIO_CLEAR_BITWISE(GPIOA_ENABLE, 0x2);
+    GPIO_CLEAR_BITWISE(GPIOA_OUTPUT_VAL, 0x02); /* vertical buttonlight */
+    GPIO_CLEAR_BITWISE(GPIOA_OUTPUT_VAL, 0x01); /* horizontal buttonlight */
+
+    GPIO_CLEAR_BITWISE(GPIOR_OUTPUT_VAL, 0x80); /* scrollwheel bottom led */
+    GPIO_CLEAR_BITWISE(GPIOR_OUTPUT_VAL, 0x40); /* scrollwheel right led */
+    GPIO_CLEAR_BITWISE(GPIOR_OUTPUT_VAL, 0x20); /* scrollwheel top led */
+    GPIO_CLEAR_BITWISE(GPIOR_OUTPUT_VAL, 0x10); /* scrollwheel left led */
 }
 
-void _buttonlight_off(void)
+void buttonlight_hw_on(void)
 {
-    GPIO_SET_BITWISE(GPIOA_ENABLE, 0x2);
+    GPIO_SET_BITWISE(GPIOA_OUTPUT_VAL, 0x02); /* vertical buttonlight */
+    GPIO_SET_BITWISE(GPIOA_OUTPUT_VAL, 0x01); /* horizontal buttonlight */
+
+    GPIO_SET_BITWISE(GPIOR_OUTPUT_VAL, 0x80); /* scrollwheel bottom led */
+    GPIO_SET_BITWISE(GPIOR_OUTPUT_VAL, 0x40); /* scrollwheel right led */
+    GPIO_SET_BITWISE(GPIOR_OUTPUT_VAL, 0x20); /* scrollwheel top led */
+    GPIO_SET_BITWISE(GPIOR_OUTPUT_VAL, 0x10); /* scrollwheel left led */
 }

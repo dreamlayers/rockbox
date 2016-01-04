@@ -19,19 +19,23 @@
  * KIND, either express or implied.
  *
  ****************************************************************************/
+
 #include "config.h"
 #include "system.h"
+#include "kernel.h"
+#include "thread.h"
 #include "mc13783.h"
 #include "iomuxc-imx31.h"
+#include "gpio-imx31.h"
 #include "i2c-imx31.h"
 #include "fmradio_i2c.h"
+#include "rds.h"
+#include "tuner.h"
 
 static struct i2c_node si4700_i2c_node =
 {
     .num  = I2C2_NUM,
     .ifdr = I2C_IFDR_DIV192, /* 66MHz/.4MHz = 165, closest = 192 = 343750Hz */
-                             /* Just hard-code for now - scaling may require 
-                              * updating */
     .addr = (0x20),
 };
 
@@ -117,7 +121,76 @@ int fmradio_i2c_read(unsigned char address, unsigned char* buf, int count)
     return 0;
 }
 
-int si4700_st(void)
+bool si4700_st(void)
 {
     return (GPIO1_DR & (1 << 28)) >> 28;
+}
+
+
+/* Low-level RDS Support */
+
+/* Transfer descriptor for RDS async operations */
+static struct si4700_i2c_transfer_desc
+{
+    struct i2c_transfer_desc xfer;
+    unsigned char regbuf[32];
+} si4700_xfer =
+{
+    .xfer = { .node = &si4700_i2c_node }
+};
+
+static void si4700_rds_read_raw_callback(struct i2c_transfer_desc *xfer)
+{
+    struct si4700_i2c_transfer_desc *xf =
+        (struct si4700_i2c_transfer_desc *)xfer;
+
+    if (xfer->rxcount != 0)
+        return; /* Read didn't finish */
+
+    uint16_t rds_data[4];
+
+    si4700_rds_read_raw_async_complete(xf->regbuf, rds_data);
+
+    if (rds_process(rds_data))
+        si4700_rds_set_event();
+}
+
+/* Callback from si4700_rds_read_raw to execute the read */
+void si4700_read_raw_async(int count)
+{
+    si4700_xfer.xfer.txdata = NULL;
+    si4700_xfer.xfer.txcount = 0;
+    si4700_xfer.xfer.rxdata = si4700_xfer.regbuf;
+    si4700_xfer.xfer.rxcount = count;
+    si4700_xfer.xfer.callback = si4700_rds_read_raw_callback;
+    si4700_xfer.xfer.next = NULL;
+
+    i2c_transfer(&si4700_xfer.xfer);
+}
+
+/* RDS GPIO interrupt handler - start RDS data read */
+void si4700_stc_rds_event(void)
+{
+    /* read and clear the interrupt */
+    SI4700_GPIO_STC_RDS_ISR = (1ul << SI4700_GPIO_STC_RDS_LINE);
+    si4700_rds_read_raw_async(); 
+}
+
+/* Called with on=true after full radio power up, and with on=false before
+   powering down */
+void si4700_rds_powerup(bool on)
+{
+    gpio_disable_event(SI4700_STC_RDS_EVENT_ID);
+
+    if (on)
+    {
+        SI4700_GPIO_STC_RDS_ISR = (1ul << SI4700_GPIO_STC_RDS_LINE);
+        gpio_enable_event(SI4700_STC_RDS_EVENT_ID);
+    }
+}
+
+/* One-time RDS init at startup */
+void si4700_rds_init(void)
+{
+    rds_init();
 }

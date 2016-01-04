@@ -12,7 +12,7 @@
 #define IB0 (0xFF-B0)
 #define IB1 (0xFF-B1)
 
-static const fb_data _16bpp_colors[32] = {
+static const unsigned _16bpp_colors[32] = {
     /* normal */
     LCD_RGBPACK(N0, N0, N0), LCD_RGBPACK(N0, N0, N1),
     LCD_RGBPACK(N1, N0, N0), LCD_RGBPACK(N1, N0, N1),
@@ -54,11 +54,13 @@ void update_screen(void)
     int y=0;
    
 #if LCD_HEIGHT >= ZX_HEIGHT && LCD_WIDTH >= ZX_WIDTH
+    /* 'set but not used'
     byte *scrptr;
     scrptr = (byte *) SPNM(image);
+    */
     frameb = rb->lcd_framebuffer;
     for ( y = 0 ; y < HEIGHT*WIDTH; y++ ){
-        frameb[y] = _16bpp_colors[(unsigned)sp_image[y]];
+        frameb[y] = FB_SCALARPACK(_16bpp_colors[(unsigned)sp_image[y]]);
     }
 
 #else
@@ -72,7 +74,7 @@ void update_screen(void)
         srcx = 0;           /* reset our x counter before each row... */
         for(x = 0; x < LCD_WIDTH; x++)
         {
-            *frameb = _16bpp_colors[image[srcx>>16]];
+            *frameb = FB_SCALARPACK(_16bpp_colors[image[srcx>>16]]);
             srcx += X_STEP;    /* move through source image */
             frameb++;
         }

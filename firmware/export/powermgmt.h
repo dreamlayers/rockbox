@@ -75,7 +75,8 @@ extern unsigned int power_thread_inputs;
 #include "powermgmt-target.h"
 #endif
 
-#if (CONFIG_PLATFORM & PLATFORM_NATIVE)
+/* Start up power management thread */
+void powermgmt_init(void) INIT_ATTR;
 
 /* Generic current values that are intentionally meaningless - config header
  * should define proper numbers.*/
@@ -127,16 +128,20 @@ extern const unsigned short percent_to_volt_discharge[BATTERY_TYPES_COUNT][11];
 extern const unsigned short percent_to_volt_charge[11];
 #endif
 
-/* Start up power management thread */
-void powermgmt_init(void) INIT_ATTR;
-
-#endif /* PLATFORM_NATIVE */
-
-/* Returns battery statust */
+/* Returns battery status, filtered for runtime estimation */
 int battery_level(void); /* percent */
 int battery_time(void); /* minutes */
-unsigned int battery_adc_voltage(void); /* voltage from ADC in millivolts */
-unsigned int battery_voltage(void); /* filtered batt. voltage in millivolts */
+int battery_voltage(void); /* filtered batt. voltage in millivolts */
+
+/* Implemented by the target, unfiltered */
+int _battery_level(void); /* percent */
+int _battery_time(void); /* minutes */
+int _battery_voltage(void); /* voltage in millivolts */
+#if CONFIG_CHARGING >= CHARGING_TARGET
+void powermgmt_init_target(void);
+void charging_algorithm_close(void);
+void charging_algorithm_step(void);
+#endif
 
 #ifdef HAVE_BATTERY_SWITCH
 unsigned int input_millivolts(void); /* voltage that device is running from */
@@ -162,8 +167,10 @@ void set_battery_capacity(int capacity); /* set local battery capacity value */
 int  get_battery_capacity(void); /* get local battery capacity value */
 void set_battery_type(int type); /* set local battery type */
 
-void set_sleep_timer(int seconds);
+void set_sleeptimer_duration(int minutes);
 int get_sleep_timer(void);
+void set_keypress_restarts_sleep_timer(bool enable);
+void handle_auto_poweroff(void);
 void set_car_adapter_mode(bool setting);
 void reset_poweroff_timer(void);
 void cancel_shutdown(void);

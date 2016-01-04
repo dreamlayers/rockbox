@@ -24,7 +24,6 @@
 #include <stdbool.h>
 #include <string.h>
 #include <ctype.h>
-#include <stdbool.h>
 
 #include "skin_buffer.h"
 #include "skin_parser.h"
@@ -36,9 +35,7 @@
 /* Global variables for the parser */
 int skin_line = 0;
 char* skin_start = 0;
-int viewport_line = 0;
-
-static int tag_recursion_level = 0;
+static int viewport_line = 0;
 
 #ifdef ROCKBOX
 static skin_callback callback = NULL;
@@ -46,6 +43,10 @@ static void* callback_data;
 #endif
 
 /* Auxiliary parsing functions (not visible at global scope) */
+static struct skin_element* skin_alloc_element(void);
+static OFFSETTYPE(struct skin_element*)* skin_alloc_children(int count);
+static struct skin_tag_parameter* skin_alloc_params(int count);
+
 static struct skin_element* skin_parse_viewport(const char** document);
 static struct skin_element* skin_parse_line(const char** document);
 static struct skin_element* skin_parse_line_optional(const char** document,
@@ -82,8 +83,6 @@ struct skin_element* skin_parse(const char* document)
     struct skin_element* root = NULL;
     struct skin_element* last = NULL;
 
-    struct skin_element** to_write = 0;
-
     const char* cursor = document; /*Keeps track of location in the document*/
     
     skin_line = 1;
@@ -94,15 +93,18 @@ struct skin_element* skin_parse(const char* document)
 
     while(*cursor != '\0')
     {
-
+        struct skin_element* tree = skin_parse_viewport(&cursor);
         if(!root)
-            to_write = &root;
+        {
+            root = tree;
+            last = root;
+        }
         else
-            to_write = &(last->next);
+        {
+            last->next = skin_buffer_to_offset(tree);
+            last = tree;
+        }
 
-
-        *to_write = skin_parse_viewport(&cursor);
-        last = *to_write;
         if(!last)
         {
             skin_free_tree(root); /* Clearing any memory already used */
@@ -110,8 +112,8 @@ struct skin_element* skin_parse(const char* document)
         }
 
         /* Making sure last is at the end */
-        while(last->next)
-            last = last->next;
+        while(IS_VALID_OFFSET(last->next))
+            last = skin_buffer_from_offset(last->next);
 
     }
     return root;
@@ -123,8 +125,6 @@ static struct skin_element* skin_parse_viewport(const char** document)
     struct skin_element* root = NULL;
     struct skin_element* last = NULL;
     struct skin_element* retval = NULL;
-    
-    tag_recursion_level = 0;
 
     retval = skin_alloc_element();
     if (!retval)
@@ -134,7 +134,7 @@ static struct skin_element* skin_parse_viewport(const char** document)
     retval->line = skin_line;
     viewport_line = skin_line;
 
-    struct skin_element** to_write = 0;
+    OFFSETTYPE(struct skin_element*)* children;
 
     const char* cursor = *document; /* Keeps track of location in the document */
     const char* bookmark; /* Used when we need to look ahead */
@@ -156,7 +156,10 @@ static struct skin_element* skin_parse_viewport(const char** document)
     else if (callback)
     {
         if (callback(retval, callback_data) == CALLBACK_ERROR)
+        {
+            skin_error(GOT_CALLBACK_ERROR, cursor);
             return NULL;
+        }
     }
 #endif
 
@@ -167,8 +170,8 @@ static struct skin_element* skin_parse_viewport(const char** document)
         return retval;
     }
     retval->children_count = 1;
-    retval->children = skin_alloc_children(1);
-    if (!retval->children)
+    children = skin_alloc_children(1);
+    if (!children)
         return NULL;
     do
     {
@@ -186,25 +189,11 @@ static struct skin_element* skin_parse_viewport(const char** document)
             }
             else if(*cursor == TAGSYM)
             {
-                /* A ';' directly after a '%' doesn't count */
-                cursor ++;
-
-                if(*cursor == '\0')
-                    break;
-
-                cursor++;
+                skip_tag(&cursor);
             }
             else if(*cursor == COMMENTSYM)
             {
                 skip_comment(&cursor);
-            }
-            else if(*cursor == ARGLISTOPENSYM)
-            {
-                skip_arglist(&cursor);
-            }
-            else if(*cursor == ENUMLISTOPENSYM)
-            {
-                skip_enumlist(&cursor);
             }
             else
             {
@@ -214,42 +203,79 @@ static struct skin_element* skin_parse_viewport(const char** document)
         }
         cursor = bookmark;
 
-        if(!root)
-            to_write = &root;
-        else
-            to_write = &(last->next);
-
         if(sublines)
         {
-            *to_write = skin_parse_sublines(&cursor);
-            last = *to_write;
+            struct skin_element* out = skin_parse_sublines(&cursor);
+            if (!root)
+            {
+                root = out;
+                last = root;
+            }
+            else
+            {
+                last->next = skin_buffer_to_offset(out);
+                last = out;
+            }
             if(!last)
                 return NULL;
         }
         else
         {
+#ifdef ROCKBOX
+            /* strip all leading comments */
+            while(*cursor == '#')
+            {
+                skip_comment(&cursor);
+                skin_line++;
+                
+            }
+            if (check_viewport(cursor))
+                break;
+#endif
 
-            *to_write = skin_parse_line(&cursor);
-            last = *to_write;
+            struct skin_element* out = skin_parse_line(&cursor);
+            if (!root)
+            {
+                root = out;
+                last = root;
+            }
+            else
+            {
+                last->next = skin_buffer_to_offset(out);
+                last = out;
+            }
             if(!last)
                 return NULL;
 
         }
         /* Making sure last is at the end */
-        while(last->next)
-            last = last->next;
+        while(IS_VALID_OFFSET(last->next))
+            last = skin_buffer_from_offset(last->next);
 
         if(*cursor == '\n')
         {
             cursor++;
             skin_line++;
         }
+#ifdef ROCKBOX
+        /* strip all comments */
+        while(*cursor == '#')
+        {
+            skip_comment(&cursor);
+            skin_line++;
+            
+        }
+        if (check_viewport(cursor))
+            break;
+#endif
+
     }
     while(*cursor != '\0' && !(check_viewport(cursor) && cursor != *document));
 
     *document = cursor;
 
-    retval->children[0] = root;
+    children[0] = skin_buffer_to_offset(root);
+    retval->children = skin_buffer_to_offset(children);
     return retval;
 }
 
@@ -273,6 +299,7 @@ static struct skin_element* skin_parse_line_optional(const char** document,
     struct skin_element* root = NULL;
     struct skin_element* current = NULL;
     struct skin_element* retval = NULL;
+    OFFSETTYPE(struct skin_element*)* children = NULL;
 
     /* A wrapper for the line */
     retval = skin_alloc_element();
@@ -280,6 +307,9 @@ static struct skin_element* skin_parse_line_optional(const char** document,
         return NULL;
     retval->type = LINE;
     retval->line = skin_line;
+    while (*cursor == '\t')
+        cursor++;
+
     if(*cursor != '\0' && *cursor != '\n' && *cursor != MULTILINESYM
        && !(conditional && (*cursor == ARGLISTSEPARATESYM
                             || *cursor == ARGLISTCLOSESYM
@@ -295,8 +325,8 @@ static struct skin_element* skin_parse_line_optional(const char** document,
 
     if(retval->children_count > 0)
     {
-        retval->children = skin_alloc_children(1);
-        if (!retval->children)
+        children = skin_alloc_children(1);
+        if (!children)
             return NULL;
     }
 
@@ -306,6 +336,7 @@ static struct skin_element* skin_parse_line_optional(const char** document,
         switch (callback(retval, callback_data))
         {
             case CALLBACK_ERROR:
+                skin_error(GOT_CALLBACK_ERROR, cursor);
                 return NULL;
             default:
                 break;
@@ -324,10 +355,11 @@ static struct skin_element* skin_parse_line_optional(const char** document,
         /* Allocating memory if necessary */
         if(root)
         {
-            current->next = skin_alloc_element();
-            if (!current->next)
+            struct skin_element *next = skin_alloc_element();
+            if (!next)
                 return NULL;
-            current = current->next;
+            current->next = skin_buffer_to_offset(next);
+            current = next;
         }
         else
         {
@@ -360,12 +392,14 @@ static struct skin_element* skin_parse_line_optional(const char** document,
         }
     }
 
-
     /* Moving up the calling function's pointer */
     *document = cursor;
     
     if(root)
-        retval->children[0] = root;
+    {
+        children[0] = skin_buffer_to_offset(root);
+        retval->children = skin_buffer_to_offset(children);
+    }
     return retval;
 }
 
@@ -378,6 +412,7 @@ static struct skin_element* skin_parse_sublines_optional(const char** document,
                                                   int conditional)
 {
     struct skin_element* retval;
+    OFFSETTYPE(struct skin_element*)* children;
     const char* cursor = *document;
     int sublines = 1;
     int i;
@@ -386,8 +421,10 @@ static struct skin_element* skin_parse_sublines_optional(const char** document,
     if (!retval)
         return NULL;
     retval->type = LINE_ALTERNATOR;
-    retval->next = NULL;
+    retval->next = skin_buffer_to_offset(NULL);
     retval->line = skin_line;
+    while (*cursor == '\t')
+        cursor++;
 
     /* First we count the sublines */
     while(*cursor != '\0' && *cursor != '\n'
@@ -402,20 +439,9 @@ static struct skin_element* skin_parse_sublines_optional(const char** document,
         {
             skip_comment(&cursor);
         }
-        else if(*cursor == ENUMLISTOPENSYM)
-        {
-            skip_enumlist(&cursor);
-        }
-        else if(*cursor == ARGLISTOPENSYM)
-        {
-            skip_arglist(&cursor);
-        }
         else if(*cursor == TAGSYM)
         {
-            cursor++;
-            if(*cursor == '\0' || *cursor == '\n')
-                break;
-            cursor++;
+            skip_tag(&cursor);
         }
         else if(*cursor == MULTILINESYM)
         {
@@ -430,14 +456,16 @@ static struct skin_element* skin_parse_sublines_optional(const char** document,
 
     /* ...and then we parse them */
     retval->children_count = sublines;
-    retval->children = skin_alloc_children(sublines);
-    if (!retval->children)
+    children = skin_alloc_children(sublines);
+    if (!children)
         return NULL;
 
     cursor = *document;
     for(i = 0; i < sublines; i++)
     {
-        retval->children[i] = skin_parse_line_optional(&cursor, conditional);
+        children[i] = skin_buffer_to_offset(skin_parse_line_optional(&cursor, conditional));
+        if (children[i] < 0)
+            return NULL;
         skip_whitespace(&cursor);
 
         if(*cursor != MULTILINESYM && i != sublines - 1)
@@ -455,10 +483,14 @@ static struct skin_element* skin_parse_sublines_optional(const char** document,
     if (callback)
     {
         if (callback(retval, callback_data) == CALLBACK_ERROR)
+        {
+            skin_error(GOT_CALLBACK_ERROR, *document);
             return NULL;
+        }
     }
 #endif
     *document = cursor;
+    retval->children = skin_buffer_to_offset(children);
 
     return retval;
 }
@@ -467,36 +499,31 @@ static int skin_parse_tag(struct skin_element* element, const char** document)
 {
     const char* cursor = *document + 1;
     const char* bookmark;
+    char *open_square_bracket = NULL;
 
-    char tag_name[3];
+    char tag_name[MAX_TAG_LENGTH];
     char* tag_args;
     const struct tag_info *tag;
+    struct skin_tag_parameter* params = NULL;
 
     int num_args = 1;
     int i;
-    int star = 0; /* Flag for the all-or-none option */
-    int req_args; /* To mark when we enter optional arguments */
+    int qmark = 0; /* Flag for the all-or-none option */
 
     int optional = 0;
-    tag_recursion_level++;
 
     /* Checking the tag name */
-    tag_name[0] = cursor[0];
-    tag_name[1] = cursor[1];
-    tag_name[2] = '\0';
+    for (i=0; cursor[i] && i<MAX_TAG_LENGTH; i++)
+        tag_name[i] = cursor[i];
 
     /* First we check the two characters after the '%', then a single char */
-    tag = find_tag(tag_name);
-
-    if(!tag)
+    tag = NULL;
+    i = MAX_TAG_LENGTH;
+    while (!tag && i > 1)
     {
-        tag_name[1] = '\0';
+        tag_name[i-1] = '\0';
         tag = find_tag(tag_name);
-        cursor++;
-    }
-    else
-    {
-        cursor += 2;
+        i--;
     }
 
     if(!tag)
@@ -504,6 +531,7 @@ static int skin_parse_tag(struct skin_element* element, const char** document)
         skin_error(ILLEGAL_TAG, cursor);
         return 0;
     }
+    cursor += i;
 
     /* Copying basic tag info */
     if(element->type != CONDITIONAL && element->type != VIEWPORT)
@@ -513,23 +541,26 @@ static int skin_parse_tag(struct skin_element* element, const char** document)
     element->line = skin_line;
 
     /* Checking for the * flag */
-    if(tag_args[0] == '*')
+    if(tag_args[0] == '?')
     {
-        star = 1;
+        qmark = 1;
         tag_args++;
     }
 
     /* If this tag has no arguments, we can bail out now */
     if(strlen(tag_args) == 0
        || (tag_args[0] == '|' && *cursor != ARGLISTOPENSYM)
-       || (star && *cursor != ARGLISTOPENSYM))
+       || (qmark && *cursor != ARGLISTOPENSYM))
     {
         
 #ifdef ROCKBOX
         if (callback)
         {
             if (callback(element, callback_data) == CALLBACK_ERROR)
+            {
+                skin_error(GOT_CALLBACK_ERROR, cursor);
                 return 0;
+            }
         }
 #endif
         *document = cursor;
@@ -551,20 +582,13 @@ static int skin_parse_tag(struct skin_element* element, const char** document)
     while(*cursor != '\n' && *cursor != '\0' && *cursor != ARGLISTCLOSESYM)
     {
         /* Skipping over escaped characters */
-        if(*cursor == TAGSYM)
+        if(*cursor == TAGSYM && *(cursor+1) != ARGLISTSEPARATESYM)
         {
-            cursor++;
-            if(*cursor == '\0')
-                break;
-            cursor++;
+            skip_tag(&cursor);
         }
         else if(*cursor == COMMENTSYM)
         {
             skip_comment(&cursor);
-        }
-        else if(*cursor == ARGLISTOPENSYM)
-        {
-            skip_arglist(&cursor);
         }
         else if(*cursor == ARGLISTSEPARATESYM)
         {
@@ -579,8 +603,8 @@ static int skin_parse_tag(struct skin_element* element, const char** document)
 
     cursor = bookmark; /* Restoring the cursor */
     element->params_count = num_args;
-    element->params = skin_alloc_params(num_args, tag_recursion_level<=1);
-    if (!element->params)
+    params = skin_alloc_params(num_args);
+    if (!params)
         return 0;
 
     /* Now we have to actually parse each argument */
@@ -598,7 +622,6 @@ static int skin_parse_tag(struct skin_element* element, const char** document)
         if(*tag_args == '|')
         {
             optional = 1;
-            req_args = i;
             tag_args++;
         }
 
@@ -608,7 +631,7 @@ static int skin_parse_tag(struct skin_element* element, const char** document)
         /* Checking for comments */
         if(*cursor == COMMENTSYM)
             skip_comment(&cursor);
-            
+
         if (*tag_args == '[')
         {
             /* we need to guess which type of param it is. 
@@ -616,9 +639,10 @@ static int skin_parse_tag(struct skin_element* element, const char** document)
              * default > decimal/integer > single tag/code > string
              */
             int j=0;
-            bool canbedefault = false;
+            bool canbedefault = false, last_char_is_percent = false;
             bool haspercent = false, number = true, hasdecimal = false;
             char temp_params[8];
+            open_square_bracket = tag_args;
             tag_args++;
             while (*tag_args != ']')
             {
@@ -634,10 +658,12 @@ static int skin_parse_tag(struct skin_element* element, const char** document)
                 hasdecimal = hasdecimal || (cursor[j] == '.');
                 number = number && (isdigit(cursor[j]) || 
                                     (cursor[j] == '.') ||
-                                    (cursor[j] == '-'));
+                                    (cursor[j] == '-') ||
+                                    (cursor[j] == '%'));
                 j++;
             }
-            type_code = '*';
+            last_char_is_percent = cursor[j-1] == '%';
+            type_code = '?';
             if (canbedefault && *cursor == DEFAULTSYM && !isdigit(cursor[1]))
             {
                 type_code = 'i';
@@ -645,6 +671,10 @@ static int skin_parse_tag(struct skin_element* element, const char** document)
             else if (number && hasdecimal && strchr(temp_params, 'd'))
             {
                 type_code = 'd';
+            }
+            else if (number && last_char_is_percent && strchr(temp_params, 'p'))
+            {
+                type_code = 'p';
             }
             else if (number && 
                      (strchr(temp_params, 'i') || strchr(temp_params, 'd')))
@@ -660,7 +690,7 @@ static int skin_parse_tag(struct skin_element* element, const char** document)
             {
                 type_code = 's';
             }
-            if (type_code == '*')
+            if (type_code == '?')
             {
                 skin_error(INSUFFICIENT_ARGS, cursor);
                 return 0;
@@ -669,14 +699,14 @@ static int skin_parse_tag(struct skin_element* element, const char** document)
         else
             type_code = *tag_args;
         /* Storing the type code */
-        element->params[i].type_code = type_code;
+        params[i].type_code = type_code;
 
         /* Checking a nullable argument for null. */
         if(*cursor == DEFAULTSYM && !isdigit(cursor[1]))
         {
             if(islower(type_code))
             {
-                element->params[i].type = DEFAULT;
+                params[i].type = DEFAULT;
                 cursor++;
             }
             else
@@ -694,10 +724,10 @@ static int skin_parse_tag(struct skin_element* element, const char** document)
                 return 0;
             }
 
-            element->params[i].type = INTEGER;
-            element->params[i].data.number = scan_int(&cursor);
+            params[i].type = INTEGER;
+            params[i].data.number = scan_int(&cursor);
         }
-        else if(tolower(type_code) == 'd')
+        else if(tolower(type_code) == 'd' || tolower(type_code) == 'p')
         {
             int val = 0;
             bool have_point = false;
@@ -721,23 +751,28 @@ static int skin_parse_tag(struct skin_element* element, const char** document)
             }
             if (have_tenth == false)
                 val *= 10;
-            element->params[i].type = DECIMAL;
-            element->params[i].data.number = val;
+            if (tolower(type_code) == 'd')
+                params[i].type = DECIMAL;
+            else
+            {
+                params[i].type = PERCENT;
+                cursor++; /* skip trailing % sign */
+            }
+            params[i].data.number = val;
         }
-        else if(tolower(type_code) == 'n' ||
-                tolower(type_code) == 's' || tolower(type_code) == 'f')
+        else if(tolower(type_code) == 's' || tolower(type_code) == 'f')
         {
             /* Scanning a string argument */
-            element->params[i].type = STRING;
-            element->params[i].data.text = scan_string(&cursor);
+            params[i].type = STRING;
+            params[i].data.text = skin_buffer_to_offset(scan_string(&cursor));
 
         }
         else if(tolower(type_code) == 'c')
         {
             /* Recursively parsing a code argument */
-            element->params[i].type = CODE;
-            element->params[i].data.code = skin_parse_code_as_arg(&cursor);
-            if(!element->params[i].data.code)
+            params[i].type = CODE;
+            params[i].data.code = skin_buffer_to_offset(skin_parse_code_as_arg(&cursor));
+            if(params[i].data.code < 0)
                 return 0;
         }
         else if (tolower(type_code) == 't')
@@ -746,9 +781,9 @@ static int skin_parse_tag(struct skin_element* element, const char** document)
             child->type = TAG;
             if (!skin_parse_tag(child, &cursor))
                 return 0;
-            child->next = NULL;
-            element->params[i].type = CODE;
-            element->params[i].data.code = child;
+            child->next = skin_buffer_to_offset(NULL);
+            params[i].type = CODE;
+            params[i].data.code = skin_buffer_to_offset(child);
         }
             
 
@@ -769,17 +804,27 @@ static int skin_parse_tag(struct skin_element* element, const char** document)
             cursor++;
         }
 
-        if (*tag_args != 'N')
+        if (*(tag_args + 1) == '*')
+        {
+            if (i+1 == num_args)
+                tag_args += 2;
+            else if (open_square_bracket  && *tag_args == ']')
+            {
+                tag_args = open_square_bracket;
+                open_square_bracket = NULL;
+            }
+        }
+        else
             tag_args++;
 
         /* Checking for the optional bar */
         if(*tag_args == '|')
         {
             optional = 1;
-            req_args = i + 1;
             tag_args++;
         }
     }
+    element->params = skin_buffer_to_offset(params);
 
     /* Checking for a premature end */
     if(*tag_args != '\0' && !optional)
@@ -791,11 +836,13 @@ static int skin_parse_tag(struct skin_element* element, const char** document)
     if (callback)
     {
         if (callback(element, callback_data) == CALLBACK_ERROR)
+        {
+            skin_error(GOT_CALLBACK_ERROR, *document);
             return 0;
+        }
     }
 #endif
     *document = cursor;
-    tag_recursion_level--;
 
     return 1;
 }
@@ -839,9 +886,10 @@ static int skin_parse_text(struct skin_element* element, const char** document,
     /* Copying the text into the element struct */
     element->type = TEXT;
     element->line = skin_line;
-    element->next = NULL;
-    element->data = text = skin_alloc_string(length);
-    if (!element->data)
+    element->next = skin_buffer_to_offset(NULL);
+    text = skin_alloc_string(length);
+    element->data = skin_buffer_to_offset(text);
+    if (element->data < 0)
         return 0;
     
     for(dest = 0; dest < length; dest++)
@@ -859,7 +907,10 @@ static int skin_parse_text(struct skin_element* element, const char** document,
     if (callback)
     {
         if (callback(element, callback_data) == CALLBACK_ERROR)
+        {
+            skin_error(GOT_CALLBACK_ERROR, *document);
             return 0;
+        }
     }
 #endif
 
@@ -880,6 +931,7 @@ static int skin_parse_conditional(struct skin_element* element, const char** doc
     const char *false_branch = NULL;
     const char *conditional_end = NULL;
 #endif
+    OFFSETTYPE(struct skin_element*)* children_array = NULL;
 
     /* Some conditional tags allow for target feature checking,
      * so to handle that call the callback as usual with type == TAG
@@ -916,27 +968,22 @@ static int skin_parse_conditional(struct skin_element* element, const char** doc
         return 0;
     }
     bookmark = cursor;
-    while(*cursor != ENUMLISTCLOSESYM && *cursor != '\n' && *cursor != '\0')
+    while(*cursor != ENUMLISTCLOSESYM && *cursor != '\0')
     {
         if(*cursor == COMMENTSYM)
         {
             skip_comment(&cursor);
         }
-        else if(*cursor == ENUMLISTOPENSYM)
-        {
-            skip_enumlist(&cursor);
-        }
         else if(*cursor == TAGSYM)
         {
-            cursor++;
-            if(*cursor == '\0' || *cursor == '\n')
-                break;
-            cursor++;
+            skip_tag(&cursor);
         }
         else if(*cursor == ENUMLISTSEPARATESYM)
         {
             children++;
             cursor++;
+            if (*cursor == '\n')
+                cursor++;
 #ifdef ROCKBOX
             if (false_branch == NULL && !feature_available)
             {
@@ -976,49 +1023,55 @@ static int skin_parse_conditional(struct skin_element* element, const char** doc
     
     if (children == 0)
     {
-		const char* emptyline= "";
-		children = 1;
-		element->children = skin_alloc_children(children);
-		if (!element->children)
-			return 0;
-		element->children_count = children;
-		element->children[0] = skin_parse_code_as_arg(&emptyline);
-	}
-	else
-	{	
-		element->children = skin_alloc_children(children);
-		if (!element->children)
-			return 0;
-		element->children_count = children;
+        const char* emptyline= "";
+        children = 1;
+        children_array = skin_alloc_children(children);
+        if (!children_array)
+            return 0;
+        element->children_count = children;
+        children_array[0] = skin_buffer_to_offset(skin_parse_code_as_arg(&emptyline));
+    }
+    else
+    {    
+        children_array = skin_alloc_children(children);
+        if (!children_array)
+            return 0;
+        element->children_count = children;
 
-		for(i = 0; i < children; i++)
-		{
-			element->children[i] = skin_parse_code_as_arg(&cursor);
-			if (element->children[i] == NULL)
-				return 0;
-			skip_whitespace(&cursor);
+        for(i = 0; i < children; i++)
+        {
+            if (*cursor == '\n')
+            {
+                skin_line++;
+                cursor++;
+            }
+            children_array[i] = skin_buffer_to_offset(skin_parse_code_as_arg(&cursor));
+            if (children_array[i] < 0)
+                return 0;
+            skip_whitespace(&cursor);
 #ifdef ROCKBOX
-			if ((element->tag->flags&FEATURE_TAG) && feature_available)
-				cursor = conditional_end;
+            if ((element->tag->flags&FEATURE_TAG) && feature_available)
+                cursor = conditional_end;
 #endif
 
-			if(i < children - 1 && *cursor != ENUMLISTSEPARATESYM)
-			{
-				skin_error(SEPARATOR_EXPECTED, cursor);
-				return 0;
-			}
-			else if(i == children - 1 && *cursor != ENUMLISTCLOSESYM)
-			{
-				skin_error(CLOSE_EXPECTED, cursor);
-				return 0;
-			}
-			else
-			{
-				cursor++;
-			}
-		}
-	}
+            if(i < children - 1 && *cursor != ENUMLISTSEPARATESYM)
+            {
+                skin_error(SEPARATOR_EXPECTED, cursor);
+                return 0;
+            }
+            else if(i == children - 1 && *cursor != ENUMLISTCLOSESYM)
+            {
+                skin_error(CLOSE_EXPECTED, cursor);
+                return 0;
+            }
+            else
+            {
+                cursor++;
+            }
+        }
+    }
     *document = cursor;
+    element->children = skin_buffer_to_offset(children_array);
 
     return 1;
 }
@@ -1040,7 +1093,7 @@ static int skin_parse_comment(struct skin_element* element, const char** documen
     element->type = COMMENT;
     element->line = skin_line;
 #ifdef ROCKBOX 
-    element->data = NULL;
+    element->data = INVALID_OFFSET;
 #else    
     element->data = text = skin_alloc_string(length);
     if (!element->data)
@@ -1077,21 +1130,7 @@ static struct skin_element* skin_parse_code_as_arg(const char** document)
         }
         else if(*cursor == TAGSYM)
         {
-            /* A ';' directly after a '%' doesn't count */
-            cursor ++;
-
-            if(*cursor == '\0')
-                break;
-
-            cursor++;
-        }
-        else if(*cursor == ARGLISTOPENSYM)
-        {
-            skip_arglist(&cursor);
-        }
-        else if(*cursor == ENUMLISTOPENSYM)
-        {
-            skip_enumlist(&cursor);
+            skip_tag(&cursor);
         }
         else
         {
@@ -1106,19 +1145,20 @@ static struct skin_element* skin_parse_code_as_arg(const char** document)
         return skin_parse_line_optional(document, 1);
 }
 
-
 /* Memory management */
-struct skin_element* skin_alloc_element()
+static struct skin_element* skin_alloc_element()
 {
     struct skin_element* retval =  (struct skin_element*)
                                    skin_buffer_alloc(sizeof(struct skin_element));
     if (!retval)
         return NULL;
     retval->type = UNKNOWN;
-    retval->next = NULL;
+    retval->next = skin_buffer_to_offset(NULL);
+    retval->params = skin_buffer_to_offset(NULL);
     retval->tag = NULL;
     retval->params_count = 0;
     retval->children_count = 0;
+    retval->data = INVALID_OFFSET;
 
     return retval;
 
@@ -1128,16 +1168,8 @@ struct skin_element* skin_alloc_element()
  * enough for any tag. params should be used straight away by the callback
  * so this is safe.
  */
-struct skin_tag_parameter* skin_alloc_params(int count, bool use_shared_params)
+static struct skin_tag_parameter* skin_alloc_params(int count)
 {
-#ifdef ROCKBOX
-    static struct skin_tag_parameter params[MAX_TAG_PARAMS];
-    if (use_shared_params && count <= MAX_TAG_PARAMS)
-    {
-        memset(params, 0, sizeof(params));
-        return params;
-    }
-#endif
     size_t size = sizeof(struct skin_tag_parameter) * count;
     return (struct skin_tag_parameter*)skin_buffer_alloc(size);
 
@@ -1148,9 +1180,9 @@ char* skin_alloc_string(int length)
     return (char*)skin_buffer_alloc(sizeof(char) * (length + 1));
 }
 
-struct skin_element** skin_alloc_children(int count)
+static OFFSETTYPE(struct skin_element*)* skin_alloc_children(int count)
 {
-    return (struct skin_element**)
+    return (OFFSETTYPE(struct skin_element*)*)
             skin_buffer_alloc(sizeof(struct skin_element*) * count);
 }
 

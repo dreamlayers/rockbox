@@ -36,17 +36,21 @@ these markers:
       \emph{+ } & There are nodes after the current node in the SGF tree. \\
       \emph{* } & There are sibling variations which can be navigated to using the %
       \emph{Next Variation} menu option of the \emph{Context Menu}%
-      \opt{SANSA_E200_PAD,SANSA_C200_PAD,SANSA_FUZE_PAD,SANSA_CLIP_PAD,%
+      \opt{SANSA_E200_PAD,SANSA_C200_PAD,SANSA_CLIP_PAD,%
          RECORDER_PAD,MROBE100_PAD,GIGABEAT_PAD,GIGABEAT_S_PAD,IRIVER_H100_PAD,%
-         IRIVER_H300_PAD,PBELL_VIBE500_PAD,MPIO_HD200_PAD}{ or the %
+         IRIVER_H300_PAD,PBELL_VIBE500_PAD,MPIO_HD200_PAD,SANSA_FUZEPLUS_PAD,%
+         SAMSUNG_YH92X_PAD,SAMSUNG_YH820_PAD}{ or the %
+         \opt{SANSA_FUZEPLUS_PAD}{\ButtonBottomRight}%
          \opt{SANSA_E200_PAD,SANSA_C200_PAD}{\ButtonRec}%
-         \opt{SANSA_FUZE_PAD,SANSA_CLIP_PAD}{\ButtonHome}%
+         \opt{SANSA_CLIP_PAD}{\ButtonHome}%
          \opt{RECORDER_PAD}{\ButtonOn}%
          \opt{MROBE100_PAD}{\ButtonPower}%
          \opt{GIGABEAT_PAD}{\ButtonA}%
          \opt{GIGABEAT_S_PAD}{\ButtonPlay}%
          \opt{PBELL_VIBE500_PAD}{\ButtonCancel}%
-         \opt{MPIO_HD200_PAD}{FIXME}%
+         \opt{MPIO_HD200_PAD}{Long \ButtonFunc}%
+         \opt{MPIO_HD300_PAD}{\ButtonMenu}%
+         \opt{SAMSUNG_YH92X_PAD,SAMSUNG_YH820_PAD}{\ButtonPlay+\ButtonDown}
          \opt{IRIVER_H100_PAD,IRIVER_H300_PAD}{\ButtonRec} button}. \\
       \emph{C } & There is a comment at the current node.  It can be viewed/edited using
                 the \emph{Add/Edit Comment} menu option of the \emph{Context Menu}. \\
@@ -56,10 +60,10 @@ these markers:
 \subsubsection{Controls}
     \begin{btnmap}
         \nopt{IPOD_1G2G_PAD,IPOD_3G_PAD,IPOD_4G_PAD,IRIVER_H10_PAD,%
-            MPIO_HD200_PAD,touchscreen}{\ButtonUp}%
+            MPIO_HD200_PAD,MPIO_HD300_PAD,touchscreen}{\ButtonUp}%
         \opt{IPOD_1G2G_PAD,IPOD_3G_PAD,IPOD_4G_PAD}{\ButtonMenu}%
-        \opt{IRIVER_H10_PAD}{\ButtonScrollUp}
-        \opt{MPIO_HD200_PAD}{FIXME}
+        \opt{IRIVER_H10_PAD,MPIO_HD300_PAD}{\ButtonScrollUp}
+        \opt{MPIO_HD200_PAD}{\ButtonRew}
         \opt{touchscreen}{\TouchTopMiddle}
             &
         \opt{HAVEREMOTEKEYMAP}{
@@ -68,10 +72,10 @@ these markers:
         \\
         
         \nopt{IPOD_1G2G_PAD,IPOD_3G_PAD,IPOD_4G_PAD,IRIVER_H10_PAD,%
-            MPIO_HD200_PAD,touchscreen}{\ButtonDown}%
+            MPIO_HD200_PAD,MPIO_HD300_PAD,touchscreen}{\ButtonDown}%
         \opt{IPOD_1G2G_PAD,IPOD_3G_PAD,IPOD_4G_PAD}{\ButtonPlay}%
-        \opt{IRIVER_H10_PAD}{\ButtonScrollDown}
-        \opt{MPIO_HD200_PAD}{FIXME}
+        \opt{IRIVER_H10_PAD,MPIO_HD300_PAD}{\ButtonScrollDown}
+        \opt{MPIO_HD200_PAD}{\ButtonFF}
         \opt{touchscreen}{\TouchBottomMiddle}
             &
         \opt{HAVEREMOTEKEYMAP}{
@@ -79,8 +83,9 @@ these markers:
         Move cursor down
         \\
             
-        \nopt{MPIO_HD200_PAD,touchscreen}{\ButtonLeft}
-        \opt{MPIO_HD200_PAD}{FIXME}
+        \nopt{MPIO_HD200_PAD,MPIO_HD300_PAD,touchscreen}{\ButtonLeft}
+        \opt{MPIO_HD200_PAD}{\ButtonVolDown}
+        \opt{MPIO_HD300_PAD}{\ButtonRew}
         \opt{touchscreen}{\TouchMidLeft}
             &
         \opt{HAVEREMOTEKEYMAP}{
@@ -90,8 +95,9 @@ these markers:
             node in the game tree if in \emph{tree} navigation mode}
         \\
              
-        \nopt{MPIO_HD200_PAD,touchscreen}{\ButtonRight}
-        \opt{MPIO_HD200_PAD}{FIXME}
+        \nopt{MPIO_HD200_PAD,MPIO_HD300_PAD,touchscreen}{\ButtonRight}
+        \opt{MPIO_HD200_PAD}{\ButtonVolUp}
+        \opt{MPIO_HD300_PAD}{\ButtonFF}
         \opt{touchscreen}{\TouchMidRight}
             &
         \opt{HAVEREMOTEKEYMAP}{
@@ -109,11 +115,13 @@ these markers:
         }
         
         \nopt{IRIVER_H10_PAD,ONDIO_PAD,RECORDER_PAD,IAUDIO_M3_PAD,PBELL_VIBE500_PAD%
-            ,MPIO_HD200_PAD,touchscreen}{%
-            \ButtonSelect}%
-        \opt{IRIVER_H10_PAD,RECORDER_PAD,PBELL_VIBE500_PAD}{\ButtonPlay}%
+            ,MPIO_HD200_PAD,MPIO_HD300_PAD,SAMSUNG_YH92X_PAD,SAMSUNG_YH820_PAD%
+            ,touchscreen}{\ButtonSelect}%
+        \opt{IRIVER_H10_PAD,RECORDER_PAD,PBELL_VIBE500_PAD,SAMSUNG_YH92X_PAD%
+            ,SAMSUNG_YH820_PAD}{\ButtonPlay}%
         \opt{ONDIO_PAD}{\ButtonMenu}
-        \opt{MPIO_HD200_PAD}{FIXME}
+        \opt{MPIO_HD200_PAD}{\ButtonFunc}
+        \opt{MPIO_HD300_PAD}{\ButtonEnter}
         \opt{touchscreen}{\TouchCenter}
             &
         \opt{HAVEREMOTEKEYMAP}{
@@ -129,11 +137,13 @@ these markers:
             \opt{IRIVER_H10_PAD}{\ButtonFF}%
             \opt{IRIVER_H100_PAD,IRIVER_H300_PAD}{\ButtonOff}%
             \opt{MROBE100_PAD}{\ButtonMenu}%
+            \opt{SANSA_FUZEPLUS_PAD}{\ButtonBack}%
             \opt{IAUDIO_X5_PAD}{\ButtonPlay}%
             \opt{RECORDER_PAD}{\ButtonFOne}
             \opt{touchscreen}{\TouchBottomLeft}
             \opt{PBELL_VIBE500_PAD}{\ButtonOK{} + \ButtonLeft}
-            \opt{MPIO_HD200_PAD}{FIXME}
+            \opt{MPIO_HD200_PAD,MPIO_HD300_PAD}{\ButtonRec + \ButtonRew}
+            \opt{SAMSUNG_YH92X_PAD,SAMSUNG_YH820_PAD}{\ButtonRew}
                 &
             \opt{HAVEREMOTEKEYMAP}{
                 &}
@@ -145,12 +155,13 @@ these markers:
                 ,GIGABEAT_S_PAD}{\ButtonVolUp}%
             \opt{IRIVER_H10_PAD}{\ButtonRew}%
             \opt{IRIVER_H100_PAD,IRIVER_H300_PAD}{\ButtonOn}%
-            \opt{MROBE100_PAD}{\ButtonPlay}%
+            \opt{MROBE100_PAD,SANSA_FUZEPLUS_PAD}{\ButtonPlay}%
             \opt{IAUDIO_X5_PAD}{\ButtonRec}%
             \opt{RECORDER_PAD}{\ButtonFThree}
             \opt{touchscreen}{\TouchBottomRight}
             \opt{PBELL_VIBE500_PAD}{\ButtonOK{} + \ButtonRight}
-            \opt{MPIO_HD200_PAD}{FIXME}
+            \opt{MPIO_HD200_PAD,MPIO_HD300_PAD}{\ButtonRec + \ButtonFF}
+            \opt{SAMSUNG_YH92X_PAD,SAMSUNG_YH820_PAD}{\ButtonFF}
                 &
             \opt{HAVEREMOTEKEYMAP}{
                 &}
@@ -159,14 +170,17 @@ these markers:
         }
         
         \opt{SANSA_E200_PAD,SANSA_FUZE_PAD,SANSA_CLIP_PAD,SANSA_M200_PAD%
-            ,SANSA_C200_PAD,IRIVER_H10_PAD,IAUDIO_X5_PAD}{\ButtonPower}%
+            ,SANSA_C200_PAD,IRIVER_H10_PAD,IAUDIO_X5_PAD,SANSA_FUZEPLUS_PAD%
+            }{\ButtonPower}%
         \opt{MROBE100_PAD}{\ButtonDisplay}%
         \opt{IPOD_1G2G_PAD,IPOD_3G_PAD,IPOD_4G_PAD}{Long \ButtonSelect}%
-        \opt{GIGABEAT_PAD,GIGABEAT_S_PAD,PBELL_VIBE500_PAD}{\ButtonMenu}%
+        \opt{GIGABEAT_PAD,GIGABEAT_S_PAD,PBELL_VIBE500_PAD,MPIO_HD300_PAD}%
+            {\ButtonMenu}%
         \opt{IRIVER_H100_PAD,IRIVER_H300_PAD}{\ButtonMode}%
         \opt{RECORDER_PAD}{\ButtonFTwo}%
         \opt{ONDIO_PAD}{Long \ButtonMenu}
-        \opt{MPIO_HD200_PAD}{FIXME}
+        \opt{MPIO_HD200_PAD}{Long \ButtonPlay}
+        \opt{SAMSUNG_YH92X_PAD,SAMSUNG_YH820_PAD}{\ButtonPlay+\ButtonLeft}
         \opt{touchscreen}{\TouchTopLeft}
             &
         \opt{HAVEREMOTEKEYMAP}{
@@ -177,13 +191,18 @@ these markers:
 %        \nopt{IPOD_1G2G_PAD,IPOD_3G_PAD,IPOD_4G_PAD,ONDIO_PAD,RECORDER_PAD}{%
         \opt{SANSA_E200_PAD,SANSA_FUZE_PAD,SANSA_C200_PAD,GIGABEAT_PAD,GIGABEAT_S_PAD%
             ,IRIVER_H100_PAD,IRIVER_H300_PAD,MROBE100_PAD,IAUDIO_X5_PAD,IRIVER_H10_PAD%
-            ,MPIO_HD200_PAD,PBELL_VIBE500_PAD,touchscreen}{% 
-            \nopt{IRIVER_H10_PAD,touchscreen,PBELL_VIBE500_PAD,%
-                MPIO_HD200_PAD}{Long \ButtonSelect}%
+            ,MPIO_HD200_PAD,PBELL_VIBE500_PAD,touchscreen,SANSA_FUZEPLUS_PAD%
+            ,SAMSUNG_YH92X_PAD,SAMSUNG_YH820_PAD}{% 
+            \nopt{IRIVER_H10_PAD,touchscreen,PBELL_VIBE500_PAD,SAMSUNG_YH92X_PAD,%
+                MPIO_HD200_PAD,MPIO_HD300_PAD,SANSA_FUZEPLUS_PAD,SAMSUNG_YH820_PAD}%
+                {Long \ButtonSelect}%
             \opt{IRIVER_H10_PAD}{Long \ButtonPlay}
             \opt{touchscreen}{Long \TouchCenter}
             \opt{PBELL_VIBE500_PAD}{\ButtonOK}
-            \opt{MPIO_HD200_PAD}{FIXME}
+            \opt{SANSA_FUZEPLUS_PAD}{\ButtonBottomLeft}
+            \opt{MPIO_HD200_PAD}{Long \ButtonFunc}
+            \opt{MPIO_HD300_PAD}{Long \ButtonEnter}
+            \opt{SAMSUNG_YH92X_PAD,SAMSUNG_YH820_PAD}{\ButtonPlay+\ButtonDown}%
                 &
             \opt{HAVEREMOTEKEYMAP}{
                 &}
@@ -193,9 +212,10 @@ these markers:
         
         \opt{SANSA_E200_PAD,SANSA_C200_PAD,SANSA_FUZE_PAD,RECORDER_PAD,MROBE100_PAD%
             ,GIGABEAT_PAD,GIGABEAT_S_PAD,IRIVER_H100_PAD,IRIVER_H300_PAD,SANSA_CLIP_PAD%
-            ,PBELL_VIBE500_PAD,MPIO_HD200_PAD,touchscreen}{%
-            \opt{SANSA_E200_PAD,SANSA_C200_PAD,IRIVER_H100_PAD,IRIVER_H300_PAD}{%
-                \ButtonRec}%
+            ,PBELL_VIBE500_PAD,MPIO_HD200_PAD,touchscreen,SANSA_FUZEPLUS_PAD,
+            ,SAMSUNG_YH92X_PAD,SAMSUNG_YH820_PAD}{%
+            \opt{SANSA_E200_PAD,SANSA_C200_PAD,IRIVER_H100_PAD,IRIVER_H300_PAD%
+                ,MPIO_HD200_PAD,MPIO_HD300_PAD}{\ButtonRec}%
             \opt{SANSA_FUZE_PAD,SANSA_CLIP_PAD}{\ButtonHome}%
             \opt{RECORDER_PAD}{\ButtonOn}%
             \opt{MROBE100_PAD}{\ButtonPower}%
@@ -203,7 +223,8 @@ these markers:
             \opt{GIGABEAT_S_PAD}{\ButtonPlay}%
             \opt{touchscreen}{\TouchTopRight}%
             \opt{PBELL_VIBE500_PAD}{\ButtonCancel}%
-            \opt{MPIO_HD200_PAD}{FIXME}
+            \opt{SANSA_FUZEPLUS_PAD}{\ButtonBottomRight}%
+            \opt{SAMSUNG_YH92X_PAD,SAMSUNG_YH820_PAD}{\ButtonPlay+\ButtonUp}%
                 &
             \opt{HAVEREMOTEKEYMAP}{
                 &}

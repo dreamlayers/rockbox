@@ -24,6 +24,10 @@
 
 #include "plugin.h"
 #include "lib/helper.h"
+#include "lib/pluginlib_actions.h"
+
+/* this set the context to use with PLA */
+static const struct button_mapping *plugin_contexts[] = { pla_main_ctx };
 
 /* variable button definitions.
  - only targets with a colour display
@@ -32,134 +36,44 @@
  - only targets which can set brightness
     LAMP_UP / LAMP_DOWN:    change the brightness
 */
-#if defined(HAVE_LCD_COLOR) || defined(HAVE_BACKLIGHT_BRIGHTNESS)
-#if (CONFIG_KEYPAD == IRIVER_H300_PAD)
-#   define LAMP_LEFT       BUTTON_LEFT
-#   define LAMP_RIGHT      BUTTON_RIGHT
-#   define LAMP_UP         BUTTON_UP
-#   define LAMP_DOWN       BUTTON_DOWN
 
-#elif (CONFIG_KEYPAD == IPOD_4G_PAD)
-#   define LAMP_LEFT       BUTTON_LEFT
-#   define LAMP_RIGHT      BUTTON_RIGHT
-#   define LAMP_UP         BUTTON_SCROLL_FWD
-#   define LAMP_DOWN       BUTTON_SCROLL_BACK
-
-#elif (CONFIG_KEYPAD == IAUDIO_X5M5_PAD)
-#   define LAMP_LEFT       BUTTON_LEFT
-#   define LAMP_RIGHT      BUTTON_RIGHT
-#   define LAMP_UP         BUTTON_UP
-#   define LAMP_DOWN       BUTTON_DOWN
-
-#elif (CONFIG_KEYPAD == GIGABEAT_PAD)
-#   define LAMP_LEFT       BUTTON_LEFT
-#   define LAMP_RIGHT      BUTTON_RIGHT
-#   define LAMP_UP         BUTTON_UP
-#   define LAMP_DOWN       BUTTON_DOWN
-
-#elif (CONFIG_KEYPAD == GIGABEAT_S_PAD)
-#   define LAMP_LEFT       BUTTON_LEFT
-#   define LAMP_RIGHT      BUTTON_RIGHT
-#   define LAMP_UP         BUTTON_UP
-#   define LAMP_DOWN       BUTTON_DOWN
-
-#elif (CONFIG_KEYPAD == SANSA_E200_PAD) || \
-      (CONFIG_KEYPAD == SANSA_FUZE_PAD)
-#   define LAMP_LEFT       BUTTON_LEFT
-#   define LAMP_RIGHT      BUTTON_RIGHT
-#   define LAMP_UP         BUTTON_SCROLL_FWD
-#   define LAMP_DOWN       BUTTON_SCROLL_BACK
-
-#elif (CONFIG_KEYPAD == SANSA_C200_PAD)
-#   define LAMP_LEFT       BUTTON_LEFT
-#   define LAMP_RIGHT      BUTTON_RIGHT
-#   define LAMP_UP         BUTTON_UP
-#   define LAMP_DOWN       BUTTON_DOWN
-
-#elif (CONFIG_KEYPAD == IRIVER_H10_PAD)
-#   define LAMP_LEFT       BUTTON_LEFT
-#   define LAMP_RIGHT      BUTTON_RIGHT
-#   define LAMP_NEXT       BUTTON_SCROLL_UP
-#   define LAMP_PREV       BUTTON_SCROLL_DOWN
-
-#elif CONFIG_KEYPAD == MROBE500_PAD
-#   define LAMP_LEFT       BUTTON_LEFT
-#   define LAMP_RIGHT      BUTTON_RIGHT
-
-#elif CONFIG_KEYPAD == COWON_D2_PAD
-
-#elif CONFIG_KEYPAD == IAUDIO67_PAD
-#   define LAMP_LEFT       BUTTON_LEFT
-#   define LAMP_RIGHT      BUTTON_RIGHT
-
-#elif CONFIG_KEYPAD == PHILIPS_HDD1630_PAD
-#   define LAMP_LEFT       BUTTON_LEFT
-#   define LAMP_RIGHT      BUTTON_RIGHT
-#   define LAMP_UP         BUTTON_UP
-#   define LAMP_DOWN       BUTTON_DOWN
-
-#elif CONFIG_KEYPAD == PHILIPS_HDD6330_PAD
-#   define LAMP_LEFT       BUTTON_LEFT
-#   define LAMP_RIGHT      BUTTON_RIGHT
-#   define LAMP_UP         BUTTON_UP
-#   define LAMP_DOWN       BUTTON_DOWN
-
-#elif CONFIG_KEYPAD == PHILIPS_SA9200_PAD
-#   define LAMP_LEFT       BUTTON_PREV
-#   define LAMP_RIGHT      BUTTON_NEXT
-#   define LAMP_UP         BUTTON_UP
-#   define LAMP_DOWN       BUTTON_DOWN
-
-#elif CONFIG_KEYPAD == ONDAVX747_PAD
-#   define LAMP_LEFT       BUTTON_VOL_DOWN
-#   define LAMP_RIGHT      BUTTON_VOL_UP
-
-#elif CONFIG_KEYPAD == ONDAVX777_PAD
-
-#elif CONFIG_KEYPAD == SAMSUNG_YH_PAD
-#   define LAMP_LEFT       BUTTON_LEFT
-#   define LAMP_RIGHT      BUTTON_RIGHT
-
-#elif CONFIG_KEYPAD == PBELL_VIBE500_PAD
-#   define LAMP_LEFT       BUTTON_PREV
-#   define LAMP_RIGHT      BUTTON_NEXT
-#   define LAMP_UP         BUTTON_UP
-#   define LAMP_DOWN       BUTTON_DOWN
-
-#elif CONFIG_KEYPAD == MPIO_HD200_PAD
-#   define LAMP_UP         BUTTON_REW
-#   define LAMP_DOWN       BUTTON_FF
-
-#elif CONFIG_KEYPAD == MPIO_HD300_PAD
-#   define LAMP_UP         BUTTON_UP
-#   define LAMP_DOWN       BUTTON_DOWN
-
+/* we use PLA */
+#ifdef HAVE_SCROLLWHEEL
+#   define LAMP_LEFT              PLA_LEFT
+#   define LAMP_RIGHT             PLA_RIGHT
+#   define LAMP_UP                PLA_SCROLL_FWD
+#   define LAMP_DOWN              PLA_SCROLL_BACK
+#   define LAMP_UP_REPEAT         PLA_SCROLL_FWD_REPEAT
+#   define LAMP_DOWN_REPEAT       PLA_SCROLL_BACK_REPEAT
+#   define LAMP_TOGGLE_BUTTON     PLA_SELECT
 #else
-#   error Missing key definitions for this keypad
-#endif
-#endif /* HAVE_LCD_COLOR || HAVE_BACKLIGHT_BRIGHTNESS */
+#   define LAMP_LEFT              PLA_LEFT
+#   define LAMP_RIGHT             PLA_RIGHT
+#   define LAMP_UP                PLA_UP
+#   define LAMP_DOWN              PLA_DOWN
+#   define LAMP_UP_REPEAT         PLA_UP_REPEAT
+#   define LAMP_DOWN_REPEAT       PLA_DOWN_REPEAT
+#   define LAMP_TOGGLE_BUTTON     PLA_SELECT
+#endif/* HAVE_SCROLLWHEEL */
 
-#ifdef HAVE_TOUCHSCREEN
-# ifndef LAMP_LEFT
-#   define LAMP_LEFT       BUTTON_MIDLEFT
-# endif
-# ifndef LAMP_RIGHT
-#   define LAMP_RIGHT      BUTTON_MIDRIGHT
-# endif
-# ifndef LAMP_UP
-#   define LAMP_UP         BUTTON_TOPMIDDLE
-# endif
-# ifndef LAMP_DOWN
-#   define LAMP_DOWN       BUTTON_BOTTOMMIDDLE
-# endif
-#endif
+
+#define LAMP_EXIT        PLA_EXIT
+#define LAMP_EXIT2       PLA_CANCEL
+
 
 #ifdef HAVE_LCD_COLOR
 /* RGB color sets */
-#define NUM_COLORSETS   2
+#define NUM_COLORSETS   9
 static unsigned colorset[NUM_COLORSETS] = {
     LCD_RGBPACK(255, 255, 255),    /* white */
     LCD_RGBPACK(255,   0,   0),    /* red */
+    LCD_RGBPACK(255, 165,   0),    /* orange */
+    LCD_RGBPACK(255, 255,   0),    /* yellow */
+    LCD_RGBPACK(  0, 255,   0),    /* green */
+    LCD_RGBPACK(  0,   0, 255),    /* blue */
+    LCD_RGBPACK( 75,   0, 130),    /* indigo */
+    LCD_RGBPACK(238, 130, 238),    /* violet */
+    LCD_RGBPACK(  0,   0,   0),    /* black */
 };
 #endif /* HAVE_LCD_COLOR */
 
@@ -175,6 +89,9 @@ enum plugin_status plugin_start(const void* parameter)
     int cs = 0;
     bool update = false;
 #endif /* HAVE_LCD_COLOR */
+#ifdef HAVE_BUTTON_LIGHT
+    bool buttonlight_on = true;
+#endif /* HAVE_BUTTON_LIGHT */
 
 #if LCD_DEPTH > 1
     unsigned bg_color = rb->lcd_get_background();
@@ -221,8 +138,10 @@ enum plugin_status plugin_start(const void* parameter)
             update = false;
         }
 #endif /* HAVE_LCD_COLOR */
+        button = pluginlib_getaction(HZ*30, plugin_contexts,
+                               ARRAYLEN(plugin_contexts));
 
-        switch((button = rb->button_get_w_tmo(HZ*30)))
+        switch(button)
         {
 #ifdef HAVE_LCD_COLOR
             case LAMP_RIGHT:
@@ -244,31 +163,44 @@ enum plugin_status plugin_start(const void* parameter)
 
 #ifdef HAVE_BACKLIGHT_BRIGHTNESS
             case LAMP_UP:
-            case (LAMP_UP|BUTTON_REPEAT):
+            case (LAMP_UP_REPEAT):
                 if (current_brightness < MAX_BRIGHTNESS_SETTING)
                     backlight_brightness_set(++current_brightness);
                 break;
 
             case LAMP_DOWN:
-            case (LAMP_DOWN|BUTTON_REPEAT):
+            case (LAMP_DOWN_REPEAT):
                 if (current_brightness > MIN_BRIGHTNESS_SETTING)
                     backlight_brightness_set(--current_brightness);
                 break;
 #endif /* HAVE_BACKLIGHT_BRIGHTNESS */
+#ifdef HAVE_BUTTON_LIGHT
+            case LAMP_TOGGLE_BUTTON:
+                if(buttonlight_on)
+                {
+                    buttonlight_force_off();
+                    buttonlight_on = false;
+                }
+                else
+                {
+                    buttonlight_force_on();
+                    buttonlight_on = true;
+                }
+                break;
+#endif /* HAVE_BUTTON_LIGHT */
+            case LAMP_EXIT:
+            case LAMP_EXIT2:
+                quit = true;
+                break;
             case BUTTON_NONE:
                 /* time out */
                 break;
-
             default:
                 if(rb->default_event_handler(button) == SYS_USB_CONNECTED)
                 {
                     status = PLUGIN_USB_CONNECTED;
                     quit = true;
                 }
-                if(!(button & (BUTTON_REL|BUTTON_REPEAT))
-                    && !IS_SYSEVENT(button))
-                    quit = true;
-                break;
         }
         rb->reset_poweroff_timer();
     } while (!quit);

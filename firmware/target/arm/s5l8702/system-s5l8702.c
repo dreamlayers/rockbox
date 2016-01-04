@@ -24,6 +24,10 @@
 #include "panic.h"
 #include "system-target.h"
 #include "pmu-target.h"
+#include "gpio-s5l8702.h"
+#include "dma-s5l8702.h"
+#include "uart-s5l8702.h"
+#include "clocking-s5l8702.h"
 
 #define default_interrupt(name) \
   extern __attribute__((weak,alias("UIRQ"))) void name (void)
@@ -32,22 +36,21 @@ void irq_handler(void) __attribute__((interrupt ("IRQ"), naked));
 void fiq_handler(void) __attribute__((interrupt ("FIQ"), naked, \
                                       weak, alias("fiq_dummy")));
 
-default_interrupt(INT_IRQ0);
-default_interrupt(INT_IRQ1);
-default_interrupt(INT_IRQ2);
-default_interrupt(INT_IRQ3);
+default_interrupt(INT_EXT0);    /* GPIOIC group 6 (GPIO 0..31) */
+default_interrupt(INT_EXT1);    /* GPIOIC group 5 (GPIO 32..63) */
+default_interrupt(INT_EXT2);    /* GPIOIC group 4 (GPIO 64..95) */
+default_interrupt(INT_EXT3);    /* GPIOIC group 3 (GPIO 96..123) */
 default_interrupt(INT_IRQ4);
 default_interrupt(INT_IRQ5);
 default_interrupt(INT_IRQ6);
-default_interrupt(INT_IRQ7);
-default_interrupt(INT_TIMERA);
-default_interrupt(INT_TIMERB);
-default_interrupt(INT_TIMERC);
-default_interrupt(INT_TIMERD);
-default_interrupt(INT_TIMERE);
+default_interrupt(INT_TIMERE);  /* IRQ7: 32-bit timers */
 default_interrupt(INT_TIMERF);
 default_interrupt(INT_TIMERG);
 default_interrupt(INT_TIMERH);
+default_interrupt(INT_TIMERA);  /* IRQ8: 16-bit timers */
+default_interrupt(INT_TIMERB);
+default_interrupt(INT_TIMERC);
+default_interrupt(INT_TIMERD);
 default_interrupt(INT_IRQ9);
 default_interrupt(INT_IRQ10);
 default_interrupt(INT_IRQ11);
@@ -55,38 +58,24 @@ default_interrupt(INT_IRQ12);
 default_interrupt(INT_IRQ13);
 default_interrupt(INT_IRQ14);
 default_interrupt(INT_IRQ15);
-default_interrupt(INT_DMAC0C0);
-default_interrupt(INT_DMAC0C1);
-default_interrupt(INT_DMAC0C2);
-default_interrupt(INT_DMAC0C3);
-default_interrupt(INT_DMAC0C4);
-default_interrupt(INT_DMAC0C5);
-default_interrupt(INT_DMAC0C6);
-default_interrupt(INT_DMAC0C7);
-default_interrupt(INT_DMAC1C0);
-default_interrupt(INT_DMAC1C1);
-default_interrupt(INT_DMAC1C2);
-default_interrupt(INT_DMAC1C3);
-default_interrupt(INT_DMAC1C4);
-default_interrupt(INT_DMAC1C5);
-default_interrupt(INT_DMAC1C6);
-default_interrupt(INT_DMAC1C7);
+default_interrupt(INT_DMAC0);
+default_interrupt(INT_DMAC1);
 default_interrupt(INT_IRQ18);
 default_interrupt(INT_USB_FUNC);
 default_interrupt(INT_IRQ20);
 default_interrupt(INT_IRQ21);
 default_interrupt(INT_IRQ22);
 default_interrupt(INT_WHEEL);
-default_interrupt(INT_IRQ24);
-default_interrupt(INT_IRQ25);
-default_interrupt(INT_IRQ26);
-default_interrupt(INT_IRQ27);
-default_interrupt(INT_IRQ28);
+default_interrupt(INT_UART0);
+default_interrupt(INT_UART1);
+default_interrupt(INT_UART2);
+default_interrupt(INT_UART3);
+default_interrupt(INT_IRQ28);   /* obsolete/not implemented UART4 ??? */
 default_interrupt(INT_ATA);
 default_interrupt(INT_IRQ30);
-default_interrupt(INT_IRQ31);
-default_interrupt(INT_IRQ32);
-default_interrupt(INT_IRQ33);
+default_interrupt(INT_EXT4);    /* GPIOIC group 2 (not used) */
+default_interrupt(INT_EXT5);    /* GPIOIC group 1 (not used) */
+default_interrupt(INT_EXT6);    /* GPIOIC group 0 */
 default_interrupt(INT_IRQ34);
 default_interrupt(INT_IRQ35);
 default_interrupt(INT_IRQ36);
@@ -97,7 +86,7 @@ default_interrupt(INT_IRQ40);
 default_interrupt(INT_IRQ41);
 default_interrupt(INT_IRQ42);
 default_interrupt(INT_IRQ43);
-default_interrupt(INT_IRQ44);
+default_interrupt(INT_MMC);
 default_interrupt(INT_IRQ45);
 default_interrupt(INT_IRQ46);
 default_interrupt(INT_IRQ47);
@@ -119,7 +108,7 @@ default_interrupt(INT_IRQ62);
 default_interrupt(INT_IRQ63);
 
 
-int current_irq;
+static int current_irq;
 
 
 void INT_TIMER(void) ICODE_ATTR;
@@ -129,47 +118,26 @@ void INT_TIMER()
     if (TBCON & (TBCON >> 4) & 0x7000) INT_TIMERB();
     if (TCCON & (TCCON >> 4) & 0x7000) INT_TIMERC();
     if (TDCON & (TDCON >> 4) & 0x7000) INT_TIMERD();
-    if (TFCON & (TFCON >> 4) & 0x7000) INT_TIMERF();
-    if (TGCON & (TGCON >> 4) & 0x7000) INT_TIMERG();
-    if (THCON & (THCON >> 4) & 0x7000) INT_TIMERH();
 }
 
-void INT_DMAC0(void) ICODE_ATTR;
-void INT_DMAC0()
+void INT_TIMER32(void) ICODE_ATTR;
+void INT_TIMER32()
 {
-    uint32_t intsts = DMAC0INTSTS;
-    if (intsts & 1) INT_DMAC0C0();
-    if (intsts & 2) INT_DMAC0C1();
-    if (intsts & 4) INT_DMAC0C2();
-    if (intsts & 8) INT_DMAC0C3();
-    if (intsts & 0x10) INT_DMAC0C4();
-    if (intsts & 0x20) INT_DMAC0C5();
-    if (intsts & 0x40) INT_DMAC0C6();
-    if (intsts & 0x80) INT_DMAC0C7();
-}
-
-void INT_DMAC1(void) ICODE_ATTR;
-void INT_DMAC1()
-{
-    uint32_t intsts = DMAC1INTSTS;
-    if (intsts & 1) INT_DMAC1C0();
-    if (intsts & 2) INT_DMAC1C1();
-    if (intsts & 4) INT_DMAC1C2();
-    if (intsts & 8) INT_DMAC1C3();
-    if (intsts & 0x10) INT_DMAC1C4();
-    if (intsts & 0x20) INT_DMAC1C5();
-    if (intsts & 0x40) INT_DMAC1C6();
-    if (intsts & 0x80) INT_DMAC1C7();
+    uint32_t tstat = TSTAT;
+    if ((TECON >> 12) & 0x7 & (tstat >> 24)) INT_TIMERE();
+    if ((TFCON >> 12) & 0x7 & (tstat >> 16)) INT_TIMERF();
+    if ((TGCON >> 12) & 0x7 & (tstat >> 8)) INT_TIMERG();
+    if ((THCON >> 12) & 0x7 & tstat) INT_TIMERH();
 }
 
 static void (* const irqvector[])(void) =
 {
-    INT_IRQ0,INT_IRQ1,INT_IRQ2,INT_IRQ3,INT_IRQ4,INT_IRQ5,INT_IRQ6,INT_IRQ7,
+    INT_EXT0,INT_EXT1,INT_EXT2,INT_EXT3,INT_IRQ4,INT_IRQ5,INT_IRQ6,INT_TIMER32,
     INT_TIMER,INT_IRQ9,INT_IRQ10,INT_IRQ11,INT_IRQ12,INT_IRQ13,INT_IRQ14,INT_IRQ15,
     INT_DMAC0,INT_DMAC1,INT_IRQ18,INT_USB_FUNC,INT_IRQ20,INT_IRQ21,INT_IRQ22,INT_WHEEL,
-    INT_IRQ24,INT_IRQ25,INT_IRQ26,INT_IRQ27,INT_IRQ28,INT_ATA,INT_IRQ30,INT_IRQ31,
-    INT_IRQ32,INT_IRQ33,INT_IRQ34,INT_IRQ35,INT_IRQ36,INT_IRQ37,INT_IRQ38,INT_IRQ39,
-    INT_IRQ40,INT_IRQ41,INT_IRQ42,INT_IRQ43,INT_IRQ55,INT_IRQ56,INT_IRQ57,INT_IRQ58,
+    INT_UART0,INT_UART1,INT_UART2,INT_UART3,INT_IRQ28,INT_ATA,INT_IRQ30,INT_EXT4,
+    INT_EXT5,INT_EXT6,INT_IRQ34,INT_IRQ35,INT_IRQ36,INT_IRQ37,INT_IRQ38,INT_IRQ39,
+    INT_IRQ40,INT_IRQ41,INT_IRQ42,INT_IRQ43,INT_MMC,INT_IRQ45,INT_IRQ46,INT_IRQ47,
     INT_IRQ48,INT_IRQ49,INT_IRQ50,INT_IRQ51,INT_IRQ52,INT_IRQ53,INT_IRQ54,INT_IRQ55,
     INT_IRQ56,INT_IRQ57,INT_IRQ58,INT_IRQ59,INT_IRQ60,INT_IRQ61,INT_IRQ62,INT_IRQ63
 };
@@ -200,7 +168,7 @@ void irq_handler(void)
             irqvector[current_irq]();
     VIC0ADDRESS = NULL;
     VIC1ADDRESS = NULL;
-        
+
     asm volatile(   "add   sp, sp, #8           \n"   /* Cleanup stack   */
                     "ldmfd sp!, {r0-r7, ip, lr} \n"   /* Restore context */
                     "subs  pc, lr, #4           \n"); /* Return from IRQ */
@@ -213,11 +181,35 @@ void fiq_dummy(void)
     );
 }
 
+static struct clocking_mode clk_modes[] =
+{
+   /* cdiv  hdiv  hprat  hsdiv */    /* CClk  HClk  PClk  SM1Clk  FPS */
+    { 1,    2,    2,     4 },        /* 216   108   54    27      42  */
+#ifdef HAVE_ADJUSTABLE_CPU_FREQ
+    { 4,    4,    2,     2 },        /* 54    54    27    27      21  */
+#endif
+};
+#define N_CLK_MODES (sizeof(clk_modes) / sizeof(struct clocking_mode))
+
+enum {
+    CLK_BOOST = 0,
+    CLK_UNBOOST = N_CLK_MODES - 1,
+};
 
 void system_init(void)
 {
+    clocking_init(clk_modes, 0);
+    gpio_init();
     pmu_init();
+    dma_init();
+#ifdef HAVE_SERIAL
+    uart_init();
+#endif
     VIC0INTENABLE = 1 << IRQ_WHEEL;
+    VIC0INTENABLE = 1 << IRQ_ATA;
+    VIC1INTENABLE = 1 << (IRQ_MMC - 32);
+    VIC0INTENABLE = 1 << IRQ_TIMER;
+    VIC0INTENABLE = 1 << IRQ_TIMER32;
 }
 
 void system_reboot(void)
@@ -247,7 +239,6 @@ int system_memory_guard(int newmode)
 }
 
 #ifdef HAVE_ADJUSTABLE_CPU_FREQ
-
 void set_cpu_frequency(long frequency)
 {
     if (cpu_frequency == frequency)
@@ -255,14 +246,34 @@ void set_cpu_frequency(long frequency)
 
     if (frequency == CPUFREQ_MAX)
     {
-        //TODO: Figure out and implement
+        pmu_write(0x1e, 0x13);  /* Vcore = 1100 mV */
+        set_clocking_level(CLK_BOOST);
     }
     else
     {
-        //TODO: Figure out and implement
+        set_clocking_level(CLK_UNBOOST);
+        pmu_write(0x1e, 0xf);   /* Vcore = 1000 mV */
     }
 
     cpu_frequency = frequency;
 }
-
 #endif
+
+static void set_page_tables(void)
+{
+    /* map RAM to itself and enable caching for it */
+    map_section(0, 0, 0x380, CACHE_ALL);
+
+    /* disable caching for I/O area */
+    map_section(0x38000000, 0x38000000, 0x80, CACHE_NONE);
+
+    /* map RAM uncached addresses */
+    map_section(0, S5L8702_UNCACHED_ADDR(0x0), 0x380, CACHE_NONE);
+}
+
+void memory_init(void)
+{
+    ttb_init();
+    set_page_tables();
+    enable_mmu();
+}

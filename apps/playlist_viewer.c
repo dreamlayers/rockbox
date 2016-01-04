@@ -48,6 +48,8 @@
 #include "list.h"
 #include "splash.h"
 #include "playlist_menu.h"
+#include "menus/exported_menus.h"
+#include "yesno.h"
 
 /* Maximum number of tracks we can have loaded at one time */
 #define MAX_PLAYLIST_ENTRIES 200
@@ -125,16 +127,14 @@ static void format_line(const struct playlist_entry* track, char* str,
 
 static bool update_playlist(bool force);
 static int  onplay_menu(int index);
-static bool viewer_menu(void);
-static int save_playlist_func(void);
 
 static void playlist_buffer_init(struct playlist_buffer *pb, char *names_buffer,
                                  int names_buffer_size)
 {
-    pb->name_buffer=names_buffer;
-    pb->buffer_size=names_buffer_size;
-    pb->first_index=0;
-    pb->num_loaded=0;
+    pb->name_buffer = names_buffer;
+    pb->buffer_size = names_buffer_size;
+    pb->first_index = 0;
+    pb->num_loaded = 0;
 }
 
 /*
@@ -152,7 +152,7 @@ static void playlist_buffer_load_entries(struct playlist_buffer *pb, int index,
     if (num_entries > MAX_PLAYLIST_ENTRIES)
         num_entries = MAX_PLAYLIST_ENTRIES;
 
-    for(i=0; i<num_entries; i++)
+    for (i = 0; i < num_entries; i++)
     {
         int len = playlist_entry_load(&(pb->tracks[i]), index, p, remaining);
         if (len < 0)
@@ -165,32 +165,41 @@ static void playlist_buffer_load_entries(struct playlist_buffer *pb, int index,
         p += len;
         remaining -= len;
 
-        if(direction==FORWARD)
+        if(direction == FORWARD)
             index++;
         else
             index--;
-        index+=viewer.num_tracks;
-        index%=viewer.num_tracks;
+        index += viewer.num_tracks;
+        index %= viewer.num_tracks;
     }
-    pb->direction=direction;
+    pb->direction = direction;
     pb->num_loaded = i;
 }
 
+/* playlist_buffer_load_entries_screen()
+ *      This function is called when the currently selected item gets too close
+ *      to the start or the end of the loaded part of the playlis, or when
+ *      the list callback requests a playlist item that has not been loaded yet
+ *
+ *      reference_track is either the currently selected track, or the track that
+ *      has been requested by the callback, and has not been loaded yet.
+ */
 static void playlist_buffer_load_entries_screen(struct playlist_buffer * pb,
-                                                enum direction direction)
+                                                enum direction direction,
+                                                int reference_track)
 {
-    if(direction==FORWARD)
+    if (direction == FORWARD)
     {
-        int min_start=viewer.selected_track-2*screens[0].getnblines();
-        while(min_start<0)
-            min_start+=viewer.num_tracks;
+        int min_start = reference_track-2*screens[0].getnblines();
+        while (min_start < 0)
+            min_start += viewer.num_tracks;
         min_start %= viewer.num_tracks;
         playlist_buffer_load_entries(pb, min_start, FORWARD);
     }
-     else
+    else
     {
-        int max_start=viewer.selected_track+2*screens[0].getnblines();
-        max_start%=viewer.num_tracks;
+        int max_start = reference_track+2*screens[0].getnblines();
+        max_start %= viewer.num_tracks;
         playlist_buffer_load_entries(pb, max_start, BACKWARD);
     }
 }
@@ -227,22 +236,22 @@ static int playlist_entry_load(struct playlist_entry *entry, int index,
 static int playlist_buffer_get_index(struct playlist_buffer *pb, int index)
 {
     int buffer_index;
-    if(pb->direction==FORWARD)
+    if (pb->direction == FORWARD)
     {
-        if(index>=pb->first_index)
-            buffer_index=index-pb->first_index;
+        if (index >= pb->first_index)
+            buffer_index = index-pb->first_index;
         else /* rotation : track0 in buffer + requested track */
-            buffer_index=(viewer.num_tracks-pb->first_index)+(index);
+            buffer_index = viewer.num_tracks-pb->first_index+index;
     }
     else
     {
-        if(index<=pb->first_index)
-            buffer_index=pb->first_index-index;
+        if (index <= pb->first_index)
+            buffer_index = pb->first_index-index;
         else /* rotation : track0 in buffer + dist from the last track
                 to the requested track (num_tracks-requested track) */
-            buffer_index=(pb->first_index)+(viewer.num_tracks-index);
+            buffer_index = pb->first_index+viewer.num_tracks-index;
     }
-    return(buffer_index);
+    return buffer_index;
 }
 
 #define distance(a, b) \
@@ -250,24 +259,49 @@ static int playlist_buffer_get_index(struct playlist_buffer *pb, int index)
 static bool playlist_buffer_needs_reload(struct playlist_buffer* pb,
                                          int track_index)
 {
-    if(pb->num_loaded==viewer.num_tracks)
-        return(false);
-    int selected_index=playlist_buffer_get_index(pb, track_index);
-    int first_buffer_index=playlist_buffer_get_index(pb, pb->first_index);
-    int distance_beginning=distance(selected_index, first_buffer_index);
-    if(distance_beginning<MIN_BUFFER_MARGIN)
-        return(true);
+    if (pb->num_loaded == viewer.num_tracks)
+        return false;
+    int selected_index = playlist_buffer_get_index(pb, track_index);
+    int first_buffer_index = playlist_buffer_get_index(pb, pb->first_index);
+    int distance_beginning = distance(selected_index, first_buffer_index);
+    if (distance_beginning < MIN_BUFFER_MARGIN)
+        return true;
 
-    if(pb->num_loaded - distance_beginning < MIN_BUFFER_MARGIN)
-       return(true);
-    return(false);
+    if (pb->num_loaded - distance_beginning < MIN_BUFFER_MARGIN)
+       return true;
+    return false;
 }
 
 static struct playlist_entry * playlist_buffer_get_track(struct playlist_buffer *pb,
                                                          int index)
 {
-    int buffer_index=playlist_buffer_get_index(pb, index);
-    return(&(pb->tracks[buffer_index]));
+    int buffer_index = playlist_buffer_get_index(pb, index);
+    /* Make sure that we are not returning an invalid pointer.
+       In some cases, when scrolling really fast, it could happen that a reqested track
+       has not been pre-loaded */
+    if (buffer_index < 0) {
+        playlist_buffer_load_entries_screen(&viewer.buffer,
+                    pb->direction == FORWARD ? BACKWARD : FORWARD,
+                    index);
+
+    } else if (buffer_index >= pb->num_loaded) {
+        playlist_buffer_load_entries_screen(&viewer.buffer,
+                    pb->direction,
+                    index);
+    }
+    buffer_index = playlist_buffer_get_index(pb, index);
+    if (buffer_index < 0 || buffer_index >= pb->num_loaded) {
+        /* This really shouldn't happen. If this happens, then
+           the name_buffer is probably too small to store enough
+           titles to fill the screen, and preload data in the short
+           direction.
+          
+           If this happens then scrolling performance will probably
+           be quite low, but it's better then having Data Abort errors */
+        playlist_buffer_load_entries(pb, index, FORWARD);
+        buffer_index = playlist_buffer_get_index(pb, index);
+    }
+    return &(pb->tracks[buffer_index]);
 }
 
 /* Initialize the playlist viewer. */
@@ -344,7 +378,7 @@ static bool playlist_viewer_init(struct playlist_viewer * viewer,
         buffer += index_buffer_size;
         buffer_size -= index_buffer_size;
     }
-    playlist_buffer_init(&viewer->buffer, buffer, buffer_size );
+    playlist_buffer_init(&viewer->buffer, buffer, buffer_size);
 
     viewer->moving_track = -1;
     viewer->moving_playlist_index = -1;
@@ -414,8 +448,8 @@ static bool update_playlist(bool force)
         playlist_get_resume_info(&viewer.current_playing_track);
     else
         viewer.current_playing_track = -1;
-    int nb_tracks=playlist_amount_ex(viewer.playlist);
-    force=force || nb_tracks != viewer.num_tracks;
+    int nb_tracks = playlist_amount_ex(viewer.playlist);
+    force = force || nb_tracks != viewer.num_tracks;
     if (force)
     {
         /* Reload tracks */
@@ -424,13 +458,16 @@ static bool update_playlist(bool force)
         {
             global_status.resume_index = -1;
             global_status.resume_offset = -1;
+            global_status.resume_elapsed = -1;
             return false;
         }
-        playlist_buffer_load_entries_screen(&viewer.buffer, FORWARD);
+        playlist_buffer_load_entries_screen(&viewer.buffer, FORWARD,
+                          viewer.selected_track);
         if (viewer.buffer.num_loaded <= 0)
         {
             global_status.resume_index = -1;
             global_status.resume_offset = -1;
+            global_status.resume_elapsed = -1;
             return false;
         }
     }
@@ -438,16 +475,17 @@ static bool update_playlist(bool force)
 }
 
 /* Menu of playlist commands.  Invoked via ON+PLAY on main viewer screen.
-   Returns -1 if USB attached, 0 if no playlist change, and 1 if playlist
-   changed. */
+   Returns -1 if USB attached, 0 if no playlist change, 1 if playlist
+   changed, 2 if a track was removed from the playlist */
 static int onplay_menu(int index)
 {
     int result, ret = 0;
-    struct playlist_entry * current_track=
+    struct playlist_entry * current_track =
         playlist_buffer_get_track(&viewer.buffer, index);
     MENUITEM_STRINGLIST(menu_items, ID2P(LANG_PLAYLIST), NULL, 
-                        ID2P(LANG_REMOVE), ID2P(LANG_MOVE),
-                        ID2P(LANG_CATALOG_ADD_TO), ID2P(LANG_CATALOG_ADD_TO_NEW),
+                        ID2P(LANG_CURRENT_PLAYLIST), ID2P(LANG_CATALOG),
+                        ID2P(LANG_REMOVE), ID2P(LANG_MOVE), ID2P(LANG_SHUFFLE),
+                        ID2P(LANG_SAVE_DYNAMIC_PLAYLIST),
                         ID2P(LANG_PLAYLISTVIEWER_SETTINGS));
     bool current = (current_track->index == viewer.current_playing_track);
 
@@ -465,6 +503,16 @@ static int onplay_menu(int index)
         switch (result)
         {
             case 0:
+                /* playlist */
+                onplay_show_playlist_menu(current_track->name);
+                ret = 0;
+                break;
+            case 1:
+                /* add to catalog */
+                onplay_show_playlist_cat_menu(current_track->name);
+                ret = 0;
+                break;
+            case 2:
                 /* delete track */
                 playlist_delete(viewer.playlist, current_track->index);
                 if (current)
@@ -480,58 +528,37 @@ static int onplay_menu(int index)
                         if (current_track->display_index!=viewer.num_tracks ||
                             global_settings.repeat_mode == REPEAT_ALL)
                         {
-#if CONFIG_CODEC != SWCODEC
-                            talk_buffer_steal(); /* will use the mp3 buffer */
-#endif
-                            audio_play(0);
+                            audio_play(0, 0);
                             viewer.current_playing_track = -1;
                         }
                     }
                 }
-                ret = 1;
+                ret = 2;
                 break;
-            case 1:
+            case 3:
                 /* move track */
                 viewer.moving_track = index;
                 viewer.moving_playlist_index = current_track->index;
                 ret = 0;
                 break;
-            case 2: /* add to catalog */
-            case 3: /* add to a new one */
-                catalog_add_to_a_playlist(current_track->name,
-                                          FILE_ATTR_AUDIO,
-                                          result==3, NULL);
+            case 4:
+                /* shuffle */
+                playlist_randomise(viewer.playlist, current_tick, false);
+                ret = 1;
+                break;
+            case 5:
+                /* save playlist */
+                save_playlist_screen(viewer.playlist);
                 ret = 0;
                 break;
-            case 4: /* playlist viewer settings */
-                /* true on usb connect */
-                ret = viewer_menu() ? -1 : 0;
+            case 6:
+                /* playlist viewer settings */
+                result = do_menu(&viewer_settings_menu, NULL, NULL, false);
+                ret = (result == MENU_ATTACHED_USB) ? -1 : 0;
                 break;
         }
     }
     return ret;
-}
-
-/* Menu of viewer options.  Invoked via F1(r) or Menu(p). */
-MENUITEM_SETTING(show_icons, &global_settings.playlist_viewer_icons, NULL);
-MENUITEM_SETTING(show_indices, &global_settings.playlist_viewer_indices, NULL);
-MENUITEM_SETTING(track_display, 
-                 &global_settings.playlist_viewer_track_display, NULL);
-MENUITEM_FUNCTION(save_playlist_item, 0, ID2P(LANG_SAVE_DYNAMIC_PLAYLIST),
-                  save_playlist_func, 0, NULL, Icon_NOICON);
-MAKE_MENU(viewer_settings_menu, ID2P(LANG_PLAYLISTVIEWER_SETTINGS), 
-          NULL, Icon_Playlist,
-          &show_icons, &show_indices, &track_display, &save_playlist_item);
-static bool viewer_menu(void)
-{
-    return do_menu(&viewer_settings_menu, NULL, NULL, false) == MENU_ATTACHED_USB;
-}
-
-/* Save playlist to disk */
-static int save_playlist_func(void)
-{
-    save_playlist_screen(viewer.playlist);
-    return 0;
 }
 
 /* View current playlist */
@@ -540,22 +567,22 @@ enum playlist_viewer_result playlist_viewer(void)
     return playlist_viewer_ex(NULL);
 }
 
-static int get_track_num( struct playlist_viewer * local_viewer,
-                          int selected_item )
+static int get_track_num(struct playlist_viewer *local_viewer,
+                         int selected_item)
 {
-    if( local_viewer->moving_track >= 0 )
+    if (local_viewer->moving_track >= 0)
     {
-        if( local_viewer->selected_track == selected_item )
+        if (local_viewer->selected_track == selected_item)
         {
             return local_viewer->moving_track;
         }
-        else if( local_viewer->selected_track > selected_item
-             && selected_item >= local_viewer->moving_track )
+        else if (local_viewer->selected_track > selected_item
+            && selected_item >= local_viewer->moving_track)
         {
             return selected_item+1; /* move down */
         }
-        else if( local_viewer->selected_track < selected_item
-              && selected_item <= local_viewer->moving_track )
+        else if (local_viewer->selected_track < selected_item
+            && selected_item <= local_viewer->moving_track)
         {
             return selected_item-1; /* move up */
         }
@@ -568,11 +595,11 @@ static const char* playlist_callback_name(int selected_item,
                                           char *buffer,
                                           size_t buffer_len)
 {
-    struct playlist_viewer * local_viewer = (struct playlist_viewer *)data;
+    struct playlist_viewer *local_viewer = (struct playlist_viewer *)data;
 
     int track_num = get_track_num(local_viewer, selected_item);
     struct playlist_entry *track =
-       playlist_buffer_get_track(&(local_viewer->buffer), track_num);
+        playlist_buffer_get_track(&(local_viewer->buffer), track_num);
 
     format_line(track, buffer, buffer_len);
 
@@ -583,10 +610,10 @@ static const char* playlist_callback_name(int selected_item,
 static enum themable_icons playlist_callback_icons(int selected_item,
                                                    void *data)
 {
-    struct playlist_viewer * local_viewer=(struct playlist_viewer *)data;
+    struct playlist_viewer *local_viewer = (struct playlist_viewer *)data;
 
     int track_num = get_track_num(local_viewer, selected_item);
-    struct playlist_entry *track=
+    struct playlist_entry *track =
         playlist_buffer_get_track(&(local_viewer->buffer), track_num);
 
     if (track->index == local_viewer->current_playing_track)
@@ -608,19 +635,50 @@ static enum themable_icons playlist_callback_icons(int selected_item,
         return Icon_NOICON;
 }
 
+static int playlist_callback_voice(int selected_item, void *data)
+{
+    struct playlist_viewer *local_viewer = (struct playlist_viewer *)data;
+
+    int track_num = get_track_num(local_viewer, selected_item);
+    struct playlist_entry *track =
+        playlist_buffer_get_track(&(local_viewer->buffer), track_num);
+
+    bool enqueue = false;
+
+    if (global_settings.talk_file_clip || global_settings.talk_file == 2)
+    {
+        if (global_settings.playlist_viewer_indices)
+        {
+            talk_number(track->display_index, false);
+            enqueue = true;
+        }
+        talk_file_or_spell(NULL, track->name, NULL, enqueue);
+    }
+    else if (global_settings.talk_file == 1) /* as numbers */
+    {
+        talk_id(VOICE_FILE, false);
+        talk_number(track->display_index, true);
+    }
+
+    return 0;
+}
+
 /* Main viewer function.  Filename identifies playlist to be viewed.  If NULL,
    view current playlist. */
 enum playlist_viewer_result playlist_viewer_ex(const char* filename)
 {
     enum playlist_viewer_result ret = PLAYLIST_VIEWER_OK;
-    bool exit=false;        /* exit viewer */
+    bool exit = false;        /* exit viewer */
     int button;
+    bool dirty = false;
     struct gui_synclist playlist_lists;
     if (!playlist_viewer_init(&viewer, filename, false))
         goto exit;
 
+    push_current_activity(ACTIVITY_PLAYLISTVIEWER);
     gui_synclist_init(&playlist_lists, playlist_callback_name,
                       &viewer, false, 1, NULL);
+    gui_synclist_set_voice_callback(&playlist_lists, playlist_callback_voice);
     gui_synclist_set_icon_callback(&playlist_lists,
                   global_settings.playlist_viewer_icons?
                   &playlist_callback_icons:NULL);
@@ -628,6 +686,7 @@ enum playlist_viewer_result playlist_viewer_ex(const char* filename)
     gui_synclist_set_title(&playlist_lists, str(LANG_PLAYLIST), Icon_Playlist);
     gui_synclist_select_item(&playlist_lists, viewer.selected_track);
     gui_synclist_draw(&playlist_lists);
+    gui_synclist_speak_item(&playlist_lists);
     while (!exit)
     {
         int track;
@@ -664,7 +723,8 @@ enum playlist_viewer_result playlist_viewer_ex(const char* filename)
                     viewer.selected_track);
             if (reload)
                 playlist_buffer_load_entries_screen(&viewer.buffer,
-                    button == ACTION_STD_NEXT ? FORWARD : BACKWARD);
+                    button == ACTION_STD_NEXT ? FORWARD : BACKWARD,
+                    viewer.selected_track);
             if (reload || viewer.moving_track >= 0)
                 gui_synclist_draw(&playlist_lists);
         }
@@ -682,7 +742,10 @@ enum playlist_viewer_result playlist_viewer_ex(const char* filename)
                     gui_synclist_draw(&playlist_lists);
                 }
                 else
+                {
                     exit = true;
+                    ret = PLAYLIST_VIEWER_CANCEL;
+                }
                 break;
             }
             case ACTION_STD_OK:
@@ -705,24 +768,36 @@ enum playlist_viewer_result playlist_viewer_ex(const char* filename)
                     update_playlist(true);
                     viewer.moving_track = -1;
                     viewer.moving_playlist_index = -1;
+                    dirty = true;
                 }
                 else if (!viewer.playlist)
                 {
                     /* play new track */
-                    playlist_start(current_track->index, 0);
-                    update_playlist(false);
+                    if (!global_settings.party_mode)
+                    {
+                        playlist_start(current_track->index, 0, 0);
+                        update_playlist(false);
+                    }
                 }
-                else
+                else if (!global_settings.party_mode)
                 {
+                    int start_index = current_track->index;
+                    if (!warn_on_pl_erase())
+                    {
+                        gui_synclist_draw(&playlist_lists);
+                        break;
+                    }
                     /* New playlist */
                     if (playlist_set_current(viewer.playlist) < 0)
                         goto exit;
-
-                    playlist_start(current_track->index, 0);
+                    if (global_settings.playlist_shuffle)
+                        start_index = playlist_shuffle(current_tick, start_index);
+                    playlist_start(start_index, 0, 0);
 
                     /* Our playlist is now the current list */
                     if (!playlist_viewer_init(&viewer, NULL, true))
                         goto exit;
+                    exit = true;
                 }
                 gui_synclist_draw(&playlist_lists);
 
@@ -743,13 +818,20 @@ enum playlist_viewer_result playlist_viewer_ex(const char* filename)
                 else if (ret_val > 0)
                 {
                     /* Playlist changed */
-                    gui_synclist_del_item(&playlist_lists);
+                    if (ret_val == 2)
+                        gui_synclist_del_item(&playlist_lists);
                     update_playlist(true);
                     if (viewer.num_tracks <= 0)
                         exit = true;
-                    if(viewer.selected_track >= viewer.num_tracks)
+                    if (viewer.selected_track >= viewer.num_tracks)
                         viewer.selected_track = viewer.num_tracks-1;
+                    dirty = true;
                 }
+                /* the show_icons option in the playlist viewer settings
+                 * menu might have changed */
+                gui_synclist_set_icon_callback(&playlist_lists,
+                              global_settings.playlist_viewer_icons?
+                              &playlist_callback_icons:NULL);
                 gui_synclist_draw(&playlist_lists);
                 break;
             }
@@ -767,8 +849,13 @@ enum playlist_viewer_result playlist_viewer_ex(const char* filename)
     }
 
 exit:
+    pop_current_activity();
     if (viewer.playlist)
+    {
+        if(dirty && yesno_pop(ID2P(LANG_SAVE_CHANGES)))
+            save_playlist_screen(viewer.playlist);
         playlist_close(viewer.playlist);
+    }
     return ret;
 }
 
@@ -803,7 +890,8 @@ bool search_playlist(void)
 
     cpu_boost(true);
 
-    for (i=0; (i<playlist_count)&&(found_indicies_count<MAX_PLAYLIST_ENTRIES); i++)
+    for (i = 0; i < playlist_count &&
+        found_indicies_count < MAX_PLAYLIST_ENTRIES; i++)
     {
         if (found_indicies_count != last_found_count)
         {
@@ -852,13 +940,13 @@ bool search_playlist(void)
             case ACTION_STD_OK:
             {
                 int sel = gui_synclist_get_sel_pos(&playlist_lists);
-                playlist_start(found_indicies[sel] ,0);
+                playlist_start(found_indicies[sel], 0, 0);
                 exit = 1;
             }
-            break;
+                break;
 
             default:
-                if(default_event_handler(button) == SYS_USB_CONNECTED)
+                if (default_event_handler(button) == SYS_USB_CONNECTED)
                 {
                     ret = true;
                     exit = true;
@@ -868,4 +956,3 @@ bool search_playlist(void)
     }
     return ret;
 }
-

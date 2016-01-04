@@ -2,8 +2,6 @@
  * This config file is for toshiba Gigabeat S
  */
 
-#define TARGET_TREE /* this target is using the target tree system */
-
 #define TOSHIBA_GIGABEAT_S 1
 
 #define MODEL_NAME "Toshiba Gigabeat S"
@@ -17,6 +15,9 @@
 
 /* define this if you use an ATA controller */
 #define CONFIG_STORAGE STORAGE_ATA
+
+/* For the Gigabeat S, we mount the second partition */
+#define CONFIG_DEFAULT_PARTNUM 1
 
 /*define this if the ATA controller and method of USB access support LBA48 */
 #define HAVE_LBA48
@@ -39,9 +40,6 @@
 /* define this if you have access to the quickscreen */
 #define HAVE_QUICKSCREEN
 
-/* define this if you have access to the pitchscreen */
-#define HAVE_PITCHSCREEN
-
 /* define this if you would like tagcache to build on this target */
 #define HAVE_TAGCACHE
 
@@ -51,6 +49,8 @@
 /* LCD dimensions */
 #define LCD_WIDTH  240
 #define LCD_HEIGHT 320
+/* sqrt(240^2 + 320^2) / 2.4 = 166.7 */
+#define LCD_DPI 167
 #define LCD_DEPTH  16   /* 65k colours */
 #define LCD_PIXELFORMAT RGB565 /* rgb565 */
 
@@ -84,8 +84,13 @@
 /* The number of bytes reserved for loadable plugins */
 #define PLUGIN_BUFFER_SIZE 0x80000
 
+#define AB_REPEAT_ENABLE
+
 /* Define this if you have a SI4700 fm radio tuner */
 #define CONFIG_TUNER SI4700
+
+#define HAVE_RDS_CAP
+#define RDS_ISR_PROCESSING
 
 /* Define this if you have the WM8978 audio codec */
 #define HAVE_WM8978
@@ -159,7 +164,7 @@
 #define GPIO_EVENT_MASK (USE_GPIO1_EVENTS)
 
 /* Define this if target has an additional number of threads specific to it */
-#define TARGET_EXTRA_THREADS 2
+#define TARGET_EXTRA_THREADS 1
 
 /* Type of mobile power - check this out */
 #define BATTERY_CAPACITY_DEFAULT 700 /* default battery capacity */
@@ -167,6 +172,8 @@
 #define BATTERY_CAPACITY_MAX    1200 /* max. capacity selectable */
 #define BATTERY_CAPACITY_INC      25 /* capacity increment */
 #define BATTERY_TYPES_COUNT        1 /* only one type */
+
+#define CONFIG_BATTERY_MEASURE VOLTAGE_MEASURE
 
 /* TODO: have a proper status displayed in the bootloader and have it
  * work! */
@@ -188,19 +195,19 @@
 
 #define FREQ cpu_frequency
 
+/* Button that exposures boot partition rather than data during session */
+#define USB_BL_INSTALL_MODE_BTN     BUTTON_VOL_DOWN
+
 /* define this if the unit can be powered or charged via USB */
 #define HAVE_USB_POWER
 #define USBPOWER_BUTTON             BUTTON_MENU
 
 #ifndef BOOTLOADER
-#define USBPOWER_BTN_IGNORE         BUTTON_POWER
+#define USBPOWER_BTN_IGNORE         USB_BL_INSTALL_MODE_BTN
 #else
 /* Disable charging-only mode detection in bootloader */
 #define USBPOWER_BTN_IGNORE         (BUTTON_MAIN | BUTTON_REMOTE)
 #endif
-
-/* Button that exposures boot partition rather than data during session */
-#define USB_BL_INSTALL_MODE_BTN     BUTTON_VOL_DOWN
 
 /* define this if the unit has a battery switch or battery can be removed
  * when running */
@@ -210,13 +217,16 @@
 #define CONFIG_USBOTG USBOTG_ARC
 
 /* enable these for the usb stack */
-#define USE_ROCKBOX_USB
 #define HAVE_USBSTACK
 /* usb stack and driver settings */
 #define USB_PORTSCX_PHY_TYPE PORTSCX_PTS_ULPI
 #define USB_VENDOR_ID 0x0930
 #define USB_PRODUCT_ID 0x0010
 #define HAVE_USB_HID_MOUSE
+#ifdef BOOTLOADER
+/* enable bootloader USB mode - ONLY define when also BOOTLOADER */
+#define HAVE_BOOTLOADER_USB_MODE
+#endif
 
 /* Define this if you have ATA power-off control */
 #define HAVE_ATA_POWER_OFF
@@ -224,7 +234,7 @@
 /* Define this to add support for ATA DMA */
 #define HAVE_ATA_DMA
 
-#define CONFIG_LCD LCD_GIGABEAT
+#define CONFIG_LCD LCD_GIGABEATS
 
 /* Offset ( in the firmware file's header ) to the file CRC */
 #define FIRMWARE_OFFSET_FILE_CRC 0

@@ -33,63 +33,9 @@ static unsigned int storage_drivers[NUM_DRIVES];
 static unsigned int num_drives;
 #endif
 
-
-#ifdef HAVE_IO_PRIORITY
-
-/* Same for flash? */
-#define STORAGE_MINIMUM_IDLE_TIME (HZ/10)
-#define STORAGE_DELAY_UNIT  (HZ/20)
-
-static unsigned int storage_last_thread[NUM_DRIVES];
-static unsigned int storage_last_activity[NUM_DRIVES];
-
-static bool storage_should_wait(int drive, int prio)
-{
-    int other_prio = thread_get_io_priority(storage_last_thread[drive]);
-    if(TIME_BEFORE(current_tick,storage_last_activity[drive]+STORAGE_MINIMUM_IDLE_TIME))
-    {
-        if(prio<=other_prio)
-        {
-            /* There is another active thread, but we have lower priority */
-            return false;
-        }
-        else
-        {
-            /* There is another active thread, but it has lower priority */
-            return true;
-        }
-    }
-    else
-    {
-        /* There's nothing going on anyway */
-        return false;
-    }
-}
-
-static void storage_wait_turn(IF_MD_NONVOID(int drive))
-{
-#ifndef HAVE_MULTIDRIVE
-    int drive=0;
-#endif
-    int my_prio = thread_get_io_priority(THREAD_ID_CURRENT);
-    int loops=my_prio;
-    while(storage_should_wait(drive, my_prio) && (loops--)>=0)
-    {
-        sleep(STORAGE_DELAY_UNIT);
-    }
-
-    storage_last_thread[drive] = thread_get_current();
-    storage_last_activity[drive] = current_tick;
-}
-#endif
-
-int storage_read_sectors(IF_MD2(int drive,) unsigned long start, int count,
+int storage_read_sectors(IF_MD(int drive,) unsigned long start, int count,
                          void* buf)
 {
-#ifdef HAVE_IO_PRIORITY
-    storage_wait_turn(IF_MD(drive));
-#endif
-
 #ifdef CONFIG_STORAGE_MULTI
     int driver=(storage_drivers[drive] & DRIVER_MASK)>>DRIVER_OFFSET;
     int ldrive=(storage_drivers[drive] & DRIVE_MASK)>>DRIVE_OFFSET;
@@ -98,44 +44,40 @@ int storage_read_sectors(IF_MD2(int drive,) unsigned long start, int count,
     {
 #if (CONFIG_STORAGE & STORAGE_ATA)
     case STORAGE_ATA:
-        return ata_read_sectors(IF_MD2(ldrive,) start,count,buf);
+        return ata_read_sectors(IF_MD(ldrive,) start,count,buf);
 #endif
 
 #if (CONFIG_STORAGE & STORAGE_MMC)
     case STORAGE_MMC:
-        return mmc_read_sectors(IF_MD2(ldrive,) start,count,buf);
+        return mmc_read_sectors(IF_MD(ldrive,) start,count,buf);
 #endif
 
 #if (CONFIG_STORAGE & STORAGE_SD)
     case STORAGE_SD:
-        return sd_read_sectors(IF_MD2(ldrive,) start,count,buf);
+        return sd_read_sectors(IF_MD(ldrive,) start,count,buf);
 #endif
 
 #if (CONFIG_STORAGE & STORAGE_NAND)
     case STORAGE_NAND:
-        return nand_read_sectors(IF_MD2(ldrive,) start,count,buf);
+        return nand_read_sectors(IF_MD(ldrive,) start,count,buf);
 #endif
 
 #if (CONFIG_STORAGE & STORAGE_RAMDISK)
     case STORAGE_RAMDISK:
-        return ramdisk_read_sectors(IF_MD2(ldrive,) start,count,buf);
+        return ramdisk_read_sectors(IF_MD(ldrive,) start,count,buf);
 #endif
     }
     
     return -1;
 #else /* CONFIG_STORAGE_MULTI */
-    return STORAGE_FUNCTION(read_sectors)(IF_MD2(drive,)start,count,buf);
+    return STORAGE_FUNCTION(read_sectors)(IF_MD(drive,)start,count,buf);
 #endif /* CONFIG_STORAGE_MULTI */
 
 }
 
-int storage_write_sectors(IF_MD2(int drive,) unsigned long start, int count,
+int storage_write_sectors(IF_MD(int drive,) unsigned long start, int count,
                           const void* buf)
 {
-#ifdef HAVE_IO_PRIORITY
-    storage_wait_turn(IF_MD(drive));
-#endif
-
 #ifdef CONFIG_STORAGE_MULTI
     int driver=(storage_drivers[drive] & DRIVER_MASK)>>DRIVER_OFFSET;
     int ldrive=(storage_drivers[drive] & DRIVE_MASK)>>DRIVE_OFFSET;
@@ -144,33 +86,33 @@ int storage_write_sectors(IF_MD2(int drive,) unsigned long start, int count,
     {
 #if (CONFIG_STORAGE & STORAGE_ATA)
     case STORAGE_ATA:
-        return ata_write_sectors(IF_MD2(ldrive,)start,count,buf);
+        return ata_write_sectors(IF_MD(ldrive,)start,count,buf);
 #endif
 
 #if (CONFIG_STORAGE & STORAGE_MMC)
     case STORAGE_MMC:
-        return mmc_write_sectors(IF_MD2(ldrive,)start,count,buf);
+        return mmc_write_sectors(IF_MD(ldrive,)start,count,buf);
 #endif
 
 #if (CONFIG_STORAGE & STORAGE_SD)
     case STORAGE_SD:
-        return sd_write_sectors(IF_MD2(ldrive,)start,count,buf);
+        return sd_write_sectors(IF_MD(ldrive,)start,count,buf);
 #endif
 
 #if (CONFIG_STORAGE & STORAGE_NAND)
     case STORAGE_NAND:
-        return nand_write_sectors(IF_MD2(ldrive,)start,count,buf);
+        return nand_write_sectors(IF_MD(ldrive,)start,count,buf);
 #endif
 
 #if (CONFIG_STORAGE & STORAGE_RAMDISK)
     case STORAGE_RAMDISK:
-        return ramdisk_write_sectors(IF_MD2(ldrive,)start,count,buf);
+        return ramdisk_write_sectors(IF_MD(ldrive,)start,count,buf);
 #endif
     }
     
     return -1;
 #else /* CONFIG_STORAGE_MULTI */
-    return STORAGE_FUNCTION(write_sectors)(IF_MD2(drive,)start,count,buf);
+    return STORAGE_FUNCTION(write_sectors)(IF_MD(drive,)start,count,buf);
 #endif /* CONFIG_STORAGE_MULTI */
 }
 
@@ -188,6 +130,15 @@ static unsigned int num_drives;
 int storage_num_drives(void)
 {
     return num_drives;
+}
+
+int storage_driver_type(int drive)
+{
+    if ((unsigned int)drive >= num_drives)
+        return -1;
+
+    unsigned int bit = (storage_drivers[drive] & DRIVER_MASK)>>DRIVER_OFFSET;
+    return bit ? find_first_set_bit(bit) : -1;
 }
 
 int storage_init(void)
@@ -588,7 +539,7 @@ bool storage_removable(int drive)
     {
 #if (CONFIG_STORAGE & STORAGE_ATA)
     case STORAGE_ATA:
-        return ata_removable(ldrive);
+        return false;
 #endif
 
 #if (CONFIG_STORAGE & STORAGE_MMC)
@@ -625,7 +576,7 @@ bool storage_present(int drive)
     {
 #if (CONFIG_STORAGE & STORAGE_ATA)
     case STORAGE_ATA:
-        return ata_present(ldrive);
+        return true;
 #endif
 
 #if (CONFIG_STORAGE & STORAGE_MMC)

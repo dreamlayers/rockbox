@@ -36,6 +36,8 @@
 static bool storage_spinning = false;
 
 #if CONFIG_CODEC != SWCODEC
+#include "mp3_playback.h"
+
 void audio_set_buffer_margin(int seconds)
 {
      (void)seconds;
@@ -92,11 +94,14 @@ unsigned char* mp3_get_pos(void)
     return NULL;
 }
 
-void mp3_play_data(const unsigned char* start, int size,
-    void (*get_more)(unsigned char** start, size_t* size) /* callback fn */
-)
+void mp3_play_data(const void* start, size_t size,
+                   mp3_play_callback_t get_more)
 {
     (void)start; (void)size; (void)get_more;
+}
+
+void mp3_shutdown(void)
+{
 }
 
 /* firmware/drivers/audio/mas35xx.c */
@@ -140,11 +145,6 @@ void audiohw_set_superbass(int value)
 {
     (void)value;
 }
-
-void audiohw_set_pitch(unsigned long value)
-{
-    (void)value;
-}
 #endif /* (CONFIG_CODEC == MAS3587F) || (CONFIG_CODEC == MAS3539F) */
 #endif /* CODEC != SWCODEC */
 
@@ -153,10 +153,9 @@ int fat_startsector(void)
     return 63;
 }
 
-bool fat_ismounted(int volume)
+int ata_spinup_time(void)
 {
-    (void)volume;
-    return true;
+    return 100;
 }
 
 int storage_spinup_time(void)
@@ -169,7 +168,7 @@ int storage_init(void)
     return 1;
 }
 
-int storage_write_sectors(IF_MV2(int drive,)
+int storage_write_sectors(IF_MV(int drive,)
                       unsigned long start,
                       int count,
                       const void* buf)
@@ -184,20 +183,27 @@ int storage_write_sectors(IF_MV2(int drive,)
         sprintf(name,"sector%lX.bin",start+i);
         f=fopen(name,"wb");
         if (f) {
-            fwrite(buf,512,1,f);
+            if(fwrite(buf,512,1,f) != 1) {
+                fclose(f);
+                return -1;
+            }
             fclose(f);
         }
+        else {
+            return -1;
+        }
     }
-    return 1;
+    return 0;
 }
 
-int storage_read_sectors(IF_MV2(int drive,)
+int storage_read_sectors(IF_MV(int drive,)
                      unsigned long start,
                      int count,
                      void* buf)
 {
     IF_MV((void)drive;)
     int i;
+    size_t ret;
 
     for (i=0; i<count; i++ ) {
         FILE* f;
@@ -207,11 +213,13 @@ int storage_read_sectors(IF_MV2(int drive,)
         sprintf(name,"sector%lX.bin",start+i);
         f=fopen(name,"rb");
         if (f) {
-            fread(buf,512,1,f);
+            ret = fread(buf,512,1,f);
             fclose(f);
+            if (ret != 1)
+                return -1;
         }
     }
-    return 1;
+    return 0;
 }
 
 void storage_spin(void)
@@ -234,10 +242,6 @@ void storage_spindown(int s)
     storage_spinning = false;
 }
 
-void rtc_init(void)
-{
-}
-
 int rtc_read(int address)
 {
     return address ^ 0x55;
@@ -247,20 +251,6 @@ int rtc_write(int address, int value)
 {
     (void)address;
     (void)value;
-    return 0;
-}
-
-int rtc_read_datetime(struct tm *tm)
-{
-    time_t now = time(NULL);
-    *tm = *localtime(&now);
-
-    return 0;
-}
-
-int rtc_write_datetime(const struct tm *tm)
-{
-    (void)tm;
     return 0;
 }
 
@@ -323,7 +313,7 @@ bool is_new_player(void)
 #endif
 
 #ifdef HAVE_USB_POWER
-bool usb_powered(void)
+bool usb_powered_only(void)
 {
     return false;
 }
@@ -334,32 +324,6 @@ bool usb_charging_enable(bool on)
     return false;
 }
 #endif
-
-#if CONFIG_CHARGING
-bool charger_inserted(void)
-{
-    return false;
-}
-
-bool power_input_present(void)
-{
-    return false;
-}
-
-unsigned int power_input_status(void)
-{
-#ifdef HAVE_BATTERY_SWITCH
-    return POWER_INPUT_BATTERY;
-#else
-    return POWER_INPUT_NONE;
-#endif
-}
-
-bool charging_state(void)
-{
-    return false;
-}
-#endif /* CONFIG_CHARGING */
 
 #ifndef USB_NONE
 bool usb_inserted(void)
@@ -383,17 +347,6 @@ void lcd_set_contrast( int x )
 void mpeg_set_pitch(int pitch)
 {
     (void)pitch;
-}
-
-static int sleeptime;
-void set_sleep_timer(int seconds)
-{
-    sleeptime = seconds;
-}
-
-int get_sleep_timer(void)
-{
-    return sleeptime;
 }
 
 #ifdef HAVE_LCD_CHARCELLS
@@ -425,5 +378,19 @@ void cpu_sleep(bool enabled)
 void touchpad_set_sensitivity(int level)
 {
     (void)level;
+}
+#endif
+
+#if defined(HAVE_TOUCHSCREEN) && !defined(HAS_BUTTON_HOLD)
+void touchscreen_enable_device(bool en)
+{
+    (void)en;
+}
+#endif
+
+#if defined(HAVE_TOUCHPAD) && !defined(HAS_BUTTON_HOLD)
+void touchpad_enable_device(bool en)
+{
+    (void)en;
 }
 #endif

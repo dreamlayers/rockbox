@@ -5,7 +5,7 @@
  *   Jukebox    |    |   (  <_> )  \___|    < | \_\ (  <_> > <  <
  *   Firmware   |____|_  /\____/ \___  >__|_ \|___  /\____/__/\_ \
  *                     \/            \/     \/    \/            \/
- * $Id: dac.h 24158 2010-01-03 11:31:14Z Buschel $
+ * $Id$
  *
  * Copyright (C) 2002 by Linus Nielsen Feltzing
  *
@@ -37,7 +37,6 @@
 #define DAC_GCFG        3
 
 /* function prototypes */
-extern int  tenthdb2reg(int db);
 extern int  dac_volume(unsigned int left, unsigned int right, bool deemph);
 extern void dac_enable(bool enable);
 extern void dac_line_in(bool enable);

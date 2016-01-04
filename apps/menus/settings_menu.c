@@ -28,12 +28,14 @@
 #include "action.h"
 #include "settings.h"
 #include "menu.h"
+#include "keyboard.h"
 #include "sound_menu.h"
 #include "exported_menus.h"
 #include "tree.h"
 #include "tagtree.h"
 #include "usb.h"
 #include "splash.h"
+#include "yesno.h"
 #include "talk.h"
 #include "powermgmt.h"
 #if CONFIG_CODEC == SWCODEC
@@ -45,6 +47,12 @@
 #include "quickscreen.h"
 #ifdef HAVE_DIRCACHE
 #include "dircache.h"
+#endif
+#include "folder_select.h"
+
+#if defined(DX50) || defined(DX90)
+#include "governor-ibasso.h"
+#include "usb-ibasso.h"
 #endif
 
 /***********************************/
@@ -61,6 +69,21 @@ static void tagcache_update_with_splash(void)
 {
     tagcache_update();
     splash(HZ*2, ID2P(LANG_TAGCACHE_FORCE_UPDATE_SPLASH));
+}
+
+static int dirs_to_scan(void)
+{
+    if (folder_select(global_settings.tagcache_scan_paths,
+                          sizeof(global_settings.tagcache_scan_paths)))
+    {
+        static const char *lines[] = {ID2P(LANG_TAGCACHE_BUSY),
+                                      ID2P(LANG_TAGCACHE_FORCE_UPDATE)};
+        static const struct text_message message = {lines, 2};
+
+        if (gui_syncyesno_run(&message, NULL, NULL) == YESNO_YES)
+            tagcache_rebuild_with_splash();
+    }
+    return 0;
 }
 
 #ifdef HAVE_TC_RAMCACHE
@@ -80,12 +103,16 @@ MENUITEM_FUNCTION(tc_export, 0, ID2P(LANG_TAGCACHE_EXPORT),
 MENUITEM_FUNCTION(tc_import, 0, ID2P(LANG_TAGCACHE_IMPORT),
                     (int(*)(void))tagtree_import, NULL,
                     NULL, Icon_NOICON);
+MENUITEM_FUNCTION(tc_paths, 0, ID2P(LANG_SELECT_DATABASE_DIRS),
+                    dirs_to_scan, NULL, NULL, Icon_NOICON);
+
 MAKE_MENU(tagcache_menu, ID2P(LANG_TAGCACHE), 0, Icon_NOICON,
 #ifdef HAVE_TC_RAMCACHE
                 &tagcache_ram,
 #endif
                 &tagcache_autoupdate, &tc_init, &tc_update, &runtimedb,
-                &tc_export, &tc_import);
+                &tc_export, &tc_import, &tc_paths
+                );
 #endif /* HAVE_TAGCACHE */
 /*    TAGCACHE MENU                */
 /***********************************/
@@ -187,16 +214,14 @@ static int dircache_callback(int action,const struct menu_item_ex *this_item)
     switch (action)
     {
         case ACTION_EXIT_MENUITEM: /* on exit */
-            switch (global_settings.dircache)
+            if (global_settings.dircache)
             {
-                case true:
-                    if (!dircache_is_enabled())
-                        splash(HZ*2, ID2P(LANG_PLEASE_REBOOT));
-                    break;
-                case false:
-                    if (dircache_is_enabled())
-                        dircache_disable();
-                    break;
+                if (dircache_enable() < 0)
+                    splash(HZ*2, ID2P(LANG_PLEASE_REBOOT));
+            }
+            else
+            {
+                dircache_disable();
             }
             break;
     }
@@ -215,22 +240,32 @@ MAKE_MENU(disk_menu, ID2P(LANG_DISK_MENU), 0, Icon_NOICON,
          );
 #endif
 
-/* System menu */
-MENUITEM_SETTING(poweroff, &global_settings.poweroff, NULL);
-
 /* Limits menu */
 MENUITEM_SETTING(max_files_in_dir, &global_settings.max_files_in_dir, NULL);
 MENUITEM_SETTING(max_files_in_playlist, &global_settings.max_files_in_playlist, NULL);
+#ifdef HAVE_LCD_BITMAP
+MENUITEM_SETTING(default_glyphs, &global_settings.glyphs_to_cache, NULL);
+#endif
 MAKE_MENU(limits_menu, ID2P(LANG_LIMITS_MENU), 0, Icon_NOICON,
-           &max_files_in_dir, &max_files_in_playlist);
+           &max_files_in_dir, &max_files_in_playlist
+#ifdef HAVE_LCD_BITMAP
+           ,&default_glyphs
+#endif
+           );
 
 
 /* Keyclick menu */
 #if CONFIG_CODEC == SWCODEC
 MENUITEM_SETTING(keyclick, &global_settings.keyclick, NULL);
 MENUITEM_SETTING(keyclick_repeats, &global_settings.keyclick_repeats, NULL);
+#ifdef HAVE_HARDWARE_CLICK
+MENUITEM_SETTING(keyclick_hardware, &global_settings.keyclick_hardware, NULL);
+MAKE_MENU(keyclick_menu, ID2P(LANG_KEYCLICK), 0, Icon_NOICON,
+           &keyclick, &keyclick_hardware, &keyclick_repeats);
+#else
 MAKE_MENU(keyclick_menu, ID2P(LANG_KEYCLICK), 0, Icon_NOICON,
            &keyclick, &keyclick_repeats);
+#endif
 #endif
 
 
@@ -263,10 +298,12 @@ MENUITEM_SETTING(accessory_supply, &global_settings.accessory_supply, NULL);
 #ifdef HAVE_LINEOUT_POWEROFF
 MENUITEM_SETTING(lineout_onoff, &global_settings.lineout_active, NULL);
 #endif
-MENUITEM_SETTING(start_screen, &global_settings.start_in_screen, NULL);
 #ifdef USB_ENABLE_HID
 MENUITEM_SETTING(usb_hid, &global_settings.usb_hid, NULL);
 MENUITEM_SETTING(usb_keypad_mode, &global_settings.usb_keypad_mode, NULL);
+#endif
+#if defined(USB_ENABLE_STORAGE) && defined(HAVE_MULTIDRIVE)
+MENUITEM_SETTING(usb_skip_first_drive, &global_settings.usb_skip_first_drive, NULL);
 #endif
 
 #ifdef HAVE_MORSE_INPUT
@@ -285,17 +322,31 @@ MENUITEM_SETTING(buttonlight_brightness, &global_settings.buttonlight_brightness
 MENUITEM_SETTING(touchpad_sensitivity, &global_settings.touchpad_sensitivity, NULL);
 #endif
 
+#ifdef HAVE_TOUCHPAD_DEADZONE
+MENUITEM_SETTING(touchpad_deadzone, &global_settings.touchpad_deadzone, NULL);
+#endif
+
+#ifdef HAVE_QUICKSCREEN
+MENUITEM_SETTING(shortcuts_replaces_quickscreen, &global_settings.shortcuts_replaces_qs, NULL);
+#endif
+
+#if defined(DX50) || defined(DX90)
+MENUITEM_SETTING(governor, &global_settings.governor, NULL);
+MENUITEM_SETTING(usb_mode, &global_settings.usb_mode, NULL);
+#endif
+
 MAKE_MENU(system_menu, ID2P(LANG_SYSTEM),
           0, Icon_System_menu,
-            &start_screen,
 #if (BATTERY_CAPACITY_INC > 0) || (BATTERY_TYPES_COUNT > 1)
             &battery_menu,
 #endif
 #if defined(HAVE_DIRCACHE) || defined(HAVE_DISK_STORAGE)
             &disk_menu,
 #endif
-            &poweroff,
             &limits_menu,
+#ifdef HAVE_QUICKSCREEN
+            &shortcuts_replaces_quickscreen,
+#endif
 #ifdef HAVE_MORSE_INPUT
             &morse_input,
 #endif
@@ -326,15 +377,139 @@ MAKE_MENU(system_menu, ID2P(LANG_SYSTEM),
 #ifdef HAVE_TOUCHPAD_SENSITIVITY_SETTING
             &touchpad_sensitivity,
 #endif
+#ifdef HAVE_TOUCHPAD_DEADZONE
+            &touchpad_deadzone,
+#endif
 #ifdef USB_ENABLE_HID
             &usb_hid,
             &usb_keypad_mode,
+#endif
+#if defined(USB_ENABLE_STORAGE) && defined(HAVE_MULTIDRIVE)
+            &usb_skip_first_drive,
+#endif
+
+#if defined(DX50) || defined(DX90)
+            &governor,
+            &usb_mode,
 #endif
          );
 
 /*    SYSTEM MENU                  */
 /***********************************/
 
+/***********************************/
+/*    STARTUP/SHUTDOWN MENU      */
+
+/* sleep timer option */
+const char* sleep_timer_formatter(char* buffer, size_t buffer_size,
+                                         int value, const char* unit)
+{
+    (void) unit;
+    int minutes, hours;
+
+    if (value) {
+        hours = value / 60;
+        minutes = value - (hours * 60);
+        snprintf(buffer, buffer_size, "%d:%02d", hours, minutes);
+        return buffer;
+    } else {
+        return str(LANG_OFF);
+    }
+}
+
+static int seconds_to_min(int secs)
+{
+    return (secs + 10) / 60;  /* round up for 50+ seconds */
+}
+
+/* A string representation of either whether a sleep timer will be started or
+   canceled, and how long it will be or how long is remaining in brackets */
+static char* sleep_timer_getname(int selected_item, void * data, char *buffer)
+{
+    (void)selected_item;
+    (void)data;
+    int sec = get_sleep_timer();
+    char timer_buf[10];
+    /* we have no sprintf, so MAX_PATH is a guess */
+    snprintf(buffer, MAX_PATH, "%s (%s)",
+             str(sec ? LANG_SLEEP_TIMER_CANCEL_CURRENT
+                 : LANG_SLEEP_TIMER_START_CURRENT),
+             sleep_timer_formatter(timer_buf, sizeof(timer_buf),
+                sec ? seconds_to_min(sec)
+                    : global_settings.sleeptimer_duration, NULL));
+    return buffer;
+}
+
+static int sleep_timer_voice(int selected_item, void*data)
+{
+    (void)selected_item;
+    (void)data;
+    int seconds = get_sleep_timer();
+    long talk_ids[] = {
+        seconds ? LANG_SLEEP_TIMER_CANCEL_CURRENT
+            : LANG_SLEEP_TIMER_START_CURRENT,
+        VOICE_PAUSE,
+        (seconds ? seconds_to_min(seconds)
+            : global_settings.sleeptimer_duration) | UNIT_MIN << UNIT_SHIFT,
+        TALK_FINAL_ID
+    };
+    talk_idarray(talk_ids, true);
+    return 0;
+}
+
+/* If a sleep timer is running, cancel it, otherwise start one */
+static int toggle_sleeptimer(void)
+{
+    set_sleeptimer_duration(get_sleep_timer() ? 0
+                    : global_settings.sleeptimer_duration);
+    return 0;
+}
+
+/* Handle restarting a current sleep timer to the newly set default
+   duration */
+static int sleeptimer_duration_cb(int action,
+    const struct menu_item_ex *this_item)
+{
+    (void)this_item;
+    static int initial_duration;
+    switch (action)
+    {
+        case ACTION_ENTER_MENUITEM:
+            initial_duration = global_settings.sleeptimer_duration;
+            break;
+        case ACTION_EXIT_MENUITEM:
+            if (initial_duration != global_settings.sleeptimer_duration
+                    && get_sleep_timer())
+                set_sleeptimer_duration(global_settings.sleeptimer_duration);
+    }
+    return action;
+}
+
+MENUITEM_SETTING(start_screen, &global_settings.start_in_screen, NULL);
+MENUITEM_SETTING(poweroff, &global_settings.poweroff, NULL);
+MENUITEM_FUNCTION_DYNTEXT(sleeptimer_toggle, 0, toggle_sleeptimer, NULL,
+                          sleep_timer_getname, sleep_timer_voice, NULL,
+                          NULL, Icon_NOICON);
+MENUITEM_SETTING(sleeptimer_duration,
+                 &global_settings.sleeptimer_duration,
+                 sleeptimer_duration_cb);
+MENUITEM_SETTING(sleeptimer_on_startup,
+                 &global_settings.sleeptimer_on_startup, NULL);
+MENUITEM_SETTING(keypress_restarts_sleeptimer,
+                 &global_settings.keypress_restarts_sleeptimer, NULL);
+
+MAKE_MENU(startup_shutdown_menu, ID2P(LANG_STARTUP_SHUTDOWN),
+          0, Icon_System_menu,
+            &start_screen,
+            &poweroff,
+            &sleeptimer_toggle,
+            &sleeptimer_duration,
+            &sleeptimer_on_startup,
+            &keypress_restarts_sleeptimer
+         );
+
+/*    STARTUP/SHUTDOWN MENU      */
+/***********************************/
 
 /***********************************/
 /*    BOOKMARK MENU                */
@@ -364,6 +539,64 @@ MAKE_MENU(bookmark_settings_menu, ID2P(LANG_BOOKMARK_SETTINGS), 0,
           Icon_Bookmark,
           &autocreatebookmark, &autoupdatebookmark, &autoloadbookmark, &usemrb);
 /*    BOOKMARK MENU                */
+/***********************************/
+
+/***********************************/
+/*    AUTORESUME MENU              */
+#ifdef HAVE_TAGCACHE
+#if CONFIG_CODEC == SWCODEC 
+
+static int autoresume_callback(int action, const struct menu_item_ex *this_item)
+{
+    (void)this_item;
+
+    if (action == ACTION_EXIT_MENUITEM  /* on exit */
+        && global_settings.autoresume_enable
+        && !tagcache_is_usable())
+    {
+        static const char *lines[] = {ID2P(LANG_TAGCACHE_BUSY),
+                                      ID2P(LANG_TAGCACHE_FORCE_UPDATE)};
+        static const struct text_message message = {lines, 2};
+        
+        if (gui_syncyesno_run(&message, NULL, NULL) == YESNO_YES)
+            tagcache_rebuild_with_splash();
+    }
+    return action;
+}
+
+static int autoresume_nexttrack_callback(int action,
+                                         const struct menu_item_ex *this_item)
+{
+    (void)this_item;
+    static int oldval = 0;
+    switch (action)
+    {
+        case ACTION_ENTER_MENUITEM:
+            oldval = global_settings.autoresume_automatic;
+            break;
+        case ACTION_EXIT_MENUITEM:
+            if (global_settings.autoresume_automatic == AUTORESUME_NEXTTRACK_CUSTOM
+                && !folder_select(global_settings.autoresume_paths,
+                              MAX_PATHNAME+1))
+            {
+                global_settings.autoresume_automatic = oldval;
+            }
+    }
+    return action;
+}
+
+MENUITEM_SETTING(autoresume_enable, &global_settings.autoresume_enable,
+                 autoresume_callback);
+MENUITEM_SETTING(autoresume_automatic, &global_settings.autoresume_automatic,
+                 autoresume_nexttrack_callback);
+
+MAKE_MENU(autoresume_menu, ID2P(LANG_AUTORESUME),
+          0, Icon_NOICON,
+          &autoresume_enable, &autoresume_automatic);
+
+#endif /* CONFIG_CODEC == SWCODEC */
+#endif /* HAVE_TAGCACHE */
+/*    AUTORESUME MENU              */
 /***********************************/
 
 /***********************************/
@@ -424,12 +657,6 @@ MAKE_MENU(hotkey_menu, ID2P(LANG_HOTKEY), 0, Icon_NOICON,
 /***********************************/
 /*    SETTINGS MENU                */
 
-#ifdef HAVE_TAGCACHE
-#if CONFIG_CODEC == SWCODEC 
-MENUITEM_SETTING(autoresume_enable, &global_settings.autoresume_enable, NULL);
-#endif
-#endif
-
 static struct browse_folder_info langs = { LANG_DIR, SHOW_LNG };
 
 MENUITEM_FUNCTION(browse_langs, MENU_FUNC_USEPARAM, ID2P(LANG_LANGUAGE),
@@ -442,10 +669,11 @@ MAKE_MENU(settings_menu_item, ID2P(LANG_GENERAL_SETTINGS), 0,
           &tagcache_menu,
 #endif
           &display_menu, &system_menu,
+          &startup_shutdown_menu,
           &bookmark_settings_menu,
 #ifdef HAVE_TAGCACHE
 #if CONFIG_CODEC == SWCODEC 
-          &autoresume_enable,
+          &autoresume_menu,
 #endif          
 #endif
           &browse_langs, &voice_settings_menu,

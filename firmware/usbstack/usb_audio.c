@@ -29,6 +29,8 @@
 #include "pcm.h"
 #include "sound.h"
 #include "stdlib.h"
+#include "core_alloc.h"
+#include "panic.h"
 
 #define LOGF_ENABLE
 #include "logf.h"
@@ -340,6 +342,7 @@ static unsigned long get_playback_sampling_frequency(void)
     return hw_freq_sampr[as_playback_freq_idx];
 }
 
+static int usb_audio_handle;
 void usb_audio_init(void)
 {
     unsigned int i;
@@ -352,15 +355,28 @@ void usb_audio_init(void)
     }
 
     unsigned char *audio_buffer;
-    size_t bufsize;
+    /* dummy ops with no callbacks, needed because by
+     * default buflib buffers can be moved around which must be avoided */
+    static struct buflib_callbacks dummy_ops;
+
+    usb_audio_handle = core_alloc_ex("usb audio", 
+#ifdef USB_AUDIO_USE_INTERMEDIATE_BUFFER
+        PLAYBACK_AUDIO_BUFFER_SIZE +
+#endif
+        USB_AUDIO_NB_SLOTS * USB_AUDIO_SLOT_SIZE + 31, &dummy_ops);
     
-    audio_buffer = audio_get_buffer(false, &bufsize);
+    if (usb_audio_handle < 0)
+        panicf("%s(): OOM", __func__);
+
+    audio_buffer = core_get_data(usb_audio_handle);
+
+    // Add 31 to handle worst-case misalignment
 #ifdef UNCACHED_ADDR
     audio_buffer = (void *)UNCACHED_ADDR((unsigned int)(audio_buffer+31) & 0xffffffe0);
 #else
     audio_buffer = (void *)((unsigned int)(audio_buffer+31) & 0xffffffe0);
 #endif
-    cpucache_invalidate();
+    commit_discard_dcache();
     
 #ifdef USB_AUDIO_USE_INTERMEDIATE_BUFFER
     playback_audio_buffer = audio_buffer;
@@ -466,7 +482,7 @@ int usb_audio_get_config_descriptor(unsigned char *dest, int max_packet_size)
     return dest - orig_dest;
 }
 
-static void playback_audio_pcm_get_more(unsigned char **start, size_t *size)
+static void playback_audio_pcm_get_more(const void **start, size_t *size)
 {
     #ifdef USB_AUDIO_USE_INTERMEDIATE_BUFFER
     /* copy start and end to avoid any modification at the same time */
@@ -519,7 +535,7 @@ static void usb_audio_start_playback(void)
     audio_set_output_source(AUDIO_SRC_PLAYBACK);
     logf("usbaudio: start playback at %lu Hz", hw_freq_sampr[as_playback_freq_idx]);
     pcm_set_frequency(hw_freq_sampr[as_playback_freq_idx]);
-    pcm_play_data(&playback_audio_pcm_get_more, NULL, 0);
+    pcm_play_data(&playback_audio_pcm_get_more, NULL, NULL, 0);
     if(!pcm_is_playing())
         pcm_play_stop();
 }
@@ -902,6 +918,9 @@ void usb_audio_disconnect(void)
     
     usb_audio_stop_playback();
 
+    if (usb_audio_handle > 0)
+        usb_audio_handle = core_free(usb_audio_handle);
+
     cpu_boost(false);
 }
 
@@ -945,7 +964,7 @@ void usb_audio_transfer_complete(int ep, int dir, int status, int length, void *
 
                 if(actual_length >= PLAYBACK_INITIAL_BUFFERING_SIZE)
                 {
-                    pcm_play_data(&playback_audio_pcm_get_more, NULL, 0);
+                    pcm_play_data(&playback_audio_pcm_get_more, NULL, NULL, 0);
                     playback_audio_underflow = false;
                 }
             }

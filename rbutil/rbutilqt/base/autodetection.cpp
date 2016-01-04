@@ -7,7 +7,6 @@
  *                     \/            \/     \/    \/            \/
  *
  *   Copyright (C) 2007 by Dominik Wenger
- *   $Id$
  *
  * All files in this archive are subject to the GNU General Public License.
  * See the file COPYING in the source tree root for full license agreement.
@@ -25,57 +24,113 @@
 #include "../ipodpatcher/ipodpatcher.h"
 #include "../sansapatcher/sansapatcher.h"
 
-#if defined(Q_OS_LINUX) || defined(Q_OS_MACX)
-#include <stdio.h>
-#endif
-#if defined(Q_OS_LINUX)
-#include <mntent.h>
-#endif
-#if defined(Q_OS_MACX)
-#include <sys/param.h>
-#include <sys/ucred.h>
-#include <sys/mount.h>
-#endif
-#if defined(Q_OS_WIN32)
-#if defined(UNICODE)
-#define _UNICODE
-#endif
-#include <stdio.h>
-#include <tchar.h>
-#include <windows.h>
-#include <setupapi.h>
-#include <winioctl.h>
-#endif
-
-#if defined(Q_OS_OPENBSD)
-#include <sys/param.h>
-#include <sys/mount.h>
-#endif
 
 #include "system.h"
 #include "utils.h"
 #include "rockboxinfo.h"
+#include "Logger.h"
 
 Autodetection::Autodetection(QObject* parent): QObject(parent)
 {
 }
 
-bool Autodetection::detect()
+
+bool Autodetection::detect(void)
 {
-    m_device = "";
-    m_mountpoint = "";
-    m_errdev = "";
+    QMap<PlayerStatus, QString> states;
+    states[PlayerOk] = "Ok";
+    states[PlayerAmbiguous] = "Ambiguous";
+    states[PlayerError] = "Error";
+    states[PlayerIncompatible] = "Incompatible";
+    states[PlayerMtpMode] = "MtpMode";
+
+    // clear detection state
+    m_detected.clear();
 
     detectUsb();
+    mergeMounted();
+    mergePatcher();
+    // if any entry with usbdevices containing a value is left that entry
+    // hasn't been merged later. This indicates a problem during detection
+    // (ambiguous player but refining it failed). In this case create an entry
+    // for eacho of those so the user can select.
+    for(int i = 0; i < m_detected.size(); ++i) {
+        int j = m_detected.at(i).usbdevices.size();
+        if(j > 0) {
+            struct Detected entry = m_detected.takeAt(i);
+            while(j--) {
+                struct Detected d;
+                d.device = entry.usbdevices.at(j);
+                d.mountpoint = entry.mountpoint;
+                d.status = PlayerAmbiguous;
+                m_detected.append(d);
+            }
+        }
+    }
+    for(int i = 0; i < m_detected.size(); ++i) {
+        LOG_INFO() << "Detected player:" << m_detected.at(i).device
+                   << "at" << m_detected.at(i).mountpoint << states[m_detected.at(i).status];
+    }
 
-    // Try detection via rockbox.info / rbutil.log
-    QStringList mounts = mountpoints();
+    return m_detected.size() > 0;
+}
 
-    for(int i=0; i< mounts.size();i++)
+
+/** @brief detect devices based on usb pid / vid.
+ */
+void Autodetection::detectUsb()
+{
+    // usbids holds the mapping in the form
+    // ((VID<<16)|(PID)), targetname
+    // the ini file needs to hold the IDs as hex values.
+    QMap<int, QStringList> usbids = SystemInfo::usbIdMap(SystemInfo::MapDevice);
+    QMap<int, QStringList> usberror = SystemInfo::usbIdMap(SystemInfo::MapError);
+
+    // usb pid detection
+    QList<uint32_t> attached;
+    attached = System::listUsbIds();
+
+    int i = attached.size();
+    while(i--) {
+        if(usbids.contains(attached.at(i))) {
+            // we found a USB device that might be ambiguous.
+            struct Detected d;
+            d.status = PlayerOk;
+            d.usbdevices = usbids.value(attached.at(i));
+            m_detected.append(d);
+            LOG_INFO() << "[USB] detected supported player" << d.usbdevices;
+        }
+        if(usberror.contains(attached.at(i))) {
+            struct Detected d;
+            d.status = PlayerMtpMode;
+            d.device = usberror.value(attached.at(i)).at(0);
+            m_detected.append(d);
+            LOG_WARNING() << "[USB] detected problem with player" << d.device;
+        }
+        QString idstring = QString("%1").arg(attached.at(i), 8, 16, QChar('0'));
+        if(!SystemInfo::platformValue(idstring, SystemInfo::CurName).toString().isEmpty()) {
+            struct Detected d;
+            d.status = PlayerIncompatible;
+            d.device = idstring;
+            m_detected.append(d);
+            LOG_WARNING() << "[USB] detected incompatible player" << d.device;
+        }
+    }
+}
+
+
+// Merge players detected by checking mounted filesystems for known files:
+// - rockbox-info.txt / rbutil.log
+// - player specific files
+void Autodetection::mergeMounted(void)
+{
+    QStringList mounts = Utils::mountpoints(Utils::MountpointsSupported);
+    LOG_INFO() << "paths to check:" << mounts;
+
+    for(int i = 0; i < mounts.size(); i++)
     {
         // do the file checking
         QDir dir(mounts.at(i));
-        qDebug() << "[Autodetect] paths to check:" << mounts;
         if(dir.exists())
         {
             // check logfile first.
@@ -83,11 +138,13 @@ bool Autodetection::detect()
                 QSettings log(mounts.at(i) + "/.rockbox/rbutil.log",
                               QSettings::IniFormat, this);
                 if(!log.value("platform").toString().isEmpty()) {
-                    if(m_device.isEmpty())
-                        m_device = log.value("platform").toString();
-                    m_mountpoint = mounts.at(i);
-                    qDebug() << "[Autodetect] rbutil.log detected:" << m_device << m_mountpoint;
-                    return true;
+                    struct Detected d;
+                    d.device = log.value("platform").toString();
+                    d.mountpoint = mounts.at(i);
+                    d.status = PlayerOk;
+                    updateDetectedDevice(d);
+                    LOG_INFO() << "rbutil.log detected:"
+                               << log.value("platform").toString() << mounts.at(i);
                 }
             }
 
@@ -95,14 +152,13 @@ bool Autodetection::detect()
             RockboxInfo info(mounts.at(i));
             if(info.success())
             {
-                if(m_device.isEmpty())
-                {
-                    m_device = info.target();
-                }
-                m_mountpoint = mounts.at(i);
-                qDebug() << "[Autodetect] rockbox-info.txt detected:"
-                         << m_device << m_mountpoint;
-                return true;
+                struct Detected d;
+                d.device = info.target();
+                d.mountpoint = mounts.at(i);
+                d.status = PlayerOk;
+                updateDetectedDevice(d);
+                LOG_INFO() << "rockbox-info.txt detected:"
+                           << info.target() << mounts.at(i);
             }
 
             // check for some specific files in root folder
@@ -111,31 +167,40 @@ bool Autodetection::detect()
             if(rootentries.contains("archos.mod", Qt::CaseInsensitive))
             {
                 // archos.mod in root folder -> Archos Player
-                m_device = "player";
-                m_mountpoint = mounts.at(i);
-                return true;
+                struct Detected d;
+                d.device = "player";
+                d.mountpoint = mounts.at(i);
+                d.status = PlayerOk;
+                updateDetectedDevice(d);
             }
             if(rootentries.contains("ONDIOST.BIN", Qt::CaseInsensitive))
             {
                 // ONDIOST.BIN in root -> Ondio FM
-                m_device = "ondiofm";
-                m_mountpoint = mounts.at(i);
-                return true;
+                struct Detected d;
+                d.device = "ondiofm";
+                d.mountpoint = mounts.at(i);
+                d.status = PlayerOk;
+                updateDetectedDevice(d);
             }
             if(rootentries.contains("ONDIOSP.BIN", Qt::CaseInsensitive))
             {
                 // ONDIOSP.BIN in root -> Ondio SP
-                m_device = "ondiosp";
-                m_mountpoint = mounts.at(i);
-                return true;
+                struct Detected d;
+                d.device = "ondiosp";
+                d.mountpoint = mounts.at(i);
+                d.status = PlayerOk;
+                updateDetectedDevice(d);
             }
             if(rootentries.contains("ajbrec.ajz", Qt::CaseInsensitive))
             {
-                qDebug() << "[Autodetect] ajbrec.ajz found. Trying detectAjbrec()";
-                if(detectAjbrec(mounts.at(i))) {
-                    m_mountpoint = mounts.at(i);
-                    qDebug() << "[Autodetect]" << m_device;
-                    return true;
+                LOG_INFO() << "ajbrec.ajz found. Trying detectAjbrec()";
+                struct Detected d;
+                d.device = detectAjbrec(mounts.at(i));
+                d.mountpoint = mounts.at(i);
+                d.status = PlayerOk;
+                if(!d.device.isEmpty()) {
+                    LOG_INFO() << d.device;
+                    updateDetectedDevice(d);
                 }
             }
             // detection based on player specific folders
@@ -144,36 +209,53 @@ bool Autodetection::detect()
             if(rootfolders.contains("GBSYSTEM", Qt::CaseInsensitive))
             {
                 // GBSYSTEM folder -> Gigabeat
-                m_device = "gigabeatf";
-                m_mountpoint = mounts.at(i);
-                return true;
+                struct Detected d;
+                d.device = "gigabeatf";
+                d.mountpoint = mounts.at(i);
+                updateDetectedDevice(d);
             }
-#if defined(Q_OS_WIN32)
-            // on windows, try to detect the drive letter of an Ipod
-            if(rootfolders.contains("iPod_Control", Qt::CaseInsensitive))
-            {
-                // iPod_Control folder -> Ipod found
-                // detecting of the Ipod type is done below using ipodpatcher
-                m_mountpoint = mounts.at(i);
-            }
-#endif
         }
-
     }
+#if 0
+    // Ipods have a folder "iPod_Control" in the root.
+    for(int i = 0; i < m_detected.size(); ++i) {
+        struct Detected entry = m_detected.at(i);
+        for(int j = 0; j < entry.usbdevices.size(); ++j) {
+            // limit this to Ipods only.
+            if(!entry.usbdevices.at(j).startsWith("ipod")
+                    && !entry.device.startsWith("ipod")) {
+                continue;
+            }
+            // look for iPod_Control on all supported volumes.
+            for(int k = 0; k < mounts.size(); k++) {
+                QDir root(mounts.at(k));
+                QStringList rootfolders = root.entryList(QDir::Dirs
+                        | QDir::NoDotAndDotDot | QDir::Hidden | QDir::System);
+                if(rootfolders.contains("iPod_Control", Qt::CaseInsensitive)) {
+                    entry.mountpoint = mounts.at(k);
+                    m_detected.takeAt(i);
+                    m_detected.append(entry);
+                }
+            }
+        }
+    }
+#endif
 
+}
+
+
+void Autodetection::mergePatcher(void)
+{
     int n;
     // try ipodpatcher
     // initialize sector buffer. Needed.
-    ipod_sectorbuf = NULL;
-    ipod_alloc_buffer(&ipod_sectorbuf, BUFFER_SIZE);
     struct ipod_t ipod;
+    ipod.sectorbuf = NULL;
+    ipod_alloc_buffer(&ipod, BUFFER_SIZE);
     n = ipod_scan(&ipod);
+    // FIXME: handle more than one Ipod connected in ipodpatcher.
     if(n == 1) {
-        qDebug() << "[Autodetect] Ipod found:" << ipod.modelstr << "at" << ipod.diskname;
-        // if the found ipod is a macpod also notice it as device with problem.
-        if(ipod.macpod)
-            m_errdev = ipod.targetname;
-        m_device = ipod.targetname;
+        LOG_INFO() << "Ipod found:" << ipod.modelstr << "at" << ipod.diskname;
         // since resolveMountPoint is doing exact matches we need to select
         // the correct partition.
         QString mp(ipod.diskname);
@@ -183,24 +265,29 @@ bool Autodetection::detect()
 #ifdef Q_OS_MACX
         mp.append("s2");
 #endif
-        m_mountpoint = resolveMountPoint(mp);
-        return true;
+        struct Detected d;
+        d.device = ipod.targetname;
+        d.mountpoint = Utils::resolveMountPoint(mp);
+        // if the found ipod is a macpod also notice it as device with problem.
+        if(ipod.macpod)
+            d.status = PlayerWrongFilesystem;
+        else
+            d.status = PlayerOk;
+        updateDetectedDevice(d);
     }
     else {
-        qDebug() << "[Autodetect] ipodpatcher: no Ipod found." << n;
+        LOG_INFO() << "ipodpatcher: no Ipod found." << n;
     }
-    free(ipod_sectorbuf);
-    ipod_sectorbuf = NULL;
+    ipod_dealloc_buffer(&ipod);
 
     // try sansapatcher
     // initialize sector buffer. Needed.
-    sansa_sectorbuf = NULL;
-    sansa_alloc_buffer(&sansa_sectorbuf, BUFFER_SIZE);
     struct sansa_t sansa;
+    sansa_alloc_buffer(&sansa, BUFFER_SIZE);
     n = sansa_scan(&sansa);
     if(n == 1) {
-        qDebug() << "[Autodetect] Sansa found:" << sansa.targetname << "at" << sansa.diskname;
-        m_device = QString("sansa%1").arg(sansa.targetname);
+        LOG_INFO() << "Sansa found:"
+                   << sansa.targetname << "at" << sansa.diskname;
         QString mp(sansa.diskname);
 #ifdef Q_OS_LINUX
         mp.append("1");
@@ -208,266 +295,26 @@ bool Autodetection::detect()
 #ifdef Q_OS_MACX
         mp.append("s1");
 #endif
-        m_mountpoint = resolveMountPoint(mp);
-        return true;
+        struct Detected d;
+        d.device = QString("sansa%1").arg(sansa.targetname);
+        d.mountpoint = Utils::resolveMountPoint(mp);
+        d.status = PlayerOk;
+        updateDetectedDevice(d);
     }
     else {
-        qDebug() << "[Autodetect] sansapatcher: no Sansa found." << n;
+        LOG_INFO() << "sansapatcher: no Sansa found." << n;
     }
-    free(sansa_sectorbuf);
-    sansa_sectorbuf = NULL;
-
-    if(m_mountpoint.isEmpty() && m_device.isEmpty()
-            && m_errdev.isEmpty() && m_incompat.isEmpty())
-        return false;
-    return true;
+    sansa_dealloc_buffer(&sansa);
 }
 
 
-QStringList Autodetection::mountpoints()
-{
-    QStringList tempList;
-#if defined(Q_OS_WIN32)
-    QFileInfoList list = QDir::drives();
-    for(int i=0; i<list.size();i++)
-    {
-        tempList << list.at(i).absolutePath();
-        qDebug() << "[Autodetection] Mounted on" << list.at(i).absolutePath();
-    }
-
-#elif defined(Q_OS_MACX) || defined(Q_OS_OPENBSD)
-    int num;
-    struct statfs *mntinf;
-
-    num = getmntinfo(&mntinf, MNT_WAIT);
-    while(num--) {
-        tempList << QString(mntinf->f_mntonname);
-        qDebug() << "[Autodetection] Mounted on" << mntinf->f_mntonname
-                 << "is" << mntinf->f_mntfromname << "type" << mntinf->f_fstypename;
-        mntinf++;
-    }
-#elif defined(Q_OS_LINUX)
-
-    FILE *mn = setmntent("/etc/mtab", "r");
-    if(!mn)
-        return QStringList("");
-
-    struct mntent *ent;
-    while((ent = getmntent(mn))) {
-        tempList << QString(ent->mnt_dir);
-        qDebug() << "[Autodetection] Mounted on" << ent->mnt_dir
-                 << "is" << ent->mnt_fsname << "type" << ent->mnt_type;
-    }
-    endmntent(mn);
-
-#else
-#error Unknown Platform
-#endif
-    return tempList;
-}
-
-
-/** resolve device name to mount point / drive letter
- *  @param device device name / disk number
- *  @return mount point / drive letter
- */
-QString Autodetection::resolveMountPoint(QString device)
-{
-    qDebug() << "[Autodetect] resolving mountpoint:" << device;
-
-#if defined(Q_OS_LINUX)
-    FILE *mn = setmntent("/etc/mtab", "r");
-    if(!mn)
-        return QString("");
-
-    struct mntent *ent;
-    while((ent = getmntent(mn))) {
-        // Check for valid filesystem. Allow hfs too, as an Ipod might be a
-        // MacPod.
-        if(QString(ent->mnt_fsname) == device) {
-            QString result;
-            if(QString(ent->mnt_type).contains("vfat", Qt::CaseInsensitive)
-                    || QString(ent->mnt_type).contains("hfs", Qt::CaseInsensitive)) {
-                qDebug() << "[Autodetect] resolved mountpoint is:" << ent->mnt_dir;
-                result = QString(ent->mnt_dir);
-            }
-            else {
-                qDebug() << "[Autodetect] mountpoint is wrong filesystem!";
-            }
-            endmntent(mn);
-            return result;
-        }
-    }
-    endmntent(mn);
-
-#endif
-
-#if defined(Q_OS_MACX) || defined(Q_OS_OPENBSD)
-    int num;
-    struct statfs *mntinf;
-
-    num = getmntinfo(&mntinf, MNT_WAIT);
-    while(num--) {
-        // Check for valid filesystem. Allow hfs too, as an Ipod might be a
-        // MacPod.
-        if(QString(mntinf->f_mntfromname) == device) {
-            if(QString(mntinf->f_fstypename).contains("msdos", Qt::CaseInsensitive)
-                || QString(mntinf->f_fstypename).contains("hfs", Qt::CaseInsensitive)) {
-                qDebug() << "[Autodetect] resolved mountpoint is:" << mntinf->f_mntonname;
-                return QString(mntinf->f_mntonname);
-            }
-            else {
-                qDebug() << "[Autodetect] mountpoint is wrong filesystem!";
-                return QString();
-            }
-        }
-        mntinf++;
-    }
-#endif
-
-#if defined(Q_OS_WIN32)
-    QString result;
-    unsigned int driveno = device.replace(QRegExp("^.*([0-9]+)"), "\\1").toInt();
-
-    int letter;
-    for(letter = 'A'; letter <= 'Z'; letter++) {
-        if(resolveDevicename(QString(letter)).toUInt() == driveno) {
-            result = letter;
-            qDebug() << "[Autodetect] resolved mountpoint is:" << result;
-            break;
-        }
-    }
-    if(!result.isEmpty())
-        return result + ":/";
-#endif
-    qDebug() << "[Autodetect] resolving mountpoint failed!";
-    return QString("");
-}
-
-
-/** Resolve mountpoint to devicename / disk number
- *  @param path mountpoint path / drive letter
- *  @return devicename / disk number
- */
-QString Autodetection::resolveDevicename(QString path)
-{
-    qDebug() << "[Autodetect] resolving device name" << path;
-#if defined(Q_OS_LINUX)
-    FILE *mn = setmntent("/etc/mtab", "r");
-    if(!mn)
-        return QString("");
-
-    struct mntent *ent;
-    while((ent = getmntent(mn))) {
-        // check for valid filesystem type.
-        // Linux can handle hfs (and hfsplus), so consider it a valid file
-        // system. Otherwise resolving the device name would fail, which in
-        // turn would make it impossible to warn about a MacPod.
-        if(QString(ent->mnt_dir) == path
-           && (QString(ent->mnt_type).contains("vfat", Qt::CaseInsensitive)
-            || QString(ent->mnt_type).contains("hfs", Qt::CaseInsensitive))) {
-            endmntent(mn);
-            qDebug() << "[Autodetect] device name is" << ent->mnt_fsname;
-            return QString(ent->mnt_fsname);
-        }
-    }
-    endmntent(mn);
-
-#endif
-
-#if defined(Q_OS_MACX) || defined(Q_OS_OPENBSD)
-    int num;
-    struct statfs *mntinf;
-
-    num = getmntinfo(&mntinf, MNT_WAIT);
-    while(num--) {
-        // check for valid filesystem type. OS X can handle hfs (hfs+ is
-        // treated as hfs), BSD should be the same.
-        if(QString(mntinf->f_mntonname) == path
-           && (QString(mntinf->f_fstypename).contains("msdos", Qt::CaseInsensitive)
-            || QString(mntinf->f_fstypename).contains("hfs", Qt::CaseInsensitive))) {
-            qDebug() << "[Autodetect] device name is" << mntinf->f_mntfromname;
-            return QString(mntinf->f_mntfromname);
-        }
-        mntinf++;
-    }
-#endif
-
-#if defined(Q_OS_WIN32)
-    DWORD written;
-    HANDLE h;
-    TCHAR uncpath[MAX_PATH];
-    UCHAR buffer[0x400];
-    PVOLUME_DISK_EXTENTS extents = (PVOLUME_DISK_EXTENTS)buffer;
-
-    _stprintf(uncpath, _TEXT("\\\\.\\%c:"), path.toAscii().at(0));
-    h = CreateFile(uncpath, GENERIC_READ, FILE_SHARE_READ | FILE_SHARE_WRITE,
-            NULL, OPEN_EXISTING, 0, NULL);
-    if(h == INVALID_HANDLE_VALUE) {
-        //qDebug() << "error getting extents for" << uncpath;
-        return "";
-    }
-    // get the extents
-    if(DeviceIoControl(h, IOCTL_VOLUME_GET_VOLUME_DISK_EXTENTS,
-                NULL, 0, extents, sizeof(buffer), &written, NULL)) {
-        if(extents->NumberOfDiskExtents > 1) {
-            qDebug() << "[Autodetect] resolving device name: volume spans multiple disks!";
-            return "";
-        }
-        qDebug() << "[Autodetect] device name is" << extents->Extents[0].DiskNumber;
-        return QString("%1").arg(extents->Extents[0].DiskNumber);
-    }
-#endif
-    return QString("");
-
-}
-
-
-/** @brief detect devices based on usb pid / vid.
- *  @return true upon success, false otherwise.
- */
-bool Autodetection::detectUsb()
-{
-    // usbids holds the mapping in the form
-    // ((VID<<16)|(PID)), targetname
-    // the ini file needs to hold the IDs as hex values.
-    QMap<int, QString> usbids = SystemInfo::usbIdMap(SystemInfo::MapDevice);
-    QMap<int, QString> usberror = SystemInfo::usbIdMap(SystemInfo::MapError);
-    QMap<int, QString> usbincompat = SystemInfo::usbIdMap(SystemInfo::MapIncompatible);
-
-    // usb pid detection
-    QList<uint32_t> attached;
-    attached = System::listUsbIds();
-
-    int i = attached.size();
-    while(i--) {
-        if(usbids.contains(attached.at(i))) {
-            m_device = usbids.value(attached.at(i));
-            qDebug() << "[USB] detected supported player" << m_device;
-            return true;
-        }
-        if(usberror.contains(attached.at(i))) {
-            m_errdev = usberror.value(attached.at(i));
-            qDebug() << "[USB] detected problem with player" << m_errdev;
-            return true;
-        }
-        QString idstring = QString("%1").arg(attached.at(i), 8, 16, QChar('0'));
-        if(!SystemInfo::platformValue(idstring, SystemInfo::CurName).toString().isEmpty()) {
-            m_incompat = idstring;
-            qDebug() << "[USB] detected incompatible player" << m_incompat;
-            return true;
-        }
-    }
-    return false;
-}
-
-
-bool Autodetection::detectAjbrec(QString root)
+QString Autodetection::detectAjbrec(QString root)
 {
     QFile f(root + "/ajbrec.ajz");
     char header[24];
     f.open(QIODevice::ReadOnly);
-    if(!f.read(header, 24)) return false;
+    if(!f.read(header, 24)) return QString();
+    f.close();
 
     // check the header of the file.
     // recorder v1 had a 6 bytes sized header
@@ -476,35 +323,60 @@ bool Autodetection::detectAjbrec(QString root)
     // recorder v1 has the binary length in the first 4 bytes, so check
     // for them first.
     int len = (header[0]<<24) | (header[1]<<16) | (header[2]<<8) | header[3];
-    qDebug() << "[Autodetect] ABJREC possible bin length:" << len
-             << "file len:" << f.size();
+    LOG_INFO() << "abjrec.ajz possible bin length:" << len
+               << "file len:" << f.size();
     if((f.size() - 6) == len)
-        m_device = "recorder";
+        return "recorder";
 
     // size didn't match, now we need to assume we have a headerlength of 24.
     switch(header[11]) {
         case 2:
-            m_device = "recorderv2";
+            return "recorderv2";
             break;
 
         case 4:
-            m_device = "fmrecorder";
+            return "fmrecorder";
             break;
 
         case 8:
-            m_device = "ondiofm";
+            return "ondiofm";
             break;
 
         case 16:
-            m_device = "ondiosp";
+            return "ondiosp";
             break;
 
         default:
             break;
     }
-    f.close();
-
-    if(m_device.isEmpty()) return false;
-    return true;
+    return QString();
 }
 
+
+int Autodetection::findDetectedDevice(QString device)
+{
+    int i = m_detected.size();
+    while(i--) {
+        if(m_detected.at(i).usbdevices.contains(device))
+            return i;
+    }
+    i = m_detected.size();
+    while(i--) {
+        if(m_detected.at(i).device == device)
+            return i;
+    }
+    return -1;
+}
+
+
+void Autodetection::updateDetectedDevice(Detected& entry)
+{
+    int index = findDetectedDevice(entry.device);
+    if(index < 0) {
+        m_detected.append(entry);
+    }
+    else {
+        m_detected.takeAt(index);
+        m_detected.append(entry);
+    }
+}

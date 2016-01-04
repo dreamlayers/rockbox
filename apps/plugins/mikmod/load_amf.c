@@ -88,7 +88,7 @@ static AMFNOTE *track = NULL;
 
 /*========== Loader code */
 
-int AMF_Test(void)
+static int AMF_Test(void)
 {
 	UBYTE id[3],ver;
 
@@ -100,7 +100,7 @@ int AMF_Test(void)
 	return 0;
 }
 
-int AMF_Init(void)
+static int AMF_Init(void)
 {
 	if(!(mh=(AMFHEADER*)MikMod_malloc(sizeof(AMFHEADER)))) return 0;
 	if(!(track=(AMFNOTE*)MikMod_calloc(64,sizeof(AMFNOTE)))) return 0;
@@ -108,7 +108,7 @@ int AMF_Init(void)
 	return 1;
 }
 
-void AMF_Cleanup(void)
+static void AMF_Cleanup(void)
 {
 	MikMod_free(mh);
 	MikMod_free(track);
@@ -330,14 +330,16 @@ static UBYTE* AMF_ConvertTrack(void)
 	return UniDup();
 }
 
-int AMF_Load(int curious)
+static int AMF_Load(int curious)
 {
-	int t,u,realtrackcnt,realsmpcnt,defaultpanning;
+	int u,defaultpanning;
+    unsigned int t,realtrackcnt,realsmpcnt;
 	AMFSAMPLE s;
 	SAMPLE *q;
 	UWORD *track_remap;
 	ULONG samplepos;
 	int channel_remap[16];
+    (void)curious;
 
 	/* try to read module header  */
 	_mm_read_UBYTES(mh->id,3,modreader);
@@ -505,7 +507,7 @@ int AMF_Load(int curious)
 			realtrackcnt=track_remap[t];
 	for(t=0;t<of.numpat*of.numchn;t++)
 		of.patterns[t]=(of.patterns[t]<=mh->numtracks)?
-		               track_remap[of.patterns[t]]-1:realtrackcnt;
+		               track_remap[of.patterns[t]]-1:(int)realtrackcnt;
 
 	MikMod_free(track_remap);
 
@@ -543,7 +545,7 @@ int AMF_Load(int curious)
 	return 1;
 }
 
-CHAR *AMF_LoadTitle(void)
+static CHAR *AMF_LoadTitle(void)
 {
 	CHAR s[32];
 

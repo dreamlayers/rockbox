@@ -21,7 +21,9 @@
 #ifndef _FONT_H
 #define _FONT_H
 
+#include <stdlib.h>
 #include "inttypes.h"
+#include "stdbool.h"
 
 /*
  * Incore font and image definitions
@@ -46,18 +48,14 @@
  * Fonts are specified in firmware/font.c.
  */
 enum {
-    FONT_SYSFIXED, /* system fixed pitch font*/
-    FONT_UI,       /* system porportional font*/
-#ifdef HAVE_REMOTE_LCD
-    FONT_UI_REMOTE, /* UI font for remote LCD */
-#endif
-    SYSTEMFONTCOUNT, /* Number of fonts reserved for the system and ui */
-    FONT_FIRSTUSERFONT = 2
+    FONT_SYSFIXED = -1, /* system fixed pitch font*/
+    FONT_FIRSTUSERFONT = 0, /* first id for the user fonts */
 };
-#define MAXUSERFONTS 8
+#define MAXUSERFONTS 12
 
 /* SYSFONT, FONT_UI, FONT_UI_REMOTE + MAXUSERFONTS fonts in skins */
-#define MAXFONTS (SYSTEMFONTCOUNT + MAXUSERFONTS)
+#define MAXFONTS (FONT_FIRSTUSERFONT + MAXUSERFONTS)
+#define FONT_UI MAXFONTS
 
 /*
  * .fnt loadable font file format definition
@@ -68,7 +66,7 @@ enum {
  * USHORT maxwidth               2   font max width in pixels
  * USHORT height                 2   font height in pixels
  * USHORT ascent                 2   font ascent (baseline) in pixels
- * USHORT pad                    2   unused, pad to 32-bit boundary
+ * USHORT depth                  2   depth of the font, 0=1bit and 1=4bit
  * ULONG firstchar               4   first character code in font
  * ULONG defaultchar             4   default character code in font
  * ULONG size                    4   # characters in font
@@ -92,6 +90,7 @@ struct font {
     int          ascent;          /* ascent (baseline) height*/
     int          firstchar;       /* first character in bitmap*/
     int          size;            /* font size in glyphs*/
+    int          depth;           /* depth of the font, 0=1bit and 1=4bit */
     const unsigned char *bits;    /* 8-bit column bitmap data*/
     const void *offset;           /* offsets into bitmap data,
                                      uint16_t if bits_size < 0xFFDB else uint32_t*/
@@ -101,10 +100,14 @@ struct font {
     
     /* file, buffer and cache management */
     int          fd;              /* fd for the font file. >= 0 if cached */
+    int          fd_width;        /* fd for the font file. >= 0 if cached */
+    int          fd_offset;       /* fd for the font file. >= 0 if cached */    
+    int          handle;          /* core_allocator handle */
     unsigned char *buffer_start;    /* buffer to store the font in */       
     unsigned char *buffer_position; /* position in the buffer */    
     unsigned char *buffer_end;      /* end of the buffer */
-    int          buffer_size;       /* size of the buffer in bytes */
+    size_t         buffer_size;     /* size of the buffer in bytes */
+    bool         disabled;        /* font disabled (use blank as fallback if not in cache) */
 #ifndef __PCTOOL__    
     struct font_cache cache;
     uint32_t file_width_offset;    /* offset to file width data    */
@@ -116,21 +119,25 @@ struct font {
 
 /* font routines*/
 void font_init(void) INIT_ATTR;
-#ifdef HAVE_REMOTE_LCD
-/* Load a font into the special remote ui font slot */
-int font_load_remoteui(const char* path);
-#endif
-int font_load(struct font* pf, const char *path);
-int font_glyphs_to_bufsize(const char *path, int glyphs);
+const char* font_filename(int font_id);
+int font_load(const char *path);
+int font_load_ex(const char *path, size_t buffer_size, int glyphs);
 void font_unload(int font_id);
+void font_unload_all(void);
+void font_lock(int font_id, bool lock);
+
+/* Closes the file descriptor if the font file (if cached) but keeps
+ * the cache intact, so font_get_{bits,width} still work. */
+void font_disable_all(void);
+/* Re-opens the file descriptor of the font file. Should be called as
+ * counter-part of font_disable_all(); */
+void font_enable_all(void);
 
 struct font* font_get(int font);
 
-void font_reset(struct font *pf);
 int font_getstringsize(const unsigned char *str, int *w, int *h, int fontnumber);
 int font_get_width(struct font* ft, unsigned short ch);
 const unsigned char * font_get_bits(struct font* ft, unsigned short ch);
-void glyph_cache_save(struct font* pf);
 
 #else /* HAVE_LCD_BITMAP */
 

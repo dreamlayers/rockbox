@@ -30,10 +30,10 @@
 #include "cpu.h"
 #include "system.h"
 #include "lcd.h"
-#include "kernel.h"
-#include "thread.h"
+#include "../kernel-internal.h"
 #include "ata.h"
 #include "fat.h"
+#include "file_internal.h"
 #include "disk.h"
 #include "font.h"
 #include "adc.h"
@@ -42,6 +42,8 @@
 #include "power.h"
 #include "file.h"
 #include "common.h"
+#include "rb-loader.h"
+#include "loader_strerror.h"
 #include "hwcompat.h"
 #include "usb.h"
 #include "version.h"
@@ -294,7 +296,7 @@ void* main(void)
     int rc;
     bool haveramos;
     bool button_was_held;
-    struct partinfo* pinfo;
+    struct partinfo pinfo;
     unsigned short* identify_info;
 
     /* Check the button hold status as soon as possible - to 
@@ -333,7 +335,7 @@ void* main(void)
     lcd_setfont(FONT_SYSFIXED);
 
     printf("Rockbox boot loader");
-    printf("Version: " RBVERSION);
+    printf("Version: %s", rbversion);
     printf("IPOD version: 0x%08x", IPOD_HW_REVISION);
 
     i=ata_init();
@@ -352,7 +354,8 @@ void* main(void)
       printf("ATA: %d", i);
     }
 
-    disk_init();
+    filesystem_init();
+
     rc = disk_mount_all();
     if (rc<=0)
     {
@@ -360,9 +363,9 @@ void* main(void)
         fatal_error();
     }
 
-    pinfo = disk_partinfo(1);
+    disk_partinfo(1, &pinfo);
     printf("Partition 1: 0x%02x %ld sectors", 
-           pinfo->type, pinfo->size);
+           pinfo.type, pinfo.size);
 
     if (button_was_held || (btn==BUTTON_MENU)) {
         /* If either the hold switch was on, or the Menu button was held, then 
@@ -376,7 +379,7 @@ void* main(void)
     
         rc=load_firmware(loadbuffer, "apple_os.ipod", MAX_LOADSIZE);
     
-        if (rc == EOK) {
+        if (rc > 0) {
             printf("apple_os.ipod loaded.");
             return (void*)DRAM_START;
         } else if (rc == EFILE_NOT_FOUND) {
@@ -387,10 +390,10 @@ void* main(void)
                 /* We have a copy of the retailos in RAM, lets just run it. */
                 return (void*)DRAM_START;
             }
-        } else if (rc < EFILE_NOT_FOUND) {
+        } else {
             printf("Error!");
             printf("Can't load apple_os.ipod:");
-            printf(strerror(rc));
+            printf(loader_strerror(rc));
         }
         
         /* Everything failed - just loop forever */
@@ -399,17 +402,17 @@ void* main(void)
     } else if (btn==BUTTON_PLAY) {
         printf("Loading Linux...");
         rc=load_raw_firmware(loadbuffer, "/linux.bin", MAX_LOADSIZE);
-        if (rc < EOK) {
+        if (rc <= EFILE_EMPTY) {
             printf("Error!");
             printf("Can't load linux.bin:");
-            printf(strerror(rc));
+            printf(loader_strerror(rc));
         } else {
             return (void*)DRAM_START;
         }
     } else {
         printf("Loading Rockbox...");
         rc=load_firmware(loadbuffer, BOOTFILE, MAX_LOADSIZE);
-        if (rc == EOK) {
+        if (rc > 0) {
             printf("Rockbox loaded.");
             return (void*)DRAM_START;
         } else if (rc == EFILE_NOT_FOUND) {
@@ -424,7 +427,7 @@ void* main(void)
 
         printf("Error!");
         printf("Can't load " BOOTFILE ": ");
-        printf(strerror(rc));
+        printf(loader_strerror(rc));
     }
     
     /* If we get to here, then we haven't been able to load any firmware */

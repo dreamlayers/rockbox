@@ -33,6 +33,7 @@
 # - Kaspar Rothenfußer
 # - Johannes Linke
 # - Kai Posadowsky
+# - Udo Schläpfer
 <phrase>
   id: LANG_SET_BOOL_YES
   desc: bool true representation
@@ -267,7 +268,7 @@
     *: "PLAY = Yes"
     cowond2*: "MENU, or top-right = Yes"
     iriverh100,iriverh120,iriverh300: "NAVI = Yes"
-    samsungyh*,ipod*,iaudiox5,iaudiom5,gigabeat*,sansae200*,sansac200*,iriverh10,iriverh10_5gb,mrobe100,sansaclip*,sansafuze*: "SELECT = Yes"
+    ipod*,iaudiox5,iaudiom5,gigabeat*,sansae200*,sansac200*,iriverh10,iriverh10_5gb,mrobe100,sansaclip*,sansafuze*,sansaconnect: "SELECT = Yes"
     mrobe500: "PLAY, POWER, or top-right = Yes"
     archosplayer: "(PLAY/STOP)"
     vibe500: "OK = Yes"
@@ -276,7 +277,7 @@
     *: "PLAY = Ja"
     cowond2*: "MENU oder rechts oben= Ja"
     iriverh100,iriverh120,iriverh300: "NAVI = Ja"
-    samsungyh*,ipod*,iaudiox5,iaudiom5,gigabeat*,sansae200*,sansac200*,iriverh10,iriverh10_5gb,mrobe100,sansaclip*,sansafuze*: "SELECT = Ja"
+    ipod*,iaudiox5,iaudiom5,gigabeat*,sansae200*,sansac200*,iriverh10,iriverh10_5gb,mrobe100,sansaclip*,sansafuze*,sansaconnect: "SELECT = Ja"
     mrobe500: "PLAY, POWER oder rechts oben = Ja"
     archosplayer: "(PLAY/STOP)"
     vibe500: "OK = Ja"
@@ -436,7 +437,7 @@
 </phrase>
 <phrase>
   id: LANG_PLAYLISTS
-  desc: in the main menu and file view setting
+  desc: in the file view setting
   user: core
   <source>
     *: "Playlists"
@@ -1986,19 +1987,16 @@
 </phrase>
 <phrase>
   id: LANG_HEADPHONE_UNPLUG_RW
-  desc: in pause_phones_menu.
+  desc: deprecated
   user: core
   <source>
-    *: none
-    headphone_detection: "Duration to Rewind"
+    *: ""
   </source>
   <dest>
-    *: none
-    headphone_detection: "Rücklaufdauer"
+    *: ""
   </dest>
   <voice>
-    *: none
-    headphone_detection: "Rücklaufdauer"
+    *: ""
   </voice>
 </phrase>
 <phrase>
@@ -2236,17 +2234,19 @@
     *: "Building database... %d found (OFF to return)"
     iriverh100,iriverh120,iriverh300: "Building database... %d found (STOP to return)"
     ipod*: "Building database... %d found (PREV to return)"
-    iaudiox5,iaudiom5,gigabeat*,mrobe100: "Building database... %d found (LEFT to return)"
+    iaudiox5,iaudiom5,gigabeat*,mrobe100,samsungyh*: "Building database... %d found (LEFT to return)"
     iriverh10,iriverh10_5gb,sansae200*,sansac200*,sansafuze*,vibe500: "Building database... %d found (PREV to return)"
     gogearsa9200: "Building database... %d found (REW to return)"
+    archosplayer: "Building DB %d found"
   </source>
   <dest>
     *: "Erstelle Datenbank... %d gefunden (OFF zum Abbrechen)"
     iriverh100,iriverh120,iriverh300: "Erstelle Datenbank... %d gefunden (STOP zum Abbrechen)"
     ipod*: "Erstelle Datenbank... %d gefunden (PLAY/PAUSE zum Abbrechen)"
-    iaudiox5,iaudiom5,gigabeat*,mrobe100: "Erstelle Datenbank... %d gefunden (LEFT zum Abbrechen)"
+    iaudiox5,iaudiom5,gigabeat*,mrobe100,samsungyh*: "Erstelle Datenbank... %d gefunden (LEFT zum Abbrechen)"
     iriverh10,iriverh10_5gb,sansae200*,sansac200*,sansafuze*,vibe500: "Erstelle Datenbank... %d gefunden (PREV zum Abbrechen)"
     gogearsa9200: "Erstelle Datenbank... %d gefunden (REW zum Abbrechen)"
+    archosplayer: "Erstelle DB %d gefu."
   </dest>
   <voice>
     *: "Erstelle Datenbank"
@@ -3951,8 +3951,8 @@
     rtc: "ON = Set"
     mrobe500: "HEART = Set"
     iriverh100,iriverh120,iriverh300: "NAVI = Set"
-    ipod*,iaudiox5,iaudiom5,iriverh10,iriverh10_5gb,sansae200*,sansac200*,gigabeat*,mrobe100,sansaclip*,sansafuze*: "SELECT = Set"
-    gogearsa9200: "PLAY = Set"
+    ipod*,iaudiox5,iaudiom5,iriverh10,iriverh10_5gb,sansae200*,sansac200*,gigabeat*,mrobe100,sansaclip*,sansafuze*,sansaconnect: "SELECT = Set"
+    gogearsa9200,samsungyh*: "PLAY = Set"
     vibe500: "OK = Set"
     mpiohd300: "ENTER = Set"
   </source>
@@ -3961,14 +3961,14 @@
     rtc: "ON = Speichern"
     mrobe500: "HEART = Speichern"
     iriverh100,iriverh120,iriverh300: "NAVI = Speichern"
-    ipod*,iaudiox5,iaudiom5,iriverh10,iriverh10_5gb,sansae200*,sansac200*,gigabeat*,mrobe100,sansaclip*,sansafuze*: "SELECT = Speichern"
-    gogearsa9200: "PLAY = Speichern"
+    ipod*,iaudiox5,iaudiom5,iriverh10,iriverh10_5gb,sansae200*,sansac200*,gigabeat*,mrobe100,sansaclip*,sansafuze*,sansaconnect: "SELECT = Speichern"
+    gogearsa9200,samsungyh*: "PLAY = Speichern"
     vibe500: "OK = Speichern"
     mpiohd300: "ENTER = Speichern"
   </dest>
   <voice>
     *: none
-    rtc,iriverh100,iriverh120,iriverh300,iriverh10,iriverh10_5gb,iaudiox5,iaudiom5,ipod*,sansae200*,sansac200*,gigabeat*,mrobe100,gogearsa9200: ""
+    rtc,iriverh100,iriverh120,iriverh300,iriverh10,iriverh10_5gb,iaudiox5,iaudiom5,ipod*,sansae200*,sansac200*,gigabeat*,mrobe100,gogearsa9200,samsungyh*: ""
   </voice>
 </phrase>
 <phrase>
@@ -3984,10 +3984,12 @@
     iaudiox5,iaudiom5: "RECORD = Revert"
     iriverh10,iriverh10_5gb,sansae200*,sansafuze*: "PREV = Revert"
     gigabeatfx: "POWER = Revert"
+    sansafuzeplus: "BACK = Revert"
     mrobe100: "DISPLAY = Revert"
     gigabeats: "BACK = Revert"
     gogearsa9200: "LEFT = Revert"
     vibe500: "CANCEL = Revert"
+    samsungyh*: "REW = Revert"
   </source>
   <dest>
     *: none
@@ -3998,10 +4000,12 @@
     iaudiox5,iaudiom5: "RECORD = Abbrechen"
     iriverh10,iriverh10_5gb,sansae200*,sansafuze*: "PREV = Abbrechen"
     gigabeatfx: "POWER = Abbrechen"
+    sansafuzeplus: "BACK = Abbrechen"
     mrobe100: "DISPLAY = Abbrechen"
     gigabeats: "BACK = Abbrechen"
     gogearsa9200: "LEFT = Abbrechen"
     vibe500: "CANCEL = Abbrechen"
+    samsungyh*: "REW = Abbrechen"
   </dest>
   <voice>
     *: none
@@ -4532,6 +4536,7 @@
     gigabeats: "SELECT=Set POWER=Cancel"
     vibe500: "OK=Set C=Cancel"
     mpiohd300: "ENTER=Set MENU=Cancel"
+    sansafuzeplus: "SELECT=Set  BACK=Cancel"
   </source>
   <dest>
     *: none
@@ -4541,6 +4546,7 @@
     gigabeats: "SELECT=OK POWER=Abbruch"
     vibe500: "OK=OK C=Abbruch"
     mpiohd300: "ENTER=OK MENU=Abbruch"
+    sansafuzeplus: "SELECT=OK  BACK=Abbruch"
   </dest>
   <voice>
     *: none
@@ -5386,19 +5392,19 @@
 </phrase>
 <phrase>
   id: LANG_FM_SAVE_CHANGES
-  desc: When you try to exit radio to confirm save
+  desc: deprecated
   user: core
   <source>
     *: none
-    radio: "Save Changes?"
+    radio: ""
   </source>
   <dest>
     *: none
-    radio: "Änderungen speichern?"
+    radio: ""
   </dest>
   <voice>
     *: none
-    radio: "Änderungen speichern?"
+    radio: ""
   </voice>
 </phrase>
 <phrase>
@@ -5640,20 +5646,20 @@
   </voice>
 </phrase>
 <phrase>
-  id: LANG_RECORDING_FREQUENCY
-  desc: in the recording settings
+  id: LANG_FREQUENCY
+  desc: in recording and playback settings
   user: core
   <source>
     *: none
-    recording: "Frequency"
+    recording,play_frequency: "Frequency"
   </source>
   <dest>
     *: none
-    recording: "Abtastrate"
+    recording,play_frequency: "Abtastrate"
   </dest>
   <voice>
     *: none
-    recording: "Abtastrate"
+    recording,play_frequency: "Abtastrate"
   </voice>
 </phrase>
 <phrase>
@@ -5878,20 +5884,6 @@
   <voice>
     *: none
     recording: "Aufteilungsgröße"
-  </voice>
-</phrase>
-<phrase>
-  id: LANG_REC_SIZE
-  desc: deprecated
-  user:
-  <source>
-    *: none
-  </source>
-  <dest>
-    *: none
-  </dest>
-  <voice>
-    *: none
   </voice>
 </phrase>
 <phrase>
@@ -6478,10 +6470,10 @@
 </phrase>
 <phrase>
   id: LANG_CATALOG
-  desc: in onplay menu
+  desc: in main menu and onplay menu
   user: core
   <source>
-    *: "Playlist Catalog"
+    *: "Playlist Catalogue"
   </source>
   <dest>
     *: "Wiedergabelisten-Katalog"
@@ -6663,19 +6655,19 @@
   <source>
     *: none
     multivolume: "HD1"
-    sansae200*,sansac200*,sansafuze*: "mSD:"
+    sansae200*,sansac200*,sansafuze*,sansaclipplus: "mSD:"
     archosondio*: "MMC:"
   </source>
   <dest>
     *: none
     multivolume: "HD1"
-    sansae200*,sansac200*,sansafuze*: "mSD:"
+    sansae200*,sansac200*,sansafuze*,sansaclipplus: "mSD:"
     archosondio*: "MMC:"
   </dest>
   <voice>
     *: none
     multivolume: "Festplatte"
-    sansae200*,sansac200*,sansafuze*: "Micro-SD-Karte"
+    sansae200*,sansac200*,sansafuze*,sansaclipplus: "Micro-SD-Karte"
     archosondio*: "Multimediakarte"
   </voice>
 </phrase>
@@ -6975,10 +6967,10 @@
 </phrase>
 <phrase>
   id: LANG_CATALOG_VIEW
-  desc: in onplay playlist catalog submenu
+  desc: in onplay playlist catalogue submenu
   user: core
   <source>
-    *: "View Catalog"
+    *: "View Catalogue"
   </source>
   <dest>
     *: "Katalog anzeigen"
@@ -6989,7 +6981,7 @@
 </phrase>
 <phrase>
   id: LANG_CATALOG_ADD_TO
-  desc: in onplay playlist catalog submenu
+  desc: in onplay playlist catalogue submenu
   user: core
   <source>
     *: "Add to Playlist"
@@ -7003,7 +6995,7 @@
 </phrase>
 <phrase>
   id: LANG_CATALOG_ADD_TO_NEW
-  desc: in onplay playlist catalog submenu
+  desc: in onplay playlist catalogue submenu
   user: core
   <source>
     *: "Add to New Playlist"
@@ -7017,7 +7009,7 @@
 </phrase>
 <phrase>
   id: LANG_CATALOG_NO_DIRECTORY
-  desc: error message when playlist catalog directory doesn't exist
+  desc: error message when playlist catalogue directory doesn't exist
   user: core
   <source>
     *: "%s doesn't exist"
@@ -7031,7 +7023,7 @@
 </phrase>
 <phrase>
   id: LANG_CATALOG_NO_PLAYLISTS
-  desc: error message when no playlists for playlist catalog
+  desc: error message when no playlists for playlist catalogue
   user: core
   <source>
     *: "No Playlists"
@@ -7580,15 +7572,15 @@
 </phrase>
 <phrase>
   id: LANG_BACKDROP_LOADED
-  desc: text for splash to indicate a new backdrop has been loaded successfully
+  desc: deprecated
   user: core
   <source>
     *: none
-    lcd_non-mono: "Backdrop Loaded"
+    lcd_non-mono: ""
   </source>
   <dest>
     *: none
-    lcd_non-mono: "Hintergrund geladen"
+    lcd_non-mono: ""
   </dest>
   <voice>
     *: none
@@ -7597,15 +7589,15 @@
 </phrase>
 <phrase>
   id: LANG_BACKDROP_FAILED
-  desc: text for splash to indicate a failure to load a bitmap as backdrop
+  desc: deprecated
   user: core
   <source>
     *: none
-    lcd_non-mono: "Backdrop Failed"
+    lcd_non-mono: ""
   </source>
   <dest>
     *: none
-    lcd_non-mono: "Hintergrundfehler"
+    lcd_non-mono: ""
   </dest>
   <voice>
     *: none
@@ -7906,7 +7898,7 @@
     *: "Modus:"
   </dest>
   <voice>
-    *: ""
+    *: "Modus:"
   </voice>
 </phrase>
 <phrase>
@@ -7995,6 +7987,7 @@
     iriverh100,iriverh120,iriverh300: "The disk is full. Press STOP to continue."
     iaudiom5,iaudiox5: "The disk is full. Press POWER to continue."
     sansae200*,sansac200*,vibe500: "The disk is full. Press PREV to continue."
+    samsungyh*: "Disk full. Press LEFT to continue."
   </source>
   <dest>
     *: none
@@ -8002,6 +7995,7 @@
     iriverh100,iriverh120,iriverh300: "Kein Speicherplatz mehr vorhanden. Drücke STOP zum fortfahren."
     iaudiom5,iaudiox5: "Kein Speicherplatz mehr vorhanden. Drücke POWER zum fortfahren."
     sansae200*,sansac200*,vibe500: "Kein Speicherplatz mehr vorhanden. Drücke PREV zum fortfahren."
+    samsungyh*: "Kein Speicherplatz mehr vorhanden. Drücke LEFT zum fortfahren."
   </dest>
   <voice>
     *: none
@@ -8099,6 +8093,7 @@
     iriverh10,iriverh10_5gb,sansae200*,sansac200*,vibe500: "PREV to abort"
     gigabeats: "BACK to abort"
     gigabeatfx: "POWER to abort"
+    sansafuzeplus: "BACK to abort"
   </source>
   <dest>
     *: "OFF zum Abbrechen"
@@ -8108,6 +8103,7 @@
     iriverh10,iriverh10_5gb,sansae200*,sansac200*,vibe500: "PREV zum Abbrechen"
     gigabeats: "BACK zum Abbrechen"
     gigabeatfx: "POWER zum Abbrechen"
+    sansafuzeplus: "BACK zum Abbrechen"
   </dest>
   <voice>
     *: ""
@@ -10436,15 +10432,15 @@
   user: core
   <source>
     *: none
-    ipodvideo: "Bass Cutoff"
+    ipodvideo,ipod6g,mpiohd200,mpiohd300,gigabeatfx,mrobe100: "Bass Cutoff"
   </source>
   <dest>
     *: none
-    ipodvideo: "Tiefengrenzfrequenz"
+    ipodvideo,ipod6g,mpiohd200,mpiohd300,gigabeatfx,mrobe100: "Tiefengrenzfrequenz"
   </dest>
   <voice>
     *: none
-    ipodvideo: "Tiefengrenzfrequenz"
+    ipodvideo,ipod6g,mpiohd200,mpiohd300,gigabeatfx,mrobe100: "Tiefengrenzfrequenz"
   </voice>
 </phrase>
 <phrase>
@@ -10453,15 +10449,15 @@
   user: core
   <source>
     *: none
-    ipodvideo: "Treble Cutoff"
+    ipodvideo,ipod6g,mpiohd200,mpiohd300,gigabeatfx,mrobe100: "Treble Cutoff"
   </source>
   <dest>
     *: none
-    ipodvideo: "Höhengrenzfrequenz"
+    ipodvideo,ipod6g,mpiohd200,mpiohd300,gigabeatfx,mrobe100: "Höhengrenzfrequenz"
   </dest>
   <voice>
     *: none
-    ipodvideo: "Höhengrenzfrequenz"
+    ipodvideo,ipod6g,mpiohd200,mpiohd300,gigabeatfx,mrobe100: "Höhengrenzfrequenz"
   </voice>
 </phrase>
 <phrase>
@@ -10549,15 +10545,15 @@
   user: core
   <source>
     *: none
-    gigabeatfx: "Touchpad Sensitivity"
+    gigabeatfx,sansafuzeplus: "Touchpad Sensitivity"
   </source>
   <dest>
     *: none
-    gigabeatfx: "Touchpad-Empfindlichkeit"
+    gigabeatfx,sansafuzeplus: "Touchpad-Empfindlichkeit"
   </dest>
   <voice>
     *: none
-    gigabeatfx: "Touchpad-Empfindlichkeit"
+    gigabeatfx,sansafuzeplus: "Touchpad-Empfindlichkeit"
   </voice>
 </phrase>
 <phrase>
@@ -11460,16 +11456,16 @@
 </phrase>
 <phrase>
   id: LANG_SKIN_RAM_USAGE
-  desc: how much RAM the skins are using
+  desc: deprecated
   user: core
   <source>
-    *: "Skin RAM usage:"
+    *: ""
   </source>
   <dest>
-    *: "Themen-Speicher:"
+    *: ""
   </dest>
   <voice>
-    *: "Themen-Speicher"
+    *: ""
   </voice>
 </phrase>
 <phrase>
@@ -12176,15 +12172,15 @@
   user: core
   <source>
     *: none
-    gigabeats: "Band %d Gain"
+    gigabeats,samsungypr1: "Band %d Gain"
   </source>
   <dest>
     *: none
-    gigabeats: "Verstärkung Band %d"
+    gigabeats,samsungypr1: "Band %d Verstärkung"
   </dest>
   <voice>
     *: none
-    gigabeats: "Bandverstärkung"
+    gigabeats,samsungypr1: "Band %d Verstärkung"
   </voice>
 </phrase>
 <phrase>
@@ -12210,15 +12206,15 @@
   user: core
   <source>
     *: none
-    gigabeats: "Wide"
+    gigabeats,samsungypr1: "Wide"
   </source>
   <dest>
     *: none
-    gigabeats: "Weit"
+    gigabeats,samsungypr1: "Breit"
   </dest>
   <voice>
     *: none
-    gigabeats: "Weit"
+    gigabeats,samsungypr1: "Breit"
   </voice>
 </phrase>
 <phrase>
@@ -12244,15 +12240,15 @@
   user: core
   <source>
     *: none
-    gigabeats: "Narrow"
+    gigabeats,samsungypr1: "Narrow"
   </source>
   <dest>
     *: none
-    gigabeats: "Schmal"
+    gigabeats,samsungypr1: "Schmal"
   </dest>
   <voice>
     *: none
-    gigabeats: "Schmal"
+    gigabeats,samsungypr1: "Schmal"
   </voice>
 </phrase>
 <phrase>
@@ -12309,15 +12305,15 @@
   user: core
   <source>
     *: none
-    gigabeats: "Advanced Tone Control Settings"
+    gigabeats,samsungypr1: "Advanced Tone Control Settings"
   </source>
   <dest>
     *: none
-    gigabeats: "Erweiterte Klangeinstellungen"
+    gigabeats,samsungypr1: "Erweiterte Klangeinstellungen"
   </dest>
   <voice>
     *: none
-    gigabeats: "Erweiterte Klangeinstellungen"
+    gigabeats,samsungypr1: "Erweiterte Klangeinstellungen"
   </voice>
 </phrase>
 <phrase>
@@ -12326,15 +12322,15 @@
   user: core
   <source>
     *: none
-    gigabeats: "3-D Enhancement"
+    depth_3d: "3-D Enhancement"
   </source>
   <dest>
     *: none
-    gigabeats: "Raumklangverbesserung"
+    depth_3d: "Raumklang"
   </dest>
   <voice>
     *: none
-    gigabeats: "Raumklangverbesserung"
+    depth_3d: "Raumklang"
   </voice>
 </phrase>
 <phrase>
@@ -12357,15 +12353,15 @@
   user: core
   <source>
     *: none
-    gigabeats: "Band %d Frequency"
+    gigabeats,samsungypr1: "Band %d Frequency"
   </source>
   <dest>
     *: none
-    gigabeats: "Grenzfrequenz Band %d"
+    gigabeats,samsungypr1: "Band %d Grenzfrequenz"
   </dest>
   <voice>
     *: none
-    gigabeats: "Grenzfrequenz"
+    gigabeats,samsungypr1: "Band %d Grenzfrequenz"
   </voice>
 </phrase>
 <phrase>
@@ -12374,15 +12370,15 @@
   user: core
   <source>
     *: none
-    gigabeats: "Band %d Width"
+    gigabeats,samsungypr1: "Band %d Width"
   </source>
   <dest>
     *: none
-    gigabeats: "Bandbreite Band %d"
+    gigabeats,samsungypr1: "Band %d Breite"
   </dest>
   <voice>
     *: none
-    gigabeats: "Bandbreite"
+    gigabeats,samsungypr1: "Band %d Breite"
   </voice>
 </phrase>
 <phrase>
@@ -12425,15 +12421,15 @@
   user: core
   <source>
     *: none
-    gigabeats: "Tone Controls"
+    gigabeats,samsungypr1: "Tone Controls"
   </source>
   <dest>
     *: none
-    gigabeats: "Klangregelung"
+    gigabeats,samsungypr1: "Klangeinstellungen"
   </dest>
   <voice>
     *: none
-    gigabeats: "Klangregelung"
+    gigabeats,samsungypr1: "Klangeinstellungen"
   </voice>
 </phrase>
 <phrase>
@@ -12454,20 +12450,20 @@
   </voice>
 </phrase>
 <phrase>
-  id: LANG_RECORDING_HISTOGRAM_INTERVAL
+  id: LANG_HISTOGRAM_INTERVAL
   desc: in record settings menu
   user: core
   <source>
     *: none
-    recording_histogram: "Histogram interval"
+    histogram: "Histogram interval"
   </source>
   <dest>
     *: none
-    recording_histogram: "Histogrammintervall"
+    histogram: "Histogrammintervall"
   </dest>
   <voice>
     *: none
-    recording_histogram: "Histogrammintervall"
+    histogram: "Histogrammintervall"
   </voice>
 </phrase>
 <phrase>
@@ -12603,5 +12599,698 @@
   </dest>
   <voice>
     *: "Dateigröße"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_FM_RSSI
+  desc: Signal strength of a received FM station
+  user: core
+  <source>
+    *: none
+    radio: "Signal strength:"
+  </source>
+  <dest>
+    *: none
+    radio: "Signalstärke:"
+  </dest>
+  <voice>
+    *: none
+    radio: "Signalstärke:"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_AUTORESUME_ENABLE_YES
+  desc: deprecated
+  user: core
+  <source>
+    *: ""
+  </source>
+  <dest>
+    *: ""
+  </dest>
+  <voice>
+    *: ""
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_AUTORESUME_ENABLE
+  desc: deprecated
+  user: core
+  <source>
+    *: ""
+  </source>
+  <dest>
+    *: ""
+  </dest>
+  <voice>
+    *: ""
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_AUTORESUME
+  desc: resume settings menu
+  user: core
+  <source>
+    *: "Automatic resume"
+  </source>
+  <dest>
+    *: "Automatisches Fortsetzen"
+  </dest>
+  <voice>
+    *: "Automatisches Fortsetzen"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_AUTORESUME_AUTOMATIC
+  desc: resume on automatic track change
+  user: core
+  <source>
+    *: "Resume on automatic track change"
+  </source>
+  <dest>
+    *: "Bei automatischem Titelwechsel"
+  </dest>
+  <voice>
+    *: "Bei automatischem Titelwechsel"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_AUTORESUME_CUSTOM
+  desc: enable customization of resume on automatic track change
+  user: core
+  <source>
+    *: "In custom directories only"
+  </source>
+  <dest>
+    *: "Nur in bestimmten Verzeichnissen"
+  </dest>
+  <voice>
+    *: "Nur in bestimmten Verzeichnissen"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_PAUSE_REWIND
+  desc: Seconds to rewind when rewind on pause is enabled.
+  user: core
+  <source>
+    *: "Rewind on Pause"
+  </source>
+  <dest>
+    *: "Zurückspulen bei Pause"
+  </dest>
+  <voice>
+    *: "Zurückspulen bei Pause"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_CURRENT_PLAYLIST
+  desc: Used when you need to say playlist, also voiced
+  user: core
+  <source>
+    *: "Current Playlist"
+  </source>
+  <dest>
+    *: "Aktuelle Wiedergabeliste"
+  </dest>
+  <voice>
+    *: "Aktuelle Wiedergabeliste"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_GLYPHS
+  desc: in settings_menu
+  user: core
+  <source>
+    *: "Glyphs To Cache"
+  </source>
+  <dest>
+    *: "Symbole im Zwischenspeicher"
+  </dest>
+  <voice>
+    *: "Symbole im Zwischenspeicher"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_USB_SKIP_FIRST_DRIVE
+  desc: in settings_menu
+  user: core
+  <source>
+    *: none
+    multidrive_usb: "USB Hide Internal Drive"
+  </source>
+  <dest>
+    *: none
+    multidrive_usb: "Internes Laufwerk bei USB verstecken"
+  </dest>
+  <voice>
+    *: none
+    multidrive_usb: "Internes Laufwerk bei USB verstecken"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_KEYCLICK_HARDWARE
+  desc: in keyclick settings menu
+  user: core
+  <source>
+    *: none
+    hardware_click: "Speaker Keyclick"
+  </source>
+  <dest>
+    *: none
+    hardware_click: "Tastentöne über Lautsprecher"
+  </dest>
+  <voice>
+    *: none
+    hardware_click: "Tastentöne über Lautsprecher"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_KEYCLICK_SOFTWARE
+  desc: in keyclick settings menu
+  user: core
+  <source>
+    *: none
+    hardware_click: "Headphone Keyclick"
+  </source>
+  <dest>
+    *: none
+    hardware_click: "Tastentöne über Kopfhörer"
+  </dest>
+  <voice>
+    *: none
+    hardware_click: "Tastentöne über Kopfhörer"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_SET_AS_PLAYLISTCAT_DIR
+  desc: used in the onplay menu to set a playlist catalogue dir
+  user: core
+  <source>
+    *: "Set As Playlist Catalogue Directory"
+  </source>
+  <dest>
+    *: "Als Wiedergabelistenverzeichnis festlegen"
+  </dest>
+  <voice>
+    *: "Als Wiedergabelistenverzeichnis festlegen"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_LIST_LINE_PADDING
+  desc: list padding, in display settings
+  user: core
+  <source>
+    *: none
+    touchscreen: "Line Padding in Lists"
+  </source>
+  <dest>
+    *: none
+    touchscreen: "Zeilenabstand in Listen"
+  </dest>
+  <voice>
+    *: none
+    touchscreen: "Zeilenabstand in Listen"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_SAVE_CHANGES
+  desc: When you try to exit screens to confirm save
+  user: core
+  <source>
+    *: "Save Changes?"
+  </source>
+  <dest>
+    *: "Änderungen speichern?"
+  </dest>
+  <voice>
+    *: "Änderungen speichern?"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_AUTOMATIC
+  desc: generic automatic
+  user: core
+  <source>
+    *: "Automatic"
+  </source>
+  <dest>
+    *: "Automatisch"
+  </dest>
+  <voice>
+    *: "Automatisch"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_SHORTCUTS
+  desc: Title in the shortcuts menu
+  user: core
+  <source>
+    *: "Shortcuts"
+  </source>
+  <dest>
+    *: "Verknüpfungen"
+  </dest>
+  <voice>
+    *: "Verknüpfungen"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_SLEEP_TIMER_CANCEL_CURRENT
+  desc: shown instead of sleep timer when it's running
+  user: core
+  <source>
+    *: "Cancel Sleep Timer"
+  </source>
+  <dest>
+    *: "Einschlaftimer abbrechen"
+  </dest>
+  <voice>
+    *: "Einschlafzeit abbrechen"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_STARTUP_SHUTDOWN
+  desc: in the general settings menu
+  user: core
+  <source>
+    *: "Startup/Shutdown"
+  </source>
+  <dest>
+    *: "Ein-/Ausschalten"
+  </dest>
+  <voice>
+    *: "Ein- und Ausschalten"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_KEYPRESS_RESTARTS_SLEEP_TIMER
+  desc: whether to restart running sleep timer on keypress
+  user: core
+  <source>
+    *: "Restart Sleep Timer On Keypress"
+  </source>
+  <dest>
+    *: "Einschlaftimer bei Tastendruck zurücksetzen"
+  </dest>
+  <voice>
+    *: "Einschlafzeit bei Tastendruck zurücksetzen"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_SLEEP_TIMER_DURATION
+  desc: default sleep timer duration in minutes
+  user: core
+  <source>
+    *: "Default Sleep Timer Duration"
+  </source>
+  <dest>
+    *: "Standarddauer Einschlaftimer"
+  </dest>
+  <voice>
+    *: "Standarddauer Einschlafzeit"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_RESET_PLAYLISTCAT_DIR
+  desc:
+  user: core
+  <source>
+    *: "Reset Playlist Catalogue Directory"
+  </source>
+  <dest>
+    *: "Wiedergabelistenverzeichnis zurücksetzen"
+  </dest>
+  <voice>
+    *: "Wiedergabelistenverzeichnis zurücksetzen"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_SLEEP_TIMER_ON_POWER_UP
+  desc: whether sleep timer starts on power up
+  user: core
+  <source>
+    *: "Start Sleep Timer On Boot"
+  </source>
+  <dest>
+    *: "Einschlaftimer automatisch starten"
+  </dest>
+  <voice>
+    *: "Einschlafzeit automatisch starten"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_SELECT_FOLDER
+  desc: in settings_menu
+  user: core
+  <source>
+    *: "Select one or more directories"
+  </source>
+  <dest>
+    *: "Eines oder mehrere Verzeichnisse auswählen"
+  </dest>
+  <voice>
+    *: "Eines oder mehrere Verzeichnisse auswählen"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_CROSSFEED_MEIER
+  desc: in sound settings
+  user: core
+  <source>
+    *: none
+    swcodec: "Simple (Meier)"
+  </source>
+  <dest>
+    *: none
+    swcodec: "Einfach (Meier)"
+  </dest>
+  <voice>
+    *: none
+    swcodec: "Einfach"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_SLEEP_TIMER_START_CURRENT
+  desc: shown when a sleep timer isn't running
+  user: core
+  <source>
+    *: "Start Sleep Timer"
+  </source>
+  <dest>
+    *: "Einschlaftimer starten"
+  </dest>
+  <voice>
+    *: "Einschlaftimer starten"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_SELECT_DATABASE_DIRS
+  desc: in settings_menu
+  user: core
+  <source>
+    *: "Select directories to scan"
+  </source>
+  <dest>
+    *: "Verzeichnisse auswählen"
+  </dest>
+  <voice>
+    *: "Verzeichnisse zum Durchsuchen auswählen"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_CODEPAGE_WESTERN_EUROPEAN
+  desc: in codepage setting menu
+  user: core
+  <source>
+    *: "Western European (CP1252)"
+  </source>
+  <dest>
+    *: "Westeuropäisch (CP1252)"
+  </dest>
+  <voice>
+    *: "Westeuropäisch"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_CROSSFEED_CUSTOM
+  desc: in sound settings
+  user: core
+  <source>
+    *: none
+    swcodec: "Custom"
+  </source>
+  <dest>
+    *: none
+    swcodec: "Manuell"
+  </dest>
+  <voice>
+    *: none
+    swcodec: "Manuell"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_USE_SHORTCUTS_INSTEAD_OF_QS
+  desc: in settings_menu.
+  user: core
+  <source>
+    *: none
+    quickscreen: "Use Shortcuts Menu Instead of Quick Screen"
+  </source>
+  <dest>
+    *: none
+    quickscreen: "Verknüpfungsmenü statt Schnelleinstellung verwenden"
+  </dest>
+  <voice>
+    *: none
+    quickscreen: "Verknüpfungsmenü statt Schnelleinstellung verwenden"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_CONSTRAIN_NEXT_FOLDER
+  desc: in settings_menu. Whether LANG_NEXT_FOLDER should be constrained to directories within LANG_SET_AS_START_DIR
+  user: core
+  <source>
+    *: "Constrain Auto-Change"
+  </source>
+  <dest>
+    *: "Beschränke autom. Verzeichniswechsel"
+  </dest>
+  <voice>
+    *: "Beschränke automatischen Verzeichniswechsel"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_IBASSO_FREQ_SCALING_GOVERNOR
+  desc: in Settings -> General -> System -> Freq Scaling Governor
+  user: core
+  <source>
+    *: none
+    ibassodx50: "Freq Scaling Governor"
+    ibassodx90: "Freq Scaling Governor"
+  </source>
+  <dest>
+    *: none
+    ibassodx50: "Freq Scaling Governor"
+    ibassodx90: "Freq Scaling Governor"
+  </dest>
+  <voice>
+    *: none
+    ibassodx50: "Freq Scaling Governor"
+    ibassodx90: "Freq Scaling Governor"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_IBASSO_USB_MODE
+  desc: in Settings -> General -> System -> USB Mode
+  user: core
+  <source>
+    *: none
+    ibassodx50: "USB Mode"
+    ibassodx90: "USB Mode"
+  </source>
+  <dest>
+    *: none
+    ibassodx50: "USB Modus"
+    ibassodx90: "USB Modus"
+  </dest>
+  <voice>
+    *: none
+    ibassodx50: "USB Modus"
+    ibassodx90: "USB Modus"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_IBASSO_USB_MODE_MASS_STORAGE
+  desc: in Settings -> General -> System -> USB Mode: Mass Storage
+  user: core
+  <source>
+    *: none
+    ibassodx50: "Mass Storage"
+    ibassodx90: "Mass Storage"
+  </source>
+  <dest>
+    *: none
+    ibassodx50: "Massenspeicher"
+    ibassodx90: "Massenspeicher"
+  </dest>
+  <voice>
+    *: none
+    ibassodx50: "Massenspeicher"
+    ibassodx90: "Massenspeicher"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_IBASSO_USB_MODE_CHARGE
+  desc: in Settings -> General -> System -> USB Mode: Charge Only
+  user: core
+  <source>
+    *: none
+    ibassodx50: "Charge Only"
+    ibassodx90: "Charge Only"
+  </source>
+  <dest>
+    *: none
+    ibassodx50: "Nur laden"
+    ibassodx90: "Nur laden"
+  </dest>
+  <voice>
+    *: none
+    ibassodx50: "Nur laden"
+    ibassodx90: "Nur laden"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_IBASSO_USB_MODE_ADB
+  desc: in Settings -> General -> System -> USB Mode: Android Debug Bridge
+  user: core
+  <source>
+    *: none
+    ibassodx50: "Android Debug Bridge"
+    ibassodx90: "Android Debug Bridge"
+  </source>
+  <dest>
+    *: none
+    ibassodx50: "Android Debug Bridge"
+    ibassodx90: "Android Debug Bridge"
+  </dest>
+  <voice>
+    *: none
+    ibassodx50: "Android Debug Bridge"
+    ibassodx90: "Android Debug Bridge"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_LIST_SEPARATOR
+  desc: line between lines in lists
+  user: core
+  <source>
+    *: "Line Separator"
+  </source>
+  <dest>
+    *: "Zeilentrenner"
+  </dest>
+  <voice>
+    *: "Zeilentrenner"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_FILTER_ROLL_OFF
+  desc: in sound settings
+  user: core
+  <source>
+    *: "DAC's filter roll-off"
+  </source>
+  <dest>
+    *: "Flankensteilheit"
+  </dest>
+  <voice>
+    *: "Flankensteilheit"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_DEADZONE
+  desc: touchpad deadzone setting
+  user: core
+  <source>
+    *: none
+    sansafuzeplus: "Touchpad Dead Zone"
+  </source>
+  <dest>
+    *: none
+    sansafuzeplus: "Inaktive Berührungsfläche"
+  </dest>
+  <voice>
+    *: none
+    sansafuzeplus: "Inaktive Berührungsfläche"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_FILTER_SLOW
+  desc: in sound settings
+  user: core
+  <source>
+    *: "Slow"
+  </source>
+  <dest>
+    *: "Langsam"
+  </dest>
+  <voice>
+    *: "Langsam"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_LIST_SEPARATOR_COLOR
+  desc: line between lines in lists
+  user: core
+  <source>
+    *: "Line Separator Colour"
+  </source>
+  <dest>
+    *: "Zeiltrennerfarbe"
+  </dest>
+  <voice>
+    *: "Zeilentrennerfarbe"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_VOLUME_LIMIT
+  desc: in sound_settings
+  user: core
+  <source>
+    *: "Maximum Volume Limit"
+  </source>
+  <dest>
+    *: "Lautstärkenbegrenzung"
+  </dest>
+  <voice>
+    *: "Lautstärkenbegrenzung"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_COMPRESSOR_ATTACK
+  desc: in sound settings
+  user: core
+  <source>
+    *: none
+    swcodec: "Attack Time"
+  </source>
+  <dest>
+    *: none
+    swcodec: "Einschwingzeit"
+  </dest>
+  <voice>
+    *: none
+    swcodec: "Einschwingzeit"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_SYSFONT_EQUALIZER_BAND_Q
+  desc: in the equalizer settings menu
+  user: core
+  <source>
+    *: none
+    swcodec: "Q"
+  </source>
+  <dest>
+    *: none
+    swcodec: "Q"
+  </dest>
+  <voice>
+    *: none
+    swcodec: "Q"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_FILTER_SHARP
+  desc: in sound settings
+  user: core
+  <source>
+    *: "Sharp"
+  </source>
+  <dest>
+    *: "Scharf"
+  </dest>
+  <voice>
+    *: "Scharf"
   </voice>
 </phrase>

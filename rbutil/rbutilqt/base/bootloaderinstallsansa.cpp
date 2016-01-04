@@ -7,7 +7,6 @@
  *                     \/            \/     \/    \/            \/
  *
  *   Copyright (C) 2008 by Dominik Riebeling
- *   $Id$
  *
  * All files in this archive are subject to the GNU General Public License.
  * See the file COPYING in the source tree root for full license agreement.
@@ -20,30 +19,25 @@
 #include <QtCore>
 #include "bootloaderinstallbase.h"
 #include "bootloaderinstallsansa.h"
+#include "Logger.h"
 
 #include "../sansapatcher/sansapatcher.h"
-#include "autodetection.h"
+#include "utils.h"
 
 BootloaderInstallSansa::BootloaderInstallSansa(QObject *parent)
         : BootloaderInstallBase(parent)
 {
     (void)parent;
-    // initialize sector buffer. sansa_sectorbuf is instantiated by
-    // sansapatcher.
-    // The buffer itself is only present once, so make sure to not allocate
-    // it if it was already allocated. The application needs to take care
-    // no concurrent (i.e. multiple objects of this class running) requests
-    // are done.
-    if(sansa_sectorbuf == NULL)
-        sansa_alloc_buffer(&sansa_sectorbuf, BUFFER_SIZE);
+    // initialize sector buffer. The sector buffer is part of the sansa_t
+    // structure, so a second instance of this class will have its own buffer.
+    sansa_alloc_buffer(&sansa, BUFFER_SIZE);
 }
 
 
 BootloaderInstallSansa::~BootloaderInstallSansa()
 {
-    if(sansa_sectorbuf) {
-        free(sansa_sectorbuf);
-        sansa_sectorbuf = NULL;
+    if(sansa.sectorbuf) {
+        sansa_dealloc_buffer(&sansa);
     }
 }
 
@@ -52,15 +46,13 @@ BootloaderInstallSansa::~BootloaderInstallSansa()
  */
 bool BootloaderInstallSansa::install(void)
 {
-    if(sansa_sectorbuf == NULL) {
+    if(sansa.sectorbuf == NULL) {
         emit logItem(tr("Error: can't allocate buffer memory!"), LOGERROR);
         return false;
         emit done(true);
     }
 
     emit logItem(tr("Searching for Sansa"), LOGINFO);
-
-    struct sansa_t sansa;
 
     int n = sansa_scan(&sansa);
     if(n == -1) {
@@ -96,7 +88,8 @@ bool BootloaderInstallSansa::install(void)
  */
 void BootloaderInstallSansa::installStage2(void)
 {
-    struct sansa_t sansa;
+    unsigned char* buf = NULL;
+    unsigned int len;
 
     emit logItem(tr("Installing Rockbox bootloader"), LOGINFO);
     QCoreApplication::processEvents();
@@ -124,15 +117,15 @@ void BootloaderInstallSansa::installStage2(void)
     m_tempfile.close();
     if(memcmp(sansa.targetname, magic, 4) != 0) {
         emit logItem(tr("Bootloader mismatch! Aborting."), LOGERROR);
-        qDebug("[BootloaderInstallSansa] Targetname: %s, mi4 magic: %c%c%c%c",
+        LOG_INFO("Targetname: %s, mi4 magic: %c%c%c%c",
                 sansa.targetname, magic[0], magic[1], magic[2], magic[3]);
         emit done(true);
         sansa_close(&sansa);
         return;
     }
 
-    if(sansa_add_bootloader(&sansa, blfile.toLatin1().data(),
-            FILETYPE_MI4) == 0) {
+    len = sansa_read_bootloader(&sansa, blfile.toLatin1().data(), &buf);
+    if(sansa_add_bootloader(&sansa, buf, len) == 0) {
         emit logItem(tr("Successfully installed bootloader"), LOGOK);
         sansa_close(&sansa);
 #if defined(Q_OS_MACX)
@@ -165,7 +158,8 @@ void BootloaderInstallSansa::installStage3(bool mounted)
         emit logItem(tr("Writing log aborted"), LOGERROR);
         emit done(true);
     }
-    qDebug() << "version installed:" << m_blversion.toString(Qt::ISODate);
+    LOG_INFO() << "version installed:"
+               << m_blversion.toString(Qt::ISODate);
 }
 
 
@@ -173,8 +167,6 @@ void BootloaderInstallSansa::installStage3(bool mounted)
  */
 bool BootloaderInstallSansa::uninstall(void)
 {
-    struct sansa_t sansa;
-
     emit logItem(tr("Uninstalling bootloader"), LOGINFO);
     QCoreApplication::processEvents();
 
@@ -221,7 +213,6 @@ bool BootloaderInstallSansa::uninstall(void)
  */
 BootloaderInstallBase::BootloaderType BootloaderInstallSansa::installed(void)
 {
-    struct sansa_t sansa;
     int num;
 
     if(!sansaInitialize(&sansa)) {
@@ -242,7 +233,7 @@ BootloaderInstallBase::BootloaderType BootloaderInstallSansa::installed(void)
 bool BootloaderInstallSansa::sansaInitialize(struct sansa_t *sansa)
 {
     if(!m_blfile.isEmpty()) {
-        QString devicename = Autodetection::resolveDevicename(m_blfile);
+        QString devicename = Utils::resolveDevicename(m_blfile);
         if(devicename.isEmpty()) {
             emit logItem(tr("Error: could not retrieve device name"), LOGERROR);
             return false;
@@ -251,13 +242,13 @@ bool BootloaderInstallSansa::sansaInitialize(struct sansa_t *sansa)
         sprintf(sansa->diskname, "\\\\.\\PhysicalDrive%i", devicename.toInt());
 #elif defined(Q_OS_MACX)
         sprintf(sansa->diskname,
-            qPrintable(devicename.remove(QRegExp("s[0-9]+$"))));
+            "%s", qPrintable(devicename.remove(QRegExp("s[0-9]+$"))));
 #else
         sprintf(sansa->diskname,
-            qPrintable(devicename.remove(QRegExp("[0-9]+$"))));
+            "%s", qPrintable(devicename.remove(QRegExp("[0-9]+$"))));
 #endif
-        qDebug() << "[BootloaderInstallSansa] sansapatcher: overriding scan, using"
-                 << sansa->diskname;
+        LOG_INFO() << "sansapatcher: overriding scan, using"
+                   << sansa->diskname;
     }
     else if(sansa_scan(sansa) != 1) {
         emit logItem(tr("Can't find Sansa"), LOGERROR);

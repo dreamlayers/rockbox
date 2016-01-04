@@ -18,7 +18,7 @@ PDBOX_OBJ := $(call c2obj, $(PDBOX_SRC))
 # add source files to OTHERSRC to get automatic dependencies
 OTHER_SRC += $(PDBOX_SRC)
 
-$(PDBOXBUILDDIR)/pdbox.rock: $(PDBOX_OBJ) $(MPEG_OBJ) $(CODECDIR)/libtlsf.a
+$(PDBOXBUILDDIR)/pdbox.rock: $(PDBOX_OBJ) $(MPEG_OBJ)
 
 PDBOXFLAGS = $(PLUGINFLAGS) -fno-strict-aliasing
 PDBOXLDFLAGS = $(PLUGINLDFLAGS) 
@@ -26,20 +26,9 @@ ifdef APP_TYPE
 PDBOXLDFLAGS += -lm
 endif
 
+$(PDBOXBUILDDIR)/pdbox.rock: $(PDBOX_OBJ) $(TLSFLIB)
+
 # Compile PDBox with extra flags (adapted from ZXBox)
 $(PDBOXBUILDDIR)/%.o: $(PDBOXSRCDIR)/%.c $(PDBOXSRCDIR)/pdbox.make
 	$(SILENT)mkdir -p $(dir $@)
 	$(call PRINTS,CC $(subst $(ROOTDIR)/,,$<))$(CC) -I$(dir $<) $(PDBOXFLAGS) -c $< -o $@
-
-$(PDBOXBUILDDIR)/pdbox.rock:
-	$(call PRINTS,LD $(@F))$(CC) $(PLUGINFLAGS) -o $*.elf \
-		$(filter %.o, $^) \
-		$(filter %.a, $+) \
-		-lgcc $(PDBOXLDFLAGS)
-ifdef APP_TYPE
-	$(SILENT)cp $*.elf $@
-else
-	$(SILENT)$(OC) -O binary $*.elf $@
-endif
-
-

@@ -21,6 +21,7 @@
 #ifndef _WPS_H_
 #define _WPS_H_
 #include <stdbool.h>
+#include "config.h"
 #include "screen_access.h"
  
 long gui_wps_show(void);
@@ -30,11 +31,15 @@ void wps_data_load(enum screen_type, const char *, bool);
 
 void gui_sync_wps_init(void) INIT_ATTR;
 
+/* fade (if enabled) and pause the audio, optionally rewind a little */
+void pause_action(bool may_fade, bool updatewps);
+void unpause_action(bool may_fade, bool updatewps);
+
 /* fades the volume, e.g. on pause or stop */
 void fade(bool fade_in, bool updatewps);
 
 bool ffwd_rew(int button);
-void display_keylock_text(bool locked);
+void wps_do_playpause(bool updatewps);
 
 #ifdef IPOD_ACCESSORY_PROTOCOL
 /* whether the wps is fading the volume due to pausing/stopping */

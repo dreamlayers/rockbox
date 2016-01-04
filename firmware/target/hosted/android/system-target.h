@@ -18,19 +18,30 @@
  * KIND, either express or implied.
  *
  ****************************************************************************/
+
 #ifndef __SYSTEM_TARGET_H__
 #define __SYSTEM_TARGET_H__
 
-#define disable_irq()
-#define enable_irq()
-#define disable_irq_save() 0
-#define restore_irq(level) (void)level
+#include "kernel-unix.h"
+#include "system-hosted.h"
 
-void power_off(void);
-void wait_for_interrupt(void);
-void interrupt(void);
+ /* don't pull in jni.h for every user of this file, it should be only needed
+  * within the target tree (if at all)
+  * define this before #including system.h or system-target.h */
+#ifdef _SYSTEM_WITH_JNI
+#include <jni.h>
+/*
+ * discover the JNIEnv for this the calling thread in case it's not known */
+extern JNIEnv* getJavaEnvironment(void);
+#endif /* _SYSTEM_WITH_JNI */
 
 #endif /* __SYSTEM_TARGET_H__ */
 
-#define NEED_GENERIC_BYTESWAPS
+/* facility function to check/wait for rockbox being ready, to be used
+ * by java calls into native that depend on Rockbox structures such as
+ * initialized kernel. */
+bool is_rockbox_ready(void);
+void wait_rockbox_ready(void);
+void set_rockbox_ready(void);
 
+#define NEED_GENERIC_BYTESWAPS

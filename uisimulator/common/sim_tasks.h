@@ -21,5 +21,13 @@
  *
  ****************************************************************************/
 
+
+#ifndef __SIM_TASKS_H__
+#define __SIM_TASKS_H__
+
 void sim_tasks_init(void);
 void sim_trigger_screendump(void);
+void sim_trigger_usb(bool inserted);
+void sim_trigger_external(bool inserted);
+
+#endif

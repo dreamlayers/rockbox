@@ -9,17 +9,13 @@
 
 # preprocess - run preprocessor on a file and return the result as a string
 #
-# This uses the native 'gcc' compiler and not $(CC) since we use the -imacros
-# option and older gcc compiler doesn't have that. We use one such older
-# compiler for the win32 cross-compiles on Linux.
-#
 # The weird grep -v thing in here is due to Apple's stupidities and is needed
 # to make this do right when used on Mac OS X.
 #
 # The sed line is to prepend the directory to all source files
 
 preprocess = $(shell $(CC) $(PPCFLAGS) $(2) -E -P -x c -include config.h $(1) | \
-		grep -v '^\#' | \
+		grep -v '^\#' | grep -v "^ *$$" | \
 		sed -e 's:^..*:$(dir $(1))&:')
 
 preprocess2file = $(SILENT)$(CC) $(PPCFLAGS) $(3) -E -P -x c -include config.h $(1) | \
@@ -29,6 +25,22 @@ asmdefs2file = $(SILENT)$(CC) $(PPCFLAGS) $(3) -S -x c -o - -include config.h $(
 	perl -ne 'if(/^_?AD_(\w+):$$/){$$var=$$1}else{/^\W\.(?:word|long)\W(.*)$$/ && $$var && print "\#define $$var $$1\n";$$var=0}' > $(2)
 
 c2obj = $(addsuffix .o,$(basename $(subst $(ROOTDIR),$(BUILDDIR),$(1))))
+
+a2lnk = $(patsubst lib%.a,-l%,$(notdir $(1)))
+
+# objcopy wrapper that keeps debug symbols in DEBUG builds
+# handles the $(1) == $(2) case too
+ifndef APP_TYPE
+objcopy = $(OC) $(if $(filter yes, $(USE_ELF)), -S -x, -O binary) $(1) $(2)	# objcopy native
+else ifneq (,$(findstring sdl-sim,$(APP_TYPE)))
+objcopy = cp $(1) $(1).tmp;mv -f $(1).tmp $(2)		# objcopy simulator
+else
+  ifdef DEBUG
+    objcopy = cp $(1) $(1).tmp;mv -f $(1).tmp $(2)	# objcopy hosted (DEBUG)
+  else
+    objcopy = $(OC) -S -x $(1) $(2)					# objcopy hosted (!DEBUG)
+   endif
+endif
 
 # calculate dependencies for a list of source files $(2) and output them to $(1)
 mkdepfile = $(SILENT)perl $(TOOLSDIR)/multigcc.pl $(CC) $(PPCFLAGS) $(OTHER_INC) -MG -MM -include config.h -- $(2) | \

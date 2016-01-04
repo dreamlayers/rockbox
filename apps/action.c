@@ -53,7 +53,7 @@ static bool wait_for_release = false;
 static bool short_press = false;
 #endif
 
-#define REPEAT_WINDOW_TICKS HZ/10
+#define REPEAT_WINDOW_TICKS HZ/4
 static int last_action_tick = 0;
 
 /* software keylock stuff */
@@ -77,6 +77,10 @@ static inline int do_button_check(const struct button_mapping *items,
     {
         if (items[i].button_code == button)
         {
+            /*
+                CAVEAT: This will allways return the action without pre_button_code if it has a
+                lower index in the list.
+            */
             if ((items[i].pre_button_code == BUTTON_NONE)
                 || (items[i].pre_button_code == last_button))
             {
@@ -149,6 +153,40 @@ static inline int get_next_context(const struct button_mapping *items, int i)
             CONTEXT_STD :
             items[i].action_code;
 }
+
+#if defined(HAVE_GUI_BOOST) && defined(HAVE_ADJUSTABLE_CPU_FREQ)
+
+/* Timeout for gui boost in seconds. */
+#define GUI_BOOST_TIMEOUT (HZ)
+
+/* Helper function which is called to boost / unboost CPU. This function
+ * avoids to increase boost_count with each call of gui_boost(). */
+static void gui_boost(bool want_to_boost)
+{
+    static bool boosted = false;
+    
+    if (want_to_boost && !boosted)
+    {
+        cpu_boost(true);
+        boosted = true;
+    }
+    else if (!want_to_boost && boosted)
+    {
+        cpu_boost(false);
+        boosted = false;
+    }
+}
+
+/* gui_unboost_callback() is called GUI_BOOST_TIMEOUT seconds after the 
+ * last wheel scrolling event. */
+static int gui_unboost_callback(struct timeout *tmo)
+{
+    (void)tmo;
+    gui_boost(false);
+    return 0;
+}
+#endif
+
 /*
  * int get_action_worker(int context, struct button_mapping *user_mappings,
    int timeout)
@@ -173,7 +211,6 @@ static int get_action_worker(int context, int timeout,
     int ret = ACTION_UNKNOWN;
     static int last_context = CONTEXT_STD;
     
-    
     send_event(GUI_EVENT_ACTIONUPDATE, NULL);
 
     if (timeout == TIMEOUT_NOBLOCK)
@@ -183,28 +220,59 @@ static int get_action_worker(int context, int timeout,
     else
         button = button_get_w_tmo(timeout);
 
+#if defined(HAVE_GUI_BOOST) && defined(HAVE_ADJUSTABLE_CPU_FREQ)
+    static struct timeout gui_unboost;
+    /* Boost the CPU in case of wheel scrolling activity in the defined contexts. 
+     * Call unboost with a timeout of GUI_BOOST_TIMEOUT. */
+    if ((button&(BUTTON_SCROLL_BACK|BUTTON_SCROLL_FWD)) && 
+        (context == CONTEXT_STD      || context == CONTEXT_LIST ||
+         context == CONTEXT_MAINMENU || context == CONTEXT_TREE))
+    {
+        gui_boost(true);
+        timeout_register(&gui_unboost, gui_unboost_callback, GUI_BOOST_TIMEOUT, 0);
+    }
+#endif
+
     /* Data from sys events can be pulled with button_get_data
      * multimedia button presses don't go through the action system */
     if (button == BUTTON_NONE || button & (SYS_EVENT|BUTTON_MULTIMEDIA))
+    {
+        /* no button pressed so no point in waiting for release */
+        if (button == BUTTON_NONE)
+            wait_for_release = false;
         return button;
+    }
+
+    /* the special redraw button should result in a screen refresh */
+    if (button == BUTTON_REDRAW)
+        return ACTION_REDRAW;
+
+    /* if action_wait_for_release() was called without a button being pressed
+     * then actually waiting for release would do the wrong thing, i.e.
+     * the next key press is entirely ignored. So, if here comes a normal
+     * button press (neither release nor repeat) the press is a fresh one and
+     * no point in waiting for release
+     *
+     * This logic doesn't work for touchscreen which can send normal
+     * button events repeatedly before the first repeat (as in BUTTON_REPEAT).
+     * These cannot be distinguished from the very first touch
+     * but there's nothing we can do about it here */
+    if ((button & (BUTTON_REPEAT|BUTTON_REL)) == 0)
+        wait_for_release = false;
+
     /* Don't send any buttons through untill we see the release event */
     if (wait_for_release)
     {
         if (button&BUTTON_REL)
         {
+            /* remember the button for the below button eating on context
+             * change */
+            last_button = button;
             wait_for_release = false;
         }
         return ACTION_NONE;
     }
         
-
-#if CONFIG_CODEC == SWCODEC
-    /* Produce keyclick */
-    if (global_settings.keyclick && !(button & BUTTON_REL))
-        if (!(button & BUTTON_REPEAT) || global_settings.keyclick_repeats)
-            pcmbuf_beep(4000, KEYCLICK_DURATION, 2500*global_settings.keyclick);
-#endif
-
     if ((context != last_context) && ((last_button & BUTTON_REL) == 0)
 #ifdef HAVE_SCROLLWHEEL
         /* Scrollwheel doesn't generate release events  */
@@ -224,12 +292,16 @@ static int get_action_worker(int context, int timeout,
     last_context = context;
 #ifndef HAS_BUTTON_HOLD
     screen_has_lock = ((context & ALLOW_SOFTLOCK) == ALLOW_SOFTLOCK);
-    if (screen_has_lock && keys_locked)
+    if (is_keys_locked())
     {
         if (button == unlock_combo)
         {
             last_button = BUTTON_NONE;
             keys_locked = false;
+#if defined(HAVE_TOUCHPAD) || defined(HAVE_TOUCHSCREEN)
+            /* enable back touch device */
+            button_enable_touch(true);
+#endif
             splash(HZ/2, str(LANG_KEYLOCK_OFF));
             return ACTION_REDRAW;
         }
@@ -243,6 +315,13 @@ static int get_action_worker(int context, int timeout,
             return ACTION_REDRAW;
         }
     }
+#if defined(HAVE_TOUCHPAD) || defined(HAVE_TOUCHSCREEN)
+    else
+    {
+        /* make sure touchpad get reactivated if we quit the screen */
+        button_enable_touch(true);
+    }
+#endif
     context &= ~ALLOW_SOFTLOCK;
 #endif /* HAS_BUTTON_HOLD */
 
@@ -309,7 +388,10 @@ static int get_action_worker(int context, int timeout,
         unlock_combo = button;
         keys_locked = true;
         splash(HZ/2, str(LANG_KEYLOCK_ON));
-
+ #if defined(HAVE_TOUCHPAD) || defined(HAVE_TOUCHSCREEN)
+        /* disable touch device on keylock */
+        button_enable_touch(false);
+ #endif
         button_clear_queue();
         return ACTION_REDRAW;
     }
@@ -324,6 +406,12 @@ static int get_action_worker(int context, int timeout,
     last_action = ret;
     last_data   = button_get_data();
     last_action_tick = current_tick;
+
+#if CONFIG_CODEC == SWCODEC
+    /* Produce keyclick */
+    keyclick_click(false, ret);
+#endif
+
     return ret;
 }
 
@@ -436,6 +524,11 @@ int action_get_touchscreen_press_in_vp(short *x1, short *y1, struct viewport *vp
 /* Don't let get_action*() return any ACTION_* values until the current buttons
  * have been released. SYS_* and BUTTON_NONE will go through.
  * Any actions relying on _RELEASE won't get seen.
+ *
+ * Note this doesn't currently work for touchscreen targets if called
+ * when the screen isn't currently touched, because they can send normal
+ * (non-BUTTON_REPEAT) events repeatedly, if the touch coordinates change.
+ * This cannot be distinguished from normal buttons events.
  */
 void action_wait_for_release(void)
 {

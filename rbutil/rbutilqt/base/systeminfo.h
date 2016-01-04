@@ -7,7 +7,6 @@
  *                     \/            \/     \/    \/            \/
  *
  *   Copyright (C) 2010 by Dominik Wenger
- *   $Id$
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -34,7 +33,7 @@ class SystemInfo : public QObject
             MapError,
             MapIncompatible,
         };
-            
+
         //! All system settings
         enum SystemInfos {
             ManualUrl,
@@ -48,22 +47,23 @@ class SystemInfo : public QObject
             ReleaseUrl,
             ReleaseVoiceUrl,
             ReleaseFontUrl,
-            ServerConfUrl,
+            BuildInfoUrl,
             GenlangUrl,
             ThemesUrl,
             ThemesInfoUrl,
             RbutilUrl,
-            BleedingInfo,
             CurPlatformName,
             CurManual,
             CurBootloaderMethod,
             CurBootloaderName,
             CurBootloaderFile,
+            CurBootloaderFilter,
             CurEncoder,
             CurBrand,
             CurName,
             CurBuildserverModel,
             CurConfigureModel,
+            CurPlayerPicture,
         };
 
         enum PlatformType {
@@ -78,14 +78,14 @@ class SystemInfo : public QObject
         //! return a list of all platforms (rbutil internal names)
         static QStringList platforms(enum PlatformType type = PlatformAll,
                                      QString variant="");
-        //! returns a list of all languages
-        static QStringList languages(void);
+        //! returns a map of all languages
+        static QMap<QString, QStringList> languages(void);
         //! returns a map of usb-ids and their targets
-        static QMap<int, QString> usbIdMap(enum MapType);
+        static QMap<int, QStringList> usbIdMap(enum MapType type);
         //! get a value from system settings
         static QVariant value(enum SystemInfos info);
         //! get a value from system settings for a named platform.
-        static QVariant platformValue(QString platform, enum SystemInfos info);    
+        static QVariant platformValue(QString platform, enum SystemInfos info);
 
     private:
         //! you shouldnt call this, its a fully static calls

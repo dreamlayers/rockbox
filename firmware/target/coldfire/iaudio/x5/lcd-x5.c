@@ -451,7 +451,9 @@ void lcd_blit_yuv(unsigned char * const src[3],
     vsrc = src[2] + (src_y * stride >> 2) + (src_x >> 1);
     ysrc_max = ysrc + height * stride;
 
+    unsigned long macsr = coldfire_get_macsr();
     coldfire_set_macsr(EMAC_SATURATE);
+
     do
     {
         lcd_write_reg(R_HORIZ_RAM_ADDR_POS, ((y + y_offset + 1) << 8) | (y + y_offset));
@@ -470,6 +472,8 @@ void lcd_blit_yuv(unsigned char * const src[3],
         vsrc += stride >> 1;
     }
     while (ysrc < ysrc_max);
+
+    coldfire_set_macsr(macsr);
 } /* lcd_yuv_blit */
 
 
@@ -526,7 +530,7 @@ void lcd_update_rect(int x, int y, int width, int height)
 
     lcd_begin_write_gram();
 
-    ptr = (unsigned short *)&lcd_framebuffer[y][x];
+    ptr = (unsigned short *)FBADDR(x,y);
 
     do
     {

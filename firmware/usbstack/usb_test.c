@@ -37,6 +37,8 @@
 #ifdef USB_TEST_WRITE_TO_FILE
 #include "file.h"
 #endif
+#include "core_alloc.h"
+#include "panic.h"
 
 #define USB_TEST_MIN_EP_INTERVAL    1
 #define USB_TEST_MAX_EP_INTERVAL    6
@@ -133,6 +135,10 @@ static const char usb_test_thread_name[] = "usb-test";
 static unsigned int usb_test_thread_entry = 0;
 static struct event_queue usb_test_queue;
 
+static char quit_test_thread;
+
+static int usb_test_handle = 0;
+
 int usb_test_set_first_string_index(int string_index)
 {
     usb_string_index = string_index;
@@ -221,27 +227,27 @@ int usb_test_get_config_descriptor(unsigned char *dest, int max_packet_size)
     {
         interface_descriptor.bInterfaceNumber = usb_interface;
         interface_descriptor.bAlternateSetting = i;
-        PACK_DATA(dest, interface_descriptor);
+        PACK_DATA(&dest, interface_descriptor);
 
         endpoint_descriptor.wMaxPacketSize = usb_drv_max_endpoint_packet_size(ep_bulk_in);
         endpoint_descriptor.bInterval = 0;
         endpoint_descriptor.bEndpointAddress = ep_bulk_in;
         endpoint_descriptor.bmAttributes = USB_ENDPOINT_XFER_BULK;
-        PACK_DATA(dest, endpoint_descriptor);
+        PACK_DATA(&dest, endpoint_descriptor);
 
         endpoint_descriptor.wMaxPacketSize = usb_drv_max_endpoint_packet_size(ep_bulk_out);
         endpoint_descriptor.bEndpointAddress = ep_bulk_out;
-        PACK_DATA(dest, endpoint_descriptor);
+        PACK_DATA(&dest, endpoint_descriptor);
 
         endpoint_descriptor.wMaxPacketSize = usb_drv_max_endpoint_packet_size(ep_iso_in) | 2 << 11;
         endpoint_descriptor.bEndpointAddress = ep_iso_in;
         endpoint_descriptor.bInterval = USB_TEST_MIN_EP_INTERVAL + i;
         endpoint_descriptor.bmAttributes = USB_ENDPOINT_XFER_ISOC | USB_ENDPOINT_SYNC_ADAPTIVE;
-        PACK_DATA(dest, endpoint_descriptor);
+        PACK_DATA(&dest, endpoint_descriptor);
 
         endpoint_descriptor.wMaxPacketSize = usb_drv_max_endpoint_packet_size(ep_iso_out) | 2 << 11;
         endpoint_descriptor.bEndpointAddress = ep_iso_out;
-        PACK_DATA(dest, endpoint_descriptor);
+        PACK_DATA(&dest, endpoint_descriptor);
     }
 
     return (dest - orig_dest);
@@ -444,7 +450,7 @@ static void usb_test_thread(void)
 {
     struct queue_event ev;
 
-    while(1)
+    while (!quit_test_thread)
     {
         queue_wait(&usb_test_queue, &ev);
         
@@ -510,9 +516,11 @@ void usb_test_init_connection(void)
     #ifdef USB_TEST_WRITE_TO_FILE
     write_buffer = usb_buffer + 2 * NB_SLOTS * SLOT_SIZE;
     write_buffer_size = 0;
+    /* Need to allocate more memory below for this! */
     #endif
     
     queue_init(&usb_test_queue, true);
+    quit_test_thread = 0;
     usb_test_thread_entry = create_thread(usb_test_thread, usb_test_stack,
                        sizeof(usb_test_stack), 0, usb_test_thread_name
                        IF_PRIO(, PRIORITY_BACKGROUND) IF_COP(, CPU));
@@ -520,25 +528,35 @@ void usb_test_init_connection(void)
 
 void usb_test_init(void)
 {
-    unsigned char * audio_buffer;
-    size_t bufsize;
-    
-    _logf("usbtest: init");
-    
-    audio_buffer = audio_get_buffer(false,&bufsize);
+    /* dummy ops with no callbacks, needed because by
+     * default buflib buffers can be moved around which must be avoided */
+    static struct buflib_callbacks dummy_ops;
+
+    _logf("usbtest: init");    
+
+    // Add 31 to handle worst-case misalignment
+    usb_test_handle = core_alloc_ex("usb test",
+                                    2 * NB_SLOTS * SLOT_SIZE + 31,
+                                    &dummy_ops);
+    if (usb_test_handle < 0)
+        panicf("%s(): OOM", __func__);
+
+    usb_buffer = core_get_data(usb_test_handle);
 #ifdef UNCACHED_ADDR
-    usb_buffer = (void *)UNCACHED_ADDR((unsigned int)(audio_buffer+31) & 0xffffffe0);
+    usb_buffer = (void *)UNCACHED_ADDR((unsigned int)(usb_buffer+31) & 0xffffffe0);
 #else
     usb_buffer = (void *)((unsigned int)(audio_buffer+31) & 0xffffffe0);
 #endif
-    cpucache_invalidate();
+    commit_discard_dcache();
 }
 
 void usb_test_disconnect(void)
 {
     cpu_boost(false);
-    remove_thread(usb_test_thread_entry);
+    quit_test_thread = 1;
     queue_delete(&usb_test_queue);
+    if (usb_test_handle > 0)
+        usb_test_handle = core_free(usb_test_handle);
 }
 
 /* called by usb_core_transfer_complete() */

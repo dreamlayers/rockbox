@@ -32,6 +32,7 @@
 #include "button.h"
 #if CONFIG_CODEC == SWCODEC
 #include "audio.h"
+#include "dsp_proc_settings.h"
 #endif
 #include "rbpaths.h"
 
@@ -116,14 +117,15 @@ enum { SORT_INTERPRET_AS_DIGIT, SORT_INTERPRET_AS_NUMBER };
 /* recursive dir insert options */
 enum { RECURSE_OFF, RECURSE_ON, RECURSE_ASK };
 
-/* replaygain types */
-enum { REPLAYGAIN_TRACK = 0, REPLAYGAIN_ALBUM, REPLAYGAIN_SHUFFLE, REPLAYGAIN_OFF };
-
 /* show path types */
 enum { SHOW_PATH_OFF = 0, SHOW_PATH_CURRENT, SHOW_PATH_FULL };
 
 /* scrollbar visibility/position */
 enum { SCROLLBAR_OFF = 0, SCROLLBAR_LEFT, SCROLLBAR_RIGHT };
+
+/* autoresume settings */
+enum { AUTORESUME_NEXTTRACK_NEVER = 0, AUTORESUME_NEXTTRACK_ALWAYS,
+       AUTORESUME_NEXTTRACK_CUSTOM};
 
 /* Alarm settings */
 #ifdef HAVE_RTC_ALARM
@@ -189,7 +191,7 @@ enum {  ALARM_START_WPS = 0,
 #define SETTINGS_RTC (BIT_N(0)) /* only the settings from the RTC nonvolatile RAM */
 #define SETTINGS_HD  (BIT_N(1)) /* only the settings from the disk sector */
 #define SETTINGS_ALL (SETTINGS_RTC|SETTINGS_HD) /* both */
-void settings_load(int which);
+void settings_load(int which) INIT_ATTR;
 bool settings_load_config(const char* file, bool apply);
 
 void status_save(void);
@@ -214,20 +216,24 @@ void reset_setting(const struct settings_list *setting, void *var);
 void settings_reset(void);
 void sound_settings_apply(void);
 
-/* call this after loading a .wps/.rwps pr other skin files, so that the
+/* call this after loading a .wps/.rwps or other skin files, so that the
  * skin buffer is reset properly
  */
 void settings_apply_skins(void);
-void theme_init_buffer(void);
 
 void settings_apply(bool read_disk);
 void settings_apply_pm_range(void);
+#ifdef HAVE_PLAY_FREQ
+void settings_apply_play_freq(int value, bool playback);
+#endif
 void settings_display(void);
 
 enum optiontype { INT, BOOL };
 
 const struct settings_list* find_setting(const void* variable, int *id);
+const struct settings_list* find_setting_by_cfgname(const char* name, int *id);
 bool cfg_int_to_string(int setting_id, int val, char* buf, int buf_len);
+bool cfg_string_to_int(int setting_id, int* out, const char* str);
 bool cfg_to_string(int setting_id, char* buf, int buf_len);
 bool set_bool_options(const char* string, const bool* variable,
                       const char* yes_str, int yes_voice,
@@ -259,6 +265,8 @@ bool set_option(const char* string, const void* variable, enum optiontype type,
 struct system_status
 {
     int resume_index;  /* index in playlist (-1 for no active resume) */
+    uint32_t resume_crc32; /* crc32 of the name of the file */
+    uint32_t resume_elapsed; /* elapsed time in last file */
     uint32_t resume_offset; /* byte offset in mp3 file */
     int runtime;       /* current runtime since last charge */
     int topruntime;    /* top known runtime */
@@ -272,6 +280,10 @@ struct system_status
     signed char last_screen;
     int  viewer_icon_count;
     int last_volume_change; /* tick the last volume change happened. skins use this */
+#ifdef HAVE_LCD_BITMAP
+    int font_id[NB_SCREENS]; /* font id of the settings font for each screen */
+#endif
+
 };
 
 struct user_settings
@@ -279,7 +291,7 @@ struct user_settings
     /* audio settings */
 
     int volume;     /* audio output volume in decibels range depends on the dac */
-    int balance;    /* stereo balance:          0-100 0=left  50=bal 100=right  */
+    int balance;    /* stereo balance: -100 - +100 -100=left  0=bal +100=right  */
     int bass;       /* bass boost/cut in decibels                               */
     int treble;     /* treble boost/cut in decibels                             */
     int channel_config; /* Stereo, Mono, Custom, Mono left, Mono right, Karaoke */
@@ -316,13 +328,10 @@ struct user_settings
 #endif
 
     /* Replaygain */
-    bool replaygain_noclip; /* scale to prevent clips */
-    int  replaygain_type;   /* 0=track gain, 1=album gain, 2=track gain if
-                               shuffle is on, album gain otherwise, 4=off */
-    int  replaygain_preamp; /* scale replaygained tracks by this */
+    struct replaygain_settings replaygain_settings;
 
     /* Crossfeed */
-    bool crossfeed;                             /* enable crossfeed */
+    int crossfeed;                              /* crossfeed type */
     unsigned int crossfeed_direct_gain;         /* dB x 10 */
     unsigned int crossfeed_cross_gain;          /* dB x 10 */
     unsigned int crossfeed_hf_attenuation;      /* dB x 10 */
@@ -331,41 +340,14 @@ struct user_settings
     /* EQ */
     bool eq_enabled;            /* Enable equalizer */
     unsigned int eq_precut;     /* dB */
-
-    /* Order is important here, must be cutoff, q, then gain for each band.
-       See dsp_set_eq_coefs in dsp.c for why. */
-
-    /* Band 0 settings */
-    int eq_band0_cutoff;        /* Hz */
-    int eq_band0_q;
-    int eq_band0_gain;          /* +/- dB */
-
-    /* Band 1 settings */
-    int eq_band1_cutoff;        /* Hz */
-    int eq_band1_q;
-    int eq_band1_gain;          /* +/- dB */
-
-    /* Band 2 settings */
-    int eq_band2_cutoff;        /* Hz */
-    int eq_band2_q;
-    int eq_band2_gain;          /* +/- dB */
-
-    /* Band 3 settings */
-    int eq_band3_cutoff;        /* Hz */
-    int eq_band3_q;
-    int eq_band3_gain;          /* +/- dB */
-
-    /* Band 4 settings */
-    int eq_band4_cutoff;        /* Hz */
-    int eq_band4_q;
-    int eq_band4_gain;          /* +/- dB */
+    struct eq_band_setting eq_band_settings[EQ_NUM_BANDS]; /* for each band */
 
     /* Misc. swcodec */
     int  beep;              /* system beep volume when changing tracks etc. */
     int  keyclick;          /* keyclick volume */
     int  keyclick_repeats;  /* keyclick on repeats */
     bool dithering_enabled;
-#ifdef HAVE_PITCHSCREEN
+#ifdef HAVE_PITCHCONTROL
     bool timestretch_enabled;
 #endif
 #endif /* CONFIG_CODEC == SWCODEC */
@@ -433,8 +415,8 @@ struct user_settings
     int rec_stop_gap;       /* index of trig_durations */
     int rec_trigger_mode;   /* see TRIG_MODE_XXX constants */
     int rec_trigger_type;   /* what to do when trigger released */
-#ifdef HAVE_RECORDING_HISTOGRAM
-    int rec_histogram_interval; /* recording peakmeter histogram */
+#ifdef HAVE_HISTOGRAM
+    int histogram_interval; /* recording peakmeter histogram */
 #endif
 
 #ifdef HAVE_AGC
@@ -478,9 +460,13 @@ struct user_settings
     int touchpad_sensitivity;
 #endif
 
+#ifdef HAVE_TOUCHPAD_DEADZONE
+    int touchpad_deadzone;
+#endif
+
+    int  pause_rewind; /* time in s to rewind when pausing */
 #ifdef HAVE_HEADPHONE_DETECTION
     int  unplug_mode; /* pause on headphone unplug */
-    int  unplug_rw; /* time in s to rewind when pausing */
     bool unplug_autoresume; /* disable auto-resume if no phones */
 #endif
 
@@ -551,8 +537,15 @@ struct user_settings
 #ifdef HAVE_LCD_BITMAP
     int scrollbar;    /* SCROLLBAR_* enum values */
     int scrollbar_width;
-#endif
 
+#ifdef HAVE_TOUCHSCREEN
+    int list_line_padding;
+#endif
+#if LCD_DEPTH > 1
+    int list_separator_height; /* -1=auto (== 1 currently), 0=disabled, X=height in pixels */
+    int list_separator_color;
+#endif
+#endif
     /* goto current song when exiting WPS */
     bool browse_current; /* 1=goto current song,
                             0=goto previous location */
@@ -577,11 +570,15 @@ struct user_settings
 #endif
     bool tagcache_autoupdate; /* automatically keep tagcache in sync? */
     bool autoresume_enable;   /* enable auto-resume feature? */
+    int autoresume_automatic; /* resume next track? 0=never, 1=always,
+                                 2=custom */
+    unsigned char autoresume_paths[MAX_PATHNAME+1]; /* colon-separated list */
     bool runtimedb;           /* runtime database active? */
+    unsigned char tagcache_scan_paths[MAX_PATHNAME+1];
 #endif /* HAVE_TAGCACHE */
 
 #if LCD_DEPTH > 1
-    unsigned char backdrop_file[MAX_FILENAME+1];  /* backdrop bitmap file */
+    unsigned char backdrop_file[MAX_PATHNAME+1];  /* backdrop bitmap file */
 #endif
 
 #ifdef HAVE_LCD_COLOR
@@ -596,6 +593,8 @@ struct user_settings
     /* playlist/playback settings */
     int  repeat_mode; /* 0=off 1=repeat all 2=repeat one 3=shuffle 4=ab */
     int  next_folder; /* move to next folder */
+    bool constrain_next_folder; /* whether next_folder is constrained to
+                                   directories within start_directory */
     int  recursive_dir_insert; /* should directories be inserted recursively */
     bool fade_on_stop; /* fade on pause/unpause/stop */
     bool playlist_shuffle;
@@ -623,7 +622,7 @@ struct user_settings
 
     /* power settings */
     int poweroff;   /* idle power off timer */
-#ifdef BATTERY_CAPACITY_DEFAULT
+#if BATTERY_CAPACITY_DEFAULT > 0
     int battery_capacity; /* in mAh */
 #endif
 
@@ -656,6 +655,7 @@ struct user_settings
     unsigned char icon_file[MAX_FILENAME+1];
     unsigned char viewers_icon_file[MAX_FILENAME+1];
     unsigned char font_file[MAX_FILENAME+1]; /* last font */
+    int glyphs_to_cache; /* default font allocation size in glyphs */
 #ifdef HAVE_REMOTE_LCD
     unsigned char remote_font_file[MAX_FILENAME+1]; /* last font */
 #endif
@@ -747,7 +747,7 @@ struct user_settings
     struct touchscreen_parameter ts_calibration_data;
 #endif
 
-#ifdef HAVE_PITCHSCREEN
+#ifdef HAVE_PITCHCONTROL
     /* pitch screen settings */
     bool pitch_mode_semitone;
 #if CONFIG_CODEC == SWCODEC
@@ -763,6 +763,10 @@ struct user_settings
     int usb_keypad_mode;
 #endif
 
+#if defined(USB_ENABLE_STORAGE) && defined(HAVE_MULTIDRIVE)
+    bool usb_skip_first_drive;
+#endif
+
 #ifdef HAVE_LCD_BITMAP
     unsigned char ui_vp_config[64]; /* viewport string for the lists */
 #ifdef HAVE_REMOTE_LCD
@@ -771,12 +775,12 @@ struct user_settings
 #endif
 
 #if CONFIG_CODEC == SWCODEC
-    int compressor_threshold;
-    int compressor_makeup_gain;
-    int compressor_ratio;
-    int compressor_knee;
-    int compressor_release_time;
+    struct compressor_settings compressor_settings;
 #endif
+
+    int sleeptimer_duration; /* In minutes; 0=off */
+    bool sleeptimer_on_startup;
+    bool keypress_restarts_sleeptimer;
 
 #ifdef HAVE_MORSE_INPUT
     bool morse_input; /* text input method setting */
@@ -798,6 +802,10 @@ struct user_settings
     int depth_3d;
 #endif
 
+#ifdef AUDIOHW_HAVE_FILTER_ROLL_OFF
+    int roll_off;
+#endif
+
 #ifdef AUDIOHW_HAVE_EQ
     /** Hardware EQ tone controls **/
     struct hw_eq_band
@@ -812,7 +820,41 @@ struct user_settings
 #endif
     } hw_eq_bands[AUDIOHW_EQ_BAND_NUM];
 #endif /* AUDIOHW_HAVE_EQ */
+
+#ifdef HAVE_HARDWARE_CLICK
+#if CONFIG_CODEC == SWCODEC
+    bool keyclick_hardware; /* hardware piezo keyclick */
+#endif
+#endif
+
     char start_directory[MAX_PATHNAME+1];
+    /* Has the root been customized from the .cfg file? false = no, true = loaded from cfg */
+    bool root_menu_customized;
+#ifdef HAVE_QUICKSCREEN
+    bool shortcuts_replaces_qs;
+#endif
+
+#ifdef HAVE_PLAY_FREQ
+    int play_frequency; /* core audio output frequency selection */
+#endif
+    int volume_limit; /* maximum volume limit */
+
+    int surround_enabled;
+    int surround_balance;
+    int surround_fx1;
+    int surround_fx2;
+    bool surround_method2;
+    int surround_mix;
+
+    int pbe;
+    int pbe_precut;
+
+    int afr_enabled;
+
+#if defined(DX50) || defined(DX90)
+    int governor;
+    int usb_mode;
+#endif
 };
 
 /** global variables **/

@@ -21,6 +21,7 @@
 
 #include "config.h"
 #include "system.h"
+#include "kernel.h"
 #include "button.h"
 #include "backlight.h"
 
@@ -30,6 +31,7 @@ static bool hold_button = false;
 
 #ifdef HAVE_SCROLLWHEEL
 #define SCROLLWHEEL_BITS        (1<<7|1<<6)
+#define SCROLLWHEEL_BITS_POS    6
                                                       /* TIMER units */
 #define TIMER_TICK              (KERNEL_TIMER_FREQ/HZ)/* how long a tick lasts */
 #define TIMER_MS                (TIMER_TICK/(1000/HZ))/* how long a ms lasts */
@@ -78,10 +80,17 @@ static void scrollwheel(unsigned int wheel_value)
 
     unsigned int btn = BUTTON_NONE;
 
-    if (old_wheel_value == wheel_tbl[0][wheel_value])
+    if (hold_button)
+    {
+    }
+    else if (old_wheel_value == wheel_tbl[0][wheel_value])
+    {
         btn = BUTTON_SCROLL_FWD;
+    }
     else if (old_wheel_value == wheel_tbl[1][wheel_value])
+    {
         btn = BUTTON_SCROLL_BACK;
+    }
 
     if (btn == BUTTON_NONE)
     {
@@ -196,31 +205,28 @@ void button_init_device(void)
 #endif
 }
 
-    /* read the 2 bits at the same time */
-#define GPIOA_PIN76_offset ((1<<(6+2)) | (1<<(7+2)))
-#define GPIOA_PIN76 (*(volatile unsigned char*)(GPIOA_BASE+GPIOA_PIN76_offset))
-
 void button_gpioa_isr(void)
 {
 #if defined(HAVE_SCROLLWHEEL)
     /* scroll wheel handling */
-    if (GPIOA_MIS & SCROLLWHEEL_BITS)
-        scrollwheel(GPIOA_PIN76 >> 6);
+    unsigned long bits = GPIOA_MIS & SCROLLWHEEL_BITS;
 
-    /* ack interrupt */
-    GPIOA_IC = SCROLLWHEEL_BITS;
+    if (bits)
+    {
+        scrollwheel(GPIOA_PIN_MASK(SCROLLWHEEL_BITS) >> SCROLLWHEEL_BITS_POS);
+        GPIOA_IC = bits; /* ack interrupt */
+    }
 #endif
 }
-
 
 /*
  * Get button pressed from hardware
  */
 int button_read_device(void)
 {
-    int btn = 0;
-    static bool hold_button_old = false;
     static long power_counter = 0;
+    bool hold = false;
+    int btn;
     unsigned gpiod6;
 
     /* if we don't wait for the fifo to empty, we'll see screen corruption
@@ -229,6 +235,8 @@ int button_read_device(void)
 
     int delay = 30;
     while(delay--) nop;
+
+    disable_irq();
 
     bool ccu_io_bit12 = CCU_IO & (1<<12);
     CCU_IO &= ~(1<<12);
@@ -245,59 +253,38 @@ int button_read_device(void)
     GPIOB_PIN(0) = 0;
     udelay(2);
 
-    if (GPIOC_PIN(1) & 1<<1)
-        btn |= BUTTON_DOWN;
-    if (GPIOC_PIN(2) & 1<<2)
-        btn |= BUTTON_UP;
-    if (GPIOC_PIN(3) & 1<<3)
-        btn |= BUTTON_LEFT;
-    if (GPIOC_PIN(4) & 1<<4)
-        btn |= BUTTON_SELECT;
-    if (GPIOC_PIN(5) & 1<<5)
-        btn |= BUTTON_RIGHT;
-    if (GPIOB_PIN(1) & 1<<1)
-        btn |= BUTTON_HOME;
+    btn = GPIOC_PIN_MASK(0x3e) | (GPIOB_PIN(1) >> 1);
+
     if (amsv2_variant == 1)
         btn ^= BUTTON_HOME;
 
-    if (gpiod6 & 1<<6)
+    if (gpiod6)
     {   /* power/hold is on the same pin. we know it's hold if the bit isn't
          * set now anymore */
-        if (GPIOD_PIN(6) & 1<<6)
-        {
-            hold_button = false;
-            btn |= BUTTON_POWER;
-        }
-        else
-        {
-            hold_button = true;
-        }
+        btn |= GPIOD_PIN(6);
+        hold = !(btn & BUTTON_POWER);
     }
 
     if(gpiob_pin0_dir)
         GPIOB_DIR |= 1<<1;
 
     if(ccu_io_bit12)
-        CCU_IO |= 1<<12;
+        CCU_IO |= (1<<12);
+
+    enable_irq();
 
 #ifdef HAS_BUTTON_HOLD
 #ifndef BOOTLOADER
     /* light handling */
-    if (hold_button != hold_button_old)
+    if (hold != hold_button)
     {
-        hold_button_old = hold_button;
-        backlight_hold_changed(hold_button);
-        /* mask scrollwheel irq so we don't need to check for
-         * the hold button in the isr */
-        if (hold_button)
-            GPIOA_IE &= ~SCROLLWHEEL_BITS;
-        else
-            GPIOA_IE |= SCROLLWHEEL_BITS;
+        hold_button = hold;
+        backlight_hold_changed(hold);
     }
 #else
-    (void)hold_button_old;
-#endif
-    if (hold_button)
+    hold_button = hold;
+#endif /* BOOTLOADER */
+    if (hold)
     {
         power_counter = HZ;
         return 0;
@@ -311,7 +298,7 @@ int button_read_device(void)
         power_counter--;
         btn &= ~BUTTON_POWER;
     }
-#endif
+#endif /* HAS_BUTTON_HOLD */
     return btn;
 }
 

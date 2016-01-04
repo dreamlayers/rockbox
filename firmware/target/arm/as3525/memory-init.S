@@ -30,7 +30,8 @@
 #define MEMORY_MODEL 0x21
 
 #elif defined(SANSA_E200V2) || defined(SANSA_FUZE) || defined(SANSA_CLIPV2) \
-    || defined(SANSA_CLIPPLUS) || defined(SANSA_FUZEV2)
+    || defined(SANSA_CLIPPLUS) || defined(SANSA_FUZEV2) \
+    || defined(SANSA_CLIPZIP)
 /* 16 bits external bus, high performance SDRAM, 64 Mbits = 8 Mbytes */
 #define MEMORY_MODEL 0x5
 
@@ -98,7 +99,7 @@ memory_init:
     mov     r1, #0x82           @ SDRAM MODE, MPMCCLKOUT runs continuously
     str     r1, [r3, #0x20]     @ MPMC_DYNAMIC_CONTROL
 
-    ldr     r1, =DRAM_ORIG+(0x2300*MEM)
+    ldr     r1, =DRAM_ORIG+(0x2300*MEMORYSIZE)
     ldr     r1, [r1]
 
     str     r2, [r3, #0x20]     @ MPMC_DYNAMIC_CONTROL= SDRAM NORMAL,

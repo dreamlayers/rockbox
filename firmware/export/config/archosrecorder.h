@@ -14,15 +14,14 @@
 #define HAVE_LCD_BITMAP
 
 /* define this if you can flip your LCD */
-#define HAVE_LCD_FLIP
+//#define HAVE_LCD_FLIP
 
 /* define this if you can invert the colours on your LCD */
 #define HAVE_LCD_INVERT
 
 /* define this if you have access to the quickscreen */
 #define HAVE_QUICKSCREEN
-/* define this if you have access to the pitchscreen */
-#define HAVE_PITCHSCREEN
+
 /* define this if you have the button bar */
 #define HAVE_BUTTONBAR
 
@@ -32,6 +31,8 @@
 /* LCD dimensions */
 #define LCD_WIDTH  112
 #define LCD_HEIGHT 64
+/* sqrt(112^2 + 64^2) / 1.5 = 85.4 */
+#define LCD_DPI 85
 #define LCD_DEPTH  1
 
 #define LCD_PIXEL_ASPECT_WIDTH 4
@@ -49,7 +50,7 @@
 #define CONFIG_KEYPAD RECORDER_PAD
 
 /* Define this to enable morse code input */
-#define HAVE_MORSE_INPUT
+//#define HAVE_MORSE_INPUT
 
 /* define this if you have a real-time clock */
 #define CONFIG_RTC RTC_M41ST84W
@@ -80,7 +81,9 @@
 #define BATTERY_CAPACITY_INC 50   /* capacity increment */
 #define BATTERY_TYPES_COUNT  1    /* only one type */
 
-#if MEM < 8
+#define CONFIG_BATTERY_MEASURE VOLTAGE_MEASURE
+
+#if MEMORYSIZE < 8
  #define CURRENT_NORMAL    145  /* usual current in mA */
 #else
  #define CURRENT_NORMAL    145 *100 / 122 /* assuming 192 kbps, the running time is 22% longer with 8MB */

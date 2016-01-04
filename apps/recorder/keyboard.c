@@ -66,7 +66,11 @@
     || (CONFIG_KEYPAD == PHILIPS_HDD1630_PAD) \
     || (CONFIG_KEYPAD == PHILIPS_HDD6330_PAD) \
     || (CONFIG_KEYPAD == PHILIPS_SA9200_PAD) \
-    || (CONFIG_KEYPAD == PBELL_VIBE500_PAD)
+    || (CONFIG_KEYPAD == PBELL_VIBE500_PAD) \
+    || (CONFIG_KEYPAD == SANSA_CONNECT_PAD) \
+    || (CONFIG_KEYPAD == SAMSUNG_YH820_PAD) \
+    || (CONFIG_KEYPAD == SAMSUNG_YH920_PAD)
+
 /* certain key combos toggle input mode between keyboard input and Morse input */
 #define KBD_TOGGLE_INPUT
 #endif
@@ -129,7 +133,7 @@ static bool kbd_loaded = false;
 
 #ifdef HAVE_MORSE_INPUT
 /* FIXME: We should put this to a configuration file. */
-static const char *morse_alphabets =
+static const char * const morse_alphabets =
     "abcdefghijklmnopqrstuvwxyz1234567890,.?-@ ";
 static const unsigned char morse_codes[] = {
     0x05,0x18,0x1a,0x0c,0x02,0x12,0x0e,0x10,0x04,0x17,0x0d,0x14,0x07,
@@ -142,7 +146,7 @@ static const unsigned char morse_codes[] = {
    call with NULL to reset keyboard    */
 int load_kbd(unsigned char* filename)
 {
-    int fd, l;
+    int fd;
     int i, line_len, max_line_len;
     unsigned char buf[4];
     unsigned short *pbuf;
@@ -331,7 +335,6 @@ int kbd_input(char* text, int buflen)
     bool done = false;
     struct keyboard_parameters * const param = kbd_param;
     struct edit_state state;
-    int l; /* screen loop variable */
     unsigned short ch;
     int ret = 0; /* assume success */
     FOR_NB_SCREENS(l)
@@ -721,7 +724,7 @@ static void kbd_calc_params(struct keyboard_parameters *pm,
                                 (touchscreen_get_mode() == TOUCHSCREEN_POINT));
 #endif
 
-    pm->curfont = pm->default_lines ? FONT_SYSFIXED : FONT_UI;
+    pm->curfont = pm->default_lines ? FONT_SYSFIXED : sc->getuifont();
     font = font_get(pm->curfont);
     pm->font_h = font->height;
 
@@ -1226,13 +1229,19 @@ static void kbd_move_cursor(struct edit_state *state, int dir)
     {
         state->changed = CHANGED_CURSOR;
     }
-    else
+    else if (state->editpos > state->len_utf8)
     {
-        state->editpos -= dir;
-#if CONFIG_CODEC == SWCODEC
-        if (global_settings.talk_menu)
-            pcmbuf_beep(1000, 150, 1500);
-#endif
+        state->editpos = 0;
+        #if CONFIG_CODEC == SWCODEC
+        if (global_settings.talk_menu) beep_play(1000, 150, 1500);
+	#endif
+    }
+    else if (state->editpos < 0)
+    {
+        state->editpos = state->len_utf8;
+        #if CONFIG_CODEC == SWCODEC
+        if (global_settings.talk_menu) beep_play(1000, 150, 1500);
+        #endif
     }
 }
 

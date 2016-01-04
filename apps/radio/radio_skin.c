@@ -32,6 +32,10 @@
 #include "appevents.h"
 #include "statusbar-skinned.h"
 #include "option_select.h"
+#ifdef HAVE_TOUCHSCREEN
+#include "sound.h"
+#include "misc.h"
+#endif
 
 
 char* default_radio_skin(enum screen_type screen)
@@ -59,14 +63,13 @@ char* default_radio_skin(enum screen_type screen)
 
 void fms_fix_displays(enum fms_exiting toggle_state)
 {
-    int i;
     FOR_NB_SCREENS(i)
     {
         struct wps_data *data = skin_get_gwps(FM_SCREEN, i)->data;
         if (toggle_state == FMS_ENTER)
         {
             viewportmanager_theme_enable(i, skin_has_sbs(i, data), NULL);  
-#if LCD_DEPTH > 1 || defined(HAVE_REMOTE_LCD) && LCD_REMOTE_DEPTH > 1
+#ifdef HAVE_BACKDROP_IMAGE
             skin_backdrop_show(data->backdrop_id);
 #endif
             screens[i].clear_display();
@@ -75,8 +78,8 @@ void fms_fix_displays(enum fms_exiting toggle_state)
         }
         else
         {
-            screens[i].stop_scroll();
-#if LCD_DEPTH > 1 || defined(HAVE_REMOTE_LCD) && LCD_REMOTE_DEPTH > 1
+            screens[i].scroll_stop();
+#ifdef HAVE_BACKDROP_IMAGE
             skin_backdrop_show(sb_get_backdrop(i));
 #endif
             viewportmanager_theme_undo(i, skin_has_sbs(i, data));
@@ -92,7 +95,7 @@ void fms_fix_displays(enum fms_exiting toggle_state)
 
 int fms_do_button_loop(bool update_screen)
 {
-    int button = skin_wait_for_action(FM_SCREEN, CONTEXT_FM, 
+    int button = skin_wait_for_action(FM_SCREEN, CONTEXT_FM|ALLOW_SOFTLOCK,
                                       update_screen ? TIMEOUT_NOBLOCK : HZ/5);
 #ifdef HAVE_TOUCHSCREEN
     struct touchregion *region;
@@ -114,22 +117,11 @@ int fms_do_button_loop(bool update_screen)
             return ACTION_FM_PLAY;
         case ACTION_STD_MENU:
             return ACTION_FM_MENU;
-        case WPS_TOUCHREGION_SCROLLBAR:
+        case ACTION_TOUCH_SCROLLBAR:
             /* TODO */
             break;
-        case ACTION_SETTINGS_INC:
-        case ACTION_SETTINGS_DEC:
-        {
-            const struct settings_list *setting = region->extradata;
-            option_select_next_val(setting, button == ACTION_SETTINGS_DEC, true);
-        }
-        return ACTION_REDRAW;
     }   
 #endif
     return button;
 }
 
-struct gui_wps *fms_get(enum screen_type screen)
-{
-    return skin_get_gwps(FM_SCREEN, screen);
-}

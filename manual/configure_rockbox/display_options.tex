@@ -91,7 +91,7 @@
     }
     \end{description}
 %
-  \opt{HAVE_REMOTE_LCD}{
+  \opt{remote}{
     \item[Remote-LCD Settings.]
     This sub menu contains settings that relate to the display of the remote.
       \begin{description}
@@ -125,7 +125,7 @@
          Displays the screen so that the top of the display is nearest 
          the buttons. This is sometimes useful when carrying the \dap\ in a
          pocket for easy access to the headphone socket.
-       \opt{h100,h300}{
+       \opt{remote_ticking}{
          \item[Reduce Ticking.]
            Enable this option if you can hear a ticking sound in your headphones
            when using your remote.
@@ -148,7 +148,7 @@
         Defines the number of pixels the text should move for each step, as used
         by the Scroll Speed setting.
     }
-    \opt{HAVE_REMOTE_LCD}{
+    \opt{remote}{
       \item[Remote Scrolling Options.]
         The options here have the same effect on the remote LCD as the options
         mentioned above have on the main LCD.
@@ -167,7 +167,8 @@
         \opt{RECORDER_PAD}{\ButtonOn+\ButtonRight/\ButtonLeft}%
         \opt{ONDIO_PAD}{\ButtonMenu+\ButtonRight/\ButtonLeft}%
         \opt{IRIVER_H10_PAD}{Long \ButtonRew/\ButtonFF}%
-        \nopt{RECORDER_PAD,ONDIO_PAD,IRIVER_H10_PAD,MPIO_HD200_PAD,touchscreen}{%
+        \nopt{RECORDER_PAD,ONDIO_PAD,IRIVER_H10_PAD,MPIO_HD200_PAD,MPIO_HD300_PAD%
+              ,touchscreen}{%
             Long \ButtonRight/\ButtonLeft}.
         Setting this option to \setting{Yes}
         will keep the list entries at their fixed positions and allow them to be
@@ -181,6 +182,20 @@
       When set to \setting{Yes} scrolling vertically on pages that surpass the
       screen size will page up/down instead of simply changing lines. This can be
       useful on slow displays.
+    \nopt{scrollwheel}{
+      \item[List Acceleration Start Delay.]
+        This setting enables the acceleration of scroll speed in lists when 
+        holding \ActionStdPrev{} or \ActionStdNext{}. When set to 
+        \setting{Off} the acceleration is disabled. When any other value is set 
+        the acceleration will start to accelerate after holding
+        \ActionStdPrev{} or \ActionStdNext{} for the chosen time (in 
+        seconds).
+      \item[List Acceleration Speed.]
+        This setting controls how fast the scroll speed accelerates. The scroll 
+        speed will increase every N seconds. For example, selecting 
+        \setting{Speed up every 3s} will increase the scroll speed every 3 
+        seconds while \ActionStdPrev{} or \ActionStdNext{} is held.
+    }
     \end{description}
 %
   \opt{lcd_bitmap}{

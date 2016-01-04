@@ -254,7 +254,7 @@
     *: "PLAY = Yes"
     cowond2*: "MENU, or top-right = Yes"
     iriverh100,iriverh120,iriverh300: "NAVI = Yes"
-    samsungyh*,ipod*,iaudiox5,iaudiom5,gigabeat*,sansae200*,sansac200*,iriverh10,iriverh10_5gb,mrobe100,sansaclip*,sansafuze*: "SELECT = Yes"
+    ipod*,iaudiox5,iaudiom5,gigabeat*,sansae200*,sansac200*,iriverh10,iriverh10_5gb,mrobe100,sansaclip*,sansafuze*,sansaconnect: "SELECT = Yes"
     mrobe500: "PLAY, POWER, or top-right = Yes"
     archosplayer: "(PLAY/STOP)"
     vibe500: "OK = Yes"
@@ -263,7 +263,7 @@
     *: "PLAY = はい"
     cowond2*: "MENU または top-right = はい"
     iriverh100,iriverh120,iriverh300: "NAVI = はい"
-    samsungyh*,ipod*,iaudiox5,iaudiom5,gigabeat*,sansae200*,sansac200*,iriverh10,iriverh10_5gb,mrobe100,sansaclip*,sansafuze*: "SELECT = はい"
+    ipod*,iaudiox5,iaudiom5,gigabeat*,sansae200*,sansac200*,iriverh10,iriverh10_5gb,mrobe100,sansaclip*,sansafuze*,sansaconnect: "SELECT = はい"
     mrobe500: "PLAY または POWER, top-right = はい"
     archosplayer: "(PLAY/STOP)"
     vibe500: "OK = はい"
@@ -423,7 +423,7 @@
 </phrase>
 <phrase>
   id: LANG_PLAYLISTS
-  desc: in the main menu and file view setting
+  desc: in the file view setting
   user: core
   <source>
     *: "Playlists"
@@ -1990,19 +1990,16 @@
 </phrase>
 <phrase>
   id: LANG_HEADPHONE_UNPLUG_RW
-  desc: in pause_phones_menu.
+  desc: deprecated
   user: core
   <source>
-    *: none
-    headphone_detection: "Duration to Rewind"
+    *: ""
   </source>
   <dest>
-    *: none
-    headphone_detection: "巻き戻す時間"
+    *: ""
   </dest>
   <voice>
-    *: none
-    headphone_detection: "巻き戻す時間"
+    *: ""
   </voice>
 </phrase>
 <phrase>
@@ -2240,7 +2237,7 @@
     *: "Building database... %d found (OFF to return)"
     iriverh100,iriverh120,iriverh300: "Building database... %d found (STOP to return)"
     ipod*: "Building database... %d found (PREV to return)"
-    iaudiox5,iaudiom5,gigabeat*,mrobe100: "Building database... %d found (LEFT to return)"
+    iaudiox5,iaudiom5,gigabeat*,mrobe100,samsungyh*: "Building database... %d found (LEFT to return)"
     iriverh10,iriverh10_5gb,sansae200*,sansac200*,sansafuze*,vibe500: "Building database... %d found (PREV to return)"
     gogearsa9200: "Building database... %d found (REW to return)"
   </source>
@@ -2248,7 +2245,7 @@
     *: "データベース構築中... %d 件 (OFFで戻る)"
     iriverh100,iriverh120,iriverh300: "データベース構築中... %d 件 (STOPで戻る)"
     ipod*: "データベース構築中... %d 件 (PLAY/PAUSEで戻る)"
-    iaudiox5,iaudiom5,gigabeat*,mrobe100: "データベース構築中... %d 件 (左で戻る)"
+    iaudiox5,iaudiom5,gigabeat*,mrobe100,samsungyh*: "データベース構築中... %d 件 (左で戻る)"
     iriverh10,iriverh10_5gb,sansae200*,sansac200*,sansafuze*,vibe500: "データベース構築中... %d 件 (PREVで戻る)"
     gogearsa9200: "データベース構築中... %d 件 (REWで戻る)"
   </dest>
@@ -3953,8 +3950,8 @@
     rtc: "ON = Set"
     mrobe500: "HEART = Set"
     iriverh100,iriverh120,iriverh300: "NAVI = Set"
-    ipod*,iaudiox5,iaudiom5,iriverh10,iriverh10_5gb,sansae200*,sansac200*,gigabeat*,mrobe100,sansaclip*,sansafuze*: "SELECT = Set"
-    gogearsa9200: "PLAY = Set"
+    ipod*,iaudiox5,iaudiom5,iriverh10,iriverh10_5gb,sansae200*,sansac200*,gigabeat*,mrobe100,sansaclip*,sansafuze*,sansaconnect: "SELECT = Set"
+    gogearsa9200,samsungyh*: "PLAY = Set"
     vibe500: "OK = Set"
     mpiohd300: "ENTER = Set"
   </source>
@@ -3963,14 +3960,14 @@
     rtc: "ON = 設定"
     mrobe500: "HEART = 設定"
     iriverh100,iriverh120,iriverh300: "NAVI = 設定"
-    ipod*,iaudiox5,iaudiom5,iriverh10,iriverh10_5gb,sansae200*,sansac200*,gigabeat*,mrobe100,sansaclip*,sansafuze*: "SELECT = 設定"
-    gogearsa9200: "PLAY = 設定"
+    ipod*,iaudiox5,iaudiom5,iriverh10,iriverh10_5gb,sansae200*,sansac200*,gigabeat*,mrobe100,sansaclip*,sansafuze*,sansaconnect: "SELECT = 設定"
+    gogearsa9200,samsungyh*: "PLAY = 設定"
     vibe500: "OK = 設定"
     mpiohd300: "ENTER = 設定"
   </dest>
   <voice>
     *: none
-    rtc,iriverh100,iriverh120,iriverh300,iriverh10,iriverh10_5gb,iaudiox5,iaudiom5,ipod*,sansae200*,sansac200*,gigabeat*,mrobe100,gogearsa9200: ""
+    rtc,iriverh100,iriverh120,iriverh300,iriverh10,iriverh10_5gb,iaudiox5,iaudiom5,ipod*,sansae200*,sansac200*,gigabeat*,mrobe100,gogearsa9200,samsungyh*: ""
   </voice>
 </phrase>
 <phrase>
@@ -3986,10 +3983,12 @@
     iaudiox5,iaudiom5: "RECORD = Revert"
     iriverh10,iriverh10_5gb,sansae200*,sansafuze*: "PREV = Revert"
     gigabeatfx: "POWER = Revert"
+    sansafuzeplus: "BACK = Revert"
     mrobe100: "DISPLAY = Revert"
     gigabeats: "BACK = Revert"
     gogearsa9200: "LEFT = Revert"
     vibe500: "CANCEL = Revert"
+    samsungyh*: "REW = Revert"
   </source>
   <dest>
     *: none
@@ -4000,10 +3999,12 @@
     iaudiox5,iaudiom5: "RECORD = 元に戻す"
     iriverh10,iriverh10_5gb,sansae200*,sansafuze*: "PREV = 元に戻す"
     gigabeatfx: "POWER = 元に戻す"
+    sansafuzeplus: "BACK = 元に戻す"
     mrobe100: "DISPLAY = 元に戻す"
     gigabeats: "BACK = 元に戻す"
     gogearsa9200: "LEFT = 元に戻す"
     vibe500: "CANCEL = 元に戻す"
+    samsungyh*: "REW = 元に戻す"
   </dest>
   <voice>
     *: none
@@ -4534,6 +4535,7 @@
     gigabeats: "SELECT=Set POWER=Cancel"
     vibe500: "OK=Set C=Cancel"
     mpiohd300: "ENTER=Set MENU=Cancel"
+    sansafuzeplus: "SELECT=Set  BACK=Cancel"
   </source>
   <dest>
     *: none
@@ -4543,6 +4545,7 @@
     gigabeats: "SELECT=設定 POWER=取り消し"
     vibe500: "OK=設定 C=取り消し"
     mpiohd300: "ENTER=設定 MENU=取り消し"
+    sansafuzeplus: "SELECT=設定  BACK=取り消し"
   </dest>
   <voice>
     *: none
@@ -5388,19 +5391,19 @@
 </phrase>
 <phrase>
   id: LANG_FM_SAVE_CHANGES
-  desc: When you try to exit radio to confirm save
+  desc: deprecated
   user: core
   <source>
     *: none
-    radio: "Save Changes?"
+    radio: ""
   </source>
   <dest>
     *: none
-    radio: "プリセットを保存しますか?"
+    radio: ""
   </dest>
   <voice>
     *: none
-    radio: "プリセットを保存しますか?"
+    radio: ""
   </voice>
 </phrase>
 <phrase>
@@ -5642,20 +5645,20 @@
   </voice>
 </phrase>
 <phrase>
-  id: LANG_RECORDING_FREQUENCY
-  desc: in the recording settings
+  id: LANG_FREQUENCY
+  desc: in recording and playback settings
   user: core
   <source>
     *: none
-    recording: "Frequency"
+    recording,play_frequency: "Frequency"
   </source>
   <dest>
     *: none
-    recording: "周波数"
+    recording,play_frequency: "周波数"
   </dest>
   <voice>
     *: none
-    recording: "周波数"
+    recording,play_frequency: "周波数"
   </voice>
 </phrase>
 <phrase>
@@ -5880,20 +5883,6 @@
   <voice>
     *: none
     recording: "分割ファイルサイズ"
-  </voice>
-</phrase>
-<phrase>
-  id: LANG_REC_SIZE
-  desc: deprecated
-  user:
-  <source>
-    *: none
-  </source>
-  <dest>
-    *: none
-  </dest>
-  <voice>
-    *: none
   </voice>
 </phrase>
 <phrase>
@@ -6480,10 +6469,10 @@
 </phrase>
 <phrase>
   id: LANG_CATALOG
-  desc: in onplay menu
+  desc: in main menu and onplay menu
   user: core
   <source>
-    *: "Playlist Catalog"
+    *: "Playlist Catalogue"
   </source>
   <dest>
     *: "プレイリスト カタログ"
@@ -6665,19 +6654,19 @@
   <source>
     *: none
     multivolume: "HD1"
-    sansae200*,sansac200*,sansafuze*: "mSD:"
+    sansae200*,sansac200*,sansafuze*,sansaclipplus: "mSD:"
     archosondio*: "MMC:"
   </source>
   <dest>
     *: none
     multivolume: "HD1"
-    sansae200*,sansac200*,sansafuze*: "mSD:"
+    sansae200*,sansac200*,sansafuze*,sansaclipplus: "mSD:"
     archosondio*: "MMC:"
   </dest>
   <voice>
     *: none
     multivolume: "H D 1"
-    sansae200*,sansac200*,sansafuze*: "マイクロSD"
+    sansae200*,sansac200*,sansafuze*,sansaclipplus: "マイクロSD"
     archosondio*: "マルチメディアカード"
   </voice>
 </phrase>
@@ -6977,10 +6966,10 @@
 </phrase>
 <phrase>
   id: LANG_CATALOG_VIEW
-  desc: in onplay playlist catalog submenu
+  desc: in onplay playlist catalogue submenu
   user: core
   <source>
-    *: "View Catalog"
+    *: "View Catalogue"
   </source>
   <dest>
     *: "カタログを表示"
@@ -6991,7 +6980,7 @@
 </phrase>
 <phrase>
   id: LANG_CATALOG_ADD_TO
-  desc: in onplay playlist catalog submenu
+  desc: in onplay playlist catalogue submenu
   user: core
   <source>
     *: "Add to Playlist"
@@ -7005,7 +6994,7 @@
 </phrase>
 <phrase>
   id: LANG_CATALOG_ADD_TO_NEW
-  desc: in onplay playlist catalog submenu
+  desc: in onplay playlist catalogue submenu
   user: core
   <source>
     *: "Add to New Playlist"
@@ -7019,7 +7008,7 @@
 </phrase>
 <phrase>
   id: LANG_CATALOG_NO_DIRECTORY
-  desc: error message when playlist catalog directory doesn't exist
+  desc: error message when playlist catalogue directory doesn't exist
   user: core
   <source>
     *: "%s doesn't exist"
@@ -7033,7 +7022,7 @@
 </phrase>
 <phrase>
   id: LANG_CATALOG_NO_PLAYLISTS
-  desc: error message when no playlists for playlist catalog
+  desc: error message when no playlists for playlist catalogue
   user: core
   <source>
     *: "No Playlists"
@@ -7582,15 +7571,15 @@
 </phrase>
 <phrase>
   id: LANG_BACKDROP_LOADED
-  desc: text for splash to indicate a new backdrop has been loaded successfully
+  desc: deprecated
   user: core
   <source>
     *: none
-    lcd_non-mono: "Backdrop Loaded"
+    lcd_non-mono: ""
   </source>
   <dest>
     *: none
-    lcd_non-mono: "背景を変更しました"
+    lcd_non-mono: ""
   </dest>
   <voice>
     *: none
@@ -7599,15 +7588,15 @@
 </phrase>
 <phrase>
   id: LANG_BACKDROP_FAILED
-  desc: text for splash to indicate a failure to load a bitmap as backdrop
+  desc: deprecated
   user: core
   <source>
     *: none
-    lcd_non-mono: "Backdrop Failed"
+    lcd_non-mono: ""
   </source>
   <dest>
     *: none
-    lcd_non-mono: "背景の変更に失敗しました"
+    lcd_non-mono: ""
   </dest>
   <voice>
     *: none
@@ -7908,7 +7897,7 @@
     *: "モード:"
   </dest>
   <voice>
-    *: ""
+    *: "モード:"
   </voice>
 </phrase>
 <phrase>
@@ -7925,8 +7914,6 @@
     *: "時間"
   </voice>
 </phrase>
-/* TODO: cleanup LANG_USB_CHARGING unless HAVE_USB_CHARGING_ENABLE defined,
- * the selector should probably be usb_charging_enable_enable as well. */
 <phrase>
   id: LANG_USB_CHARGING
   desc: in Battery menu
@@ -7999,6 +7986,7 @@
     iriverh100,iriverh120,iriverh300: "The disk is full. Press STOP to continue."
     iaudiom5,iaudiox5: "The disk is full. Press POWER to continue."
     sansae200*,sansac200*,vibe500: "The disk is full. Press PREV to continue."
+    samsungyh*: "Disk full. Press LEFT to continue."
   </source>
   <dest>
     *: none
@@ -8006,6 +7994,7 @@
     iriverh100,iriverh120,iriverh300: "ディスクが一杯です. STOPボタンを押してください"
     iaudiom5,iaudiox5: "ディスクが一杯です. POWERボタンを押してください"
     sansae200*,sansac200*,vibe500: "ディスクが一杯です. PREVボタンを押してください"
+    samsungyh*: "ディスクが一杯です. LEFTボタンを押してください"
   </dest>
   <voice>
     *: none
@@ -8103,6 +8092,7 @@
     iriverh10,iriverh10_5gb,sansae200*,sansac200*,vibe500: "PREV to abort"
     gigabeats: "BACK to abort"
     gigabeatfx: "POWER to abort"
+    sansafuzeplus: "BACK to abort"
   </source>
   <dest>
     *: "OFF: 取り消し"
@@ -8112,6 +8102,7 @@
     iriverh10,iriverh10_5gb,sansae200*,sansac200*,vibe500: "PREV: 取り消し"
     gigabeats: "BACK: 取り消し"
     gigabeatfx: "POWER: 取り消し"
+    sansafuzeplus: "BACK: 取り消し"
   </dest>
   <voice>
     *: ""
@@ -10440,15 +10431,15 @@
   user: core
   <source>
     *: none
-    ipodvideo: "Bass Cutoff"
+    ipodvideo,ipod6g,mpiohd200,mpiohd300,gigabeatfx,mrobe100: "Bass Cutoff"
   </source>
   <dest>
     *: none
-    ipodvideo: "低音域カットオフ"
+    ipodvideo,ipod6g,mpiohd200,mpiohd300,gigabeatfx,mrobe100: "低音域カットオフ"
   </dest>
   <voice>
     *: none
-    ipodvideo: "低音域カットオフ"
+    ipodvideo,ipod6g,mpiohd200,mpiohd300,gigabeatfx,mrobe100: "低音域カットオフ"
   </voice>
 </phrase>
 <phrase>
@@ -10457,15 +10448,15 @@
   user: core
   <source>
     *: none
-    ipodvideo: "Treble Cutoff"
+    ipodvideo,ipod6g,mpiohd200,mpiohd300,gigabeatfx,mrobe100: "Treble Cutoff"
   </source>
   <dest>
     *: none
-    ipodvideo: "高音域カットオフ"
+    ipodvideo,ipod6g,mpiohd200,mpiohd300,gigabeatfx,mrobe100: "高音域カットオフ"
   </dest>
   <voice>
     *: none
-    ipodvideo: "高音域カットオフ"
+    ipodvideo,ipod6g,mpiohd200,mpiohd300,gigabeatfx,mrobe100: "高音域カットオフ"
   </voice>
 </phrase>
 <phrase>
@@ -10612,15 +10603,15 @@
   user: core
   <source>
     *: none
-    gigabeatfx: "Touchpad Sensitivity"
+    gigabeatfx,sansafuzeplus: "Touchpad Sensitivity"
   </source>
   <dest>
     *: none
-    gigabeatfx: "タッチパッド感度"
+    gigabeatfx,sansafuzeplus: "タッチパッド感度"
   </dest>
   <voice>
     *: none
-    gigabeatfx: "タッチパッド感度"
+    gigabeatfx,sansafuzeplus: "タッチパッド感度"
   </voice>
 </phrase>
 <phrase>
@@ -11523,16 +11514,16 @@
 </phrase>
 <phrase>
   id: LANG_SKIN_RAM_USAGE
-  desc: how much RAM the skins are using
+  desc: deprecated
   user: core
   <source>
-    *: "Skin RAM usage:"
+    *: ""
   </source>
   <dest>
-    *: "スキンのRAM使用量:"
+    *: ""
   </dest>
   <voice>
-    *: "スキンのRAM使用量"
+    *: ""
   </voice>
 </phrase>
 <phrase>
@@ -12107,20 +12098,20 @@
   </voice>
 </phrase>
 <phrase>
-  id: LANG_RECORDING_HISTOGRAM_INTERVAL
+  id: LANG_HISTOGRAM_INTERVAL
   desc: in record settings menu
   user: core
   <source>
     *: none
-    recording_histogram: "Histogram interval"
+    histogram: "Histogram interval"
   </source>
   <dest>
     *: none
-    recording_histogram: "ヒストグラムの間隔"
+    histogram: "ヒストグラムの間隔"
   </dest>
   <voice>
     *: none
-    recording_histogram: "ヒストグラムの間隔"
+    histogram: "ヒストグラムの間隔"
   </voice>
 </phrase>
 <phrase>
@@ -12401,15 +12392,15 @@
   user: core
   <source>
     *: none
-    gigabeats: "3-D Enhancement"
+    gigabeats,mpiohd200,mpiohd300,sansafuzeplus: "3-D Enhancement"
   </source>
   <dest>
     *: none
-    gigabeats: "3D エンハンス"
+    gigabeats,mpiohd200,mpiohd300,sansafuzeplus: "3-Dエンハンスメント"
   </dest>
   <voice>
     *: none
-    gigabeats: "3 D エンハンス"
+    gigabeats,mpiohd200,mpiohd300,sansafuzeplus: "3-Dエンハンスメント"
   </voice>
 </phrase>
 <phrase>
@@ -12590,5 +12581,252 @@
   </dest>
   <voice>
     *: "ファイルサイズ"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_CURRENT_PLAYLIST
+  desc: Used when you need to say playlist, also voiced
+  user: core
+  <source>
+    *: "Current Playlist"
+  </source>
+  <dest>
+    *: "現在のプレイリスト"
+  </dest>
+  <voice>
+    *: "現在のプレイリスト"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_AUTORESUME
+  desc: resume settings menu
+  user: core
+  <source>
+    *: "Automatic resume"
+  </source>
+  <dest>
+    *: "オートレジューム"
+  </dest>
+  <voice>
+    *: "オートレジューム"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_AUTORESUME_AUTOMATIC
+  desc: resume on automatic track change
+  user: core
+  <source>
+    *: "Resume on automatic track change"
+  </source>
+  <dest>
+    *: "Resume on automatic track change"
+  </dest>
+  <voice>
+    *: "Resume on automatic track change"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_USB_SKIP_FIRST_DRIVE
+  desc: in settings_menu
+  user: core
+  <source>
+    *: none
+    multidrive_usb: "USB Hide Internal Drive"
+  </source>
+  <dest>
+    *: none
+    multidrive_usb: "USB 内蔵ドライブを隠す"
+  </dest>
+  <voice>
+    *: none
+    multidrive_usb: "USB 内蔵ドライブを隠す"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_SET_AS_PLAYLISTCAT_DIR
+  desc: used in the onplay menu to set a playlist catalogue dir
+  user: core
+  <source>
+    *: "Set As Playlist Catalogue Directory"
+  </source>
+  <dest>
+    *: "プレイリストカタログのディレクトリとして設定"
+  </dest>
+  <voice>
+    *: "プレイリストカタログのディレクトリとして設定"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_LIST_LINE_PADDING
+  desc: list padding, in display settings
+  user: core
+  <source>
+    *: none
+    touchscreen: "Line Padding in Lists"
+  </source>
+  <dest>
+    *: none
+    touchscreen: "Line Padding in Lists"
+  </dest>
+  <voice>
+    *: none
+    touchscreen: "Line Padding in Lists"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_SAVE_CHANGES
+  desc: When you try to exit screens to confirm save
+  user: core
+  <source>
+    *: "Save Changes?"
+  </source>
+  <dest>
+    *: "変更を保存しますか?"
+  </dest>
+  <voice>
+    *: "変更を保存しますか?"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_PAUSE_REWIND
+  desc: Seconds to rewind when rewind on pause is enabled.
+  user: core
+  <source>
+    *: "Rewind on Pause"
+  </source>
+  <dest>
+    *: "一時停止での巻き戻し時間"
+  </dest>
+  <voice>
+    *: "一時停止での巻き戻し時間"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_AUTOMATIC
+  desc: generic automatic
+  user: core
+  <source>
+    *: "Automatic"
+  </source>
+  <dest>
+    *: "自動"
+  </dest>
+  <voice>
+    *: "自動"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_AUTORESUME_ENABLE_YES
+  desc: deprecated
+  user: core
+  <source>
+    *: ""
+  </source>
+  <dest>
+    *: ""
+  </dest>
+  <voice>
+    *: ""
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_SLEEP_TIMER_CANCEL_CURRENT
+  desc: shown instead of sleep timer when it's running
+  user: core
+  <source>
+    *: "Cancel Sleep Timer"
+  </source>
+  <dest>
+    *: "スリープタイマーをキャンセル"
+  </dest>
+  <voice>
+    *: "スリープタイマーをキャンセル"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_FM_RSSI
+  desc: Signal strength of a received FM station
+  user: core
+  <source>
+    *: none
+    radio: "Signal strength:"
+  </source>
+  <dest>
+    *: none
+    radio: "信号の強さ:"
+  </dest>
+  <voice>
+    *: none
+    radio: "信号の強さ:"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_SLEEP_TIMER_DURATION
+  desc: default sleep timer duration in minutes (unused in UI)
+  user: core
+  <source>
+    *: "Default Sleep Timer Duration"
+  </source>
+  <dest>
+    *: "既定のスリープタイマー時間"
+  </dest>
+  <voice>
+    *: "既定のスリープタイマー時間"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_AUTORESUME_ENABLE
+  desc: deprecated
+  user: core
+  <source>
+    *: ""
+  </source>
+  <dest>
+    *: ""
+  </dest>
+  <voice>
+    *: ""
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_RESET_PLAYLISTCAT_DIR
+  desc:
+  user: core
+  <source>
+    *: "Reset Playlist Catalogue Directory"
+  </source>
+  <dest>
+    *: "プレイリストカタログのディレクトリをリセット"
+  </dest>
+  <voice>
+    *: "プレイリストカタログのディレクトリをリセット"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_SLEEP_TIMER_ON_POWER_UP
+  desc: whether sleep timer starts on power up
+  user: core
+  <source>
+    *: "Start Sleep Timer On Boot"
+  </source>
+  <dest>
+    *: "ブートでスリープタイマーをスタート"
+  </dest>
+  <voice>
+    *: "ブートでスリープタイマーをスタート"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_AUTORESUME_CUSTOM
+  desc: enable customization of resume on automatic track change
+  user: core
+  <source>
+    *: "In custom directories only"
+  </source>
+  <dest>
+    *: "カスタムディレクトリ内のみ"
+  </dest>
+  <voice>
+    *: "カスタムディレクトリ内のみ"
   </voice>
 </phrase>

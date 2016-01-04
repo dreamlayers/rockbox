@@ -27,6 +27,7 @@
 #include "panic.h"
 #include "audiohw.h"
 #include "pcm.h"
+#include "pcm-internal.h"
 #include "pcm_sampr.h"
 #include "dma-target.h"
 #include "mmu-arm.h"
@@ -42,9 +43,9 @@
 static volatile int locked = 0;
 static const int zerosample = 0;
 static unsigned char dblbuf[1024] IBSS_ATTR;
-static const unsigned char* queuedbuf;
+static const void* queuedbuf;
 static size_t queuedsize;
-static const unsigned char* nextbuf;
+static const void* nextbuf;
 static size_t nextsize;
 
 static const struct div_entry {
@@ -100,6 +101,7 @@ void pcm_play_unlock(void)
 void INT_DMA(void) ICODE_ATTR;
 void INT_DMA(void)
 {
+    bool new_buffer = false;
     DMACOM0 = 7;
     while (!(DMACON0 & (1 << 18)))
     {
@@ -112,8 +114,13 @@ void INT_DMA(void)
         }
         else
         {
-            if (!nextsize) pcm_play_get_more_callback((void**)&nextbuf, &nextsize);
-            if (!nextsize) break;
+            if (!nextsize)
+            {
+                new_buffer = pcm_play_dma_complete_callback(
+                                PCM_DMAST_OK, &nextbuf, &nextsize);
+                if (!new_buffer)
+                    break;
+            }
             queuedsize = MIN(sizeof(dblbuf), nextsize / 2);
             nextsize -= queuedsize;
             queuedbuf = nextbuf + nextsize;
@@ -121,16 +128,23 @@ void INT_DMA(void)
             DMATCNT0 = nextsize / 2 - 1;
             nextsize = 0;
         }
-        clean_dcache();
+        commit_dcache();
         DMACOM0 = 4;
         DMACOM0 = 7;
+
+        if (new_buffer)
+        {
+            pcm_play_dma_status_callback(PCM_DMAST_STARTED);
+            new_buffer = false;
+        }
     }
+
 }
 
 void pcm_play_dma_start(const void* addr, size_t size)
 {
     /* DMA channel on */
-    nextbuf = (const unsigned char*)addr;
+    nextbuf = addr;
     nextsize = size;
     queuedsize = 0;
     DMABASE0 = (unsigned int)(&zerosample);
@@ -249,7 +263,7 @@ void pcm_play_dma_init(void)
     audiohw_preinit();
 }
 
-void pcm_postinit(void)
+void pcm_play_dma_postinit(void)
 {
     audiohw_postinit();
 }

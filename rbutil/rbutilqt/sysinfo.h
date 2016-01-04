@@ -7,7 +7,6 @@
  *                     \/            \/     \/    \/            \/
  *
  *   Copyright (C) 2007 by Dominik Riebeling
- *   $Id$
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -22,7 +21,8 @@
 #ifndef SYSINFO_H
 #define SYSINFO_H
 
-#include <QtGui>
+#include <QDialog>
+#include <QWidget>
 #include "ui_sysinfofrm.h"
 
 class Sysinfo : public QDialog
@@ -30,14 +30,19 @@ class Sysinfo : public QDialog
     Q_OBJECT
 
     public:
+        enum InfoType {
+            InfoHtml,
+            InfoText,
+        };
         Sysinfo(QWidget *parent = 0);
-        
-        static QString getInfo();
+
+        static QString getInfo(InfoType type = InfoHtml);
     private:
+        void changeEvent(QEvent *event);
         Ui::SysinfoFrm ui;
 
     private slots:
-        void updateSysinfo(void);
+         void updateSysinfo(void);
 
 };
 

@@ -34,6 +34,9 @@
 #if CONFIG_TUNER
 #include "radio.h"
 #endif
+#if defined(IPOD_ACCESSORY_PROTOCOL) && defined(HAVE_LINE_REC)
+#include "iap.h"
+#endif
 
 /* Some audio sources may require a boosted CPU */
 #ifdef HAVE_ADJUSTABLE_CPU_FREQ
@@ -42,7 +45,7 @@
 #endif
 #endif
 
-#if (CONFIG_PLATFORM & PLATFORM_NATIVE)
+#if ((CONFIG_PLATFORM & PLATFORM_NATIVE) || defined(SAMSUNG_YPR0) || defined(SAMSUNG_YPR1))
 
 #ifdef AUDIO_CPU_BOOST
 static void audio_cpu_boost(bool state)
@@ -93,6 +96,13 @@ void audio_set_input_source(int source, unsigned flags)
         radio_pause();
     else
         radio_start();
+#endif
+
+#if defined(IPOD_ACCESSORY_PROTOCOL) && defined(HAVE_LINE_REC)
+    static bool last_rec_onoff = false;
+    bool onoff = (source == AUDIO_SRC_LINEIN) ? true : false;
+    if (last_rec_onoff != onoff)
+        last_rec_onoff = iap_record(onoff);
 #endif
 
     /* set hardware inputs */

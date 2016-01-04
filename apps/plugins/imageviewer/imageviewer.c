@@ -28,8 +28,8 @@
 #include <lib/helper.h>
 #include <lib/configfile.h>
 #include "imageviewer.h"
+#include "imageviewer_button.h"
 #include "image_decoder.h"
-
 
 
 #ifdef USEGSLIB
@@ -136,7 +136,7 @@ static enum image_type image_type = IMAGE_UNKNOWN;
 static void get_pic_list(void)
 {
     struct tree_context *tree = rb->tree_get_context();
-    struct entry *dircache = tree->dircache;
+    struct entry *dircache = rb->tree_get_entries(tree);
     int i;
     char *pname;
 
@@ -148,8 +148,8 @@ static void get_pic_list(void)
 
     for (i = 0; i < tree->filesindir && buf_size > sizeof(char**); i++)
     {
-        if (!(dircache[i].attr & ATTR_DIRECTORY)
-            && get_image_type(dircache[i].name) != IMAGE_UNKNOWN)
+        /* Add all files. Non-image files will be filtered out while loading. */
+        if (!(dircache[i].attr & ATTR_DIRECTORY))
         {
             file_pt[entries] = dircache[i].name;
             /* Set Selected File. */
@@ -344,6 +344,10 @@ static int show_menu(void) /* return 1 to quit */
 #ifdef USE_PLUG_BUF
 static int ask_and_get_audio_buffer(const char *filename)
 {
+    int button;
+#if defined(IMGVIEW_ZOOM_PRE)
+    int lastbutton = BUTTON_NONE;
+#endif
     rb->lcd_setfont(FONT_SYSFIXED);
     rb->lcd_clear_display();
     rb->lcd_puts(0, 0, rb->strrchr(filename,'/')+1);
@@ -359,10 +363,18 @@ static int ask_and_get_audio_buffer(const char *filename)
 
     while (1)
     {
-        int button = rb->button_get(true);
+        if (iv_api.slideshow_enabled)
+            button = rb->button_get_w_tmo(settings.ss_timeout * HZ);
+        else
+            button = rb->button_get(true);
+
         switch(button)
         {
             case IMGVIEW_ZOOM_IN:
+#ifdef IMGVIEW_ZOOM_PRE
+                if (lastbutton != IMGVIEW_ZOOM_PRE)
+                    break;
+#endif
                 iv_api.plug_buf = false;
                 buf = rb->plugin_get_audio_buffer(&buf_size);
                 /*try again this file, now using the audio buffer */
@@ -391,11 +403,23 @@ static int ask_and_get_audio_buffer(const char *filename)
                     return change_filename(DIR_NEXT);
                 }
                 break;
+            case BUTTON_NONE:
+                if(entries>1)
+                {
+                    rb->lcd_clear_display();
+                    return change_filename(direction);
+                }
+                break;
+
             default:
                 if(rb->default_event_handler_ex(button, cleanup, NULL)
                         == SYS_USB_CONNECTED)
                     return PLUGIN_USB_CONNECTED;
         }
+#if defined(IMGVIEW_ZOOM_PRE)
+        if (button != BUTTON_NONE)
+            lastbutton = button;
+#endif
     }
 }
 #endif /* USE_PLUG_BUF */
@@ -526,15 +550,39 @@ static void pan_view_down(struct image_info *info)
 /* interactively scroll around the image */
 static int scroll_bmp(struct image_info *info)
 {
+    static long ss_timeout = 0;
+
     int button;
+#if defined(IMGVIEW_ZOOM_PRE) || defined(IMGVIEW_MENU_PRE) \
+    || defined(IMGVIEW_SLIDE_SHOW_PRE)
     int lastbutton = BUTTON_NONE;
+#endif
+
+    if (!ss_timeout && iv_api.slideshow_enabled)
+        ss_timeout = *rb->current_tick + settings.ss_timeout * HZ;
 
     while (true)
     {
         if (iv_api.slideshow_enabled)
-            button = rb->button_get_w_tmo(settings.ss_timeout * HZ);
+        {
+            if (info->frames_count > 1 && info->delay &&
+                settings.ss_timeout * HZ > info->delay)
+            {
+                /* animated content and delay between subsequent frames
+                 * is shorter then slideshow delay
+                 */
+                button = rb->button_get_w_tmo(info->delay);
+            }
+            else
+                button = rb->button_get_w_tmo(settings.ss_timeout * HZ);
+        }
         else
-            button = rb->button_get(true);
+        {
+            if (info->frames_count > 1 && info->delay)
+                button = rb->button_get_w_tmo(info->delay);
+            else
+                button = rb->button_get(true);
+        }
 
         iv_api.running_slideshow = false;
 
@@ -569,13 +617,39 @@ static int scroll_bmp(struct image_info *info)
         case BUTTON_NONE:
             if (iv_api.slideshow_enabled && entries > 1)
             {
-                iv_api.running_slideshow = true;
-                return change_filename(DIR_NEXT);
+                if (info->frames_count > 1)
+                {
+                    /* animations */
+                    if (TIME_AFTER(*rb->current_tick, ss_timeout))
+                    {
+                        iv_api.running_slideshow = true;
+                        ss_timeout = 0;
+                        return change_filename(DIR_NEXT);
+                    }
+                    else
+                        return NEXT_FRAME;
+                }
+                else
+                {
+                    /* still picture */
+                    iv_api.running_slideshow = true;
+                    return change_filename(DIR_NEXT);
+                }
             }
+            else
+                return NEXT_FRAME;
+
             break;
 
 #ifdef IMGVIEW_SLIDE_SHOW
         case IMGVIEW_SLIDE_SHOW:
+#ifdef IMGVIEW_SLIDE_SHOW_PRE
+            if (lastbutton != IMGVIEW_SLIDE_SHOW_PRE)
+                break;
+#endif
+#ifdef IMGVIEW_SLIDE_SHOW2
+        case IMGVIEW_SLIDE_SHOW2:
+#endif
             iv_api.slideshow_enabled = !iv_api.slideshow_enabled;
             break;
 #endif
@@ -648,9 +722,10 @@ static int scroll_bmp(struct image_info *info)
             break;
 
         } /* switch */
-
+#if defined(IMGVIEW_ZOOM_PRE) || defined(IMGVIEW_MENU_PRE) || defined(IMGVIEW_SLIDE_SHOW_PRE)
         if (button != BUTTON_NONE)
             lastbutton = button;
+#endif
     } /* while (true) */
 }
 
@@ -721,7 +796,13 @@ static int load_and_show(char* filename, struct image_info *info)
 
     rb->lcd_clear_display();
 
-    status = get_image_type(filename);
+    /* suppress warning while running slideshow */
+    status = get_image_type(filename, iv_api.running_slideshow);
+    if (status == IMAGE_UNKNOWN) {
+        /* file isn't supported image file, skip this. */
+        file_pt[curfile] = NULL;
+        return change_filename(direction);
+    }
     if (image_type != status) /* type of image is changed, load decoder. */
     {
         struct loader_info loader_info = {
@@ -771,7 +852,7 @@ static int load_and_show(char* filename, struct image_info *info)
         return change_filename(direction);
     }
     else if (status == PLUGIN_ABORT) {
-        rb->splash(HZ, "aborted");
+        rb->splash(HZ, "Aborted");
         return PLUGIN_OK;
     }
 
@@ -793,7 +874,7 @@ static int load_and_show(char* filename, struct image_info *info)
         else
 #endif
         {
-            rb->splash(HZ, "too large");
+            rb->splash(HZ, "Too large");
             file_pt[curfile] = NULL;
             return change_filename(direction);
         }
@@ -805,9 +886,11 @@ static int load_and_show(char* filename, struct image_info *info)
     cx = info->x_size/ds/2; /* center the view */
     cy = info->y_size/ds/2;
 
+    /* used to loop through subimages in animated gifs */
+    int frame = 0;
     do  /* loop the image prepare and decoding when zoomed */
     {
-        status = imgdec->get_image(info, ds); /* decode or fetch from cache */
+        status = imgdec->get_image(info, frame, ds); /* decode or fetch from cache */
         if (status == PLUGIN_ERROR)
         {
             file_pt[curfile] = NULL;
@@ -816,7 +899,7 @@ static int load_and_show(char* filename, struct image_info *info)
 
         set_view(info, cx, cy);
 
-        if(!iv_api.running_slideshow)
+        if(!iv_api.running_slideshow && (info->frames_count == 1))
         {
             rb->lcd_putsf(0, 3, "showing %dx%d", info->width, info->height);
             rb->lcd_update();
@@ -837,6 +920,7 @@ static int load_and_show(char* filename, struct image_info *info)
         while (1)
         {
             status = scroll_bmp(info);
+
             if (status == ZOOM_IN)
             {
                 if (ds > ds_min || (imgdec->unscaled_avail && ds > 1))
@@ -866,16 +950,19 @@ static int load_and_show(char* filename, struct image_info *info)
                 else
                     continue;
             }
+
+            /* next frame in animated content */
+            if (status == NEXT_FRAME)
+                frame = (frame + 1)%info->frames_count;
+
             break;
         }
 
-#ifdef USEGSLIB
-        grey_show(false); /* switch off overlay */
-#endif
         rb->lcd_clear_display();
     }
     while (status > PLUGIN_OTHER);
 #ifdef USEGSLIB
+    grey_show(false); /* switch off overlay */
     rb->lcd_update();
 #endif
     return status;
@@ -893,7 +980,7 @@ enum plugin_status plugin_start(const void* parameter)
     if(!parameter) return PLUGIN_ERROR;
 
     rb->strcpy(np_file, parameter);
-    if (get_image_type(np_file) == IMAGE_UNKNOWN)
+    if (get_image_type(np_file, false) == IMAGE_UNKNOWN)
     {
         rb->splash(HZ*2, "Unsupported file");
         return PLUGIN_ERROR;
@@ -938,7 +1025,7 @@ enum plugin_status plugin_start(const void* parameter)
     rb->memcpy(&old_settings, &settings, sizeof (settings));
 
     /* Turn off backlight timeout */
-    backlight_force_on(); /* backlight control in lib/helper.c */
+    backlight_ignore_timeout();
 
 #if LCD_DEPTH > 1
     rb->lcd_set_backdrop(NULL);
@@ -966,7 +1053,7 @@ enum plugin_status plugin_start(const void* parameter)
 #endif
 
     /* Turn on backlight timeout (revert to settings) */
-    backlight_use_settings(); /* backlight control in lib/helper.c */
+    backlight_use_settings();
 
 #ifdef USEGSLIB
     grey_release(); /* deinitialize */

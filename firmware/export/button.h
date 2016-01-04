@@ -28,7 +28,25 @@
 #include "button-target.h"
 #endif
 
+#ifndef BUTTON_REMOTE
+# define BUTTON_REMOTE 0
+#endif
+
 extern struct event_queue button_queue;
+
+void button_init_device(void);
+#ifdef HAVE_BUTTON_DATA
+int button_read_device(int *);
+#else
+int button_read_device(void);
+#endif
+
+#ifdef HAS_BUTTON_HOLD
+bool button_hold(void);
+#endif
+#ifdef HAS_REMOTE_BUTTON_HOLD 
+bool remote_button_hold(void);
+#endif
 
 void button_init (void) INIT_ATTR;
 void button_close(void);
@@ -63,13 +81,15 @@ void wheel_send_events(bool send);
 int button_apply_acceleration(const unsigned int data);
 #endif
 
-#define BUTTON_NONE        0x00000000
+#define BUTTON_NONE         0x00000000
 
 /* Button modifiers */
-#define BUTTON_REL         0x02000000
-#define BUTTON_REPEAT      0x04000000
-#define BUTTON_TOUCHSCREEN 0x08000000
-#define BUTTON_MULTIMEDIA  0x10000000
+#define BUTTON_REL          0x02000000
+#define BUTTON_REPEAT       0x04000000
+/* Special buttons */
+#define BUTTON_TOUCHSCREEN  0x08000000
+#define BUTTON_MULTIMEDIA   0x10000000
+#define BUTTON_REDRAW       0x20000000
 
 #define BUTTON_MULTIMEDIA_PLAYPAUSE (BUTTON_MULTIMEDIA|0x01)
 #define BUTTON_MULTIMEDIA_STOP      (BUTTON_MULTIMEDIA|0x02)
@@ -97,6 +117,14 @@ int touchscreen_last_touch(void);
 #endif
 
 #include "touchscreen.h"
+#endif
+
+#ifdef HAVE_TOUCHPAD
+#include "touchpad.h"
+#endif
+
+#if (defined(HAVE_TOUCHPAD) || defined(HAVE_TOUCHSCREEN)) && !defined(HAS_BUTTON_HOLD)
+void button_enable_touch(bool en);
 #endif
 
 #endif /* _BUTTON_H_ */

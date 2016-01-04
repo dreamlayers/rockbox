@@ -2302,20 +2302,20 @@
   </voice>
 </phrase>
 <phrase>
-  id: LANG_RECORDING_FREQUENCY
-  desc: in the recording settings
+  id: LANG_FREQUENCY
+  desc: in recording and playback settings
   user: core
   <source>
     *: none
-    recording: "Frequency"
+    recording,play_frequency: "Frequency"
   </source>
   <dest>
     *: none
-    recording: "Frekvens"
+    recording,play_frequency: "Frekvens"
   </dest>
   <voice>
     *: none
-    recording: "Frekvens"
+    recording,play_frequency: "Frekvens"
   </voice>
 </phrase>
 <phrase>
@@ -4245,19 +4245,19 @@
   <source>
     *: none
     multivolume: "HD1"
-    sansae200*,sansac200*,sansafuze*: "mSD:"
+    sansae200*,sansac200*,sansafuze*,sansaclipplus: "mSD:"
     archosondio*: "MMC:"
   </source>
   <dest>
     *: none
     multivolume: "HD1"
-    sansae200*,sansac200*,sansafuze*: "mSD:"
+    sansae200*,sansac200*,sansafuze*,sansaclipplus: "mSD:"
     archosondio*: "MMC"
   </dest>
   <voice>
     *: none
     multivolume: "H D 1"
-    sansae200*,sansac200*,sansafuze*: "Micro S D"
+    sansae200*,sansac200*,sansafuze*,sansaclipplus: "Micro S D"
     archosondio*: "M M C"
   </voice>
 </phrase>
@@ -4392,10 +4392,12 @@
     iaudiox5,iaudiom5: "RECORD = Revert"
     iriverh10,iriverh10_5gb,sansae200*,sansafuze*: "PREV = Revert"
     gigabeatfx: "POWER = Revert"
+    sansafuzeplus: "BACK = Revert"
     mrobe100: "DISPLAY = Revert"
     gigabeats: "BACK = Revert"
     gogearsa9200: "LEFT = Revert"
     vibe500: "CANCEL = Revert"
+    samsungyh*: "REW = Revert"
   </source>
   <dest>
     *: none
@@ -4406,10 +4408,12 @@
     iaudiox5,iaudiom5: "RECORD = Tilbakestill"
     iriverh10,iriverh10_5gb,sansae200*,sansafuze*: "PREV = Tilbakestill"
     gigabeatfx: "POWER = Tilbakestill"
+    sansafuzeplus: "BACK = Tilbakestill"
     mrobe100: "DISPLAY = Tilbakestill"
     gigabeats: "BACK = Tilbakestill"
     gogearsa9200: "LEFT = Tilbakestill"
     vibe500: "CANCEL = Tilbakestill"
+    samsungyh*: "REW = Tilbakestill"
   </dest>
   <voice>
     *: none
@@ -4457,6 +4461,7 @@
     iriverh100,iriverh120,iriverh300: "The disk is full. Press STOP to continue."
     iaudiom5,iaudiox5: "The disk is full. Press POWER to continue."
     sansae200*,sansac200*,vibe500: "The disk is full. Press PREV to continue."
+    samsungyh*: "Disk full. Press LEFT to continue."
   </source>
   <dest>
     *: none
@@ -4464,6 +4469,7 @@
     iriverh100,iriverh120,iriverh300: "Disken er full. Trykk STOP for å halde fram."
     iaudiom5,iaudiox5: "Disken er full. Trykk POWER for å halde fram."
     sansae200*,sansac200*,vibe500: "Disken er full. Trykk PREV for å halde fram."
+    samsungyh*: "Disken er full. Trykk LEFT for å halde fram."
   </dest>
   <voice>
     *: none
@@ -4630,6 +4636,7 @@
     gigabeats: "SELECT=Set POWER=Cancel"
     vibe500: "OK=Set C=Cancel"
     mpiohd300: "ENTER=Set MENU=Cancel"
+    sansafuzeplus: "SELECT=Set  BACK=Cancel"
   </source>
   <dest>
     *: none
@@ -7089,6 +7096,7 @@
     iriverh10,iriverh10_5gb,sansae200*,sansac200*,vibe500: "PREV to abort"
     gigabeats: "BACK to abort"
     gigabeatfx: "POWER to abort"
+    sansafuzeplus: "BACK to abort"
   </source>
   <dest>
     *: "OFF for å avbryte"
@@ -7098,6 +7106,7 @@
     iriverh10,iriverh10_5gb,sansae200*,sansac200*,vibe500: "PREV for å avbryte"
     gigabeats: "BACK for å avbryte"
     gigabeatfx: "POWER for å avbryte"
+    sansafuzeplus: "BACK for å avbryte"
   </dest>
   <voice>
     *: ""
@@ -7119,15 +7128,15 @@
 </phrase>
 <phrase>
   id: LANG_BACKDROP_LOADED
-  desc: text for splash to indicate a new backdrop has been loaded successfully
+  desc: deprecated
   user: core
   <source>
     *: none
-    lcd_non-mono: "Backdrop Loaded"
+    lcd_non-mono: ""
   </source>
   <dest>
     *: none
-    lcd_non-mono: "Bakgrunnsbilete lasta"
+    lcd_non-mono: ""
   </dest>
   <voice>
     *: none
@@ -7135,15 +7144,15 @@
 </phrase>
 <phrase>
   id: LANG_BACKDROP_FAILED
-  desc: text for splash to indicate a failure to load a bitmap as backdrop
+  desc: deprecated
   user: core
   <source>
     *: none
-    lcd_non-mono: "Backdrop Failed"
+    lcd_non-mono: ""
   </source>
   <dest>
     *: none
-    lcd_non-mono: "Feil ved bakgrunnsbilete"
+    lcd_non-mono: ""
   </dest>
   <voice>
     *: none
@@ -7418,19 +7427,19 @@
 </phrase>
 <phrase>
   id: LANG_FM_SAVE_CHANGES
-  desc: When you try to exit radio to confirm save
+  desc: deprecated
   user: core
   <source>
     *: none
-    radio: "Save Changes?"
+    radio: ""
   </source>
   <dest>
     *: none
-    radio: "Vil du lagra endringane?"
+    radio: ""
   </dest>
   <voice>
     *: none
-    radio: "Vil du lagra endringane?"
+    radio: ""
   </voice>
 </phrase>
 <phrase>
@@ -7613,20 +7622,6 @@
   </voice>
 </phrase>
 <phrase>
-  id: LANG_REC_SIZE
-  desc: deprecated
-  user:
-  <source>
-    *: none
-  </source>
-  <dest>
-    *: none
-  </dest>
-  <voice>
-    *: none
-  </voice>
-</phrase>
-<phrase>
   id: LANG_STOP_RECORDING
   desc: in record timesplit options
   user: core
@@ -7665,7 +7660,7 @@
   desc: in onplay menu
   user: core
   <source>
-    *: "Playlist Catalog"
+    *: "Playlist Catalogue"
   </source>
   <dest>
     *: "Spelelistekatalog"
@@ -7693,7 +7688,7 @@
 </phrase>
 <phrase>
   id: LANG_CATALOG_ADD_TO_NEW
-  desc: in onplay playlist catalog submenu
+  desc: in onplay playlist catalogue submenu
   user: core
   <source>
     *: "Add to New Playlist"
@@ -7724,7 +7719,7 @@
 </phrase>
 <phrase>
   id: LANG_CATALOG_ADD_TO
-  desc: in onplay playlist catalog submenu
+  desc: in onplay playlist catalogue submenu
   user: core
   <source>
     *: "Add to Playlist"
@@ -7772,10 +7767,10 @@
 </phrase>
 <phrase>
   id: LANG_CATALOG_VIEW
-  desc: in onplay playlist catalog submenu
+  desc: in onplay playlist catalogue submenu
   user: core
   <source>
-    *: "View Catalog"
+    *: "View Catalogue"
   </source>
   <dest>
     *: "Vis katalog"
@@ -7786,7 +7781,7 @@
 </phrase>
 <phrase>
   id: LANG_CATALOG_NO_DIRECTORY
-  desc: error message when playlist catalog directory doesn't exist
+  desc: error message when playlist catalogue directory doesn't exist
   user: core
   <source>
     *: "%s doesn't exist"
@@ -7800,7 +7795,7 @@
 </phrase>
 <phrase>
   id: LANG_CATALOG_NO_PLAYLISTS
-  desc: error message when no playlists for playlist catalog
+  desc: error message when no playlists for playlist catalogue
   user: core
   <source>
     *: "No Playlists"
@@ -8791,7 +8786,7 @@
     *: "Building database... %d found (OFF to return)"
     iriverh100,iriverh120,iriverh300: "Building database... %d found (STOP to return)"
     ipod*: "Building database... %d found (PREV to return)"
-    iaudiox5,iaudiom5,gigabeat*,mrobe100: "Building database... %d found (LEFT to return)"
+    iaudiox5,iaudiom5,gigabeat*,mrobe100,samsungyh*: "Building database... %d found (LEFT to return)"
     iriverh10,iriverh10_5gb,sansae200*,sansac200*,sansafuze*,vibe500: "Building database... %d found (PREV to return)"
     gogearsa9200: "Building database... %d found (REW to return)"
   </source>
@@ -8799,7 +8794,7 @@
     *: "Byggjer database … Fann %d. (OFF for å gå tilbake.)"
     iriverh100,iriverh120,iriverh300: "Byggjer database … Fann %d. (STOP for å gå tilbake.)"
     ipod*: "Byggjer database … Fann %d. (PLAY/PAUSE for å gå tilbake.)"
-    iaudiox5,iaudiom5,gigabeat*,mrobe100: "Byggjer database … Fann %d. (LEFT for å gå tilbake.)"
+    iaudiox5,iaudiom5,gigabeat*,mrobe100,samsungyh*: "Byggjer database … Fann %d. (LEFT for å gå tilbake.)"
     iriverh10,iriverh10_5gb,sansae200*,sansac200*,sansafuze*,vibe500: "Byggjer database ... fann %d. (PREV for å gå tilbake.)"
     gogearsa9200: "Byggjer database ... Fann %d. (REW for å gå tilbake.)"
   </dest>
@@ -9259,7 +9254,7 @@
     *: "PLAY = Yes"
     cowond2*: "MENU, or top-right = Yes"
     iriverh100,iriverh120,iriverh300: "NAVI = Yes"
-    samsungyh*,ipod*,iaudiox5,iaudiom5,gigabeat*,sansae200*,sansac200*,iriverh10,iriverh10_5gb,mrobe100,sansaclip*,sansafuze*: "SELECT = Yes"
+    ipod*,iaudiox5,iaudiom5,gigabeat*,sansae200*,sansac200*,iriverh10,iriverh10_5gb,mrobe100,sansaclip*,sansafuze*,sansaconnect: "SELECT = Yes"
     mrobe500: "PLAY, POWER, or top-right = Yes"
     archosplayer: "(PLAY/STOP)"
     vibe500: "OK = Yes"
@@ -9268,7 +9263,7 @@
     *: "PLAY = ja"
     cowond2*: "MENU eller topp høgre = ja"
     iriverh100,iriverh120,iriverh300: "NAVI = ja"
-    samsungyh*,ipod*,iaudiox5,iaudiom5,gigabeat*,sansae200*,sansac200*,iriverh10,iriverh10_5gb,mrobe100,sansaclip*,sansafuze*: "SELECT = ja"
+    ipod*,iaudiox5,iaudiom5,gigabeat*,sansae200*,sansac200*,iriverh10,iriverh10_5gb,mrobe100,sansaclip*,sansafuze*,sansaconnect: "SELECT = ja"
     mrobe500: "PLAY, POWER eller topp høgre = ja"
     archosplayer: "(PLAY/STOP)"
     vibe500: "OK = ja"
@@ -9286,8 +9281,8 @@
     rtc: "ON = Set"
     mrobe500: "HEART = Set"
     iriverh100,iriverh120,iriverh300: "NAVI = Set"
-    ipod*,iaudiox5,iaudiom5,iriverh10,iriverh10_5gb,sansae200*,sansac200*,gigabeat*,mrobe100,sansaclip*,sansafuze*: "SELECT = Set"
-    gogearsa9200: "PLAY = Set"
+    ipod*,iaudiox5,iaudiom5,iriverh10,iriverh10_5gb,sansae200*,sansac200*,gigabeat*,mrobe100,sansaclip*,sansafuze*,sansaconnect: "SELECT = Set"
+    gogearsa9200,samsungyh*: "PLAY = Set"
     vibe500: "OK = Set"
     mpiohd300: "ENTER = Set"
   </source>
@@ -9296,8 +9291,8 @@
     rtc: "PÅ = velg"
     mrobe500: "HEART = velg"
     iriverh100,iriverh120,iriverh300: "NAVI = velg"
-    ipod*,iaudiox5,iaudiom5,iriverh10,iriverh10_5gb,sansae200*,sansac200*,gigabeat*,mrobe100,sansaclip*,sansafuze*: "SELECT = velg"
-    gogearsa9200: "PLAY = velg"
+    ipod*,iaudiox5,iaudiom5,iriverh10,iriverh10_5gb,sansae200*,sansac200*,gigabeat*,mrobe100,sansaclip*,sansafuze*,sansaconnect: "SELECT = velg"
+    gogearsa9200,samsungyh*: "PLAY = velg"
     vibe500: "OK = velg"
     mpiohd300: "ENTER = velg"
   </dest>
@@ -9595,7 +9590,7 @@
     *: "Modus:"
   </dest>
   <voice>
-    *: ""
+    *: "Modus:"
   </voice>
 </phrase>
 <phrase>
@@ -10112,15 +10107,15 @@
   user: core
   <source>
     *: none
-    ipodvideo: "Bass Cutoff"
+    ipodvideo,ipod6g,mpiohd200,mpiohd300,gigabeatfx,mrobe100: "Bass Cutoff"
   </source>
   <dest>
     *: none
-    ipodvideo: "Bassgrense"
+    ipodvideo,ipod6g,mpiohd200,mpiohd300,gigabeatfx,mrobe100: "Bassgrense"
   </dest>
   <voice>
     *: none
-    ipodvideo: "Bassgrense"
+    ipodvideo,ipod6g,mpiohd200,mpiohd300,gigabeatfx,mrobe100: "Bassgrense"
   </voice>
 </phrase>
 <phrase>
@@ -10318,15 +10313,15 @@
   user: core
   <source>
     *: none
-    ipodvideo: "Treble Cutoff"
+    ipodvideo,ipod6g,mpiohd200,mpiohd300,gigabeatfx,mrobe100: "Treble Cutoff"
   </source>
   <dest>
     *: none
-    ipodvideo: "Diskantgrense"
+    ipodvideo,ipod6g,mpiohd200,mpiohd300,gigabeatfx,mrobe100: "Diskantgrense"
   </dest>
   <voice>
     *: none
-    ipodvideo: "Diskantgrense"
+    ipodvideo,ipod6g,mpiohd200,mpiohd300,gigabeatfx,mrobe100: "Diskantgrense"
   </voice>
 </phrase>
 <phrase>
@@ -10383,15 +10378,15 @@
   user: core
   <source>
     *: none
-    gigabeatfx: "Touchpad Sensitivity"
+    gigabeatfx,sansafuzeplus: "Touchpad Sensitivity"
   </source>
   <dest>
     *: none
-    gigabeatfx: "Styreputefølsemd"
+    gigabeatfx,sansafuzeplus: "Styreputefølsemd"
   </dest>
   <voice>
     *: none
-    gigabeatfx: "Styreputefølsemd"
+    gigabeatfx,sansafuzeplus: "Styreputefølsemd"
   </voice>
 </phrase>
 <phrase>

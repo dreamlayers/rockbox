@@ -247,15 +247,27 @@ CONFIG_KEYPAD == ONDAVX777_PAD || \
 CONFIG_KEYPAD == MROBE500_PAD
 #   define MINESWP_QUIT     BUTTON_POWER
 
-#elif (CONFIG_KEYPAD == SAMSUNG_YH_PAD)
+#elif (CONFIG_KEYPAD == SAMSUNG_YH820_PAD)
 #   define MINESWP_LEFT     BUTTON_LEFT
 #   define MINESWP_RIGHT    BUTTON_RIGHT
 #   define MINESWP_UP       BUTTON_UP
 #   define MINESWP_DOWN     BUTTON_DOWN
-#   define MINESWP_QUIT     BUTTON_REC
+#   define MINESWP_QUIT     (BUTTON_REW|BUTTON_REPEAT)
 #   define MINESWP_TOGGLE   BUTTON_PLAY
-#   define MINESWP_DISCOVER BUTTON_REW
-#   define MINESWP_INFO     BUTTON_FFWD
+#   define MINESWP_DISCOVER BUTTON_FFWD
+#   define MINESWP_INFO     BUTTON_REC
+
+#elif (CONFIG_KEYPAD == SAMSUNG_YH920_PAD)
+#   define MINESWP_LEFT     BUTTON_LEFT
+#   define MINESWP_RIGHT    BUTTON_RIGHT
+#   define MINESWP_UP       BUTTON_UP
+#   define MINESWP_DOWN     BUTTON_DOWN
+#   define MINESWP_QUIT     (BUTTON_REW|BUTTON_REPEAT)
+#   define MINESWP_TOGGLE   (BUTTON_PLAY|BUTTON_REL)
+#   define MINESWP_TOGGLE_PRE BUTTON_PLAY
+#   define MINESWP_DISCOVER BUTTON_FFWD
+#   define MINESWP_INFO     (BUTTON_PLAY|BUTTON_REPEAT)
+#   define MINESWP_INFO_PRE BUTTON_PLAY
 
 #elif (CONFIG_KEYPAD == PBELL_VIBE500_PAD)
 #   define MINESWP_LEFT     BUTTON_PREV
@@ -278,14 +290,106 @@ CONFIG_KEYPAD == MROBE500_PAD
 #   define MINESWP_INFO     BUTTON_REC
 
 #elif CONFIG_KEYPAD == MPIO_HD300_PAD
-#   define MINESWP_LEFT     BUTTON_MENU
-#   define MINESWP_RIGHT    BUTTON_ENTER
+#   define MINESWP_LEFT     BUTTON_REW
+#   define MINESWP_RIGHT    BUTTON_FF
 #   define MINESWP_UP       BUTTON_UP
 #   define MINESWP_DOWN     BUTTON_DOWN
-#   define MINESWP_QUIT     BUTTON_REC
+#   define MINESWP_QUIT     (BUTTON_MENU|BUTTON_REPEAT)
+#   define MINESWP_TOGGLE   BUTTON_ENTER
+#   define MINESWP_DISCOVER BUTTON_PLAY
+#   define MINESWP_INFO     (BUTTON_MENU|BUTTON_REL)
+
+#elif CONFIG_KEYPAD == SANSA_FUZEPLUS_PAD
+#   define MINESWP_LEFT     BUTTON_LEFT
+#   define MINESWP_RIGHT    BUTTON_RIGHT
+#   define MINESWP_UP       BUTTON_UP
+#   define MINESWP_DOWN     BUTTON_DOWN
+#   define MINESWP_QUIT     BUTTON_POWER
+#   define MINESWP_TOGGLE   BUTTON_SELECT
+#   define MINESWP_DISCOVER BUTTON_PLAYPAUSE
+#   define MINESWP_NEXT     BUTTON_BOTTOMRIGHT
+#   define MINESWP_PREV     BUTTON_BOTTOMLEFT
+#   define MINESWP_INFO     BUTTON_BACK
+
+
+#elif (CONFIG_KEYPAD == SANSA_CONNECT_PAD)
+#   define MINESWP_SCROLLWHEEL
+#   define MINESWP_LEFT     BUTTON_LEFT
+#   define MINESWP_RIGHT    BUTTON_RIGHT
+#   define MINESWP_UP       BUTTON_UP
+#   define MINESWP_DOWN     BUTTON_DOWN
+#   define MINESWP_QUIT     BUTTON_POWER
+#   define MINESWP_NEXT     BUTTON_SCROLL_FWD
+#   define MINESWP_PREV     BUTTON_SCROLL_BACK
+#   define MINESWP_TOGGLE   BUTTON_NEXT
+#   define MINESWP_DISCOVER BUTTON_SELECT
+#   define MINESWP_INFO     BUTTON_PREV
+
+#elif (CONFIG_KEYPAD == SAMSUNG_YPR0_PAD)
+#   define MINESWP_LEFT     BUTTON_LEFT
+#   define MINESWP_RIGHT    BUTTON_RIGHT
+#   define MINESWP_UP       BUTTON_UP
+#   define MINESWP_DOWN     BUTTON_DOWN
+#   define MINESWP_QUIT     BUTTON_BACK
+#   define MINESWP_TOGGLE   BUTTON_USER
+#   define MINESWP_DISCOVER BUTTON_SELECT
+#   define MINESWP_INFO     BUTTON_MENU
+
+#elif (CONFIG_KEYPAD == HM60X_PAD)
+
+#   define MINESWP_LEFT     BUTTON_LEFT
+#   define MINESWP_RIGHT    BUTTON_RIGHT
+#   define MINESWP_UP       BUTTON_UP
+#   define MINESWP_DOWN     BUTTON_DOWN
+#   define MINESWP_QUIT     BUTTON_POWER
+#   define MINESWP_TOGGLE   (BUTTON_LEFT|BUTTON_POWER)
+#   define MINESWP_DISCOVER BUTTON_SELECT
+#   define MINESWP_INFO     (BUTTON_UP|BUTTON_POWER)
+
+#elif (CONFIG_KEYPAD == HM801_PAD)
+
+#   define MINESWP_LEFT     BUTTON_LEFT
+#   define MINESWP_RIGHT    BUTTON_RIGHT
+#   define MINESWP_UP       BUTTON_UP
+#   define MINESWP_DOWN     BUTTON_DOWN
+#   define MINESWP_QUIT     BUTTON_POWER
 #   define MINESWP_TOGGLE   BUTTON_PLAY
-#   define MINESWP_DISCOVER BUTTON_FF
-#   define MINESWP_INFO     BUTTON_REW
+#   define MINESWP_DISCOVER BUTTON_SELECT
+#   define MINESWP_INFO     BUTTON_PREV
+
+#elif (CONFIG_KEYPAD == CREATIVE_ZENXFI3_PAD)
+
+#   define MINESWP_LEFT     BUTTON_BACK
+#   define MINESWP_RIGHT    BUTTON_MENU
+#   define MINESWP_UP       BUTTON_UP
+#   define MINESWP_DOWN     BUTTON_DOWN
+#   define MINESWP_QUIT     BUTTON_POWER
+#   define MINESWP_TOGGLE   BUTTON_VOL_UP
+#   define MINESWP_DISCOVER BUTTON_PLAY
+#   define MINESWP_INFO     BUTTON_VOL_DOWN
+
+#elif CONFIG_KEYPAD == SONY_NWZ_PAD
+#define MINESWP_LEFT        BUTTON_LEFT
+#define MINESWP_RIGHT       BUTTON_RIGHT
+#define MINESWP_UP          BUTTON_UP
+#define MINESWP_DOWN        BUTTON_DOWN
+#define MINESWP_QUIT        BUTTON_BACK
+#define MINESWP_TOGGLE      BUTTON_PLAY
+#define MINESWP_DISCOVER    (BUTTON_PLAY|BUTTON_REPEAT)
+#define MINESWP_INFO        BUTTON_POWER
+
+#elif CONFIG_KEYPAD == CREATIVE_ZEN_PAD
+#define MINESWP_LEFT        BUTTON_LEFT
+#define MINESWP_RIGHT       BUTTON_RIGHT
+#define MINESWP_UP          BUTTON_UP
+#define MINESWP_DOWN        BUTTON_DOWN
+#define MINESWP_QUIT        BUTTON_BACK
+#define MINESWP_TOGGLE      BUTTON_PLAYPAUSE
+#define MINESWP_DISCOVER    BUTTON_SELECT
+#define MINESWP_INFO        BUTTON_MENU
+
+#elif (CONFIG_KEYPAD == DX50_PAD)
+#   define MINESWP_QUIT     (BUTTON_POWER|BUTTON_REL)
 
 #else
 #error No keymap defined!
@@ -371,28 +475,28 @@ typedef struct tile
 /* the height and width of the field */
 #define MAX_HEIGHT (LCD_HEIGHT/TileSize)
 #define MAX_WIDTH  (LCD_WIDTH/TileSize)
-int height = MAX_HEIGHT;
-int width = MAX_WIDTH;
-int top;
-int left;
+static int height = MAX_HEIGHT;
+static int width = MAX_WIDTH;
+static int top;
+static int left;
 
 /* The Minefield. Caution it is defined as Y, X! Not the opposite. */
-tile minefield[MAX_HEIGHT][MAX_WIDTH];
+static tile minefield[MAX_HEIGHT][MAX_WIDTH];
 
 /* total number of mines on the game */
-int mine_num = 0;
+static int mine_num = 0;
 
 /* percentage of mines on minefield used during generation */
-int percent = 16;
+static int percent = 16;
 
 /* number of tiles left on the game */
-int tiles_left;
+static int tiles_left;
 
 /* Because mines are set after the first move... */
-bool no_mines = true;
+static bool no_mines = true;
 
 /* We need a stack (created on discover()) for the cascade algorithm. */
-int stack_pos = 0;
+static int stack_pos = 0;
 
 #ifdef HAVE_TOUCHSCREEN
 
@@ -401,7 +505,7 @@ static struct ts_raster mine_raster = { 0, 0, MAX_WIDTH, MAX_HEIGHT, TileSize, T
 #endif
 
 
-void push( int *stack, int y, int x )
+static void push( int *stack, int y, int x )
 {
     if( stack_pos <= height*width )
     {
@@ -411,7 +515,7 @@ void push( int *stack, int y, int x )
 }
 
 /* Unveil tiles and push them to stack if they are empty. */
-void unveil( int *stack, int y, int x )
+static void unveil( int *stack, int y, int x )
 {
     if( x < 0 || y < 0 || x > width - 1 || y > height - 1
        || minefield[y][x].known
@@ -423,14 +527,14 @@ void unveil( int *stack, int y, int x )
         push( stack, y, x );
 }
 
-int is_flagged( int y, int x )
+static int is_flagged( int y, int x )
 {
     if( x >= 0 && y >= 0 && x < width && y < height && minefield[y][x].flag )
         return 1;
     return 0;
 }
 
-int neighbors_flagged( int y, int x )
+static int neighbors_flagged( int y, int x )
 {
     return is_flagged( y-1, x-1 ) +
            is_flagged( y-1, x ) +
@@ -443,7 +547,7 @@ int neighbors_flagged( int y, int x )
            is_flagged( y+1, x+1 );
 }
 
-bool discover( int y, int x, bool explore_neighbors )
+static bool discover( int y, int x, bool explore_neighbors )
 {
     /* Selected tile. */
     if( x < 0 || y < 0 || x > width - 1 || y > height - 1)
@@ -503,7 +607,7 @@ bool discover( int y, int x, bool explore_neighbors )
 }
 
 /* Reset the whole board for a new game. */
-void minesweeper_init( void )
+static void minesweeper_init( void )
 {
     rb->memset(minefield, 0, sizeof(minefield));
     no_mines = true;
@@ -513,8 +617,10 @@ void minesweeper_init( void )
 
 /* put mines on the mine field */
 /* there is p% chance that a tile is a mine */
-/* if the tile has coordinates (x,y), then it can't be a mine */
-void minesweeper_putmines( int p, int x, int y )
+/* if the tile has coordinates (x,y), or is adjacent to those,
+ * then it can't be a mine because that would reduce the game
+ * from a logic game to a guessing game. */
+static void minesweeper_putmines( int p, int x, int y )
 {
     int i,j;
 
@@ -523,7 +629,8 @@ void minesweeper_putmines( int p, int x, int y )
     {
         for( j = 0; j < width; j++ )
         {
-            if( rb->rand()%100 < p && !( y==i && x==j ) )
+            if( rb->rand()%100 < p
+                && !( i>=y-1 && i<=y+1 && j>=x-1 && j<=x+1 ) )
             {
                 minefield[i][j].mine = 1;
                 mine_num++;
@@ -575,7 +682,7 @@ void minesweeper_putmines( int p, int x, int y )
 
 /* A function that will uncover all the board, when the user wins or loses.
    can easily be expanded, (just a call assigned to a button) as a solver. */
-void mine_show( void )
+static void mine_show( void )
 {
     int i, j, button;
 
@@ -612,7 +719,7 @@ void mine_show( void )
 #endif
 }
 
-int count_tiles_left( void )
+static int count_tiles_left( void )
 {
     int tiles = 0;
     int i, j;
@@ -623,7 +730,7 @@ int count_tiles_left( void )
     return tiles;
 }
 
-int count_flags( void )
+static int count_flags( void )
 {
     int flags = 0;
     int i, j;
@@ -635,7 +742,7 @@ int count_flags( void )
 }
 
 /* welcome screen where player can chose mine percentage */
-enum minesweeper_status menu( void )
+static enum minesweeper_status menu( void )
 {
     int selection = 0, result = MINESWEEPER_QUIT;
     bool menu_quit = false;
@@ -688,11 +795,13 @@ enum minesweeper_status menu( void )
 }
 
 /* the big and ugly game function */
-enum minesweeper_status minesweeper( void )
+static enum minesweeper_status minesweeper( void )
 {
     int i, j;
     int button;
+#if defined(HAVE_TOUCHSCREEN) || defined(MINESWP_TOGGLE_PRE) || defined(MINESWP_INFO_PRE)
     int lastbutton = BUTTON_NONE;
+#endif
 
     /* the cursor coordinates */
     int x=0, y=0;
@@ -879,6 +988,10 @@ enum minesweeper_status minesweeper( void )
             /* show how many mines you think you have found and how many
              * there really are on the game */
             case MINESWP_INFO:
+#ifdef MINESWP_INFO_PRE
+                if( lastbutton != MINESWP_INFO_PRE )
+                    break;
+#endif
                 if( no_mines )
                     break;
                 int flags_used = count_flags();
@@ -898,8 +1011,10 @@ enum minesweeper_status minesweeper( void )
                     return MINESWEEPER_USB;
                 break;
         }
+#if defined(HAVE_TOUCHSCREEN) || defined(MINESWP_TOGGLE_PRE) || defined(MINESWP_INFO_PRE)
         if( button != BUTTON_NONE )
             lastbutton = button;
+#endif
     }
 
 }

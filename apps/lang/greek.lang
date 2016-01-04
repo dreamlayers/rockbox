@@ -251,14 +251,14 @@
   <source>
     *: "PLAY = Yes"
     iriverh100,iriverh120,iriverh300: "NAVI = Yes"
-    samsungyh*,ipod*,iaudiox5,iaudiom5,gigabeat*,sansae200*,sansac200*,iriverh10,iriverh10_5gb,mrobe100,gogearsa9200: "SELECT = Yes"
+    ipod*,iaudiox5,iaudiom5,gigabeat*,sansae200*,sansac200*,iriverh10,iriverh10_5gb,mrobe100,gogearsa9200: "SELECT = Yes"
     archosplayer: "(PLAY/STOP)"
     vibe500: "OK = Yes"
   </source>
   <dest>
     *: "PLAY = Επικύρωση"
     iriverh100,iriverh120,iriverh300: "NAVI = Επικύρωση"
-    samsungyh*,ipod*,iaudiox5,iaudiom5,gigabeat*,sansae200*,sansac200*,iriverh10,iriverh10_5gb,mrobe100,gogearsa9200: "SELECT = Επικύρωση"
+    ipod*,iaudiox5,iaudiom5,gigabeat*,sansae200*,sansac200*,iriverh10,iriverh10_5gb,mrobe100,gogearsa9200: "SELECT = Επικύρωση"
     archosplayer: "(PLAY/STOP)"
     vibe500: "OK = Επικύρωση"
   </dest>
@@ -2217,14 +2217,14 @@
     *: "Building database... %d found (OFF to return)"
     iriverh100,iriverh120,iriverh300: "Building database... %d found (STOP to return)"
     ipod*: "Building database... %d found (PREV to return)"
-    iaudiox5,iaudiom5,gigabeat*,mrobe100: "Building database... %d found (LEFT to return)"
+    iaudiox5,iaudiom5,gigabeat*,mrobe100,samsungyh*: "Building database... %d found (LEFT to return)"
     iriverh10,iriverh10_5gb,sansae200*,sansac200*,gogearsa9200,vibe500: "Building database... %d found (PREV to return)"
   </source>
   <dest>
     *: "Δημιουργία βάσεως δεδομένων... βρέθηκαν %d (OFF για επιστροφή)"
     iriverh100,iriverh120,iriverh300: "Δημιουργία βάσεως δεδομένων... βρέθηκαν %d (STOP για επιστροφή)"
     ipod*: "Δημιουργία βάσεως δεδομένων... βρέθηκαν %d (PREV για επιστροφή)"
-    iaudiox5,iaudiom5,gigabeat*,mrobe100: "Δημιουργία βάσεως δεδομένων... βρέθηκαν %d (LEFT για επιστροφή)"
+    iaudiox5,iaudiom5,gigabeat*,mrobe100,samsungyh*: "Δημιουργία βάσεως δεδομένων... βρέθηκαν %d (LEFT για επιστροφή)"
     iriverh10,iriverh10_5gb,sansae200*,sansac200*,gogearsa9200,vibe500: "Δημιουργία βάσεως δεδομένων... βρέθηκαν %d (PREV για επιστροφή)"
   </dest>
   <voice>
@@ -3927,7 +3927,8 @@
     *: none
     rtc: "ON = Set"
     iriverh100,iriverh120,iriverh300: "NAVI = Set"
-    ipod*,iaudiox5,iaudiom5,iriverh10,iriverh10_5gb,sansae200*,sansac200*,gigabeat*,mrobe100,gogearsa9200: "SELECT = Set"
+    ipod*,iaudiox5,iaudiom5,iriverh10,iriverh10_5gb,sansae200*,sansac200*,gigabeat*,mrobe100: "SELECT = Set"
+    gogearsa9200,samsungyh*: "PLAY = Set"
     vibe500: "OK = Set"
     mpiohd300: "ENTER = Set"
   </source>
@@ -3935,7 +3936,8 @@
     *: none
     rtc: "ON = Ρύθμιση"
     iriverh100,iriverh120,iriverh300: "NAVI = Ρύθμιση"
-    ipod*,iaudiox5,iaudiom5,iriverh10,iriverh10_5gb,sansae200*,sansac200*,gigabeat*,mrobe100,gogearsa9200: "SELECT = Ρύθμιση"
+    ipod*,iaudiox5,iaudiom5,iriverh10,iriverh10_5gb,sansae200*,sansac200*,gigabeat*,mrobe100: "SELECT = Ρύθμιση"
+    gogearsa9200,samsungyh*: "PLAY = Ρύθμιση"
     vibe500: "OK = Ρύθμιση"
     mpiohd300: "ENTER = Ρύθμιση"
   </dest>
@@ -3955,9 +3957,11 @@
     iaudiox5,iaudiom5: "RECORD = Revert"
     iriverh10,iriverh10_5gb,sansae200*,sansafuze*: "PREV = Revert"
     gigabeatfx: "POWER = Revert"
+    sansafuzeplus: "BACK = Revert"
     mrobe100: "DISPLAY = Revert"
     gigabeats: "BACK = Revert"
     vibe500: "CANCEL = Revert"
+    samsungyh*: "REW = Revert"
   </source>
   <dest>
     *: none
@@ -3967,9 +3971,11 @@
     iaudiox5,iaudiom5: "RECORD = Ακύρωση"
     iriverh10,iriverh10_5gb,sansae200*,sansafuze*: "PREV = Ακύρωση"
     gigabeatfx: "POWER = Ακύρωση"
+    sansafuzeplus: "BACK = Ακύρωση"
     mrobe100: "DISPLAY = Ακύρωση"
     gigabeats: "BACK = Ακύρωση"
     vibe500: "C = Ακύρωση"
+    samsungyh*: "REW = Ακύρωση"
   </dest>
   <voice>
     *: none
@@ -4499,6 +4505,7 @@
     gigabeats: "SELECT=Set POWER=Cancel"
     vibe500: "OK=Set C=Cancel"
     mpiohd300: "ENTER=Set MENU=Cancel"
+    sansafuzeplus: "SELECT=Set  BACK=Cancel"
   </source>
   <dest>
     *: none
@@ -4508,6 +4515,7 @@
     gigabeats: "SELECT=Όρισε POWER=Ακύρωση"
     vibe500: "OK=Όρισε C=Ακύρωση"
     mpiohd300: "ENTER=Όρισε MENU=Ακύρωση"
+    sansafuzeplus: "SELECT=Όρισε  BACK=Ακύρωση"
   </dest>
   <voice>
     *: none
@@ -5352,19 +5360,19 @@
 </phrase>
 <phrase>
   id: LANG_FM_SAVE_CHANGES
-  desc: When you try to exit radio to confirm save
+  desc: deprecated
   user: core
   <source>
     *: none
-    radio: "Save Changes?"
+    radio: ""
   </source>
   <dest>
     *: none
-    radio: "Αποθήκευση αλλαγών;"
+    radio: ""
   </dest>
   <voice>
     *: none
-    radio: "Αποθήκευση αλλαγών;"
+    radio: ""
   </voice>
 </phrase>
 <phrase>
@@ -5606,20 +5614,20 @@
   </voice>
 </phrase>
 <phrase>
-  id: LANG_RECORDING_FREQUENCY
-  desc: in the recording settings
+  id: LANG_FREQUENCY
+  desc: in recording and playback settings
   user: core
   <source>
     *: none
-    recording: "Frequency"
+    recording,play_frequency: "Frequency"
   </source>
   <dest>
     *: none
-    recording: "Συχνότητα"
+    recording,play_frequency: "Συχνότητα"
   </dest>
   <voice>
     *: none
-    recording: "Συχνότητα"
+    recording,play_frequency: "Συχνότητα"
   </voice>
 </phrase>
 <phrase>
@@ -5844,20 +5852,6 @@
   <voice>
     *: none
     recording: "Διαχωρισμός με μέγεθος αρχείου"
-  </voice>
-</phrase>
-<phrase>
-  id: LANG_REC_SIZE
-  desc: deprecated
-  user:
-  <source>
-    *: none
-  </source>
-  <dest>
-    *: none
-  </dest>
-  <voice>
-    *: none
   </voice>
 </phrase>
 <phrase>
@@ -6447,7 +6441,7 @@
   desc: in onplay menu
   user: core
   <source>
-    *: "Playlist Catalog"
+    *: "Playlist Catalogue"
   </source>
   <dest>
     *: "Κατάλογος Λιστών αναπαραγωγής"
@@ -6629,19 +6623,19 @@
   <source>
     *: none
     multivolume: "HD1"
-    sansae200*,sansac200*,sansafuze*: "mSD:"
+    sansae200*,sansac200*,sansafuze*,sansaclipplus: "mSD:"
     archosondio*: "MMC:"
   </source>
   <dest>
     *: none
     multivolume: "HD1"
-    sansae200*,sansac200*,sansafuze*: "mSD:"
+    sansae200*,sansac200*,sansafuze*,sansaclipplus: "mSD:"
     archosondio*: "MMC:"
   </dest>
   <voice>
     *: none
     multivolume: "Έιτς Ντι 1"
-    sansae200*,sansac200*,sansafuze*: "μάικρο Ες Ντι"
+    sansae200*,sansac200*,sansafuze*,sansaclipplus: "μάικρο Ες Ντι"
     archosondio*: "Εμ Εμ Σι"
   </voice>
 </phrase>
@@ -6941,10 +6935,10 @@
 </phrase>
 <phrase>
   id: LANG_CATALOG_VIEW
-  desc: in onplay playlist catalog submenu
+  desc: in onplay playlist catalogue submenu
   user: core
   <source>
-    *: "View Catalog"
+    *: "View Catalogue"
   </source>
   <dest>
     *: "Προβολή καταλόγου"
@@ -6955,7 +6949,7 @@
 </phrase>
 <phrase>
   id: LANG_CATALOG_ADD_TO
-  desc: in onplay playlist catalog submenu
+  desc: in onplay playlist catalogue submenu
   user: core
   <source>
     *: "Add to Playlist"
@@ -6969,7 +6963,7 @@
 </phrase>
 <phrase>
   id: LANG_CATALOG_ADD_TO_NEW
-  desc: in onplay playlist catalog submenu
+  desc: in onplay playlist catalogue submenu
   user: core
   <source>
     *: "Add to New Playlist"
@@ -6983,7 +6977,7 @@
 </phrase>
 <phrase>
   id: LANG_CATALOG_NO_DIRECTORY
-  desc: error message when playlist catalog directory doesn't exist
+  desc: error message when playlist catalogue directory doesn't exist
   user: core
   <source>
     *: "%s doesn't exist"
@@ -6997,7 +6991,7 @@
 </phrase>
 <phrase>
   id: LANG_CATALOG_NO_PLAYLISTS
-  desc: error message when no playlists for playlist catalog
+  desc: error message when no playlists for playlist catalogue
   user: core
   <source>
     *: "No Playlists"
@@ -7546,15 +7540,15 @@
 </phrase>
 <phrase>
   id: LANG_BACKDROP_LOADED
-  desc: text for splash to indicate a new backdrop has been loaded successfully
+  desc: deprecated
   user: core
   <source>
     *: none
-    lcd_non-mono: "Backdrop Loaded"
+    lcd_non-mono: ""
   </source>
   <dest>
     *: none
-    lcd_non-mono: "Το φόντο άλλαξε"
+    lcd_non-mono: ""
   </dest>
   <voice>
     *: none
@@ -7563,15 +7557,15 @@
 </phrase>
 <phrase>
   id: LANG_BACKDROP_FAILED
-  desc: text for splash to indicate a failure to load a bitmap as backdrop
+  desc: deprecated
   user: core
   <source>
     *: none
-    lcd_non-mono: "Backdrop Failed"
+    lcd_non-mono: ""
   </source>
   <dest>
     *: none
-    lcd_non-mono: "Αποτυχία φόντου"
+    lcd_non-mono: ""
   </dest>
   <voice>
     *: none
@@ -7872,7 +7866,7 @@
     *: "Τύπος:"
   </dest>
   <voice>
-    *: ""
+    *: "Τύπος:"
   </voice>
 </phrase>
 <phrase>
@@ -7961,6 +7955,7 @@
     iriverh100,iriverh120,iriverh300: "The disk is full. Press STOP to continue."
     iaudiom5,iaudiox5: "The disk is full. Press POWER to continue."
     sansae200*,sansac200*,vibe500: "The disk is full. Press PREV to continue."
+    samsungyh*: "Disk full. Press LEFT to continue."
   </source>
   <dest>
     *: none
@@ -7968,6 +7963,7 @@
     iriverh100,iriverh120,iriverh300: "Ο δίσκος είναι γεμάτος. Πατήστε STOP για συνέχεια."
     iaudiom5,iaudiox5: "Ο δίσκος είναι γεμάτος. Πατήστε POWER για συνέχεια.."
     sansae200*,sansac200*,vibe500: "Ο δίσκος είναι γεμάτος. Πατήστε PREV για συνέχεια."
+    samsungyh*: "Ο δίσκος είναι γεμάτος. Πατήστε LEFT για συνέχεια."
   </dest>
   <voice>
     *: none
@@ -8065,6 +8061,7 @@
     iriverh10,iriverh10_5gb,sansae200*,sansac200*,vibe500: "PREV to abort"
     gigabeats: "BACK to abort"
     gigabeatfx: "POWER to abort"
+    sansafuzeplus: "BACK to abort"
   </source>
   <dest>
     *: "OFF για ακύρωση"
@@ -8074,6 +8071,7 @@
     iriverh10,iriverh10_5gb,sansae200*,sansac200*,vibe500: "PREV για ακύρωση"
     gigabeats: "BACK για ακύρωση"
     gigabeatfx: "POWER για ακύρωση"
+    sansafuzeplus: "BACK για ακύρωση"
   </dest>
   <voice>
     *: ""
@@ -10402,15 +10400,15 @@
   user: core
   <source>
     *: none
-    ipodvideo: "Bass Cutoff"
+    ipodvideo,ipod6g,mpiohd200,mpiohd300,gigabeatfx,mrobe100: "Bass Cutoff"
   </source>
   <dest>
     *: none
-    ipodvideo: "Αποκοπή μπάσων"
+    ipodvideo,ipod6g,mpiohd200,mpiohd300,gigabeatfx,mrobe100: "Αποκοπή μπάσων"
   </dest>
   <voice>
     *: none
-    ipodvideo: "Αποκοπή μπάσων"
+    ipodvideo,ipod6g,mpiohd200,mpiohd300,gigabeatfx,mrobe100: "Αποκοπή μπάσων"
   </voice>
 </phrase>
 <phrase>
@@ -10419,15 +10417,15 @@
   user: core
   <source>
     *: none
-    ipodvideo: "Treble Cutoff"
+    ipodvideo,ipod6g,mpiohd200,mpiohd300,gigabeatfx,mrobe100: "Treble Cutoff"
   </source>
   <dest>
     *: none
-    ipodvideo: "Αποκοπή πρίμων"
+    ipodvideo,ipod6g,mpiohd200,mpiohd300,gigabeatfx,mrobe100: "Αποκοπή πρίμων"
   </dest>
   <voice>
     *: none
-    ipodvideo: "Αποκοπή πρίμων"
+    ipodvideo,ipod6g,mpiohd200,mpiohd300,gigabeatfx,mrobe100: "Αποκοπή πρίμων"
   </voice>
 </phrase>
 <phrase>
@@ -10470,15 +10468,15 @@
   user: core
   <source>
     *: none
-    gigabeatfx: "Touchpad Sensitivity"
+    gigabeatfx,sansafuzeplus: "Touchpad Sensitivity"
   </source>
   <dest>
     *: none
-    gigabeatfx: "Ευαισθησία πινακίδας αφής"
+    gigabeatfx,sansafuzeplus: "Ευαισθησία πινακίδας αφής"
   </dest>
   <voice>
     *: none
-    gigabeatfx: "Ευαισθησία πινακίδας αφής"
+    gigabeatfx,sansafuzeplus: "Ευαισθησία πινακίδας αφής"
   </voice>
 </phrase>
 <phrase>

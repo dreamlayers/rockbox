@@ -24,26 +24,40 @@
 #include "kernel.h"
 #include "system.h"
 #include "panic.h"
-#include "ascodec-target.h"
+#include "ascodec.h"
 #include "adc.h"
 #include "dma-target.h"
 #include "clock-target.h"
 #include "fmradio_i2c.h"
-#include "button-target.h"
+#include "button.h"
 #include "backlight-target.h"
 #include "lcd.h"
+
+/*  Charge Pump and Power management Settings  */
+#define AS314_CP_DCDC3_SETTING    \
+               ((0<<7) |  /* CP_SW  Auto-Switch Margin 0=200/300 1=150/255 */  \
+                (0<<6) |  /* CP_on  0=Normal op 1=Chg Pump Always On  */       \
+                (0<<5) |  /* LREG_CPnot  Always write 0 */                     \
+                (0<<3) |  /* DCDC3p  BVDD setting 3.6/3.2/3.1/3.0  */          \
+                (1<<2) |  /* LREG_off 1=Auto mode switching 0=Length Reg only*/\
+                (0<<0) )  /* CVDDp  Core Voltage Setting 1.2/1.15/1.10/1.05*/
+
+#define CVDD_1_20          0
+#define CVDD_1_15          1
+#define CVDD_1_10          2
+#define CVDD_1_05          3
 
 #define default_interrupt(name) \
   extern __attribute__((weak,alias("UIRQ"))) void name (void)
 
 static void UIRQ (void) __attribute__((interrupt ("IRQ")));
-void irq_handler(void) __attribute__((interrupt ("IRQ")));
+void irq_handler(void) __attribute__((naked, interrupt ("IRQ")));
 void fiq_handler(void) __attribute__((interrupt ("FIQ")));
 
 default_interrupt(INT_WATCHDOG);
 default_interrupt(INT_TIMER1);
 default_interrupt(INT_TIMER2);
-default_interrupt(INT_USB);
+default_interrupt(INT_USB_FUNC);
 default_interrupt(INT_DMAC);
 default_interrupt(INT_NAND);
 default_interrupt(INT_IDE);
@@ -74,14 +88,14 @@ void INT_GPIOA(void);
 default_interrupt(INT_GPIOB);
 default_interrupt(INT_GPIOC);
 
-static const char * const irqname[] =
+static const char const irqname[][9] =
 {
-    "INT_WATCHDOG", "INT_TIMER1", "INT_TIMER2", "INT_USB", "INT_DMAC", "INT_NAND",
-    "INT_IDE", "INT_MCI0", "INT_MCI1", "INT_AUDIO", "INT_SSP", "INT_I2C_MS",
-    "INT_I2C_AUDIO", "INT_I2SIN", "INT_I2SOUT", "INT_UART", "INT_GPIOD", "RESERVED1",
-    "INT_CGU", "INT_MEMORY_STICK", "INT_DBOP", "RESERVED2", "RESERVED3", "RESERVED4",
-    "RESERVED5", "RESERVED6", "RESERVED7", "RESERVED8", "RESERVED9", "INT_GPIOA",
-    "INT_GPIOB", "INT_GPIOC"
+    "WATCHDOG", "TIMER1", "TIMER2", "USB", "DMAC", "NAND",
+    "IDE", "MCI0", "MCI1", "AUDIO", "SSP", "I2C_MS",
+    "I2C_AUDIO", "I2SIN", "I2SOUT", "UART", "GPIOD", "RESERVD1",
+    "CGU", "MS", "DBOP", "RESERVD2", "RESERVD3", "RESERVD4",
+    "RESERVD5", "RESERVD6", "RESERVD7", "RESERVD8", "RESERVD9", "GPIOA",
+    "GPIOB", "GPIOC"
 };
 
 static void UIRQ(void)
@@ -103,52 +117,48 @@ static void UIRQ(void)
            masked ? "" : "un", irq_no, irqname[irq_no], status);
 }
 
-struct vec_int_src
-{
-    int source;
-    void (*isr) (void);
-};
-
 /* Vectored interrupts (16 available) */
-struct vec_int_src vec_int_srcs[] =
+static const struct { int source; void (*isr) (void); } vec_int_srcs[] =
 {
     /* Highest priority at the top of the list */
-    { INT_SRC_DMAC, INT_DMAC },
+#if defined(HAVE_HOTSWAP) || defined(HAVE_RDS_CAP) || \
+    (defined(SANSA_FUZEV2) && !INCREASED_SCROLLWHEEL_POLLING)
+    /* If GPIOA ISR is interrupted, things seem to go wonky ?? */
+    { INT_SRC_GPIOA, INT_GPIOA },
+#endif
+#ifdef HAVE_RECORDING
+    { INT_SRC_I2SIN, INT_I2SIN }, /* For recording */
+#endif
+    { INT_SRC_DMAC, INT_DMAC }, /* Playback follows recording */
     { INT_SRC_NAND, INT_NAND },
 #if (defined HAVE_MULTIDRIVE  && CONFIG_CPU == AS3525)
     { INT_SRC_MCI0, INT_MCI0 },
 #endif
-    { INT_SRC_USB, INT_USB, },
-#ifdef HAVE_RECORDING
-    { INT_SRC_I2SIN, INT_I2SIN, },
-#endif
+    { INT_SRC_USB, INT_USB_FUNC, },
     { INT_SRC_TIMER1, INT_TIMER1 },
     { INT_SRC_TIMER2, INT_TIMER2 },
     { INT_SRC_I2C_AUDIO, INT_I2C_AUDIO },
     { INT_SRC_AUDIO, INT_AUDIO },
-#if defined(HAVE_HOTSWAP) || \
-    (defined(SANSA_FUZEV2) && !INCREASED_SCROLLWHEEL_POLLING)
-    { INT_SRC_GPIOA, INT_GPIOA, },
-#endif
     /* Lowest priority at the end of the list */
 };
 
 static void setup_vic(void)
 {
-    const unsigned int n = sizeof(vec_int_srcs)/sizeof(vec_int_srcs[0]);
-    unsigned int i;
-
     CGU_PERI |= CGU_VIC_CLOCK_ENABLE; /* enable VIC */
     VIC_INT_EN_CLEAR = 0xffffffff; /* disable all interrupt lines */
     VIC_INT_SELECT = 0; /* only IRQ, no FIQ */
 
     *VIC_DEF_VECT_ADDR = UIRQ;
 
-    for(i = 0; i < n; i++)
+    for(unsigned int i = 0; i < ARRAYLEN(vec_int_srcs); i++)
     {
         VIC_VECT_ADDRS[i] = vec_int_srcs[i].isr;
         VIC_VECT_CNTLS[i] = (1<<5) | vec_int_srcs[i].source;
     }
+
+    /* Reset priority hardware */
+    for(unsigned int i = 0; i < 32; i++)
+        *VIC_VECT_ADDR = 0;
 }
 
 void INT_GPIOA(void)
@@ -161,12 +171,44 @@ void INT_GPIOA(void)
     void button_gpioa_isr(void);
     button_gpioa_isr();
 #endif
+#ifdef HAVE_RDS_CAP
+    void tuner_isr(void);
+    tuner_isr();
+#endif
 }
 
 void irq_handler(void)
 {
-    (*VIC_VECT_ADDR)(); /* call the isr */
-    *VIC_VECT_ADDR = (void*)VIC_VECT_ADDR; /* any write will ack the irq */
+    /* Worst-case IRQ stack usage with 10 vectors:
+     * 10*4*10 = 400 bytes (100 words)
+     *
+     * No SVC stack is used by pro/epi-logue code
+     */
+    asm volatile (
+        "sub    lr, lr, #4               \n" /* Create return address */
+        "stmfd  sp!, { r0-r5, r12, lr }  \n" /* Save what gets clobbered */
+        "ldr    r0, =0xc6010030          \n" /* Obtain VIC address (before SPSR read!) */
+        "ldr    r12, [r0]                \n" /* Load Vector */
+        "mrs    r1, spsr                 \n" /* Save SPSR_irq */
+        "stmfd  sp!, { r0-r1 }           \n" /* Must have something bet. mrs and msr */
+        "msr    cpsr_c, #0x13            \n" /* Switch to SVC mode, enable IRQ */
+        "and    r4, sp, #4               \n" /* Align SVC stack to 8 bytes, save */
+        "sub    sp, sp, r4               \n"
+        "mov    r5, lr                   \n" /* Save lr_SVC */
+#if ARM_ARCH >= 5
+        "blx    r12                      \n" /* Call handler */
+#else
+        "mov    lr, pc                   \n"
+        "bx     r12                      \n"
+#endif
+        "add    sp, sp, r4               \n" /* Undo alignment fudge */
+        "mov    lr, r5                   \n" /* Restore lr_SVC */
+        "msr    cpsr_c, #0x92            \n" /* Mask IRQ, return to IRQ mode */
+        "ldmfd  sp!, { r0-r1 }           \n" /* Pop VIC address, SPSR_irq */
+        "str    r0, [r0]                 \n" /* Ack end of ISR to VIC  */
+        "msr    spsr_cxsf, r1            \n" /* Restore SPSR_irq */
+        "ldmfd  sp!, { r0-r5, r12, pc }^ \n" /* Restore regs, and RFE */
+    );
 }
 
 void fiq_handler(void)
@@ -190,7 +232,7 @@ static void check_model_variant(void)
     c200v2_variant = !GPIOA_PIN(7);
     GPIOA_DIR = saved_dir;
 }
-#elif defined(SANSA_FUZEV2) || defined(SANSA_CLIPPLUS)
+#elif defined(SANSA_FUZEV2) || defined(SANSA_CLIPPLUS) || defined(SANSA_CLIPZIP)
 int amsv2_variant;
 
 static void check_model_variant(void)
@@ -262,6 +304,8 @@ void system_init(void)
 #endif
                   AS3525_PCLK_SEL);
 
+    CGU_PERI |= CGU_ROM_ENABLE; /* needed for rebooting */
+
     set_cpu_frequency(CPUFREQ_DEFAULT);
 
 #if 0 /* the GPIO clock is already enabled by the dualboot function */
@@ -277,6 +321,28 @@ void system_init(void)
 
     ascodec_init();
 
+    /*  Initialize power management settings */
+#ifdef HAVE_AS3543
+    /* PLL:       disable audio PLL, we use MCLK already */
+    ascodec_write_pmu(0x1A, 7, 0x02);
+    /* DCDC_Cntr: set switching speed of CVDD1/2 power supplies to 1 MHz */
+    ascodec_write_pmu(0x17, 7, 0x30);
+    /* Out_Cntr2: set drive strength of 24 MHz and 32 kHz clocks to 1 mA */
+    ascodec_write_pmu(0x1A, 2, 0xCC);
+    /* CHGVBUS2:  set VBUS threshold to 3.18V and EOC threshold to 30% CC */
+    ascodec_write_pmu(0x19, 2, 0x41);
+    /* PVDD1:     set PVDD1 power supply to 2.5 V */
+    ascodec_write_pmu(0x18, 1, 0x35);
+    /* AVDD17:    set AVDD17 power supply to 2.5V */
+    ascodec_write_pmu(0x18, 7, 0x31);
+#ifdef SANSA_CLIPZIP
+    /* CVDD2:     set CVDD2 power supply to 2.8V */
+    ascodec_write_pmu(0x17, 2, 0xF4);
+#endif
+#else /* HAVE_AS3543 */
+    ascodec_write(AS3514_CVDD_DCDC3, AS314_CP_DCDC3_SETTING);
+#endif /* HAVE_AS3543 */
+
 #ifndef BOOTLOADER
     /* setup isr for microsd monitoring and for fuzev2 scrollwheel irq */
 #if defined(HAVE_HOTSWAP) || \
@@ -285,8 +351,6 @@ void system_init(void)
     /* pin selection for irq happens in the drivers */
 #endif
 
-    /*  Initialize power management settings */
-    ascodec_write(AS3514_CVDD_DCDC3, AS314_CP_DCDC3_SETTING);
 #if CONFIG_TUNER
     fmradio_i2c_init();
 #endif
@@ -296,7 +360,7 @@ void system_init(void)
 
 void system_reboot(void)
 {
-    _backlight_off();
+    backlight_hw_off();
 
     disable_irq();
 

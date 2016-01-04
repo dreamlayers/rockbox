@@ -39,7 +39,8 @@ Head and Tail are stored
 #define WIDTH  28
 #define HEIGHT 16
 
-#if (LCD_WIDTH >= 160) && (LCD_HEIGHT >= 128)
+#if (LCD_WIDTH >= 160) && (LCD_HEIGHT >= 128) \
+    || (LCD_WIDTH >= 128) && (LCD_HEIGHT >= 96) && (LCD_DEPTH >= 16)
 #include "pluginbitmaps/snake2_header1.h"
 #include "pluginbitmaps/snake2_header2.h"
 #include "pluginbitmaps/snake2_left.h"
@@ -121,6 +122,24 @@ Head and Tail are stored
     #define TOP_X4 114
     #define TOP_Y1 4
     #define TOP_Y2 25
+#elif (LCD_WIDTH >= 128) && (LCD_HEIGHT >= 96) && (LCD_DEPTH >= 16)
+    #define MULTIPLIER 4
+    #define MODIFIER_1 4
+    #define MODIFIER_2 2
+    #define CENTER_X   8
+    #define CENTER_Y  24
+    #define TOP_X1    28
+    #define TOP_X2    96
+    #define TOP_X3    44
+    #define TOP_X4    83
+    #define TOP_Y1     2
+    #define TOP_Y2    13
+#elif (LCD_WIDTH == 96) && (LCD_HEIGHT == 96)
+    #define MULTIPLIER 3
+    #define MODIFIER_1 4
+    #define MODIFIER_2 2
+    #define CENTER_X 6
+    #define CENTER_Y 12
 #else
     #define MULTIPLIER 4
     #define MODIFIER_1 4
@@ -200,16 +219,9 @@ Head and Tail are stored
 #define SNAKE2_PLAYPAUSE_TEXT "Select"
 
 #elif (CONFIG_KEYPAD == SANSA_E200_PAD) || \
-(CONFIG_KEYPAD == SANSA_C200_PAD)
-#define SNAKE2_LEFT BUTTON_LEFT
-#define SNAKE2_RIGHT BUTTON_RIGHT
-#define SNAKE2_UP   BUTTON_UP
-#define SNAKE2_DOWN BUTTON_DOWN
-#define SNAKE2_QUIT BUTTON_POWER
-#define SNAKE2_PLAYPAUSE BUTTON_SELECT
-#define SNAKE2_PLAYPAUSE_TEXT "Select"
-
-#elif (CONFIG_KEYPAD == SANSA_CLIP_PAD) || \
+(CONFIG_KEYPAD == SANSA_C200_PAD) || \
+(CONFIG_KEYPAD == SANSA_CONNECT_PAD) || \
+(CONFIG_KEYPAD == SANSA_CLIP_PAD) || \
 (CONFIG_KEYPAD == SANSA_M200_PAD)
 #define SNAKE2_LEFT BUTTON_LEFT
 #define SNAKE2_RIGHT BUTTON_RIGHT
@@ -237,7 +249,8 @@ Head and Tail are stored
 #define SNAKE2_PLAYPAUSE BUTTON_FF
 #define SNAKE2_PLAYPAUSE_TEXT "FF"
 
-#elif (CONFIG_KEYPAD == GIGABEAT_S_PAD)
+#elif (CONFIG_KEYPAD == GIGABEAT_S_PAD) || \
+      (CONFIG_KEYPAD == SAMSUNG_YPR0_PAD)
 #define SNAKE2_LEFT BUTTON_LEFT
 #define SNAKE2_RIGHT BUTTON_RIGHT
 #define SNAKE2_UP   BUTTON_UP
@@ -276,6 +289,15 @@ Head and Tail are stored
 #define SNAKE2_PLAYPAUSE BUTTON_PLAY
 #define SNAKE2_PLAYPAUSE_TEXT "Play"
 
+#elif CONFIG_KEYPAD == CREATIVE_ZENXFI3_PAD
+#define SNAKE2_LEFT             BUTTON_BACK
+#define SNAKE2_RIGHT            BUTTON_MENU
+#define SNAKE2_UP               BUTTON_UP
+#define SNAKE2_DOWN             BUTTON_DOWN
+#define SNAKE2_QUIT             BUTTON_POWER
+#define SNAKE2_PLAYPAUSE        (BUTTON_PLAY|BUTTON_REL)
+#define SNAKE2_PLAYPAUSE_TEXT   "Play"
+
 #elif (CONFIG_KEYPAD == PHILIPS_HDD1630_PAD) || \
     (CONFIG_KEYPAD == PHILIPS_HDD6330_PAD)
 #define SNAKE2_LEFT BUTTON_LEFT
@@ -300,12 +322,13 @@ Head and Tail are stored
 CONFIG_KEYPAD == MROBE500_PAD
 #define SNAKE2_QUIT BUTTON_POWER
 
-#elif (CONFIG_KEYPAD == SAMSUNG_YH_PAD)
+#elif (CONFIG_KEYPAD == SAMSUNG_YH820_PAD) || \
+      (CONFIG_KEYPAD == SAMSUNG_YH920_PAD)
 #define SNAKE2_LEFT        BUTTON_LEFT
 #define SNAKE2_RIGHT       BUTTON_RIGHT
 #define SNAKE2_UP          BUTTON_UP
 #define SNAKE2_DOWN        BUTTON_DOWN
-#define SNAKE2_QUIT        BUTTON_REC
+#define SNAKE2_QUIT        BUTTON_REW
 #define SNAKE2_PLAYPAUSE   BUTTON_PLAY
 #define SNAKE2_PLAYPAUSE_TEXT "Play"
 
@@ -328,13 +351,59 @@ CONFIG_KEYPAD == MROBE500_PAD
 #define SNAKE2_PLAYPAUSE_TEXT "Play"
 
 #elif CONFIG_KEYPAD == MPIO_HD300_PAD
-#define SNAKE2_LEFT BUTTON_MENU
-#define SNAKE2_RIGHT BUTTON_ENTER
-#define SNAKE2_UP   BUTTON_UP
-#define SNAKE2_DOWN BUTTON_DOWN
-#define SNAKE2_QUIT (BUTTON_REC|BUTTON_REPEAT)
+#define SNAKE2_LEFT      BUTTON_REW
+#define SNAKE2_RIGHT     BUTTON_FF
+#define SNAKE2_UP        BUTTON_UP
+#define SNAKE2_DOWN      BUTTON_DOWN
+#define SNAKE2_QUIT      (BUTTON_MENU|BUTTON_REPEAT)
 #define SNAKE2_PLAYPAUSE BUTTON_PLAY
 #define SNAKE2_PLAYPAUSE_TEXT "Play"
+
+#elif CONFIG_KEYPAD == SANSA_FUZEPLUS_PAD
+#define SNAKE2_LEFT BUTTON_LEFT
+#define SNAKE2_RIGHT BUTTON_RIGHT
+#define SNAKE2_UP   BUTTON_UP
+#define SNAKE2_DOWN BUTTON_DOWN
+#define SNAKE2_QUIT BUTTON_POWER
+#define SNAKE2_PLAYPAUSE BUTTON_PLAYPAUSE
+#define SNAKE2_PLAYPAUSE_TEXT "Play-Pause"
+
+#elif (CONFIG_KEYPAD == HM60X_PAD) || \
+    (CONFIG_KEYPAD == HM801_PAD)
+#define SNAKE2_LEFT BUTTON_LEFT
+#define SNAKE2_RIGHT BUTTON_RIGHT
+#define SNAKE2_UP   BUTTON_UP
+#define SNAKE2_DOWN BUTTON_DOWN
+#define SNAKE2_QUIT BUTTON_POWER
+#define SNAKE2_PLAYPAUSE BUTTON_SELECT
+#define SNAKE2_PLAYPAUSE_TEXT "Select"
+
+#elif CONFIG_KEYPAD == SONY_NWZ_PAD
+#define SNAKE2_LEFT         BUTTON_LEFT
+#define SNAKE2_RIGHT        BUTTON_RIGHT
+#define SNAKE2_UP           BUTTON_UP
+#define SNAKE2_DOWN         BUTTON_DOWN
+#define SNAKE2_QUIT         BUTTON_BACK
+#define SNAKE2_PLAYPAUSE    BUTTON_PLAY
+#define SNAKE2_PLAYPAUSE_TEXT    "Play"
+
+#elif CONFIG_KEYPAD == CREATIVE_ZEN_PAD
+#define SNAKE2_LEFT         BUTTON_LEFT
+#define SNAKE2_RIGHT        BUTTON_RIGHT
+#define SNAKE2_UP           BUTTON_UP
+#define SNAKE2_DOWN         BUTTON_DOWN
+#define SNAKE2_QUIT         BUTTON_BACK
+#define SNAKE2_PLAYPAUSE    BUTTON_PLAYPAUSE
+#define SNAKE2_PLAYPAUSE_TEXT    "Play/Pause"
+
+#elif (CONFIG_KEYPAD == DX50_PAD)
+#define SNAKE2_QUIT         (BUTTON_POWER|BUTTON_REL)
+#define SNAKE2_LEFT         BUTTON_LEFT
+#define SNAKE2_RIGHT        BUTTON_PLAY
+#define SNAKE2_UP           BUTTON_VOL_UP
+#define SNAKE2_DOWN         BUTTON_VOL_DOWN
+#define SNAKE2_PLAYPAUSE    BUTTON_RIGHT
+#define SNAKE2_PLAYPAUSE_TEXT    "Right"
 
 #else
 #error No keymap defined!
@@ -413,9 +482,9 @@ static struct highscore highscores[NUM_SCORES];
 #define SOUTH_WEST  4096
 
 #define LEVELS_FILE PLUGIN_GAMES_DIR "/snake2.levels"
-#define SCORE_FILE  PLUGIN_GAMES_DIR "/snake2.score"
+#define SCORE_FILE  PLUGIN_GAMES_DATA_DIR "/snake2.score"
 
-int load_all_levels(void)
+static int load_all_levels(void)
 {
     int linecnt = 0;
     int fd;
@@ -465,7 +534,7 @@ int load_all_levels(void)
 ** Completely clear the board of walls and/or snake
 */
 
-void clear_board( void)
+static void clear_board( void)
 {
     int x,y;
 
@@ -478,7 +547,7 @@ void clear_board( void)
     }
 }
 
-int load_level( int level_number )
+static int load_level( int level_number )
 {
     int x,y;
     clear_board();
@@ -510,7 +579,7 @@ int load_level( int level_number )
 ** in the direction buffer. If there is something in the
 ** next part of the buffer then that is moved to the first place
 */
-void get_direction( void )
+static void get_direction( void )
 {
     /*if 1st place is empty*/
     if(ardirectionbuffer[0] != -1)
@@ -532,7 +601,7 @@ void get_direction( void )
 /*
 ** Sets the direction
 */
-void set_direction(int newdir)
+static void set_direction(int newdir)
 {
     if(ardirectionbuffer[0] != newdir)
     {
@@ -552,7 +621,7 @@ void set_direction(int newdir)
     }
 }
 
-void new_level(int level)
+static void new_level(int level)
 {
     load_level(level);
 
@@ -573,7 +642,7 @@ void new_level(int level)
     num_apples_to_got=0;
 }
 
-void init_snake(void)
+static void init_snake(void)
 {
     num_apples_to_get=1;
     if(game_type == 1)
@@ -582,8 +651,9 @@ void init_snake(void)
     new_level(level_from_file);
 }
 
-#if (LCD_WIDTH >= 160) && (LCD_HEIGHT >= 128)
-void draw_frame_bitmap(int header_type)
+#if (LCD_WIDTH >= 160) && (LCD_HEIGHT >= 128) \
+    || (LCD_WIDTH >= 128) && (LCD_HEIGHT >= 96) && (LCD_DEPTH >= 16)
+static void draw_frame_bitmap(int header_type)
 {
     rb->lcd_bitmap(header_type==1? snake2_header1: snake2_header2, 0, 0,
                    BMPWIDTH_snake2_header, BMPHEIGHT_snake2_header);
@@ -602,7 +672,7 @@ void draw_frame_bitmap(int header_type)
 ** Draws the apple. If it doesn't exist then
 ** a new one get's created.
 */
-void draw_apple_bit(int x, int y)
+static void draw_apple_bit(int x, int y)
 {
     rb->lcd_fillrect((CENTER_X+x*MULTIPLIER)+1, CENTER_Y+y*MULTIPLIER,
                      MODIFIER_2, MODIFIER_1);
@@ -610,11 +680,12 @@ void draw_apple_bit(int x, int y)
                      MODIFIER_1, MODIFIER_2);
 }
 
-void draw_apple( void )
+static void draw_apple( void )
 {
     int x,y;
 
-#if LCD_WIDTH >= 160 && LCD_HEIGHT >= 128
+#if (LCD_WIDTH >= 160) && (LCD_HEIGHT >= 128) \
+    || (LCD_WIDTH >= 128) && (LCD_HEIGHT >= 96) && (LCD_DEPTH >= 16)
     draw_frame_bitmap(2);
 
     rb->snprintf(strbuf, sizeof(strbuf), "%d", applecount);
@@ -646,7 +717,7 @@ void draw_apple( void )
     * x x *
     * x x *
 */
-void draw_vertical_bit(int x, int y)
+static void draw_vertical_bit(int x, int y)
 {
     rb->lcd_fillrect(CENTER_X+x*MULTIPLIER+1, CENTER_Y+y*MULTIPLIER,
                      MODIFIER_2, MODIFIER_1);
@@ -658,7 +729,7 @@ void draw_vertical_bit(int x, int y)
     X X X X
     * * * *
 */
-void draw_horizontal_bit(int x, int y)
+static void draw_horizontal_bit(int x, int y)
 {
     rb->lcd_fillrect(CENTER_X+x*MULTIPLIER, CENTER_Y+y*MULTIPLIER+1,
                      MODIFIER_1, MODIFIER_2);
@@ -670,7 +741,7 @@ void draw_horizontal_bit(int x, int y)
     * X X X
     * X X *
 */
-void draw_n_to_e_bit(int x, int y)
+static void draw_n_to_e_bit(int x, int y)
 {
     rb->lcd_fillrect(CENTER_X+x*MULTIPLIER+1, CENTER_Y+y*MULTIPLIER+2,
                      MODIFIER_2, MODIFIER_2);
@@ -684,7 +755,7 @@ void draw_n_to_e_bit(int x, int y)
    * X X X
    * X X *
 */
-void draw_w_to_s_bit(int x, int y)
+static void draw_w_to_s_bit(int x, int y)
 {
     draw_n_to_e_bit(x,y);
 }
@@ -695,7 +766,7 @@ void draw_w_to_s_bit(int x, int y)
    X X X *
    * X X *
 */
-void draw_n_to_w_bit(int x, int y)
+static void draw_n_to_w_bit(int x, int y)
 {
     rb->lcd_fillrect(CENTER_X+x*MULTIPLIER, CENTER_Y+y*MULTIPLIER+1,
                      MODIFIER_2, MODIFIER_2);
@@ -709,7 +780,7 @@ void draw_n_to_w_bit(int x, int y)
    X X X *
    * X X *
 */
-void draw_e_to_s_bit(int x, int y)
+static void draw_e_to_s_bit(int x, int y)
 {
     draw_n_to_w_bit(x, y);
 }
@@ -720,7 +791,7 @@ void draw_e_to_s_bit(int x, int y)
    * * X X
    * * * *
 */
-void draw_s_to_e_bit(int x, int y)
+static void draw_s_to_e_bit(int x, int y)
 {
     rb->lcd_fillrect(CENTER_X+x*MULTIPLIER+1, CENTER_Y+y*MULTIPLIER,
                      MODIFIER_2, MODIFIER_2);
@@ -734,7 +805,7 @@ void draw_s_to_e_bit(int x, int y)
    * * X X
    * * * *
 */
-void draw_w_to_n_bit(int x, int y)
+static void draw_w_to_n_bit(int x, int y)
 {
     draw_s_to_e_bit(x,y);
 }
@@ -745,7 +816,7 @@ void draw_w_to_n_bit(int x, int y)
    X X * *
    * * * *
 */
-void draw_e_to_n_bit(int x, int y)
+static void draw_e_to_n_bit(int x, int y)
 {
     rb->lcd_fillrect(CENTER_X+x*MULTIPLIER+1, CENTER_Y+y*MULTIPLIER,
                      MODIFIER_2, MODIFIER_2);
@@ -759,21 +830,22 @@ void draw_e_to_n_bit(int x, int y)
    X X * *
    * * * *
 */
-void draw_s_to_w_bit(int x, int y)
+static void draw_s_to_w_bit(int x, int y)
 {
     draw_e_to_n_bit(x, y);
 }
 
-void draw_head_bit(int x, int y)
+static void draw_head_bit(int x, int y)
 {
     rb->lcd_fillrect(CENTER_X+x*MULTIPLIER, CENTER_Y+y*MULTIPLIER,
                      MODIFIER_1, MODIFIER_1);
 }
 
+#if 0 /* unused */
 /*
 ** Draws a wall/obsticals
 */
-void draw_boundary ( void )
+static void draw_boundary ( void )
 {
     int x, y;
 
@@ -799,11 +871,12 @@ void draw_boundary ( void )
     board[0][HEIGHT-1]       = SOUTH_EAST;
     board[WIDTH-1][HEIGHT-1] = EAST_NORTH;
 }
+#endif
 
 /*
 ** Redraw the entire board
 */
-void redraw (void)
+static void redraw (void)
 {
     int x,y;
 
@@ -843,7 +916,8 @@ void redraw (void)
         }
     }
 
-#if LCD_WIDTH >= 160 && LCD_HEIGHT >= 128
+#if (LCD_WIDTH >= 160) && (LCD_HEIGHT >= 128) \
+    || (LCD_WIDTH >= 128) && (LCD_HEIGHT >= 96) && (LCD_DEPTH >= 16)
     draw_frame_bitmap(2);
 
     rb->snprintf(strbuf, sizeof(strbuf), "%d", applecount);
@@ -860,7 +934,7 @@ void redraw (void)
 ** Draws the snake bit described by nCurrentBit at position x/y
 ** deciding whether it's a corner bit by examing the nPrevious bit
 */
-void draw_snake_bit(int currentbit, int previousbit, int x, int y)
+static void draw_snake_bit(int currentbit, int previousbit, int x, int y)
 {
     rb->lcd_set_drawmode(DRMODE_SOLID|DRMODE_INVERSEVID);
     draw_head_bit(x, y);
@@ -942,7 +1016,7 @@ void draw_snake_bit(int currentbit, int previousbit, int x, int y)
     }
 }
 
-void redraw_snake(void)
+static void redraw_snake(void)
 {
     int x = tailx, y = taily;
     int olddir, newdir = board[x][y];
@@ -989,7 +1063,7 @@ void redraw_snake(void)
 /*
 ** Death 'sequence' and end game stuff.
 */
-void die (void)
+static void die (void)
 {
     int button;
     bool done=false;
@@ -1045,7 +1119,7 @@ void die (void)
 ** sets of the death sequence. What we want is it to only return a true/false
 ** depending on whether a collision occured.
 */
-void collision ( int x, int y )
+static void collision ( int x, int y )
 {
     int bdeath=0;
 
@@ -1096,7 +1170,7 @@ void collision ( int x, int y )
     }
 }
 
-void move( void )
+static void move( void )
 {
     int taildir;
     /*this actually sets the dir variable.*/
@@ -1177,7 +1251,7 @@ void move( void )
         applecountdown--;
 }
 
-void frame (void)
+static void frame (void)
 {
     int olddir, noldx, noldy, temp;
     noldx  = headx;
@@ -1235,7 +1309,7 @@ void frame (void)
     rb->lcd_update();
 }
 
-void game_pause (void)
+static void game_pause (void)
 {
     int button;
 
@@ -1276,7 +1350,7 @@ void game_pause (void)
     }
 }
 
-void game (void)
+static void game (void)
 {
     int button;
 
@@ -1365,7 +1439,7 @@ void game (void)
 
 }
 
-void select_maze(void)
+static void select_maze(void)
 {
     int button;
 
@@ -1376,7 +1450,8 @@ void select_maze(void)
 
     while (1)
     {
-#if LCD_WIDTH >= 160 && LCD_HEIGHT >= 128
+#if (LCD_WIDTH >= 160) && (LCD_HEIGHT >= 128) \
+    || (LCD_WIDTH >= 128) && (LCD_HEIGHT >= 96) && (LCD_DEPTH >= 16)
         draw_frame_bitmap(1);
 
         rb->snprintf(strbuf, sizeof(strbuf), "%d", level);
@@ -1440,7 +1515,7 @@ void select_maze(void)
 
 }
 
-void game_init(void)
+static void game_init(void)
 {
     int selection = 0;
 

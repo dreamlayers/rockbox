@@ -27,9 +27,9 @@
 #include "cpu.h"
 #include "system.h"
 #include "lcd.h"
-#include "kernel.h"
-#include "thread.h"
+#include "../kernel-internal.h"
 #include "storage.h"
+#include "file_internal.h"
 #include "fat.h"
 #include "disk.h"
 #include "font.h"
@@ -39,10 +39,11 @@
 #include "power.h"
 #include "file.h"
 #include "common.h"
+#include "rb-loader.h"
+#include "loader_strerror.h"
 #include "sd.h"
 #include "backlight-target.h"
 #include "lcd-target.h"
-#include "debug-target.h"
 #include "dma-target.h"
 #include "uart-s3c2440.h"
 #include "led-mini2440.h"
@@ -79,7 +80,7 @@ int main(void)
         verbose = true;
         
     printf("Rockbox boot loader");
-    printf("Version " RBVERSION);
+    printf("Version %s", rbversion);
 
     rc = storage_init();
     if(rc)
@@ -88,7 +89,7 @@ int main(void)
         error(EATA, rc, true);
     }
 
-    disk_init(IF_MD(0));
+    filesystem_init();
     rc = disk_mount_all();
     if (rc<=0)
     {
@@ -98,26 +99,23 @@ int main(void)
     printf("Loading firmware");
 
     /* Flush out anything pending first */
-    cpucache_invalidate();
+    commit_discard_idcache();
 
     loadbuffer = (unsigned char*) 0x31000000;
     buffer_size = (unsigned char*)0x31400000 - loadbuffer;
 
     rc = load_firmware(loadbuffer, BOOTFILE, buffer_size);
-    if(rc < 0)
+    if(rc <= 0)
         error(EBOOTFILE, rc, true);
-    
+
     printf("Loaded firmware %d\n", rc);
     
 /*    storage_close(); */
     system_prepare_fw_start();
 
-    if (rc == EOK)
-    {
-        cpucache_invalidate();
-        kernel_entry = (void*) loadbuffer;
-        rc = kernel_entry();
-    }
+    commit_discard_idcache();
+    kernel_entry = (void*) loadbuffer;
+    rc = kernel_entry();
         
     /* end stop - should not get here */
     led_flash(LED_ALL, LED_NONE);

@@ -29,8 +29,13 @@
 #define SOKOBAN_TITLE        "Sokoban"
 
 #define SOKOBAN_LEVELS_FILE  PLUGIN_GAMES_DIR "/sokoban.levels"
-#define SOKOBAN_SAVE_FILE    PLUGIN_GAMES_DIR "/sokoban.save"
+#define SOKOBAN_SAVE_FILE    PLUGIN_GAMES_DATA_DIR "/sokoban.save"
+
+#ifdef APPLICATION
+#define SOKOBAN_SAVE_FOLDER  PLUGIN_GAMES_DATA_DIR
+#else
 #define SOKOBAN_SAVE_FOLDER  "/games"
+#endif
 
 #include "pluginbitmaps/sokoban_tiles.h"
 #define SOKOBAN_TILESIZE BMPWIDTH_sokoban_tiles
@@ -372,6 +377,45 @@
 #define BUTTON_SAVE BUTTON_CUSTOM
 #define BUTTON_SAVE_NAME "CUSTOM"
 
+#elif CONFIG_KEYPAD == CREATIVE_ZENXFI3_PAD
+#define SOKOBAN_LEFT          BUTTON_BACK
+#define SOKOBAN_RIGHT         BUTTON_MENU
+#define SOKOBAN_UP            BUTTON_UP
+#define SOKOBAN_DOWN          BUTTON_DOWN
+#define SOKOBAN_MENU          BUTTON_POWER
+#define SOKOBAN_UNDO         (BUTTON_PLAY | BUTTON_BACK)
+#define SOKOBAN_REDO         (BUTTON_PLAY | BUTTON_MENU)
+#define SOKOBAN_LEVEL_DOWN    BUTTON_VOL_DOWN
+#define SOKOBAN_LEVEL_REPEAT (BUTTON_PLAY | BUTTON_POWER)
+#define SOKOBAN_LEVEL_UP      BUTTON_VOL_UP
+#define SOKOBAN_PAUSE         BUTTON_PLAY
+#define BUTTON_SAVE           BUTTON_PLAY
+#define BUTTON_SAVE_NAME     "PLAY"
+
+#elif CONFIG_KEYPAD == SONY_NWZ_PAD
+#define SOKOBAN_LEFT         BUTTON_LEFT
+#define SOKOBAN_RIGHT        BUTTON_RIGHT
+#define SOKOBAN_UP           BUTTON_UP
+#define SOKOBAN_DOWN         BUTTON_DOWN
+#define SOKOBAN_MENU         BUTTON_POWER
+#define SOKOBAN_UNDO         BUTTON_BACK
+#define SOKOBAN_REDO         BUTTON_NONE
+#define SOKOBAN_PAUSE        BUTTON_PLAY
+#define BUTTON_SAVE          BUTTON_PLAY
+#define BUTTON_SAVE_NAME    "Play"
+
+#elif CONFIG_KEYPAD == CREATIVE_ZEN_PAD
+#define SOKOBAN_LEFT         BUTTON_LEFT
+#define SOKOBAN_RIGHT        BUTTON_RIGHT
+#define SOKOBAN_UP           BUTTON_UP
+#define SOKOBAN_DOWN         BUTTON_DOWN
+#define SOKOBAN_MENU         BUTTON_MENU
+#define SOKOBAN_UNDO         BUTTON_BACK
+#define SOKOBAN_REDO         BUTTON_SHORTCUT
+#define SOKOBAN_PAUSE        BUTTON_PLAYPAUSE
+#define BUTTON_SAVE          BUTTON_PLAYPAUSE
+#define BUTTON_SAVE_NAME    "Play/pause"
+
 #elif CONFIG_KEYPAD == PHILIPS_HDD1630_PAD
 #define SOKOBAN_LEFT BUTTON_LEFT
 #define SOKOBAN_RIGHT BUTTON_RIGHT
@@ -430,18 +474,34 @@
 #define SOKOBAN_MENU BUTTON_POWER
 #define SOKOBAN_MENU_NAME "[POWER]"
 
-#elif CONFIG_KEYPAD == SAMSUNG_YH_PAD
+#elif CONFIG_KEYPAD == SAMSUNG_YH820_PAD
 #define SOKOBAN_LEFT         BUTTON_LEFT
 #define SOKOBAN_RIGHT        BUTTON_RIGHT
 #define SOKOBAN_UP           BUTTON_UP
 #define SOKOBAN_DOWN         BUTTON_DOWN
-#define SOKOBAN_MENU         BUTTON_REC
-#define SOKOBAN_UNDO_PRE     BUTTON_REW
-#define SOKOBAN_UNDO         (BUTTON_REW | BUTTON_LEFT)
+#define SOKOBAN_MENU         BUTTON_PLAY
+#define SOKOBAN_UNDO         BUTTON_REW
+#define SOKOBAN_REDO         BUTTON_FFWD
+#define SOKOBAN_LEVEL_DOWN   (BUTTON_REC | BUTTON_DOWN)
+#define SOKOBAN_LEVEL_REPEAT (BUTTON_REC | BUTTON_RIGHT)
+#define SOKOBAN_LEVEL_UP     (BUTTON_REC | BUTTON_UP)
+#define SOKOBAN_QUIT_REPLAY  BUTTON_REW
+#define SOKOBAN_PAUSE        BUTTON_PLAY
+#define BUTTON_SAVE          BUTTON_PLAY
+#define BUTTON_SAVE_NAME "PLAY"
+
+#elif CONFIG_KEYPAD == SAMSUNG_YH920_PAD
+#define SOKOBAN_LEFT         BUTTON_LEFT
+#define SOKOBAN_RIGHT        BUTTON_RIGHT
+#define SOKOBAN_UP           BUTTON_UP
+#define SOKOBAN_DOWN         BUTTON_DOWN
+#define SOKOBAN_MENU         BUTTON_PLAY
+#define SOKOBAN_UNDO         BUTTON_REW
 #define SOKOBAN_REDO         BUTTON_FFWD
 #define SOKOBAN_LEVEL_DOWN   (BUTTON_PLAY | BUTTON_DOWN)
 #define SOKOBAN_LEVEL_REPEAT (BUTTON_PLAY | BUTTON_RIGHT)
 #define SOKOBAN_LEVEL_UP     (BUTTON_PLAY | BUTTON_UP)
+#define SOKOBAN_QUIT_REPLAY  BUTTON_REW
 #define SOKOBAN_PAUSE        BUTTON_PLAY
 #define BUTTON_SAVE          BUTTON_PLAY
 #define BUTTON_SAVE_NAME "PLAY"
@@ -481,15 +541,98 @@
 #define SOKOBAN_RIGHT        BUTTON_FF
 #define SOKOBAN_UP           BUTTON_UP
 #define SOKOBAN_DOWN         BUTTON_DOWN
-#define SOKOBAN_MENU         BUTTON_MENU
-#define SOKOBAN_UNDO         (BUTTON_PLAY | BUTTON_REW)
-#define SOKOBAN_REDO         (BUTTON_PLAY | BUTTON_FF)
-#define SOKOBAN_LEVEL_DOWN   (BUTTON_PLAY | BUTTON_DOWN)
-#define SOKOBAN_LEVEL_REPEAT BUTTON_REC
-#define SOKOBAN_LEVEL_UP     (BUTTON_PLAY | BUTTON_UP)
+#define SOKOBAN_MENU         (BUTTON_MENU | BUTTON_REPEAT)
+#define SOKOBAN_UNDO         BUTTON_REC
+#define SOKOBAN_REDO         BUTTON_PLAY
+#define SOKOBAN_LEVEL_DOWN   (BUTTON_PLAY | BUTTON_REW)
+#define SOKOBAN_LEVEL_REPEAT (BUTTON_PLAY | BUTTON_ENTER)
+#define SOKOBAN_LEVEL_UP     (BUTTON_PLAY | BUTTON_FF)
 #define SOKOBAN_PAUSE        BUTTON_PLAY
-#define BUTTON_SAVE          (BUTTON_PLAY|BUTTON_ENTER)
-#define BUTTON_SAVE_NAME "PLAY+ENTER"
+#define BUTTON_SAVE          (BUTTON_ENTER | BUTTON_REL)
+#define BUTTON_SAVE_NAME "ENTER"
+
+#elif CONFIG_KEYPAD == SANSA_FUZEPLUS_PAD
+#define SOKOBAN_LEFT         BUTTON_LEFT
+#define SOKOBAN_RIGHT        BUTTON_RIGHT
+#define SOKOBAN_UP           BUTTON_UP
+#define SOKOBAN_DOWN         BUTTON_DOWN
+#define SOKOBAN_MENU         BUTTON_POWER
+#define SOKOBAN_UNDO_PRE     BUTTON_BOTTOMLEFT
+#define SOKOBAN_UNDO         (BUTTON_BOTTOMLEFT|BUTTON_REL)
+#define SOKOBAN_REDO_PRE     BUTTON_BOTTOMRIGHT
+#define SOKOBAN_REDO         (BUTTON_BOTTOMRIGHT|BUTTON_REL)
+#define SOKOBAN_LEVEL_REPEAT BUTTON_BACK
+#define SOKOBAN_LEVEL_DOWN   BUTTON_VOL_DOWN
+#define SOKOBAN_LEVEL_UP     BUTTON_VOL_UP
+#define SOKOBAN_PAUSE        BUTTON_PLAYPAUSE
+#define BUTTON_SAVE          (BUTTON_SELECT|BUTTON_REPEAT)
+#define BUTTON_SAVE_NAME     "SELECT LONG"
+
+#elif CONFIG_KEYPAD == SANSA_CONNECT_PAD
+#define SOKOBAN_LEFT         BUTTON_LEFT
+#define SOKOBAN_RIGHT        BUTTON_RIGHT
+#define SOKOBAN_UP           BUTTON_UP
+#define SOKOBAN_DOWN         BUTTON_DOWN
+#define SOKOBAN_MENU         BUTTON_POWER
+#define SOKOBAN_UNDO         BUTTON_PREV
+#define SOKOBAN_REDO         BUTTON_NEXT
+#define SOKOBAN_LEVEL_DOWN   BUTTON_VOL_DOWN
+#define SOKOBAN_LEVEL_REPEAT (BUTTON_NEXT|BUTTON_PREV)
+#define SOKOBAN_LEVEL_UP     BUTTON_VOL_UP
+#define SOKOBAN_PAUSE        BUTTON_SELECT
+#define BUTTON_SAVE          (BUTTON_SELECT|BUTTON_REPEAT)
+#define BUTTON_SAVE_NAME "SELECT LONG"
+
+#elif CONFIG_KEYPAD == SAMSUNG_YPR0_PAD
+#define SOKOBAN_LEFT BUTTON_LEFT
+#define SOKOBAN_RIGHT BUTTON_RIGHT
+#define SOKOBAN_UP BUTTON_UP
+#define SOKOBAN_DOWN BUTTON_DOWN
+#define SOKOBAN_MENU BUTTON_MENU
+#define SOKOBAN_UNDO BUTTON_BACK
+#define SOKOBAN_REDO BUTTON_USER
+//#define SOKOBAN_LEVEL_DOWN (BUTTON_POWER|BUTTON_REL)
+//#define SOKOBAN_LEVEL_REPEAT (BUTTON_CENTER|BUTTON_REPEAT)
+//#define SOKOBAN_LEVEL_UP (BUTTON_MENU|BUTTON_REPEAT)
+#define SOKOBAN_PAUSE BUTTON_SELECT
+#define BUTTON_SAVE BUTTON_SELECT
+#define BUTTON_SAVE_NAME "SELECT"
+
+#elif CONFIG_KEYPAD == HM60X_PAD
+#define SOKOBAN_LEFT  BUTTON_LEFT
+#define SOKOBAN_RIGHT BUTTON_RIGHT
+#define SOKOBAN_UP    BUTTON_UP
+#define SOKOBAN_DOWN  BUTTON_DOWN
+#define SOKOBAN_MENU  BUTTON_POWER
+#define SOKOBAN_UNDO  BUTTON_SELECT
+#define SOKOBAN_REDO  (BUTTON_SELECT|BUTTON_POWER)
+#define SOKOBAN_LEVEL_DOWN (BUTTON_DOWN|BUTTON_POWER)
+#define SOKOBAN_LEVEL_UP (BUTTON_UP | BUTTON_POWER)
+#define SOKOBAN_PAUSE (BUTTON_RIGHT|BUTTON_POWER)
+#define BUTTON_SAVE (BUTTON_LEFT|BUTTON_POWER)
+#define BUTTON_SAVE_NAME "LEFT + POWER"
+
+#elif CONFIG_KEYPAD == HM801_PAD
+#define SOKOBAN_LEFT  BUTTON_LEFT
+#define SOKOBAN_RIGHT BUTTON_RIGHT
+#define SOKOBAN_UP    BUTTON_UP
+#define SOKOBAN_DOWN  BUTTON_DOWN
+#define SOKOBAN_MENU  BUTTON_POWER
+#define SOKOBAN_UNDO  BUTTON_SELECT
+#define SOKOBAN_REDO  (BUTTON_POWER | BUTTON_SELECT)
+#define SOKOBAN_LEVEL_DOWN BUTTON_PREV
+#define SOKOBAN_LEVEL_UP BUTTON_NEXT
+#define SOKOBAN_PAUSE BUTTON_PLAY
+#define BUTTON_SAVE (BUTTON_POWER | BUTTON_PLAY)
+#define BUTTON_SAVE_NAME "POWER + PLAY"
+
+#elif CONFIG_KEYPAD == DX50_PAD
+#define SOKOBAN_MENU   (BUTTON_POWER|BUTTON_REL)
+#define SOKOBAN_PAUSE  BUTTON_PLAY
+#define SOKOBAN_LEVEL_DOWN BUTTON_LEFT
+#define SOKOBAN_LEVEL_UP BUTTON_RIGHT
+#define SOKOBAN_MENU_NAME "Power"
+#define SOKOBAN_PAUSE_NAME "Play"
 
 #else
 #error No keymap defined!
@@ -532,6 +675,10 @@
 #define BUTTON_SAVE           BUTTON_CENTER
 #define BUTTON_SAVE_NAME      "CENTER"
 #endif
+#endif
+
+#ifndef SOKOBAN_QUIT_REPLAY
+#define SOKOBAN_QUIT_REPLAY   SOKOBAN_MENU
 #endif
 
 #define SOKOBAN_FONT FONT_SYSFIXED
@@ -1285,7 +1432,7 @@ static bool load(char *filename, bool silent)
 
                 while ((button = rb->button_get(false)) || paused) {
                     switch (button) {
-                        case SOKOBAN_MENU:
+                        case SOKOBAN_QUIT_REPLAY:
                             /* Pretend the level is complete so we'll quit */
                             current_info.level.boxes_to_go = 0;
                             return true;
@@ -1363,7 +1510,6 @@ static int sokoban_menu(void)
 {
     int button;
     int selection = 0;
-    int i;
     bool menu_quit;
     int start_selected = 0;
     int prev_level = current_info.level.index;
@@ -1468,6 +1614,27 @@ static int sokoban_menu(void)
                 rb->lcd_putsxy(3, 36, "[PREV] Previous Level");
                 rb->lcd_putsxy(3, 46, "[PLAY] Restart Level");
                 rb->lcd_putsxy(3, 56, "[NEXT] Next Level");
+#elif CONFIG_KEYPAD == SANSA_CONNECT_PAD
+                rb->lcd_putsxy(3,  6, "[POWER] Menu");
+                rb->lcd_putsxy(3, 16, "[PREV] Undo");
+                rb->lcd_putsxy(3, 26, "[NEXT] Redo");
+                rb->lcd_putsxy(3, 36, "[VOL-] Previous Level");
+                rb->lcd_putsxy(3, 46, "[NEXT+PREV] Restart Level");
+                rb->lcd_putsxy(3, 56, "[VOL+] Next Level");
+#elif CONFIG_KEYPAD == SAMSUNG_YH920_PAD
+                rb->lcd_putsxy(3,  6, "[PLAY] Menu");
+                rb->lcd_putsxy(3, 16, "[REW]  Undo");
+                rb->lcd_putsxy(3, 26, "[FFWD] Redo");
+                rb->lcd_putsxy(3, 36, "[PLAY+DOWN] Previous Level");
+                rb->lcd_putsxy(3, 46, "[PLAY+RIGHT] Restart Level");
+                rb->lcd_putsxy(3, 56, "[PLAY+UP] Next Level");
+#elif CONFIG_KEYPAD == SAMSUNG_YH820_PAD
+                rb->lcd_putsxy(3,  6, "[PLAY] Menu");
+                rb->lcd_putsxy(3, 16, "[REW]  Undo");
+                rb->lcd_putsxy(3, 26, "[FFWD] Redo");
+                rb->lcd_putsxy(3, 36, "[REC+DOWN] Prev. Lvl");
+                rb->lcd_putsxy(3, 46, "[REC+RIGHT] Rest. Lvl");
+                rb->lcd_putsxy(3, 56, "[REC+UP] Next Level");
 #endif
 
 #ifdef HAVE_TOUCHSCREEN
@@ -1522,16 +1689,15 @@ static int sokoban_menu(void)
 static bool sokoban_loop(void)
 {
     bool moved;
-    int i = 0, button = 0, lastbutton = 0;
-    short r = 0, c = 0;
+    int i = 0, button = 0;
+#if defined(SOKOBAN_UNDO_PRE)
+    int lastbutton = 0;
+#endif
     int w, h;
     char *loc;
 
     while (true) {
         moved = false;
-
-        r = current_info.player.row;
-        c = current_info.player.col;
 
         button = rb->button_get(true);
 
@@ -1628,8 +1794,9 @@ static bool sokoban_loop(void)
                     return PLUGIN_USB_CONNECTED;
                 break;
         }
-
+#if defined(SOKOBAN_UNDO_PRE)
         lastbutton = button;
+#endif
 
         if (moved) {
             rb->lcd_clear_display();

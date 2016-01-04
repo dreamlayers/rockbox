@@ -21,6 +21,7 @@
 
 #include "config.h"
 #include "jz4740.h"
+#include "../kernel-internal.h"
 #include "backlight.h"
 #include "font.h"
 #include "lcd.h"
@@ -29,13 +30,16 @@
 #include "system.h"
 #include "button.h"
 #include "common.h"
+#include "rb-loader.h"
+#include "loader_strerror.h"
 #include "storage.h"
+#include "file_internal.h"
 #include "disk.h"
 #include "string.h"
 #include "adc.h"
 #include "version.h"
 
-extern int show_logo(void);
+extern void show_logo(void);
 extern void power_off(void);
 
 static void show_splash(int timeout, const char *msg)
@@ -78,10 +82,7 @@ static void usb_mode(void)
         {
             button = button_get(true);
             if (button == SYS_USB_DISCONNECTED)
-            {
-                usb_acknowledge(SYS_USB_DISCONNECTED_ACK);
                 break;
-            }
         }
     }
 }
@@ -151,7 +152,7 @@ static int boot_rockbox(void)
 
     printf("Loading firmware...");
     rc = load_firmware((unsigned char *)CONFIG_SDRAM_START, BOOTFILE, 0x400000);
-    if(rc < 0)
+    if(rc <= EFILE_EMPTY)
         return rc;
     else
     {
@@ -269,6 +270,8 @@ int main(void)
 
     show_logo();
 
+    filesystem_init();
+
     rc = storage_init();
     if(rc)
         error(EATA, rc, true);
@@ -297,7 +300,7 @@ int main(void)
     if(verbose)
         reset_screen();
     printf(MODEL_NAME" Rockbox Bootloader");
-    printf("Version " RBVERSION);
+    printf("Version %s", rbversion);
 
 #ifdef HAS_BUTTON_HOLD
     if(button_hold())
@@ -306,8 +309,8 @@ int main(void)
 #endif
         rc = boot_rockbox();
 
-    if(rc < 0)
-        printf("Error: %s", strerror(rc));
+    if(rc <= EFILE_EMPTY)
+        printf("Error: %s", loader_strerror(rc));
 
     /* Halt */
     while (1)

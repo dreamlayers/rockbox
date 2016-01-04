@@ -7,7 +7,6 @@
  *                     \/            \/     \/    \/            \/
  *
  *   Copyright (C) 2007 by Dominik Wenger
- *   $Id$
  *
  * All files in this archive are subject to the GNU General Public License.
  * See the file COPYING in the source tree root for full license agreement.
@@ -17,11 +16,17 @@
  *
  ****************************************************************************/
 
+#include <QtCore>
 #include "ttsbase.h"
 
 #include "ttsfestival.h"
 #include "ttssapi.h"
+#include "ttssapi4.h"
+#include "ttsmssp.h"
 #include "ttsexes.h"
+#include "ttsespeak.h"
+#include "ttsflite.h"
+#include "ttsswift.h"
 #if defined(Q_OS_MACX)
 #include "ttscarbon.h"
 #endif
@@ -31,23 +36,28 @@ QMap<QString,QString> TTSBase::ttsList;
 
 TTSBase::TTSBase(QObject* parent): EncTtsSettingInterface(parent)
 {
-
 }
 
 // static functions
 void TTSBase::initTTSList()
 {
-    ttsList["espeak"] = "Espeak TTS Engine";
-    ttsList["flite"] = "Flite TTS Engine";
-    ttsList["swift"] = "Swift TTS Engine";
+#if !defined(Q_OS_WIN)
+    ttsList["espeak"] = tr("Espeak TTS Engine");
+#endif
+    ttsList["flite"] = tr("Flite TTS Engine");
+    ttsList["swift"] = tr("Swift TTS Engine");
 #if defined(Q_OS_WIN)
-    ttsList["sapi"] = "Sapi TTS Engine";
+#if 0 /* SAPI4 has been disabled since long. Keep support for now. */
+    ttsList["sapi4"] = tr("SAPI4 TTS Engine");
+#endif
+    ttsList["sapi"] = tr("SAPI5 TTS Engine");
+    ttsList["mssp"] = tr("MS Speech Platform");
 #endif
 #if defined(Q_OS_LINUX)
-    ttsList["festival"] = "Festival TTS Engine";
+    ttsList["festival"] = tr("Festival TTS Engine");
 #endif
 #if defined(Q_OS_MACX)
-    ttsList["carbon"] = "OS X System Engine";
+    ttsList["carbon"] = tr("OS X System Engine");
 #endif
 }
 
@@ -55,36 +65,34 @@ void TTSBase::initTTSList()
 TTSBase* TTSBase::getTTS(QObject* parent,QString ttsName)
 {
 
-    TTSBase* tts;
+    TTSBase* tts = 0;
 #if defined(Q_OS_WIN)
     if(ttsName == "sapi")
-    {
         tts = new TTSSapi(parent);
-        return tts;
-    }
+    else if (ttsName == "sapi4")
+        tts = new TTSSapi4(parent);
+    else if (ttsName == "mssp")
+        tts = new TTSMssp(parent);
     else
-#endif
-#if defined(Q_OS_LINUX)
+#elif defined(Q_OS_LINUX)
     if (ttsName == "festival")
-    {
         tts = new TTSFestival(parent);
-        return tts;
-    }
     else
-#endif
-#if defined(Q_OS_MACX)
+#elif defined(Q_OS_MACX)
     if(ttsName == "carbon")
-    {
         tts = new TTSCarbon(parent);
-        return tts;
-    }
     else
 #endif
-    if (true) // fix for OS other than WIN or LINUX
-    {
-        tts = new TTSExes(ttsName,parent);
-        return tts;
-    }
+    if(ttsName == "espeak")
+        tts = new TTSEspeak(parent);
+    else if(ttsName == "flite")
+        tts = new TTSFlite(parent);
+    else if(ttsName == "swift")
+        tts = new TTSSwift(parent);
+    else if(ttsName == "user")
+        tts = new TTSExes(parent);
+
+    return tts;
 }
 
 // get the list of encoders, nice names

@@ -1,13 +1,11 @@
-# cabbie 2.0
-# (C) 2007, Johannes Voggenthaler (Zinc Alloy)
-# (C) 2009, Maurus Cuelenaere (mcuelenaere) ported to Onda VX747
-# derived from "cabbie" (C) Yohann Misquitta
-
+# Cabbie v2.0
+# (C) 2007-2012 The Authors (see /rockbox/wps/AUTHORS)
+# Derived from "cabbie" (C) Yohann Misquitta
+#
 %wd
 %X(wpsbackdrop-240x400x16.bmp)
 %Cl(55,50,130,130,c,c)
 %pb(22,284,199,13,pb-240x320x16.bmp)
-%T(22,284,199,13,progressbar)
 %T(90,238,60,20,playlist)
 %?Tl(2.5)<%Vd(t)|%Vd(u)>
 %V(0,0,240,330,1)
@@ -47,10 +45,10 @@
 %?pv<%xd(Ca)|%xd(Cb)|%xd(Cc)|%xd(Cd)|%xd(Ce)|%xd(Cf)|%xd(Cg)|%xd(Ch)|%xd(Ci)|%xd(Cj)>
 %?ps<%xd(D)>
 %?mm<|%xd(Ea)|%xd(Eb)|%xd(Ec)|%xd(Ed)>
-%?mp<%xd(Fa)|%xd(Fb)|%xd(Fc)|%xd(Fd)|%xd(Fe)>
+%?Tp<%?mp<%xd(F, 1)|%xd(F, 3)|%xd(F, 2)|%xd(F, 4)|%xd(F, 5)||||>|%xd(F, %mp)>
 
 %T(206,0,24,24,play)
-%T(206,0,24,24,&stop)
+%T(206,0,24,24,stop, repeat_press)
 %T(182,0,18,92,repmode)
 %T(139,0,37,23,shuffle)
 %T(98,0,33,23,volume)
@@ -69,8 +67,8 @@
 %T(39,5,24,24,pitch)
 %T(58,0,24,24,contextmenu)
 %T(86,0,24,24,quickscreen)
-%T(115,0,24,23,&rwd)
-%T(144,0,24,23,&ffwd)
+%T(115,0,24,23,rwd, repeat_press)
+%T(144,0,24,23,ffwd, repeat_press)
 %T(115,0,24,23,prev)
 %T(144,0,24,23,next)
 

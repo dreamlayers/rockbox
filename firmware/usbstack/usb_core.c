@@ -68,6 +68,10 @@
 #include "ata.h"
 #endif
 
+#if (CONFIG_CPU == IMX233)
+#include "ocotp-imx233.h"
+#endif
+
 #ifndef USB_MAX_CURRENT
 #define USB_MAX_CURRENT 500
 #endif
@@ -176,6 +180,7 @@ static const struct usb_string_descriptor* const usb_strings[] =
 
 static int usb_address = 0;
 static bool initialized = false;
+static bool drivers_connected = false;
 static enum { DEFAULT, ADDRESS, CONFIGURED } usb_state;
 
 #ifdef HAVE_USB_CHARGING_ENABLE
@@ -345,7 +350,17 @@ static unsigned char response_data[256] USB_DEVBSS_ATTR;
 static unsigned char ep0_slots[2][USB_DRV_SLOT_SIZE] USB_DRV_SLOT_ATTR;
 #endif /* HAVE_NEW_USB_API */
 
-static short hex[16] = {'0', '1', '2', '3', '4', '5', '6', '7',
+/** NOTE Serial Number
+ * The serial number string is split into two parts:
+ * - the first character indicates the set of interfaces enabled
+ * - the other characters form a (hopefully) unique device-specific number
+ * The implementation of set_serial_descriptor should left the first character
+ * of usb_string_iSerial unused, ie never write to
+ * usb_string_iSerial.wString[0] but should take it into account when
+ * computing the length of the descriptor
+ */
+
+static const short hex[16] = {'0', '1', '2', '3', '4', '5', '6', '7',
                         '8', '9', 'A', 'B', 'C', 'D', 'E', 'F'};
 #ifdef IPOD_ARCH
 static void set_serial_descriptor(void)
@@ -385,6 +400,20 @@ static void set_serial_descriptor(void)
         *p++ = hex[(serial[i] >> 0) & 0xF];
     }
     usb_string_iSerial.bLength = 36 + (2 * AS3514_UID_LEN);
+}
+#elif (CONFIG_CPU == IMX233) && IMX233_SUBTARGET >= 3700
+// FIXME where is the STMP3600 serial number stored ?
+static void set_serial_descriptor(void)
+{
+    short* p = &usb_string_iSerial.wString[1];
+    for(int i = 0; i < IMX233_NUM_OCOTP_OPS; i++) {
+        uint32_t ops = imx233_ocotp_read(&HW_OCOTP_OPSn(i));
+        for(int j = 0; j < 8; j++) {
+            *p++ = hex[(ops >> 28) & 0xF];
+            ops <<= 4;
+        }
+    }
+    usb_string_iSerial.bLength = 2 + 2 * (1 + IMX233_NUM_OCOTP_OPS * 8);
 }
 #elif (CONFIG_STORAGE & STORAGE_ATA)
 /* If we don't know the device serial number, use the one
@@ -459,11 +488,16 @@ void usb_core_init(void)
 void usb_core_exit(void)
 {
     int i;
-    for(i = 0; i < USB_NUM_DRIVERS; i++)
-        if(drivers[i].enabled && drivers[i].disconnect != NULL) {
-            drivers[i].disconnect();
-            drivers[i].enabled = false;
-        }
+    if(drivers_connected)
+    {
+        for(i = 0; i < USB_NUM_DRIVERS; i++)
+            if(drivers[i].enabled && drivers[i].disconnect != NULL)
+            {
+                drivers[i].disconnect();
+                drivers[i].enabled = false;
+            }
+        drivers_connected = false;
+    }
 
     if(initialized) {
         usb_drv_exit();
@@ -485,7 +519,8 @@ void usb_core_handle_transfer_completion(
 
     switch(ep) {
         case EP_CONTROL:
-            usb_core_control_request_handler((struct usb_ctrlrequest*)event->data);
+            usb_core_control_request_handler(
+                (struct usb_ctrlrequest*)event->data);
             break;
         default:
             handler = ep_data[ep].completion_handler[EP_DIR(event->dir)];
@@ -717,6 +752,14 @@ static void request_handler_device_get_descriptor(struct usb_ctrlrequest* req)
                 size = usb_strings[index]->bLength;
                 ptr = usb_strings[index];
             }
+            else if(index == 0xee) {
+                /* We don't have a real OS descriptor, and we don't handle
+                 * STALL correctly on some devices, so we return any valid
+                 * string (we arbitrarily pick the manufacturer name)
+                 */
+                size = usb_string_iManufacturer.bLength;
+                ptr = &usb_string_iManufacturer;
+            }
             else {
                 int i;
                 const struct usb_string_descriptor *desc = NULL;
@@ -763,10 +806,48 @@ static void request_handler_device_get_descriptor(struct usb_ctrlrequest* req)
     }
 }
 
+static void usb_core_do_set_addr(uint8_t address)
+{
+    logf("usb_core: SET_ADR %d", address);
+    usb_address = address;
+    usb_state = ADDRESS;
+}
+
+static void usb_core_do_set_config(uint8_t config)
+{
+    logf("usb_core: SET_CONFIG %d",config);
+    if(config) {
+        usb_state = CONFIGURED;
+
+        if(drivers_connected)
+            for(int i = 0; i < USB_NUM_DRIVERS; i++)
+                if(drivers[i].enabled && drivers[i].disconnect != NULL)
+                    drivers[i].disconnect();
+
+        for(int i = 0; i < USB_NUM_DRIVERS; i++)
+            if(drivers[i].enabled && drivers[i].init_connection)
+                drivers[i].init_connection();
+        drivers_connected = true;
+    }
+    else
+        usb_state = ADDRESS;
+    #ifdef HAVE_USB_CHARGING_ENABLE
+    usb_charging_maxcurrent_change(usb_charging_maxcurrent());
+    #endif
+}
+
+static void usb_core_do_clear_feature(int recip, int recip_nr, int feature)
+{
+    logf("usb_core: CLEAR FEATURE (%d,%d,%d)", recip, recip_nr, feature);
+    if(recip == USB_RECIP_ENDPOINT)
+    {
+        if(feature == USB_ENDPOINT_HALT)
+            usb_drv_stall(EP_NUM(recip_nr), false, EP_DIR(recip_nr));
+    }
+}
+
 static void request_handler_device(struct usb_ctrlrequest* req)
 {
-    int i;
-
     switch(req->bRequest) {
         case USB_REQ_GET_CONFIGURATION: {
                 logf("usb_core: GET_CONFIG");
@@ -776,20 +857,9 @@ static void request_handler_device(struct usb_ctrlrequest* req)
                 break;
             }
         case USB_REQ_SET_CONFIGURATION: {
-                logf("usb_core: SET_CONFIG");
                 usb_drv_cancel_all_transfers();
-                if(req->wValue) {
-                    usb_state = CONFIGURED;
-                    for(i = 0; i < USB_NUM_DRIVERS; i++)
-                        if(drivers[i].enabled && drivers[i].init_connection)
-                            drivers[i].init_connection();
-                }
-                else
-                    usb_state = ADDRESS;
+                usb_core_do_set_config(req->wValue);
                 usb_drv_send_blocking(EP_CONTROL, NULL, 0); /* ack */
-#ifdef HAVE_USB_CHARGING_ENABLE
-                usb_charging_maxcurrent_change(usb_charging_maxcurrent());
-#endif
                 break;
             }
         case USB_REQ_SET_ADDRESS: {
@@ -797,9 +867,8 @@ static void request_handler_device(struct usb_ctrlrequest* req)
                 logf("usb_core: SET_ADR %d", address);
                 usb_drv_send_blocking(EP_CONTROL, NULL, 0); /* ack */
                 usb_drv_cancel_all_transfers();
-                usb_address = address;
-                usb_drv_set_address(usb_address);
-                usb_state = ADDRESS;
+                usb_drv_set_address(address);
+                usb_core_do_set_addr(address);
                 break;
             }
         case USB_REQ_GET_DESCRIPTOR:
@@ -901,11 +970,10 @@ static void request_handler_endpoint_standard(struct usb_ctrlrequest* req)
 {
     switch (req->bRequest) {
         case USB_REQ_CLEAR_FEATURE:
-            logf("usb_core: CLEAR EP FEATURE 0x%x 0x%x", req->wValue, req->wIndex);
-            if(req->wValue == USB_ENDPOINT_HALT)
-                usb_drv_stall(EP_NUM(req->wIndex), false, EP_DIR(req->wIndex));
-            
-            usb_drv_send_blocking(EP_CONTROL, NULL, 0); /* ack */
+            usb_core_do_clear_feature(USB_RECIP_ENDPOINT,
+                                      req->wIndex,
+                                      req->wValue);
+            usb_drv_send_blocking(EP_CONTROL, NULL, 0);
             break;
         case USB_REQ_SET_FEATURE:
             logf("usb_core: SET EP FEATURE 0x%x 0x%x", req->wValue, req->wIndex);
@@ -954,8 +1022,8 @@ static void usb_core_control_request_handler(struct usb_ctrlrequest* req)
 #ifdef HAVE_USB_CHARGING_ENABLE
     timeout_cancel(&usb_no_host_timeout);
     if(usb_no_host) {
-	usb_no_host = false;
-	usb_charging_maxcurrent_change(usb_charging_maxcurrent());
+        usb_no_host = false;
+        usb_charging_maxcurrent_change(usb_charging_maxcurrent());
     }
 #endif
     if(usb_state == DEFAULT) {
@@ -991,6 +1059,7 @@ static void usb_core_control_request_handler(struct usb_ctrlrequest* req)
 /* called by usb_drv_int() */
 void usb_core_bus_reset(void)
 {
+    logf("usb_core: bus reset");
     usb_address = 0;
     usb_state = DEFAULT;
 #ifdef HAVE_USB_CHARGING_ENABLE
@@ -1029,7 +1098,7 @@ void usb_core_transfer_complete(int endpoint, int dir, int status, int length)
             #endif
             completion_event->status = status;
             completion_event->length = length;
-            /* All other endoints. Let the thread deal with it */
+            /* All other endpoints. Let the thread deal with it */
             usb_signal_transfer_completion(completion_event);
             break;
     }
@@ -1044,6 +1113,21 @@ void usb_core_fast_transfer_complete(int ep,int dir,int status,int length,void *
 }
 #endif /* HAVE_NEW_USB_API */
 
+void usb_core_handle_notify(long id, intptr_t data)
+{
+    switch(id)
+    {
+        case USB_NOTIFY_SET_ADDR:
+            usb_core_do_set_addr(data);
+            break;
+        case USB_NOTIFY_SET_CONFIG:
+            usb_core_do_set_config(data);
+            break;
+        default:
+            break;
+    }
+}
+
 /* called by usb_drv_int() */
 void usb_core_control_request(struct usb_ctrlrequest* req)
 {
@@ -1055,7 +1139,20 @@ void usb_core_control_request(struct usb_ctrlrequest* req)
     completion_event->data = (void*)req;
     completion_event->status = 0;
     completion_event->length = 0;
+    logf("ctrl received %ld, req=0x%x", current_tick, req->bRequest);
     usb_signal_transfer_completion(completion_event);
+}
+
+void usb_core_notify_set_address(uint8_t addr)
+{
+    logf("notify set addr received %ld", current_tick);
+    usb_signal_notify(USB_NOTIFY_SET_ADDR, addr);
+}
+
+void usb_core_notify_set_config(uint8_t config)
+{
+    logf("notify set config received %ld", current_tick);
+    usb_signal_notify(USB_NOTIFY_SET_CONFIG, config);
 }
 
 #ifdef HAVE_USB_CHARGING_ENABLE
@@ -1070,9 +1167,9 @@ int usb_charging_maxcurrent()
     if (!initialized || usb_charging_mode == USB_CHARGING_DISABLE)
         return 100;
     if (usb_state == CONFIGURED)
-	return usb_charging_current_requested;
+        return usb_charging_current_requested;
     if (usb_charging_mode == USB_CHARGING_FORCE && usb_no_host)
-	return 500;
+        return 500;
     return 100;
 }
 #endif

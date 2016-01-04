@@ -2,8 +2,6 @@
  * This config file is for the Tatung Elio TPJ-1022
  */
 
-#define TARGET_TREE /* this target is using the target tree system */
-
 #define MODEL_NAME "Tatung Elio TPJ-1022"
 
 /* For Rolo and boot loader */
@@ -35,12 +33,11 @@
 /* define this if you have access to the quickscreen */
 #define HAVE_QUICKSCREEN
 
-/* define this if you have access to the pitchscreen */
-#define HAVE_PITCHSCREEN
-
 /* LCD dimensions */
 #define LCD_WIDTH  220
 #define LCD_HEIGHT 176
+/* sqrt(220^2 + 176^2) / 2.2 = 128.1 */
+#define LCD_DPI 128
 #define LCD_DEPTH  16   /* 65536 colours */
 #define LCD_PIXELFORMAT RGB565 
 
@@ -84,6 +81,8 @@
 #define BATTERY_CAPACITY_MAX 1600 /* max. capacity selectable */
 #define BATTERY_CAPACITY_INC 10   /* capacity increment */
 #define BATTERY_TYPES_COUNT  1    /* only one type */
+
+#define CONFIG_BATTERY_MEASURE VOLTAGE_MEASURE
 
 /* Hardware controlled charging? FIXME */
 #define CONFIG_CHARGING CHARGING_SIMPLE
@@ -144,7 +143,9 @@
 /* DMA is used only for reading on PP502x because although reads are ~8x faster
  * writes appear to be ~25% slower.
  */
+#ifndef BOOTLOADER
 #define HAVE_ATA_DMA
+#endif
 
 /* Define this if a programmable hotkey is mapped */
 //#define HAVE_HOTKEY

@@ -21,43 +21,67 @@
 #ifndef PCMBUF_H
 #define PCMBUF_H
 
+#include <sys/types.h>
+
 /* Commit PCM data */
 void *pcmbuf_request_buffer(int *count);
-void pcmbuf_write_complete(int count);
+void pcmbuf_write_complete(int count, unsigned long elapsed, off_t offset);
 
 /* Init */
-size_t pcmbuf_init(unsigned char *bufend);
+size_t pcmbuf_init(void *bufend);
 
 /* Playback */
 void pcmbuf_play_start(void);
 void pcmbuf_play_stop(void);
 void pcmbuf_pause(bool pause);
-void pcmbuf_start_track_change(bool manual_skip);
+
+/* Track change */
+
+/* Track change origin type */
+enum pcm_track_change_type
+{
+    TRACK_CHANGE_NONE = 0,     /* No track change pending */
+    TRACK_CHANGE_MANUAL,       /* Manual change (from user) */
+    TRACK_CHANGE_AUTO,         /* Automatic change (from codec) */
+    TRACK_CHANGE_END_OF_DATA,  /* Expect no more data (from codec) */
+};
+void pcmbuf_monitor_track_change(bool monitor);
+void pcmbuf_start_track_change(enum pcm_track_change_type type);
 
 /* Crossfade */
 #ifdef HAVE_CROSSFADE
 bool pcmbuf_is_crossfade_active(void);
-void pcmbuf_request_crossfade_enable(bool on_off);
+void pcmbuf_request_crossfade_enable(int setting);
 bool pcmbuf_is_same_size(void);
+#else
+/* Dummy functions with sensible returns */
+static FORCE_INLINE bool pcmbuf_is_crossfade_active(void)
+    { return false; }
+static FORCE_INLINE void pcmbuf_request_crossfade_enable(bool on_off)
+    { return; (void)on_off; }
+static FORCE_INLINE bool pcmbuf_is_same_size(void)
+    { return true; }
 #endif
-
-/* Voice */
-void *pcmbuf_request_voice_buffer(int *count);
-void pcmbuf_write_voice_complete(int count);
 
 /* Debug menu, other metrics */
 size_t pcmbuf_free(void);
 size_t pcmbuf_get_bufsize(void);
-int pcmbuf_descs(void);
 int pcmbuf_used_descs(void);
-#ifdef ROCKBOX_HAS_LOGF
-unsigned char *pcmbuf_get_meminfo(size_t *length);
-#endif
+int pcmbuf_descs(void);
+
+/* Fading and channel volume control */
+void pcmbuf_fade(bool fade, bool in);
+bool pcmbuf_fading(void);
+void pcmbuf_soft_mode(bool shhh);
+
+/* Time and position */
+unsigned int pcmbuf_get_position_key(void);
+void pcmbuf_sync_position_update(void);
 
 /* Misc */
 bool pcmbuf_is_lowdata(void);
 void pcmbuf_set_low_latency(bool state);
-unsigned long pcmbuf_get_latency(void);
-void pcmbuf_beep(unsigned int frequency, size_t duration, int amplitude);
+void pcmbuf_update_frequency(void);
+unsigned int pcmbuf_get_frequency(void);
 
-#endif
+#endif /* PCMBUF_H */

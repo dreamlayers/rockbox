@@ -19,11 +19,12 @@
  * KIND, either express or implied.
  *
  ****************************************************************************/
-#include "config.h"
 
+#include "config.h"
 #include "cpu.h"
-#include "lcd.h"
 #include "system.h"
+#include "kernel.h"
+#include "lcd.h"
 #include "file.h"
 #include "clock-target.h"
 #include "dbop-as3525.h"
@@ -332,7 +333,7 @@ void lcd_update_rect(int x, int y, int width, int height)
 
     lcd_write_cmd(R_WRITE_DATA_2_GRAM);
 
-    ptr = &lcd_framebuffer[y][x];
+    ptr = FBADDR(x,y);
 
     do
     {

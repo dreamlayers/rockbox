@@ -211,7 +211,7 @@ bool lcd_active(void)
 
 #ifdef HAVE_LCD_SLEEP
 
-void lcd_wakeup(void)
+static void lcd_wakeup(void)
 {
     unsigned short *lcd_init_sequence;
     unsigned int lcd_init_sequence_length;
@@ -394,7 +394,7 @@ void lcd_update_rect(int x, int y, int width, int height)
     lcd_setup_drawing_region(x, y, width, height);
 
     /* Copy display bitmap to hardware */
-    p = &lcd_framebuffer[y][x];
+    p = FBADDR(x,y);
     if (LCD_WIDTH == width) {
         /* Write all lines at once */
         lcd_write_line(p, height*LCD_WIDTH, LCD_BASE);

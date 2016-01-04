@@ -7,7 +7,6 @@
  *                     \/            \/     \/    \/            \/
  *
  *   Copyright (C) 2010 by Dominik Riebeling
- *   $Id$
  *
  * All files in this archive are subject to the GNU General Public License.
  * See the file COPYING in the source tree root for full license agreement.
@@ -29,6 +28,7 @@
 #include <unistd.h>
 #include <sys/stat.h>
 #include <inttypes.h>
+#include "Logger.h"
 
 TTSCarbon::TTSCarbon(QObject* parent) : TTSBase(parent)
 {
@@ -36,7 +36,7 @@ TTSCarbon::TTSCarbon(QObject* parent) : TTSBase(parent)
 
 TTSBase::Capabilities TTSCarbon::capabilities()
 {
-    return None;
+    return TTSBase::CanSpeak;
 }
 
 bool TTSCarbon::configOk()
@@ -75,7 +75,7 @@ bool TTSCarbon::start(QString *errStr)
     if(voiceIndex == numVoices) {
         // voice not found. Add user notification here and proceed with
         // system default voice.
-        qDebug() << "selected voice not found, using system default!";
+        LOG_WARNING() << "Selected voice not found, using system default!";
         GetVoiceDescription(&vspec, &vdesc, sizeof(vdesc));
         if(vdesc.script != -1)
             m_voiceScript = (CFStringBuiltInEncodings)vdesc.script;
@@ -89,6 +89,12 @@ bool TTSCarbon::start(QString *errStr)
                                     RbSettings::TtsSpeed).toInt());
     if(rate != 0)
         SetSpeechRate(m_channel, rate);
+
+    Fixed pitch = (Fixed)(0x10000 * RbSettings::subValue("carbon",
+                                    RbSettings::TtsPitch).toInt());
+    if(pitch != 0)
+        SetSpeechPitch(m_channel, pitch);
+
     return (error == 0) ? true : false;
 }
 
@@ -139,6 +145,14 @@ void TTSCarbon::generateSettings(void)
                                 tr("Speed (words/min):"), speed, 80, 500,
                                 EncTtsSetting::eNOBTN);
     insertSetting(ConfigSpeed, setting);
+
+    // pitch
+    int pitch = RbSettings::subValue("carbon", RbSettings::TtsPitch).toInt();
+    setting = new EncTtsSetting(this, EncTtsSetting::eINT,
+                                tr("Pitch (0 for default):"), pitch, 0, 65,
+                                EncTtsSetting::eNOBTN);
+    insertSetting(ConfigPitch, setting);
+
 }
 
 
@@ -149,6 +163,8 @@ void TTSCarbon::saveSettings(void)
                             getSetting(ConfigVoice)->current().toString());
     RbSettings::setSubValue("carbon", RbSettings::TtsSpeed,
                             getSetting(ConfigSpeed)->current().toInt());
+    RbSettings::setSubValue("carbon", RbSettings::TtsPitch,
+                            getSetting(ConfigPitch)->current().toInt());
     RbSettings::sync();
 }
 
@@ -160,18 +176,21 @@ TTSStatus TTSCarbon::voice(QString text, QString wavfile, QString* errStr)
     TTSStatus status = NoError;
     OSErr error;
 
-    QString aifffile = wavfile + ".aiff";
-    // FIXME: find out why we need to do this.
-    // Create a local copy of the temporary file filename.
-    // Not doing so causes weird issues (path contains trailing spaces)
-    unsigned int len = aifffile.size() + 1;
-    char* tmpfile = (char*)malloc(len * sizeof(char));
-    strncpy(tmpfile, aifffile.toLocal8Bit().constData(), len);
-    CFStringRef tmpfileref = CFStringCreateWithCString(kCFAllocatorDefault,
-                                tmpfile, kCFStringEncodingUTF8);
-    CFURLRef urlref = CFURLCreateWithFileSystemPath(kCFAllocatorDefault,
-                                tmpfileref, kCFURLPOSIXPathStyle, false);
-    SetSpeechInfo(m_channel, soOutputToFileWithCFURL, urlref);
+    char* tmpfile = NULL;
+    if(!wavfile.isEmpty()) {
+        QString aifffile = wavfile + ".aiff";
+        // FIXME: find out why we need to do this.
+        // Create a local copy of the temporary file filename.
+        // Not doing so causes weird issues (path contains trailing spaces)
+        unsigned int len = aifffile.size() + 1;
+        tmpfile = (char*)malloc(len * sizeof(char));
+        strncpy(tmpfile, aifffile.toLocal8Bit().constData(), len);
+        CFStringRef tmpfileref = CFStringCreateWithCString(kCFAllocatorDefault,
+                                                           tmpfile, kCFStringEncodingUTF8);
+        CFURLRef urlref = CFURLCreateWithFileSystemPath(kCFAllocatorDefault,
+                                                        tmpfileref, kCFURLPOSIXPathStyle, false);
+        SetSpeechInfo(m_channel, soOutputToFileWithCFURL, urlref);
+    }
 
     // speak it.
     // Convert the string to the encoding requested by the voice. Do this
@@ -206,15 +225,17 @@ TTSStatus TTSCarbon::voice(QString text, QString wavfile, QString* errStr)
     free(textbuf);
     CFRelease(cfstring);
 
-    // convert the temporary aiff file to wav
-    if(status == NoError
-        && convertAiffToWav(tmpfile, wavfile.toLocal8Bit().constData()) != 0) {
-        *errStr = tr("Could not convert intermediate file");
-        status = FatalError;
+    if(!wavfile.isEmpty()) {
+        // convert the temporary aiff file to wav
+        if(status == NoError
+            && convertAiffToWav(tmpfile, wavfile.toLocal8Bit().constData()) != 0) {
+            *errStr = tr("Could not convert intermediate file");
+            status = FatalError;
+        }
+        // remove temporary aiff file
+        unlink(tmpfile);
+        free(tmpfile);
     }
-    // remove temporary aiff file
-    unlink(tmpfile);
-    free(tmpfile);
 
     return status;
 }
@@ -310,6 +331,7 @@ int TTSCarbon::convertAiffToWav(const char* aiff, const char* wav)
     if(fread(buf, 1, filestat.st_size, in) < filestat.st_size) {
         printf("could not read file: not enought bytes read\n");
         fclose(in);
+        free(buf);
         return -1;
     }
     fclose(in);

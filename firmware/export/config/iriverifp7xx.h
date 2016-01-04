@@ -1,7 +1,6 @@
 /*
  * This config file is for iriver iFP-799
  */
-#define TARGET_TREE
 
 #define IRIVER_IFP7XX_SERIES 1
 
@@ -22,6 +21,8 @@
 /* LCD dimensions */
 #define LCD_WIDTH  128
 #define LCD_HEIGHT 64
+/* sqrt(128^2 + 64^2) / 1.0 = 143.1 */
+#define LCD_DPI 143
 #define LCD_DEPTH  1
 
 #define LCD_PIXELFORMAT VERTICAL_PACKING
@@ -69,6 +70,8 @@
 #define BATTERY_CAPACITY_MAX 2800 /* max. capacity selectable */
 #define BATTERY_CAPACITY_INC 50   /* capacity increment */
 #define BATTERY_TYPES_COUNT  2    /* Alkalines or NiMH */
+
+#define CONFIG_BATTERY_MEASURE VOLTAGE_MEASURE
 
 /* define this if the unit should not shut down on low battery. */
 #define NO_LOW_BATTERY_SHUTDOWN

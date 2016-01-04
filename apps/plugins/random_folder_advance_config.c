@@ -18,6 +18,7 @@
  * KIND, either express or implied.
  *
  ****************************************************************************/
+#include "config.h"
 #include "plugin.h"
 #include "file.h"
 
@@ -42,10 +43,9 @@ struct file_format {
 };
 struct file_format *list = NULL;
 
-void update_screen(bool clear)
+static void update_screen(bool clear)
 {
     char buf[15];
-    int i;
 
     rb->snprintf(buf,sizeof(buf),"Folders: %d",dirs_count);
     FOR_NB_SCREENS(i)
@@ -57,7 +57,7 @@ void update_screen(bool clear)
     }
 }
 
-void traversedir(char* location, char* name)
+static void traversedir(char* location, char* name)
 {
     struct dirent *entry;
     DIR* dir;
@@ -65,8 +65,15 @@ void traversedir(char* location, char* name)
     bool check = false;
     int i;
 
-    rb->snprintf(fullpath, sizeof(fullpath), "%s/%s", location, name);
-    dir = rb->opendir(fullpath);
+    /* behave differently if we're at root to avoid
+       duplication of the initial slash later on */
+    if (location[0] == '\0' && name[0] == '\0') {
+        rb->strcpy(fullpath, "");
+        dir = rb->opendir("/");
+    } else {
+        rb->snprintf(fullpath, sizeof(fullpath), "%s/%s", location, name);
+        dir = rb->opendir(fullpath);
+    }
     if (dir) {
         entry = rb->readdir(dir);
         while (entry) {
@@ -125,7 +132,7 @@ void traversedir(char* location, char* name)
     }
 }
 
-bool custom_dir(void)
+static bool custom_dir(void)
 {
     DIR* dir_check;
     char *starts, line[MAX_PATH], formatted_line[MAX_PATH];
@@ -211,7 +218,7 @@ bool custom_dir(void)
     return true;
 }
 
-void generate(void)
+static void generate(void)
 {
     dirs_count = 0;
     cancel = false;
@@ -244,7 +251,7 @@ static const char* list_get_name_cb(int selected_item, void* data,
     return buf;
 }
 
-int load_list(void)
+static int load_list(void)
 {
     int myfd = rb->open(RFA_FILE,O_RDONLY);
     if (myfd < 0)
@@ -262,7 +269,7 @@ int load_list(void)
     return 0;
 }
 
-int save_list(void)
+static int save_list(void)
 {
     int myfd = rb->creat(RFA_FILE, 0666);
     if (myfd < 0)
@@ -287,7 +294,7 @@ int save_list(void)
     return 1;
 }
 
-int edit_list(void)
+static int edit_list(void)
 {
     struct gui_synclist lists;
     bool exit = false;
@@ -372,7 +379,7 @@ int edit_list(void)
     return ret;
 }
 
-int export_list_to_file_text(void)
+static int export_list_to_file_text(void)
 {
     int i = 0;
     /* load the dat file if not already done */
@@ -411,7 +418,7 @@ int export_list_to_file_text(void)
     return 1;
 }
 
-int import_list_from_file_text(void)
+static int import_list_from_file_text(void)
 {
     char line[MAX_PATH];
     
@@ -464,7 +471,7 @@ int import_list_from_file_text(void)
     return list->count;
 }
 
-int start_shuffled_play(void)
+static int start_shuffled_play(void)
 {
     int *order;
     size_t max_shuffle_size;
@@ -534,11 +541,14 @@ int start_shuffled_play(void)
         }
     }
     rb->splash(HZ, "Done");
-    rb->playlist_start(0,0);
+    /* the core needs the audio buffer back in order to start playback. */
+    list = NULL;
+    rb->plugin_release_audio_buffer();
+    rb->playlist_start(0, 0, 0);
     return 1;
 }
 
-enum plugin_status main_menu(void)
+static enum plugin_status main_menu(void)
 {
     bool exit = false;
     MENUITEM_STRINGLIST(menu, "Main Menu", NULL,
@@ -621,6 +631,9 @@ enum plugin_status main_menu(void)
 enum plugin_status plugin_start(const void* parameter)
 {
     (void)parameter;
+#ifdef HAVE_TOUCHSCREEN
+    rb->touchscreen_set_mode(rb->global_settings->touch_mode);
+#endif
 
     cancel = false;
     

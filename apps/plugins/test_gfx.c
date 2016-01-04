@@ -46,7 +46,7 @@ static int log_init(void)
     char logfilename[MAX_PATH];
     int fd;
 
-    rb->create_numbered_filename(logfilename, "/", "test_gfx_log_", ".txt",
+    rb->create_numbered_filename(logfilename, HOME_DIR, "test_gfx_log_", ".txt",
                                  2 IF_CNFN_NUM_(, NULL));
     fd = rb->open(logfilename, O_RDWR|O_CREAT|O_TRUNC, 0666);
     return fd;
@@ -399,10 +399,64 @@ static void time_text(void) /* tests mono_bitmap performance */
                  count1, count2, count3, count4);
 }
 
+static void time_put_line(void) /* tests put_line performance */
+{
+    long time_start, time_end;
+    int count1, count2, count3, count4;
+    struct screen *display = rb->screens[SCREEN_MAIN];
+    const char fmt[] = "$iRockbox!";
+
+    rb->lcd_setfont(FONT_SYSFIXED);
+    count1 = count2 = count3 = count4 = 0;
+
+    struct line_desc desc = LINE_DESC_DEFINIT;
+    rb->sleep(0); /* sync to tick */
+    time_start = *rb->current_tick;
+    while((time_end = *rb->current_tick) - time_start < DURATION)
+    {
+        unsigned rnd = rand_table[count1++ & 0x3ff];
+        display->put_line((rnd >> 8) & 0x3f, rnd & 0x3f, &desc, fmt, Icon_Audio);
+    }
+
+    desc.style = STYLE_INVERT;
+    rb->sleep(0); /* sync to tick */
+    time_start = *rb->current_tick;
+    while((time_end = *rb->current_tick) - time_start < DURATION)
+    {
+        unsigned rnd = rand_table[count2++ & 0x3ff];
+        display->put_line((rnd >> 8) & 0x3f, rnd & 0x3f, &desc, fmt, Icon_Audio);
+    }
+
+    desc.style = STYLE_COLORBAR;
+    rb->sleep(0); /* sync to tick */
+    time_start = *rb->current_tick;
+    while((time_end = *rb->current_tick) - time_start < DURATION)
+    {
+        unsigned rnd = rand_table[count3++ & 0x3ff];
+        display->put_line((rnd >> 8) & 0x3f, rnd & 0x3f, &desc, fmt, Icon_Audio);
+    }
+
+    desc.style = STYLE_GRADIENT;
+    rb->sleep(0); /* sync to tick */
+    time_start = *rb->current_tick;
+    while((time_end = *rb->current_tick) - time_start < DURATION)
+    {
+        unsigned rnd = rand_table[count4++ & 0x3ff];
+        display->put_line((rnd >> 8) & 0x3f, rnd & 0x3f, &desc, fmt, Icon_Audio);
+    }
+
+    rb->fdprintf(log_fd, "\nput_line   (lines (icon+text)/s): \n"
+                         "    default:  %d\n"
+                         "    inverted: %d\n"
+                         "    colorbar: %d\n"
+                         "    gradient: %d\n",
+                 count1, count2, count3, count4);
+}
+
 /* plugin entry point */
 enum plugin_status plugin_start(const void* parameter)
 {
-#ifndef SIMULATOR
+#ifdef HAVE_ADJUSTABLE_CPU_FREQ
     int cpu_freq;
 #endif
 
@@ -441,13 +495,13 @@ enum plugin_status plugin_start(const void* parameter)
     rb->lcd_set_backdrop(NULL);
     rb->lcd_clear_display();
 #endif
-    backlight_force_on(); /* backlight control in lib/helper.c */
+    backlight_ignore_timeout();
 
     rb->splashf(0, "LCD driver performance test, please wait %d sec",
-                6*4*DURATION/HZ);
+                7*4*DURATION/HZ);
     init_rand_table();
 
-#ifndef SIMULATOR
+#ifdef HAVE_ADJUSTABLE_CPU_FREQ
     cpu_freq = *rb->cpu_frequency; /* remember CPU frequency */
 #endif
 
@@ -457,8 +511,9 @@ enum plugin_status plugin_start(const void* parameter)
     time_vline();
     time_fillrect();
     time_text();
+    time_put_line();
 
-#ifndef SIMULATOR
+#ifdef HAVE_ADJUSTABLE_CPU_FREQ
     if (*rb->cpu_frequency != cpu_freq)
         rb->fdprintf(log_fd, "\nCPU: %s\n", "clock changed!");
     else

@@ -1,10 +1,10 @@
 /***************************************************************************
- *             __________               __   ___.                  
- *   Open      \______   \ ____   ____ |  | _\_ |__   _______  ___  
- *   Source     |       _//  _ \_/ ___\|  |/ /| __ \ /  _ \  \/  /  
- *   Jukebox    |    |   (  <_> )  \___|    < | \_\ (  <_> > <  <   
- *   Firmware   |____|_  /\____/ \___  >__|_ \|___  /\____/__/\_ \  
- *                     \/            \/     \/    \/            \/ 
+ *             __________               __   ___.
+ *   Open      \______   \ ____   ____ |  | _\_ |__   _______  ___
+ *   Source     |       _//  _ \_/ ___\|  |/ /| __ \ /  _ \  \/  /
+ *   Jukebox    |    |   (  <_> )  \___|    < | \_\ (  <_> > <  <
+ *   Firmware   |____|_  /\____/ \___  >__|_ \|___  /\____/__/\_ \
+ *                     \/            \/     \/    \/            \/
  * $Id$
  *
  * Copyright (C) 2009 by Jens Arnold
@@ -21,6 +21,7 @@
 
 #include "config.h"
 #include "screendump.h"
+#include "rbpaths.h"
 
 #include "file.h"
 #include "general.h"
@@ -31,7 +32,7 @@
 
 #ifdef HAVE_REMOTE_LCD
 #include "lcd-remote.h"
-#endif                  
+#endif
 
 #if LCD_DEPTH == 16
 #define BMP_COMPRESSION 3 /* BI_BITFIELDS */
@@ -117,12 +118,15 @@ void screen_dump(void)
 #elif LCD_DEPTH <= 16
     unsigned short *dst, *dst_end;
     unsigned short linebuf[DUMP_BMP_LINESIZE/2];
+#else /* 24bit */
+    unsigned char *dst, *dst_end;
+    unsigned char linebuf[DUMP_BMP_LINESIZE * 3];
 #endif
 
 #if CONFIG_RTC
-    create_datetime_filename(filename, "", "dump ", ".bmp", false);
+    create_datetime_filename(filename, HOME_DIR, "dump ", ".bmp", false);
 #else
-    create_numbered_filename(filename, "", "dump_", ".bmp", 4
+    create_numbered_filename(filename, HOME_DIR, "dump_", ".bmp", 4
                              IF_CNFN_NUM_(, NULL));
 #endif
 
@@ -136,11 +140,15 @@ void screen_dump(void)
     }
     else
     {
-        write(fd, bmpheader, sizeof(bmpheader));
+        if(write(fd, bmpheader, sizeof(bmpheader)) != sizeof(bmpheader))
+        {
+            close(fd);
+            return;
+        }
 
         /* BMP image goes bottom up */
         for (y = LCD_HEIGHT - 1; y >= 0; y--)
-        {                                  
+        {
             memset(linebuf, 0, DUMP_BMP_LINESIZE);
 
 #if defined(HAVE_LCD_SPLIT) && (LCD_SPLIT_LINES == 2)
@@ -149,12 +157,12 @@ void screen_dump(void)
                 write(fd, linebuf, DUMP_BMP_LINESIZE);
                 write(fd, linebuf, DUMP_BMP_LINESIZE);
             }
-#endif     
+#endif
             dst = linebuf;
 
 #if LCD_DEPTH == 1
             dst_end = dst + LCD_WIDTH/2;
-            src = lcd_framebuffer[y >> 3];
+            src = FBADDR(0, y >> 3);
             mask = BIT_N(y & 7);
 
             do
@@ -173,7 +181,7 @@ void screen_dump(void)
             dst_end = dst + LCD_WIDTH/2;
 
 #if LCD_PIXELFORMAT == HORIZONTAL_PACKING
-            src = lcd_framebuffer[y];
+            src = FBADDR(0, y);
 
             do
             {
@@ -185,7 +193,7 @@ void screen_dump(void)
             while (dst < dst_end);
 
 #elif LCD_PIXELFORMAT == VERTICAL_PACKING
-            src = lcd_framebuffer[y >> 2];
+            src = FBADDR(0, y >> 2);
             shift = 2 * (y & 3);
 
             do
@@ -197,7 +205,7 @@ void screen_dump(void)
             while (dst < dst_end);
 
 #elif LCD_PIXELFORMAT == VERTICAL_INTERLEAVED
-            src = lcd_framebuffer[y >> 3];
+            src = FBADDR(0, y >> 3);
             shift = y & 7;
 
             do
@@ -214,8 +222,8 @@ void screen_dump(void)
 #endif
 #elif LCD_DEPTH == 16
             dst_end = dst + LCD_WIDTH;
-            src = lcd_framebuffer[y];
-            
+            src = FBADDR(0, y);
+
             do
             {
 #if (LCD_PIXELFORMAT == RGB565SWAPPED)
@@ -226,9 +234,24 @@ void screen_dump(void)
 #endif
             }
             while (dst < dst_end);
+#elif LCD_DEPTH == 24
+            dst_end = dst + LCD_WIDTH*3;
+            src = FBADDR(0, y);
+            do
+            {
+                *dst++ = src->b;
+                *dst++ = src->g;
+                *dst++ = src->r;
+                ++src;
+            }
+            while (dst < dst_end);
 
 #endif /* LCD_DEPTH */
-            write(fd, linebuf, DUMP_BMP_LINESIZE);
+            if(write(fd, linebuf, DUMP_BMP_LINESIZE) != DUMP_BMP_LINESIZE)
+            {
+                close(fd);
+                return;
+            }
         }
     }
     close(fd);
@@ -283,7 +306,7 @@ static const unsigned char rbmpheader[] =
 void remote_screen_dump(void)
 {
     int fd, y;
-    char filename[MAX_PATH];
+    char filename[32];
 
     fb_remote_data *src;
 #if LCD_REMOTE_DEPTH == 1
@@ -318,7 +341,7 @@ void remote_screen_dump(void)
 
 #if LCD_REMOTE_DEPTH == 1
         dst_end = dst + LCD_REMOTE_WIDTH/2;
-        src = lcd_remote_framebuffer[y >> 3];
+        src = FBREMOTEADDR(0, y >> 3);
         mask = BIT_N(y & 7);
 
         do
@@ -333,7 +356,7 @@ void remote_screen_dump(void)
         dst_end = dst + LCD_REMOTE_WIDTH/2;
 
 #if LCD_REMOTE_PIXELFORMAT == VERTICAL_INTERLEAVED
-        src = lcd_remote_framebuffer[y >> 3];
+        src = FBREMOTEADDR(0, (y >> 3));
         shift = y & 7;
 
         do

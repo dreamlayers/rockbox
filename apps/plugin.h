@@ -27,10 +27,6 @@
 #define NO_REDEFINES_PLEASE
 #endif
 
-#ifndef MEM
-#define MEM 2
-#endif
-
 #include <stdbool.h>
 #include <inttypes.h>
 #include <sys/types.h>
@@ -38,8 +34,18 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <ctype.h>
 #include "string-extra.h"
 #include "gcc_extensions.h"
+
+
+
+/* on some platforms strcmp() seems to be a tricky define which
+ * breaks if we write down strcmp's prototype */
+#undef strcmp
+#undef strncmp
+#undef strchr
+#undef strtok_r
 
 char* strncpy(char *, const char *, size_t);
 void* plugin_get_buffer(size_t *buffer_size);
@@ -57,19 +63,24 @@ void* plugin_get_buffer(size_t *buffer_size);
 #include "usb.h"
 #include "font.h"
 #include "lcd.h"
+#include "scroll_engine.h"
 #include "metadata.h"
 #include "sound.h"
 #include "mpeg.h"
 #include "audio.h"
 #include "mp3_playback.h"
+#include "root_menu.h"
 #include "talk.h"
 #ifdef RB_PROFILE
 #include "profile.h"
 #endif
 #include "misc.h"
-#include "filefuncs.h"
+#include "pathfuncs.h"
 #if (CONFIG_CODEC == SWCODEC)
-#include "dsp.h"
+#include "pcm_mixer.h"
+#include "dsp-util.h"
+#include "dsp_core.h"
+#include "dsp_proc_settings.h"
 #include "codecs.h"
 #include "playback.h"
 #include "codec_thread.h"
@@ -94,6 +105,7 @@ void* plugin_get_buffer(size_t *buffer_size);
 #include "list.h"
 #include "tree.h"
 #include "color_picker.h"
+#include "buflib.h"
 #include "buffering.h"
 #include "tagcache.h"
 #include "viewport.h"
@@ -101,6 +113,9 @@ void* plugin_get_buffer(size_t *buffer_size);
 #include "settings_list.h"
 #include "timefuncs.h"
 #include "crc32.h"
+#include "rbpaths.h"
+#include "core_alloc.h"
+#include "screen_access.h"
 
 #ifdef HAVE_ALBUMART
 #include "albumart.h"
@@ -118,10 +133,6 @@ void* plugin_get_buffer(size_t *buffer_size);
 #include "usbstack/usb_hid_usage_tables.h"
 #endif
 
-
-/* on some platforms strcmp() seems to be a tricky define which
- * breaks if we write down strcmp's prototype */
-#undef strcmp
 
 #ifdef PLUGIN
 
@@ -149,12 +160,12 @@ void* plugin_get_buffer(size_t *buffer_size);
 #define PLUGIN_MAGIC 0x526F634B /* RocK */
 
 /* increase this every time the api struct changes */
-#define PLUGIN_API_VERSION 196
+#define PLUGIN_API_VERSION 233
 
 /* update this to latest version if a change to the api struct breaks
    backwards compatibility (and please take the opportunity to sort in any
    new function which are "waiting" at the end of the function table) */
-#define PLUGIN_MIN_API_VERSION 196
+#define PLUGIN_MIN_API_VERSION 233
 
 /* plugin return codes */
 /* internal returns start at 0x100 to make exit(1..255) work */
@@ -188,8 +199,8 @@ struct plugin_api {
     void (*lcd_putsxyf)(int x, int y, const unsigned char *fmt, ...);
     void (*lcd_puts)(int x, int y, const unsigned char *string);
     void (*lcd_putsf)(int x, int y, const unsigned char *fmt, ...);
-    void (*lcd_puts_scroll)(int x, int y, const unsigned char* string);
-    void (*lcd_stop_scroll)(void);
+    bool (*lcd_puts_scroll)(int x, int y, const unsigned char* string);
+    void (*lcd_scroll_stop)(void);
 #ifdef HAVE_LCD_CHARCELLS
     void (*lcd_define_pattern)(unsigned long ucs, const char *pattern);
     unsigned long (*lcd_get_locked_pattern)(void);
@@ -201,6 +212,10 @@ struct plugin_api {
     void (*lcd_double_height)(bool on);
 #else /* HAVE_LCD_BITMAP */
     fb_data* lcd_framebuffer;
+    void (*lcd_set_viewport)(struct viewport* vp);
+    void (*lcd_set_framebuffer)(fb_data *fb);
+    void (*lcd_bmp_part)(const struct bitmap *bm, int src_x, int src_y,
+                         int x, int y, int width, int height);
     void (*lcd_update_rect)(int x, int y, int width, int height);
     void (*lcd_set_drawmode)(int mode);
     int  (*lcd_get_drawmode)(void);
@@ -227,7 +242,7 @@ struct plugin_api {
     fb_data* (*lcd_get_backdrop)(void);
     void (*lcd_set_backdrop)(fb_data* backdrop);
 #endif
-#if LCD_DEPTH == 16
+#if LCD_DEPTH >= 16
     void (*lcd_bitmap_transparent_part)(const fb_data *src,
             int src_x, int src_y, int stride,
             int x, int y, int width, int height);
@@ -240,7 +255,7 @@ struct plugin_api {
 #if defined(TOSHIBA_GIGABEAT_F) || defined(SANSA_E200) || defined(SANSA_C200) \
     || defined(IRIVER_H10) || defined(COWON_D2) || defined(PHILIPS_HDD1630) \
     || defined(SANSA_FUZE) || defined(SANSA_E200V2) || defined(SANSA_FUZEV2) \
-    || defined(TOSHIBA_GIGABEAT_S)
+    || defined(TOSHIBA_GIGABEAT_S) || defined(PHILIPS_SA9200)
     void (*lcd_yuv_set_options)(unsigned options);
 #endif
 #endif /* MEMORYSIZE > 2 */
@@ -256,9 +271,6 @@ struct plugin_api {
                             int width, int height);
     void (*lcd_pal256_update_pal)(fb_data *palette);
 #endif
-    void (*lcd_puts_style)(int x, int y, const unsigned char *str, int style);
-    void (*lcd_puts_scroll_style)(int x, int y, const unsigned char* string,
-                                  int style);
 #ifdef HAVE_LCD_INVERT
     void (*lcd_set_invert_display)(bool yesno);
 #endif /* HAVE_LCD_INVERT */
@@ -274,7 +286,8 @@ struct plugin_api {
     bool (*is_diacritic)(const unsigned short char_code, bool *is_rtl);
 #endif
     const unsigned char *(*font_get_bits)( struct font *pf, unsigned short char_code );
-    int (*font_load)(struct font*, const char *path);
+    int (*font_load)(const char *path);
+    void (*font_unload)(int font_id);
     struct font* (*font_get)(int font);
     int  (*font_getstringsize)(const unsigned char *str, int *w, int *h,
                                int fontnumber);
@@ -315,8 +328,8 @@ struct plugin_api {
     void (*lcd_remote_set_contrast)(int x);
     void (*lcd_remote_clear_display)(void);
     void (*lcd_remote_puts)(int x, int y, const unsigned char *string);
-    void (*lcd_remote_puts_scroll)(int x, int y, const unsigned char* string);
-    void (*lcd_remote_stop_scroll)(void);
+    bool (*lcd_remote_puts_scroll)(int x, int y, const unsigned char* string);
+    void (*lcd_remote_scroll_stop)(void);
     void (*lcd_remote_set_drawmode)(int mode);
     int  (*lcd_remote_get_drawmode)(void);
     void (*lcd_remote_setfont)(int font);
@@ -333,9 +346,6 @@ struct plugin_api {
     void (*lcd_remote_mono_bitmap)(const unsigned char *src, int x, int y,
                                    int width, int height);
     void (*lcd_remote_putsxy)(int x, int y, const unsigned char *string);
-    void (*lcd_remote_puts_style)(int x, int y, const unsigned char *str, int style);
-    void (*lcd_remote_puts_scroll_style)(int x, int y, const unsigned char* string,
-                                         int style);
     fb_remote_data* lcd_remote_framebuffer;
     void (*lcd_remote_update)(void);
     void (*lcd_remote_update_rect)(int x, int y, int width, int height);
@@ -365,6 +375,8 @@ struct plugin_api {
     void (*viewportmanager_theme_enable)(enum screen_type screen, bool enable,
                                          struct viewport *viewport);
     void (*viewportmanager_theme_undo)(enum screen_type screen, bool force_redraw);
+    void (*viewport_set_fullscreen)(struct viewport *vp,
+                                    const enum screen_type screen);
 #endif
     /* list */
     void (*gui_synclist_init)(struct gui_synclist * lists,
@@ -408,6 +420,7 @@ struct plugin_api {
 #endif
 #ifdef HAVE_TOUCHSCREEN
     void (*touchscreen_set_mode)(enum touchscreen_mode);
+    enum touchscreen_mode (*touchscreen_get_mode)(void);
 #endif
 #ifdef HAVE_BUTTON_LIGHT
     void (*buttonlight_set_timeout)(int value);
@@ -420,43 +433,53 @@ struct plugin_api {
 
     /* file */
     int (*open_utf8)(const char* pathname, int flags);
-    int (*open)(const char* pathname, int flags, ...);
-    int (*close)(int fd);
-    ssize_t (*read)(int fd, void* buf, size_t count);
-    off_t (*lseek)(int fd, off_t offset, int whence);
-    int (*creat)(const char *pathname, mode_t mode);
-    ssize_t (*write)(int fd, const void* buf, size_t count);
-    int (*remove)(const char* pathname);
-    int (*rename)(const char* path, const char* newname);
-    int (*ftruncate)(int fd, off_t length);
-    off_t (*filesize)(int fd);
-    int (*fdprintf)(int fd, const char *fmt, ...) ATTRIBUTE_PRINTF(2, 3);
+    int (*open)(const char *path, int oflag, ...);
+    int (*creat)(const char *path, mode_t mode);
+    int (*close)(int fildes);
+    ssize_t (*read)(int fildes, void *buf, size_t nbyte);
+    off_t (*lseek)(int fildes, off_t offset, int whence);
+    ssize_t (*write)(int fildes, const void *buf, size_t nbyte);
+    int (*remove)(const char *path);
+    int (*rename)(const char *old, const char *new);
+    int (*ftruncate)(int fildes, off_t length);
+    off_t (*filesize)(int fildes);
+    int (*fdprintf)(int fildes, const char *fmt, ...) ATTRIBUTE_PRINTF(2, 3);
     int (*read_line)(int fd, char* buffer, int buffer_size);
     bool (*settings_parseline)(char* line, char** name, char** value);
     void (*storage_sleep)(void);
     void (*storage_spin)(void);
     void (*storage_spindown)(int seconds);
 #if USING_STORAGE_CALLBACK
-    void (*register_storage_idle_func)(void (*function)(void *data));
-    void (*unregister_storage_idle_func)(void (*function)(void *data), bool run);
+    void (*register_storage_idle_func)(void (*function)(void));
+    void (*unregister_storage_idle_func)(void (*function)(void), bool run);
 #endif /* USING_STORAGE_CALLBACK */
     void (*reload_directory)(void);
     char *(*create_numbered_filename)(char *buffer, const char *path,
                                       const char *prefix, const char *suffix,
                                       int numberlen IF_CNFN_NUM_(, int *num));
-    bool (*file_exists)(const char *file);
+    bool (*file_exists)(const char *path);
     char* (*strip_extension)(char* buffer, int buffer_size, const char *filename);
-    unsigned (*crc_32)(const void *src, unsigned len, unsigned crc32);
+    uint32_t (*crc_32)(const void *src, uint32_t len, uint32_t crc32);
+
+    int (*filetype_get_attr)(const char* file);
+
 
 
     /* dir */
-    DIR* (*opendir)(const char* name);
-    int (*closedir)(DIR* dir);
-    struct dirent* (*readdir)(DIR* dir);
-    int (*mkdir)(const char *name);
-    int (*rmdir)(const char *name);
-    bool (*dir_exists)(const char *path);
-    struct dirinfo (*dir_get_info)(DIR* parent, struct dirent *entry);
+    DIR * (*opendir)(const char *dirname);
+    int (*closedir)(DIR *dirp);
+    struct dirent * (*readdir)(DIR *dirp);
+    int (*mkdir)(const char *path);
+    int (*rmdir)(const char *path);
+    bool (*dir_exists)(const char *dirname);
+    struct dirinfo (*dir_get_info)(DIR *dirp, struct dirent *entry);
+
+    /* browsing */
+    void (*browse_context_init)(struct browse_context *browse,
+                                int dirfilter, unsigned flags,
+                                char *title, enum themable_icons icon,
+                                const char *root, const char *selected);
+    int (*rockbox_browse)(struct browse_context *browse);
 
     /* kernel/ system */
 #if defined(CPU_ARM) && CONFIG_PLATFORM & PLATFORM_NATIVE
@@ -473,6 +496,7 @@ struct plugin_api {
                                   const char *name
                                   IF_PRIO(, int priority)
                                   IF_COP(, unsigned int core));
+    unsigned int (*thread_self)(void);
     void (*thread_exit)(void);
     void (*thread_wait)(unsigned int thread_id);
 #if CONFIG_CODEC == SWCODEC
@@ -502,8 +526,9 @@ struct plugin_api {
     void (*cancel_cpu_boost)(void);
 #endif
 
-    void (*cpucache_flush)(void);
-    void (*cpucache_invalidate)(void);
+    void (*commit_dcache)(void);
+    void (*commit_discard_dcache)(void);
+    void (*commit_discard_idcache)(void);
 
     /* load code api for overlay */
     void* (*lc_open)(const char *filename, unsigned char *buf, size_t buf_size);
@@ -544,8 +569,8 @@ struct plugin_api {
     void (*profile_func_exit)(void *this_fn, void *call_site);
 #endif
     /* event api */
-    bool (*add_event)(unsigned short id, bool oneshot, void (*handler)(void *data));
-    void (*remove_event)(unsigned short id, void (*handler)(void *data));
+    bool (*add_event)(unsigned short id, void (*handler)(unsigned short id, void *data));
+    void (*remove_event)(unsigned short id, void (*handler)(unsigned short id, void *data));
     void (*send_event)(unsigned short id, void *data);
 
 #if (CONFIG_PLATFORM & PLATFORM_HOSTED)
@@ -591,6 +616,22 @@ struct plugin_api {
     unsigned long (*utf8length)(const unsigned char *utf8);
     int (*utf8seek)(const unsigned char* utf8, int offset);
 
+    /* the buflib memory management library */
+    void   (*buflib_init)(struct buflib_context* ctx, void* buf, size_t size);
+    size_t (*buflib_available)(struct buflib_context* ctx);
+    int    (*buflib_alloc)(struct buflib_context* ctx, size_t size);
+    int    (*buflib_alloc_ex)(struct buflib_context* ctx, size_t size,
+                              const char* name, struct buflib_callbacks *ops);
+    int    (*buflib_alloc_maximum)(struct buflib_context* ctx, const char* name,
+                                   size_t* size, struct buflib_callbacks *ops);
+    void   (*buflib_buffer_in)(struct buflib_context* ctx, int size);
+    void*  (*buflib_buffer_out)(struct buflib_context* ctx, size_t* size);
+    int    (*buflib_free)(struct buflib_context* ctx, int handle);
+    bool   (*buflib_shrink)(struct buflib_context* ctx, int handle,
+                            void* new_start, size_t new_size);
+    void*  (*buflib_get_data)(struct buflib_context* ctx, int handle);
+    const char* (*buflib_get_name)(struct buflib_context* ctx, int handle);
+
     /* sound */
     void (*sound_set)(int setting, int value);
     int (*sound_default)(int setting);
@@ -603,8 +644,8 @@ struct plugin_api {
                                          unsigned int band_setting);
 #endif /* AUDIOHW_HAVE_EQ */
 #if (CONFIG_PLATFORM & PLATFORM_NATIVE)
-    void (*mp3_play_data)(const unsigned char* start, int size,
-                          void (*get_more)(unsigned char** start, size_t* size));
+    void (*mp3_play_data)(const void* start, size_t size,
+                          mp3_play_callback_t get_more);
     void (*mp3_play_pause)(bool play);
     void (*mp3_play_stop)(void);
     bool (*mp3_is_playing)(void);
@@ -617,7 +658,8 @@ struct plugin_api {
     const unsigned long *hw_freq_sampr;
     void (*pcm_apply_settings)(void);
     void (*pcm_play_data)(pcm_play_callback_type get_more,
-            unsigned char* start, size_t size);
+                          pcm_status_callback_type status_cb,
+                          const void *start, size_t size);
     void (*pcm_play_stop)(void);
     void (*pcm_set_frequency)(unsigned int frequency);
     bool (*pcm_is_playing)(void);
@@ -628,14 +670,14 @@ struct plugin_api {
     const void* (*pcm_get_peak_buffer)(int *count);
     void (*pcm_play_lock)(void);
     void (*pcm_play_unlock)(void);
-    void (*pcmbuf_beep)(unsigned int frequency,
-                        size_t duration,
-                        int amplitude);
+    void (*beep_play)(unsigned int frequency, unsigned int duration,
+                      unsigned int amplitude);
 #ifdef HAVE_RECORDING
     const unsigned long *rec_freq_sampr;
     void (*pcm_init_recording)(void);
     void (*pcm_close_recording)(void);
     void (*pcm_record_data)(pcm_rec_callback_type more_ready,
+                            pcm_status_callback_type status_cb,
                             void *start, size_t size);
     void (*pcm_stop_recording)(void);
     void (*pcm_calculate_rec_peaks)(int *left, int *right);
@@ -645,21 +687,46 @@ struct plugin_api {
     void (*audio_set_output_source)(int monitor);
     void (*audio_set_input_source)(int source, unsigned flags);
 #endif
-    void (*dsp_set_crossfeed)(bool enable);
-    void (*dsp_set_eq)(bool enable);
+    void (*dsp_set_crossfeed_type)(int type);
+    void (*dsp_eq_enable)(bool enable);
     void (*dsp_dither_enable)(bool enable);
-    intptr_t (*dsp_configure)(struct dsp_config *dsp, int setting,
-                              intptr_t value);
-    int (*dsp_process)(struct dsp_config *dsp, char *dest,
-                       const char *src[], int count);
-    int (*dsp_input_count)(struct dsp_config *dsp, int count);
-    int (*dsp_output_count)(struct dsp_config *dsp, int count);
+#ifdef HAVE_PITCHCONTROL
+    void (*dsp_set_timestretch)(int32_t percent);
+#endif
+    intptr_t (*dsp_configure)(struct dsp_config *dsp,
+                              unsigned int setting, intptr_t value);
+    struct dsp_config * (*dsp_get_config)(enum dsp_ids id);
+    void (*dsp_process)(struct dsp_config *dsp, struct dsp_buffer *src,
+                        struct dsp_buffer *dst);
+
+    enum channel_status (*mixer_channel_status)(enum pcm_mixer_channel channel);
+    const void * (*mixer_channel_get_buffer)(enum pcm_mixer_channel channel,
+                                             int *count);
+    void (*mixer_channel_calculate_peaks)(enum pcm_mixer_channel channel,
+                                          struct pcm_peaks *peaks);
+    void (*mixer_channel_play_data)(enum pcm_mixer_channel channel,
+                                    pcm_play_callback_type get_more,
+                                    const void *start, size_t size);
+    void (*mixer_channel_play_pause)(enum pcm_mixer_channel channel, bool play);
+    void (*mixer_channel_stop)(enum pcm_mixer_channel channel);
+    void (*mixer_channel_set_amplitude)(enum pcm_mixer_channel channel,
+                                        unsigned int amplitude);
+    size_t (*mixer_channel_get_bytes_waiting)(enum pcm_mixer_channel channel);
+    void (*mixer_channel_set_buffer_hook)(enum pcm_mixer_channel channel,
+                                          chan_buffer_hook_fn_type fn);
+    void (*mixer_set_frequency)(unsigned int samplerate);
+    unsigned int (*mixer_get_frequency)(void);
+    void (*system_sound_play)(enum system_sound sound);
+    void (*keyclick_click)(bool rawbutton, int action);
 #endif /* CONFIG_CODEC == SWCODC */
 
     /* playback control */
     int (*playlist_amount)(void);
     int (*playlist_resume)(void);
-    void (*playlist_start)(int start_index, int offset);
+    void (*playlist_resume_track)(int start_index, unsigned int crc,
+                                  unsigned long elapsed, unsigned long offset);
+    void (*playlist_start)(int start_index, unsigned long elapsed,
+                           unsigned long offset);
     int (*playlist_add)(const char *filename);
     void (*playlist_sync)(struct playlist_info* playlist);
     int (*playlist_remove_all_tracks)(struct playlist_info *playlist);
@@ -670,7 +737,7 @@ struct plugin_api {
                               const char *dirname, int position, bool queue,
                               bool recurse);
     int (*playlist_shuffle)(int random_seed, int start_index);
-    void (*audio_play)(long offset);
+    void (*audio_play)(unsigned long elapsed, unsigned long offset);
     void (*audio_stop)(void);
     void (*audio_pause)(void);
     void (*audio_resume)(void);
@@ -686,7 +753,7 @@ struct plugin_api {
     unsigned long (*mpeg_get_last_header)(void);
 #endif
 #if ((CONFIG_CODEC == MAS3587F) || (CONFIG_CODEC == MAS3539F) || \
-     (CONFIG_CODEC == SWCODEC)) && defined (HAVE_PITCHSCREEN)
+     (CONFIG_CODEC == SWCODEC)) && defined (HAVE_PITCHCONTROL)
     void (*sound_set_pitch)(int32_t pitch);
 #endif
 
@@ -749,22 +816,19 @@ struct plugin_api {
     int (*battery_level)(void);
     bool (*battery_level_safe)(void);
     int (*battery_time)(void);
-#if (CONFIG_PLATFORM & PLATFORM_NATIVE)
-    unsigned int (*battery_voltage)(void);
-#endif
+    int (*battery_voltage)(void);
 #if CONFIG_CHARGING
     bool (*charger_inserted)(void);
 # if CONFIG_CHARGING >= CHARGING_MONITOR
     bool (*charging_state)(void);
 # endif
 #endif
-#ifdef HAVE_USB_POWER
-    bool (*usb_powered)(void);
-#endif
+    /* usb */
+    bool (*usb_inserted)(void);
 
     /* misc */
 #if (CONFIG_PLATFORM & PLATFORM_NATIVE)
-    int* __errno;
+    int * (*__errno)(void);
 #endif
     void (*srand)(unsigned int seed);
     int  (*rand)(void);
@@ -773,11 +837,13 @@ struct plugin_api {
     int (*kbd_input)(char* buffer, int buflen);
     struct tm* (*get_time)(void);
     int  (*set_time)(const struct tm *tm);
+    struct tm * (*gmtime_r)(const time_t *timep, struct tm *tm);
 #if CONFIG_RTC
     time_t (*mktime)(struct tm *t);
 #endif
     void* (*plugin_get_buffer)(size_t *buffer_size);
     void* (*plugin_get_audio_buffer)(size_t *buffer_size);
+    void (*plugin_release_audio_buffer)(void);
     void (*plugin_tsr)(bool (*exit_callback)(bool reenter));
     char* (*plugin_get_current_filename)(void);
 #if defined(DEBUG) || defined(SIMULATOR)
@@ -793,6 +859,8 @@ struct plugin_api {
     void (*codec_thread_do_callback)(void (*fn)(void),
                                      unsigned int *audio_thread_id);
     int (*codec_load_file)(const char* codec, struct codec_api *api);
+    int (*codec_run_proc)(void);
+    int (*codec_close)(void);
     const char *(*get_codec_filename)(int cod_spec);
     void ** (*find_array_ptr)(void **arr, void *ptr);
     int (*remove_array_ptr)(void **arr, void *ptr);
@@ -803,14 +871,16 @@ struct plugin_api {
 #endif /* CONFIG_CODEC == SWCODEC */
     bool (*get_metadata)(struct mp3entry* id3, int fd, const char* trackname);
     bool (*mp3info)(struct mp3entry *entry, const char *filename);
-    int (*count_mp3_frames)(int fd, int startpos, int filesize,
-                            void (*progressfunc)(int));
+    int (*count_mp3_frames)(int fd,  int startpos,  int filesize,
+                     void (*progressfunc)(int),
+                     unsigned char* buf, size_t buflen);
     int (*create_xing_header)(int fd, long startpos, long filesize,
             unsigned char *buf, unsigned long num_frames,
             unsigned long rec_time, unsigned long header_template,
-            void (*progressfunc)(int), bool generate_toc);
+            void (*progressfunc)(int), bool generate_toc,
+            unsigned char* tempbuf, size_t tempbuf_len);
     unsigned long (*find_next_frame)(int fd, long *offset,
-            long max_offset, unsigned long last_header);
+            long max_offset, unsigned long reference_header);
 
 #if (CONFIG_CODEC == MAS3587F) || (CONFIG_CODEC == MAS3539F)
     unsigned short (*peak_meter_scale_value)(unsigned short val,
@@ -833,6 +903,9 @@ struct plugin_api {
 #endif
     int (*show_logo)(void);
     struct tree_context* (*tree_get_context)(void);
+    struct entry* (*tree_get_entries)(struct tree_context* t);
+    struct entry* (*tree_get_entry_at)(struct tree_context* t, int index);
+
     void (*set_current_file)(const char* path);
     void (*set_dirfilter)(int l_dirfilter);
 
@@ -863,9 +936,7 @@ struct plugin_api {
     ssize_t (*bufgettail)(int handle_id, size_t size, void **data);
     ssize_t (*bufcuttail)(int handle_id, size_t size);
 
-    ssize_t (*buf_get_offset)(int handle_id, void *ptr);
     ssize_t (*buf_handle_offset)(int handle_id);
-    void (*buf_request_buffer_handle)(int handle_id);
     void (*buf_set_base_handle)(int handle_id);
     size_t (*buf_used)(void);
 #endif
@@ -893,15 +964,19 @@ struct plugin_api {
 
 #ifdef HAVE_SEMAPHORE_OBJECTS
     void (*semaphore_init)(struct semaphore *s, int max, int start);
-    void (*semaphore_wait)(struct semaphore *s);
+    int  (*semaphore_wait)(struct semaphore *s, int timeout);
     void (*semaphore_release)(struct semaphore *s);
 #endif
 
     const char *rbversion;
+    struct menu_table *(*root_menu_get_options)(int *nb_options);
+    void (*root_menu_set_default)(void* setting, void* defaultval);
+    char* (*root_menu_write_to_cfg)(void* setting, char*buf, int buf_len);
+    void (*root_menu_load_from_cfg)(void* setting, char *value);
+    int (*settings_save)(void);
 
     /* new stuff at the end, sort into place next time
        the API gets incompatible */
-    int (*filetype_get_attr)(const char* file);
 };
 
 /* plugin header */
@@ -932,15 +1007,10 @@ extern unsigned char plugin_end_addr[];
 #endif /* PLUGIN */
 
 int plugin_load(const char* plugin, const void* parameter);
-void* plugin_get_audio_buffer(size_t *buffer_size);
-
-/* plugin_tsr,
-    callback returns true to allow the new plugin to load,
-    reenter means the currently running plugin is being reloaded */
-void plugin_tsr(bool (*exit_callback)(bool reenter));
 
 /* defined by the plugin */
 extern const struct plugin_api *rb;
+enum plugin_status plugin_start(const void* parameter);
 enum plugin_status plugin__start(const void* parameter)
     NO_PROF_ATTR;
 

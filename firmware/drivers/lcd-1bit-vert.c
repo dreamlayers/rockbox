@@ -37,14 +37,16 @@
 #ifndef LCDFN /* Not compiling for remote - define macros for main LCD. */
 #define LCDFN(fn) lcd_ ## fn
 #define FBFN(fn)  fb_ ## fn
+#define FBSIZE FRAMEBUFFER_SIZE
 #define LCDM(ma) LCD_ ## ma
 #define LCDNAME "lcd_"
+#define LCDFB(x,y) FBADDR(x, y)
 #define MAIN_LCD
 #endif
 
 /*** globals ***/
-
-FBFN(data) LCDFN(framebuffer)[LCDM(FBHEIGHT)][LCDM(FBWIDTH)] IRAM_LCDFRAMEBUFFER;
+FBFN(data) LCDFN(static_framebuffer)[LCDM(FBHEIGHT)][LCDM(FBWIDTH)] IRAM_LCDFRAMEBUFFER;
+FBFN(data) *LCDFN(framebuffer) = &LCDFN(static_framebuffer)[0][0];
 
 static struct viewport default_vp =
 {
@@ -57,49 +59,6 @@ static struct viewport default_vp =
 };
 
 static struct viewport* current_vp = &default_vp;
-
-/*** Viewports ***/
-
-void LCDFN(set_viewport)(struct viewport* vp)
-{
-    if (vp == NULL)
-        current_vp = &default_vp;
-    else
-        current_vp = vp;
-
-#if defined(SIMULATOR)
-    /* Force the viewport to be within bounds.  If this happens it should
-     *  be considered an error - the viewport will not draw as it might be
-     *  expected.
-     */
-    if((unsigned) current_vp->x > (unsigned) LCDM(WIDTH) 
-        || (unsigned) current_vp->y > (unsigned) LCDM(HEIGHT) 
-        || current_vp->x + current_vp->width > LCDM(WIDTH)
-        || current_vp->y + current_vp->height > LCDM(HEIGHT))
-    {
-#if !defined(HAVE_VIEWPORT_CLIP)
-        DEBUGF("ERROR: "
-#else
-        DEBUGF("NOTE: "
-#endif
-            "set_viewport out of bounds: x: %d y: %d width: %d height:%d\n", 
-            current_vp->x, current_vp->y, 
-            current_vp->width, current_vp->height);
-    }
-    
-#endif
-}
-
-void LCDFN(update_viewport)(void)
-{
-    LCDFN(update_rect)(current_vp->x, current_vp->y,
-                       current_vp->width, current_vp->height);
-}
-
-void LCDFN(update_viewport_rect)(int x, int y, int width, int height)
-{
-    LCDFN(update_rect)(current_vp->x + x, current_vp->y + y, width, height);
-}
 
 /* LCD init */
 void LCDFN(init)(void)
@@ -152,17 +111,17 @@ int LCDFN(getstringsize)(const unsigned char *str, int *w, int *h)
 
 static void setpixel(int x, int y)
 {
-    LCDFN(framebuffer)[y>>3][x] |= BIT_N(y & 7);
+    *LCDFB(x,y>>3) |= BIT_N(y & 7);
 }
 
 static void clearpixel(int x, int y)
 {
-    LCDFN(framebuffer)[y>>3][x] &= ~BIT_N(y & 7);
+    *LCDFB(x,y>>3) &= ~BIT_N(y & 7);
 }
 
 static void flippixel(int x, int y)
 {
-    LCDFN(framebuffer)[y>>3][x] ^= BIT_N(y & 7);
+    *LCDFB(x,y>>3) ^= BIT_N(y & 7);
 }
 
 static void nopixel(int x, int y)
@@ -242,7 +201,7 @@ void LCDFN(clear_display)(void)
 {
     unsigned bits = (current_vp->drawmode & DRMODE_INVERSEVID) ? 0xFFu : 0;
 
-    memset(LCDFN(framebuffer), bits, sizeof LCDFN(framebuffer));
+    memset(LCDFN(framebuffer), bits, FBSIZE);
     LCDFN(scroll_info).lines = 0;
 }
 
@@ -267,7 +226,7 @@ void LCDFN(clear_viewport)(void)
 
         current_vp->drawmode = oldmode;
 
-        LCDFN(scroll_stop)(current_vp);
+        LCDFN(scroll_stop_viewport)(current_vp);
     }
 }
 
@@ -422,7 +381,7 @@ void LCDFN(hline)(int x1, int x2, int y)
     width = x2 - x1 + 1;
 
     bfunc = LCDFN(blockfuncs)[current_vp->drawmode];
-    dst   = &LCDFN(framebuffer)[y>>3][x1];
+    dst   = LCDFB(x1,y>>3);
     mask  = BIT_N(y & 7);
 
     dst_end = dst + width;
@@ -478,7 +437,7 @@ void LCDFN(vline)(int x, int y1, int y2)
 #endif
 
     bfunc = LCDFN(blockfuncs)[current_vp->drawmode];
-    dst   = &LCDFN(framebuffer)[y1>>3][x];
+    dst   = LCDFB(x,y1>>3);
     ny    = y2 - (y1 & ~7);
     mask  = 0xFFu << (y1 & 7);
     mask_bottom = 0xFFu >> (~ny & 7);
@@ -583,7 +542,7 @@ void LCDFN(fillrect)(int x, int y, int width, int height)
         }
     }
     bfunc = LCDFN(blockfuncs)[current_vp->drawmode];
-    dst   = &LCDFN(framebuffer)[y>>3][x];
+    dst   = LCDFB(x,y>>3);
     ny    = height - 1 + (y & 7);
     mask  = 0xFFu << (y & 7);
     mask_bottom = 0xFFu >> (~ny & 7);
@@ -696,7 +655,7 @@ void ICODE_ATTR LCDFN(bitmap_part)(const unsigned char *src, int src_x,
     src    += stride * (src_y >> 3) + src_x; /* move starting point */
     src_y  &= 7;
     y      -= src_y;
-    dst    = &LCDFN(framebuffer)[y>>3][x];
+    dst    = LCDFB(x,y>>3);
     shift  = y & 7;
     ny     = height - 1 + shift + src_y;
 

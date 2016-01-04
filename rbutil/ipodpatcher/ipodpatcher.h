@@ -31,7 +31,7 @@ extern "C" {
 /* Size of buffer for disk I/O - 8MB is large enough for any version
    of the Apple firmware, but not the Nano's RSRC image. */
 #define BUFFER_SIZE 8*1024*1024
-extern unsigned char* ipod_sectorbuf;
+
 extern int ipod_verbose;
 
 #define FILETYPE_DOT_IPOD 0
@@ -59,6 +59,7 @@ void ipod_get_ramsize(struct ipod_t* ipod);
 int read_aupd(struct ipod_t* ipod, char* filename);
 int write_aupd(struct ipod_t* ipod, char* filename);
 off_t filesize(int fd);
+int ipod_has_bootloader(struct ipod_t* ipod);
 
 #ifdef __cplusplus
 }

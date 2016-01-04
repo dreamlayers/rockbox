@@ -7,7 +7,6 @@
 *                     \/            \/     \/    \/            \/
 *
 *   Copyright (C) 2007 by Dominik Wenger
-*   $Id$
 *
 * All files in this archive are subject to the GNU General Public License.
 * See the file COPYING in the source tree root for full license agreement.
@@ -21,13 +20,16 @@
 #include "utils.h"
 #include "rbsettings.h"
 #include "systeminfo.h"
+#include "Logger.h"
 
 TTSSapi::TTSSapi(QObject* parent) : TTSBase(parent)
 {
-    m_TTSTemplate = "cscript //nologo \"%exe\" /language:%lang /voice:\"%voice\""
-        " /speed:%speed \"%options\"";
-    defaultLanguage ="english";
-    m_sapi4 =false;
+    m_TTSTemplate = "cscript //nologo \"%exe\" /language:%lang "
+        "/voice:\"%voice\" /speed:%speed \"%options\"";
+    m_TTSVoiceTemplate = "cscript //nologo \"%exe\" /language:%lang /listvoices";
+    m_TTSType = "sapi";
+    defaultLanguage = "english";
+    m_started = false;
 }
 
 TTSBase::Capabilities TTSSapi::capabilities()
@@ -38,39 +40,49 @@ TTSBase::Capabilities TTSSapi::capabilities()
 void TTSSapi::generateSettings()
 {
     // language
-    QStringList languages = SystemInfo::languages();
-    languages.sort();
-    EncTtsSetting* setting =new EncTtsSetting(this,EncTtsSetting::eSTRINGLIST,
-        tr("Language:"),RbSettings::subValue("sapi",RbSettings::TtsLanguage),
-        languages);
+    QMap<QString, QStringList> languages = SystemInfo::languages();
+    QStringList langs;
+    for(int i = 0; i < languages.values().size(); ++i) {
+        langs.append(languages.values().at(i).at(0));
+    }
+    EncTtsSetting* setting = new EncTtsSetting(this,
+            EncTtsSetting::eSTRINGLIST, tr("Language:"),
+            RbSettings::subValue(m_TTSType, RbSettings::TtsLanguage),
+            langs);
     connect(setting,SIGNAL(dataChanged()),this,SLOT(updateVoiceList()));
     insertSetting(eLANGUAGE,setting);
     // voice
-    setting = new EncTtsSetting(this,EncTtsSetting::eSTRINGLIST,
-        tr("Voice:"),RbSettings::subValue("sapi",RbSettings::TtsVoice),
-        getVoiceList(RbSettings::subValue("sapi",RbSettings::TtsLanguage).toString()),
-        EncTtsSetting::eREFRESHBTN);
+    setting = new EncTtsSetting(this,
+            EncTtsSetting::eSTRINGLIST, tr("Voice:"),
+            RbSettings::subValue(m_TTSType, RbSettings::TtsVoice),
+            getVoiceList(RbSettings::subValue(m_TTSType,
+                    RbSettings::TtsLanguage).toString()),
+            EncTtsSetting::eREFRESHBTN);
     connect(setting,SIGNAL(refresh()),this,SLOT(updateVoiceList()));
     insertSetting(eVOICE,setting);
     //speed
-    insertSetting(eSPEED,new EncTtsSetting(this,EncTtsSetting::eINT,
-        tr("Speed:"),RbSettings::subValue("sapi",RbSettings::TtsSpeed),-10,10));
+    int speed = RbSettings::subValue(m_TTSType, RbSettings::TtsSpeed).toInt();
+    if(speed > 10 || speed < -10)
+        speed = 0;
+    insertSetting(eSPEED, new EncTtsSetting(this,
+                EncTtsSetting::eINT, tr("Speed:"), speed, -10, 10));
     // options
-    insertSetting(eOPTIONS,new EncTtsSetting(this,EncTtsSetting::eSTRING,
-        tr("Options:"),RbSettings::subValue("sapi",RbSettings::TtsOptions)));
+    insertSetting(eOPTIONS, new EncTtsSetting(this,
+                EncTtsSetting::eSTRING, tr("Options:"),
+                RbSettings::subValue(m_TTSType, RbSettings::TtsOptions)));
 
 }
 
 void TTSSapi::saveSettings()
 {
     //save settings in user config
-    RbSettings::setSubValue("sapi",RbSettings::TtsLanguage,
+    RbSettings::setSubValue(m_TTSType, RbSettings::TtsLanguage,
             getSetting(eLANGUAGE)->current().toString());
-    RbSettings::setSubValue("sapi",RbSettings::TtsVoice,
+    RbSettings::setSubValue(m_TTSType, RbSettings::TtsVoice,
             getSetting(eVOICE)->current().toString());
-    RbSettings::setSubValue("sapi",RbSettings::TtsSpeed,
+    RbSettings::setSubValue(m_TTSType, RbSettings::TtsSpeed,
             getSetting(eSPEED)->current().toInt());
-    RbSettings::setSubValue("sapi",RbSettings::TtsOptions,
+    RbSettings::setSubValue(m_TTSType, RbSettings::TtsOptions,
             getSetting(eOPTIONS)->current().toString());
 
     RbSettings::sync();
@@ -78,7 +90,7 @@ void TTSSapi::saveSettings()
 
 void TTSSapi::updateVoiceList()
 {
-    qDebug() << "update voiceList";
+    LOG_INFO() << "updating voicelist";
     QStringList voiceList = getVoiceList(getSetting(eLANGUAGE)->current().toString());
     getSetting(eVOICE)->setList(voiceList);
     if(voiceList.size() > 0) getSetting(eVOICE)->setCurrent(voiceList.at(0));
@@ -88,11 +100,10 @@ void TTSSapi::updateVoiceList()
 bool TTSSapi::start(QString *errStr)
 {
 
-    m_TTSOpts = RbSettings::subValue("sapi",RbSettings::TtsOptions).toString();
-    m_TTSLanguage =RbSettings::subValue("sapi",RbSettings::TtsLanguage).toString();
-    m_TTSVoice=RbSettings::subValue("sapi",RbSettings::TtsVoice).toString();
-    m_TTSSpeed=RbSettings::subValue("sapi",RbSettings::TtsSpeed).toString();
-    m_sapi4 = RbSettings::subValue("sapi",RbSettings::TtsUseSapi4).toBool();
+    m_TTSOpts = RbSettings::subValue(m_TTSType, RbSettings::TtsOptions).toString();
+    m_TTSLanguage =RbSettings::subValue(m_TTSType, RbSettings::TtsLanguage).toString();
+    m_TTSVoice=RbSettings::subValue(m_TTSType, RbSettings::TtsVoice).toString();
+    m_TTSSpeed=RbSettings::subValue(m_TTSType, RbSettings::TtsSpeed).toString();
 
     QFile::remove(QDir::tempPath() +"/sapi_voice.vbs");
     QFile::copy(":/builtin/sapi_voice.vbs",QDir::tempPath() + "/sapi_voice.vbs");
@@ -101,7 +112,7 @@ bool TTSSapi::start(QString *errStr)
     QFileInfo tts(m_TTSexec);
     if(!tts.exists())
     {
-        *errStr = tr("Could not copy the Sapi-script");
+        *errStr = tr("Could not copy the SAPI script");
         return false;
     }
     // create the voice process
@@ -112,17 +123,15 @@ bool TTSSapi::start(QString *errStr)
     execstring.replace("%voice",m_TTSVoice);
     execstring.replace("%speed",m_TTSSpeed);
 
-    if(m_sapi4)
-        execstring.append(" /sapi4 ");
-
-    qDebug() << "init" << execstring;
+    LOG_INFO() << "Start:" << execstring;
     voicescript = new QProcess(NULL);
     //connect(voicescript,SIGNAL(readyReadStandardError()),this,SLOT(error()));
-
     voicescript->start(execstring);
+    LOG_INFO() << "wait for process";
     if(!voicescript->waitForStarted())
     {
-        *errStr = tr("Could not start the Sapi-script");
+        *errStr = tr("Could not start SAPI process");
+        LOG_ERROR() << "starting process timed out!";
         return false;
     }
 
@@ -136,9 +145,29 @@ bool TTSSapi::start(QString *errStr)
     voicestream = new QTextStream(voicescript);
     voicestream->setCodec("UTF16-LE");
 
+    m_started = true;
     return true;
 }
 
+QString TTSSapi::voiceVendor(void)
+{
+    bool keeprunning = m_started;
+    QString vendor;
+    if(!m_started) {
+        QString error;
+        start(&error);
+    }
+    *voicestream << "QUERY\tVENDOR\r\n";
+    voicestream->flush();
+    while((vendor = voicestream->readLine()).isEmpty())
+            QCoreApplication::processEvents();
+
+    LOG_INFO() << "TTS vendor:" << vendor;
+    if(!keeprunning) {
+        stop();
+    }
+    return vendor;
+}
 
 QStringList TTSSapi::getVoiceList(QString language)
 {
@@ -152,24 +181,26 @@ QStringList TTSSapi::getVoiceList(QString language)
         return result;
 
     // create the voice process
-    QString execstring = "cscript //nologo \"%exe\" /language:%lang /listvoices";
+    QString execstring = m_TTSVoiceTemplate;
     execstring.replace("%exe",m_TTSexec);
     execstring.replace("%lang",language);
 
-    if(RbSettings::value(RbSettings::TtsUseSapi4).toBool())
-        execstring.append(" /sapi4 ");
-
-    qDebug() << "init" << execstring;
+    LOG_INFO() << "Start:" << execstring;
     voicescript = new QProcess(NULL);
     voicescript->start(execstring);
-    qDebug() << "wait for started";
-    if(!voicescript->waitForStarted())
+    LOG_INFO() << "wait for process";
+    if(!voicescript->waitForStarted()) {
+        LOG_INFO() << "process startup timed out!";
         return result;
+    }
     voicescript->closeWriteChannel();
     voicescript->waitForReadyRead();
 
     QString dataRaw = voicescript->readAllStandardError().data();
-    result = dataRaw.split(",",QString::SkipEmptyParts);
+    if(dataRaw.startsWith("Error")) {
+        LOG_INFO() << "Error:" << dataRaw;
+    }
+    result = dataRaw.split(";",QString::SkipEmptyParts);
     if(result.size() > 0)
     {
         result.sort();
@@ -196,18 +227,19 @@ TTSStatus TTSSapi::voice(QString text,QString wavfile, QString *errStr)
 {
     (void) errStr;
     QString query = "SPEAK\t"+wavfile+"\t"+text;
-    qDebug() << "[TTSSapi] voicing" << query;
+    LOG_INFO() << "voicing" << query;
     // append newline to query. Done now to keep debug output more readable.
     query.append("\r\n");
     *voicestream << query;
     *voicestream << "SYNC\tbla\r\n";
     voicestream->flush();
-    char temp[20];
-    
-    //we use this, because waitForReadyRead doesnt work from a different thread
-    while( voicescript->readLine(temp,20) == 0)
-        QCoreApplication::processEvents();
+    // do NOT poll the output with readLine(), this causes sync issues!
+    voicescript->waitForReadyRead();
 
+    if(!QFileInfo(wavfile).isFile()) {
+        LOG_ERROR() << "output file does not exist:" << wavfile;
+        return FatalError;
+    }
     return NoError;
 }
 
@@ -224,12 +256,13 @@ bool TTSSapi::stop()
             | QFile::ReadGroup | QFile::WriteGroup | QFile::ExeGroup
             | QFile::ReadOther | QFile::WriteOther | QFile::ExeOther );
     QFile::remove(QDir::tempPath() +"/sapi_voice.vbs");
+    m_started = false;
     return true;
 }
 
 bool TTSSapi::configOk()
 {
-    if(RbSettings::subValue("sapi",RbSettings::TtsVoice).toString().isEmpty())
+    if(RbSettings::subValue(m_TTSType, RbSettings::TtsVoice).toString().isEmpty())
         return false;
     return true;
 }

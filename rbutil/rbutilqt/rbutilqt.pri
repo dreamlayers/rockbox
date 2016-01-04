@@ -17,29 +17,27 @@
 
 # common files
 SOURCES += \
+ gui/manualwidget.cpp \
+ gui/infowidget.cpp \
  rbutilqt.cpp \
  main.cpp \
- installwindow.cpp \
  base/httpget.cpp \
  configure.cpp \
- zip/zip.cpp \
- zip/unzip.cpp \
  base/zipinstaller.cpp \
  progressloggergui.cpp \
  installtalkwindow.cpp \
  base/talkfile.cpp \
  base/talkgenerator.cpp \
  base/autodetection.cpp \
- ../ipodpatcher/ipodpatcher.c \
- ../sansapatcher/sansapatcher.c \
- ../chinachippatcher/chinachip.c \
- browsedirtree.cpp \
  themesinstallwindow.cpp \
  base/uninstall.cpp \
  uninstallwindow.cpp \
  base/utils.cpp \
  preview.cpp \
- base/encoders.cpp \
+ base/encoderbase.cpp \
+ base/encoderrbspeex.cpp \
+ base/encoderlame.cpp \
+ base/encoderexe.cpp \
  encttscfggui.cpp \
  base/encttssettings.cpp \
  base/ttsbase.cpp \
@@ -53,12 +51,11 @@ SOURCES += \
  base/rbsettings.cpp \
  base/serverinfo.cpp \
  base/systeminfo.cpp \
- base/rbunzip.cpp \
- base/rbzip.cpp \
  base/system.cpp \
  sysinfo.cpp \
  systrace.cpp \
  base/bootloaderinstallbase.cpp \
+ base/bootloaderinstallhelper.cpp \
  base/bootloaderinstallmi4.cpp \
  base/bootloaderinstallhex.cpp \
  base/bootloaderinstallipod.cpp \
@@ -68,21 +65,30 @@ SOURCES += \
  base/bootloaderinstallams.cpp \
  base/bootloaderinstalltcc.cpp \
  base/bootloaderinstallmpio.cpp \
+ base/bootloaderinstallimx.cpp \
  base/rockboxinfo.cpp \
  ../../tools/mkboot.c \
  ../../tools/iriver.c \
+ base/ziputil.cpp \
+ gui/comboboxviewdelegate.cpp \
+ gui/selectiveinstallwidget.cpp \
+ gui/backupdialog.cpp \
+ gui/changelog.cpp \
+ mspack/cabd.c \
+ mspack/lzxd.c \
+ mspack/mszipd.c \
+ mspack/qtmd.c \
+ mspack/system-mspack.c \
+ base/mspackutil.cpp \
+ base/archiveutil.cpp \
 
 
 HEADERS += \
+ gui/manualwidget.h \
+ gui/infowidget.h \
  rbutilqt.h \
- installwindow.h \
  base/httpget.h \
  configure.h \
- zip/zip.h \
- zip/unzip.h \
- zip/zipentry_p.h \
- zip/unzip_p.h \
- zip/zip_p.h \
  version.h \
  base/zipinstaller.h \
  installtalkwindow.h \
@@ -91,28 +97,29 @@ HEADERS += \
  base/autodetection.h \
  base/progressloggerinterface.h \
  progressloggergui.h \
- ../ipodpatcher/ipodpatcher.h \
- ../ipodpatcher/ipodio.h \
- ../ipodpatcher/parttypes.h \
- ../sansapatcher/sansapatcher.h \
- ../sansapatcher/sansaio.h \
- ../chinachippatcher/chinachip.h \
  irivertools/h100sums.h \
  irivertools/h120sums.h \
  irivertools/h300sums.h \
- browsedirtree.h \
  themesinstallwindow.h \
  base/uninstall.h \
  uninstallwindow.h \
  base/utils.h \
  preview.h \
- base/encoders.h \
+ base/encoderbase.h \
+ base/encoderrbspeex.h \
+ base/encoderlame.h \
+ base/encoderexe.h \
  encttscfggui.h \
  base/encttssettings.h \
  base/ttsbase.h \
  base/ttsexes.h \
+ base/ttsespeak.h \
+ base/ttsflite.h \
  base/ttsfestival.h \
+ base/ttsswift.h \
  base/ttssapi.h \
+ base/ttssapi4.h \
+ base/ttsmssp.h \
  ../../tools/wavtrim.h \
  ../../tools/voicefont.h \
  base/voicefile.h \
@@ -120,12 +127,11 @@ HEADERS += \
  base/rbsettings.h \
  base/serverinfo.h \
  base/systeminfo.h \
- base/rbunzip.h \
- base/rbzip.h \
  sysinfo.h \
  base/system.h \
  systrace.h \
  base/bootloaderinstallbase.h \
+ base/bootloaderinstallhelper.h \
  base/bootloaderinstallmi4.h \
  base/bootloaderinstallhex.h \
  base/bootloaderinstallipod.h \
@@ -135,24 +141,53 @@ HEADERS += \
  base/bootloaderinstallams.h \
  base/bootloaderinstalltcc.h \
  base/bootloaderinstallmpio.h \
+ base/bootloaderinstallimx.h \
  base/rockboxinfo.h \
  ../../tools/mkboot.h \
  ../../tools/iriver.h \
+ base/ziputil.h \
+ lame/lame.h \
+ gui/comboboxviewdelegate.h \
+ gui/selectiveinstallwidget.h \
+ gui/backupdialog.h \
+ gui/changelog.h \
+ mspack/cab.h \
+ mspack/chm.h \
+ mspack/des.h \
+ mspack/hlp.h \
+ mspack/kwaj.h \
+ mspack/lit.h \
+ mspack/lzss.h \
+ mspack/lzx.h \
+ mspack/mspack.h \
+ mspack/mszip.h \
+ mspack/qtm.h \
+ mspack/readbits.h \
+ mspack/readhuff.h \
+ mspack/sha.h \
+ mspack/system-mspack.h \
+ mspack/szdd.h \
+ base/mspackutil.h \
+ base/archiveutil.h \
+
 
 FORMS += \
+ gui/manualwidgetfrm.ui \
+ gui/infowidgetfrm.ui \
  rbutilqtfrm.ui \
  aboutbox.ui \
- installwindowfrm.ui \
  progressloggerfrm.ui \
  configurefrm.ui \
- browsedirtreefrm.ui \
  installtalkfrm.ui \
  themesinstallfrm.ui \
  uninstallfrm.ui \
  previewfrm.ui \
  createvoicefrm.ui \
  sysinfofrm.ui \
- systracefrm.ui
+ systracefrm.ui \
+ gui/selectiveinstallwidgetfrm.ui \
+ gui/backupdialogfrm.ui \
+ gui/changelogfrm.ui
 
 
 TRANSLATIONS += \
@@ -179,17 +214,8 @@ RESOURCES += $$_PRO_FILE_PWD_/rbutilqt.qrc
 }
 # windows specific files
 win32 {
-    SOURCES +=  ../ipodpatcher/ipodio-win32.c
-    SOURCES +=  ../ipodpatcher/ipodio-win32-scsi.c
-    SOURCES +=  ../sansapatcher/sansaio-win32.c
     RC_FILE = rbutilqt.rc
     RESOURCES += $$_PRO_FILE_PWD_/rbutilqt-win.qrc
-}
-
-# unix specific files
-unix {
-    SOURCES +=  ../ipodpatcher/ipodio-posix.c
-    SOURCES +=  ../sansapatcher/sansaio-posix.c
 }
 
 # mac specific files

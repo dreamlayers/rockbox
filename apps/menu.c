@@ -52,6 +52,7 @@
 #include "audio.h"
 #include "viewport.h"
 #include "quickscreen.h"
+#include "shortcuts.h"
 
 #ifdef HAVE_LCD_BITMAP
 #include "icons.h"
@@ -280,19 +281,10 @@ static int talk_menu_item(int selected_item, void *data)
         return 0;
 }
 
-void do_setting_from_menu(const struct menu_item_ex *temp,
-                          struct viewport parent[NB_SCREENS])
+void do_setting_screen(const struct settings_list *setting, const char * title,
+                        struct viewport parent[NB_SCREENS])
 {
-    int setting_id;
-    const struct settings_list *setting =
-            find_setting(temp->variable, &setting_id);
-    char *title;
     char padded_title[MAX_PATH];
-    if ((temp->flags&MENU_TYPE_MASK) == MT_SETTING_W_TEXT)
-        title = temp->callback_and_desc->desc;
-    else
-        title = ID2P(setting->lang_id);
-
     /* Pad the title string by repeating it. This is needed
        so the scroll settings title can actually be used to
        test the setting */
@@ -317,7 +309,22 @@ void do_setting_from_menu(const struct menu_item_ex *temp,
     }
 
     option_screen((struct settings_list *)setting, parent,
-                  setting->flags&F_TEMPVAR, title);
+                  setting->flags&F_TEMPVAR, (char*)title);
+}
+    
+
+void do_setting_from_menu(const struct menu_item_ex *temp,
+                          struct viewport parent[NB_SCREENS])
+{
+    char *title;
+    int setting_id;
+    const struct settings_list *setting =
+        find_setting(temp->variable, &setting_id);
+    if (temp && ((temp->flags&MENU_TYPE_MASK) == MT_SETTING_W_TEXT))
+        title = temp->callback_and_desc->desc;
+    else
+        title = ID2P(setting->lang_id);
+    do_setting_screen(setting, title, parent);
 }
 
 /* display a menu */
@@ -327,10 +334,17 @@ int do_menu(const struct menu_item_ex *start_menu, int *start_selected,
     int selected = start_selected? *start_selected : 0;
     int action;
     struct gui_synclist lists;
-    const struct menu_item_ex *temp, *menu;
-    int ret = 0, i;
+    const struct menu_item_ex *temp, *menu = start_menu;
+    int ret = 0;
     bool redraw_lists;
     int old_audio_status = audio_status();
+
+#ifdef HAVE_TOUCHSCREEN
+    /* plugins possibly have grid mode active. force global settings in lists */
+    enum touchscreen_mode tsm = touchscreen_get_mode();
+    touchscreen_set_mode(global_settings.touch_mode);
+#endif
+
     FOR_NB_SCREENS(i)
         viewportmanager_theme_enable(i, !hide_theme, NULL);
 
@@ -345,11 +359,7 @@ int do_menu(const struct menu_item_ex *start_menu, int *start_selected,
     gui_buttonbar_set_display(&buttonbar, &(screens[SCREEN_MAIN]) );
     gui_buttonbar_set(&buttonbar, "<<<", "", "");
 #endif
-
     menu_callback_type menu_callback = NULL;
-    if (start_menu == NULL)
-        menu = &main_menu_;
-    else menu = start_menu;
 
     /* if hide_theme is true, assume parent has been fixed before passed into
      * this function, e.g. with viewport_set_defaults(parent, screen) */
@@ -378,6 +388,9 @@ int do_menu(const struct menu_item_ex *start_menu, int *start_selected,
             gui_buttonbar_draw(&buttonbar);
 #endif
         }
+#if CONFIG_CODEC == SWCODEC
+        keyclick_set_callback(gui_synclist_keyclick_callback, &lists);
+#endif
         action = get_action(CONTEXT_MAINMENU,
                             list_do_action_timeout(&lists, HZ));
 
@@ -446,7 +459,7 @@ int do_menu(const struct menu_item_ex *start_menu, int *start_selected,
                 selected = get_menu_selection(gui_synclist_get_sel_pos(&lists),menu);
                 temp = menu->submenus[selected];
                 type = (temp->flags&MENU_TYPE_MASK);
-                if ((type == MT_SETTING_W_TEXT || type == MT_SETTING))
+                if (type == MT_SETTING_W_TEXT || type == MT_SETTING)
                 {
 #ifdef HAVE_QUICKSCREEN
                     MENUITEM_STRINGLIST(quickscreen_able_option,
@@ -455,7 +468,8 @@ int do_menu(const struct menu_item_ex *start_menu, int *start_selected,
                                         ID2P(LANG_TOP_QS_ITEM),
                                         ID2P(LANG_LEFT_QS_ITEM),
                                         ID2P(LANG_BOTTOM_QS_ITEM),
-                                        ID2P(LANG_RIGHT_QS_ITEM));
+                                        ID2P(LANG_RIGHT_QS_ITEM),
+                                        ID2P(LANG_ADD_TO_FAVES));
 #endif
                     MENUITEM_STRINGLIST(notquickscreen_able_option, 
                                         ID2P(LANG_ONPLAY_MENU_TITLE), NULL,
@@ -489,6 +503,10 @@ int do_menu(const struct menu_item_ex *start_menu, int *start_selected,
                             break;
                         case 4: /* set as right QS item */
                             set_as_qs_item(setting, QUICKSCREEN_RIGHT);
+                            break;
+                        case 5: /* Add to faves. Same limitation on which can be
+                                  added to the shortcuts menu as the quickscreen */
+                            shortcuts_add(SHORTCUT_SETTING, (void*)setting);
                             break;
 #endif
                     } /* swicth(do_menu()) */
@@ -652,6 +670,9 @@ int do_menu(const struct menu_item_ex *start_menu, int *start_selected,
         }
         else
         {
+            if (action == SYS_USB_CONNECTED)
+                gui_synclist_scroll_stop(&lists);
+
             switch(default_event_handler(action))
             {
                 case SYS_USB_CONNECTED:
@@ -674,6 +695,7 @@ int do_menu(const struct menu_item_ex *start_menu, int *start_selected,
             gui_synclist_speak_item(&lists);
         }
     }
+
     if (start_selected)
     {
         /* make sure the start_selected variable is set to
@@ -686,7 +708,12 @@ int do_menu(const struct menu_item_ex *start_menu, int *start_selected,
         *start_selected = get_menu_selection(
                             gui_synclist_get_sel_pos(&lists), menu);
     }
+
     FOR_NB_SCREENS(i)
         viewportmanager_theme_undo(i, false);
+#ifdef HAVE_TOUCHSCREEN
+    touchscreen_set_mode(tsm);
+#endif
+
     return ret;
 }

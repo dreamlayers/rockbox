@@ -24,11 +24,11 @@
 #include "config.h"
 #include "cpu.h"
 #include "system.h"
+#include "kernel.h"
 #include "string.h"
 #include "button.h"
 #include "lcd.h"
 #include "font.h"
-#include "debug-target.h"
 #include "adc.h"
 
 /* IRQ status registers of debug interest only */
@@ -40,7 +40,7 @@ bool dbg_ports(void)
     return false;
 }
 
-bool __dbg_hw_info(void)
+bool dbg_hw_info(void)
 {
     int line = 0, i, oldline;
 

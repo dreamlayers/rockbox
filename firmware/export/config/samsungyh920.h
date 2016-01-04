@@ -2,18 +2,16 @@
  * This config file is for the Samsung YH-920
  */
 
-#define TARGET_TREE /* this target is using the target tree system */
-
 /* For Rolo and boot loader */
 #define MODEL_NUMBER 58
 #define MODEL_NAME   "Samsung YH-920"
 
 /* define this if you have recording possibility */
-/* todo #define HAVE_RECORDING */
+#define HAVE_RECORDING
 
 /* Define bitmask of input sources - recordable bitmask can be defined
    explicitly if different */
-#define INPUT_SRC_CAPS (SRC_CAP_MIC | SRC_CAP_LINEIN )
+#define INPUT_SRC_CAPS (SRC_CAP_MIC | SRC_CAP_LINEIN | SRC_CAP_FMRADIO)
 
 /* define the bitmask of hardware sample rates */
 #define HW_SAMPR_CAPS   (SAMPR_CAP_48 | SAMPR_CAP_44 | SAMPR_CAP_32 | \
@@ -31,6 +29,8 @@
 /* LCD dimensions */
 #define LCD_WIDTH  160
 #define LCD_HEIGHT 128
+/* sqrt(160^2 + 128^2) / 1.8 = 113.8 */
+#define LCD_DPI 114
 #define LCD_DEPTH  2
 #define LCD_PIXELFORMAT VERTICAL_PACKING
 
@@ -57,17 +57,17 @@
 #define HAVE_BACKLIGHT
 
 /* Define this if your LCD can set contrast */
-/* todo #define HAVE_LCD_CONTRAST */
+#define HAVE_LCD_CONTRAST
 
-#define MIN_CONTRAST_SETTING        0
-#define MAX_CONTRAST_SETTING        30
-#define DEFAULT_CONTRAST_SETTING    14 /* Match boot contrast */
+#define MIN_CONTRAST_SETTING        50
+#define MAX_CONTRAST_SETTING        70
+#define DEFAULT_CONTRAST_SETTING    61 /* Match boot contrast */
 
 /* define this if you can flip your LCD */
-/* todo #define HAVE_LCD_FLIP */
+#define HAVE_LCD_FLIP
 
 /* define this if you can invert the colours on your LCD */
-/* todo #define HAVE_LCD_INVERT */
+#define HAVE_LCD_INVERT
 
 /* put the lcd frame buffer in IRAM */
 /* #define IRAM_LCDFRAMEBUFFER IDATA_ATTR */
@@ -87,13 +87,13 @@
 /* define this if you have access to the quickscreen */
 #define HAVE_QUICKSCREEN
 
-/* define this if you have access to the pitchscreen */
-#define HAVE_PITCHSCREEN
-
 /* define this if you would like tagcache to build on this target */
 #define HAVE_TAGCACHE
 
-#define CONFIG_KEYPAD SAMSUNG_YH_PAD
+#define CONFIG_KEYPAD SAMSUNG_YH920_PAD
+
+/* Define this to enable morse code input */
+#define HAVE_MORSE_INPUT
 
 /* Define this if you do software codec */
 #define CONFIG_CODEC SWCODEC
@@ -116,7 +116,10 @@
 #define HAVE_LBA48
 
 /* We're able to shut off power to the HDD */
-/* todo #define HAVE_ATA_POWER_OFF */
+#define HAVE_ATA_POWER_OFF
+
+/* Software controlled LED */
+#define CONFIG_LED LED_REAL
 
 /* Define this if you have a software controlled poweroff */
 #define HAVE_SW_POWEROFF
@@ -133,13 +136,21 @@
 /* AK4537 has no tone controls, so we use the software ones */
 #define HAVE_SW_TONE_CONTROLS
 
+/* FM Tuner */
+#define CONFIG_TUNER      TEA5767
+#define CONFIG_TUNER_XTAL 32768
+/* Define this if the tuner uses 3-wire bus instead of classic i2c */
+#define CONFIG_TUNER_3WIRE
+
 #define AB_REPEAT_ENABLE
 
-#define BATTERY_CAPACITY_DEFAULT 1550 /* default battery capacity */
-#define BATTERY_CAPACITY_MIN 1500  /* min. capacity selectable */
-#define BATTERY_CAPACITY_MAX 3200 /* max. capacity selectable */
+#define BATTERY_CAPACITY_DEFAULT 900 /* default battery capacity */
+#define BATTERY_CAPACITY_MIN 900  /* min. capacity selectable */
+#define BATTERY_CAPACITY_MAX 1600 /* max. capacity selectable */
 #define BATTERY_CAPACITY_INC 50   /* capacity increment */
 #define BATTERY_TYPES_COUNT  1    /* only one type */
+
+#define CONFIG_BATTERY_MEASURE VOLTAGE_MEASURE
 
 /* Hardware controlled charging */
 #define CONFIG_CHARGING CHARGING_SIMPLE
@@ -170,9 +181,9 @@
 
 /* enable these for the experimental usb stack */
 #define HAVE_USBSTACK
-#define USE_ROCKBOX_USB
 #define USB_VENDOR_ID   0x04e8
 #define USB_PRODUCT_ID  0x5022
+#define HAVE_USB_HID_MOUSE
 
 /* Define this if you have adjustable CPU frequency */
 #define HAVE_ADJUSTABLE_CPU_FREQ
@@ -194,7 +205,9 @@
 /* DMA is used only for reading on PP502x because although reads are ~8x faster
  * writes appear to be ~25% slower.
  */
+#ifndef BOOTLOADER
 #define HAVE_ATA_DMA
+#endif
 
 /* Define this if a programmable hotkey is mapped */
 #define HAVE_HOTKEY

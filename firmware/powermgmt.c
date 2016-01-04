@@ -24,7 +24,9 @@
 #include "kernel.h"
 #include "thread.h"
 #include "debug.h"
+#if !defined(DX50) && !defined(DX90)
 #include "adc.h"
+#endif
 #include "string.h"
 #include "storage.h"
 #include "power.h"
@@ -43,24 +45,31 @@
 #include "font.h"
 #endif
 #include "logf.h"
+#ifdef HAVE_REMOTE_LCD
 #include "lcd-remote.h"
+#endif
 #if (CONFIG_PLATFORM & PLATFORM_HOSTED)
 #include <time.h>
 #endif
 
-#if (defined(IAUDIO_X5) || defined(IAUDIO_M5)) && !defined (SIMULATOR)
-#include "lcd-remote-target.h"
-#endif
 #if (defined(IAUDIO_X5) || defined(IAUDIO_M5) || defined(COWON_D2)) \
     && !defined (SIMULATOR)
 #include "pcf50606.h"
 #endif
 
 /** Shared by sim **/
-int last_sent_battery_level = 100;
+static int last_sent_battery_level = 100;
 /* battery level (0-100%) */
 int battery_percent = -1;
 void send_battery_level_event(void);
+static void set_sleep_timer(int seconds);
+
+static bool sleeptimer_active = false;
+static long sleeptimer_endtick;
+/* Whether an active sleep timer should be restarted when a key is pressed */
+static bool sleeptimer_key_restarts = false;
+/* The number of seconds the sleep timer was last set to */
+static unsigned int sleeptimer_duration = 0;
 
 #if CONFIG_CHARGING
 /* State of the charger input as seen by the power thread */
@@ -73,8 +82,20 @@ enum charge_state_type charge_state = DISCHARGING;
 #endif
 #endif /* CONFIG_CHARGING */
 
-#if (CONFIG_PLATFORM & PLATFORM_NATIVE)
 static int shutdown_timeout = 0;
+
+void handle_auto_poweroff(void);
+static int poweroff_timeout = 0;
+static long last_event_tick = 0;
+
+#if (CONFIG_BATTERY_MEASURE & PERCENTAGE_MEASURE) == PERCENTAGE_MEASURE
+int _battery_voltage(void) { return -1; }
+
+const unsigned short percent_to_volt_discharge[BATTERY_TYPES_COUNT][11];
+const unsigned short percent_to_volt_charge[11];
+
+#elif (CONFIG_BATTERY_MEASURE & VOLTAGE_MEASURE) == VOLTAGE_MEASURE
+int _battery_level(void) { return -1; }
 /*
  * Average battery voltage and charger voltage, filtered via a digital
  * exponential filter (aka. exponential moving average, scaled):
@@ -83,9 +104,21 @@ static int shutdown_timeout = 0;
 static unsigned int avgbat;
 /* filtered battery voltage, millivolts */
 static unsigned int battery_millivolts;
+#elif (CONFIG_BATTERY_MEASURE == 0)
+int _battery_voltage(void) { return -1; }
+int _battery_level(void) { return -1; }
+
+const unsigned short percent_to_volt_discharge[BATTERY_TYPES_COUNT][11];
+const unsigned short percent_to_volt_charge[11];
+#endif
+
+#if !(CONFIG_BATTERY_MEASURE & TIME_MEASURE)
+static int powermgmt_est_runningtime_min;
+int _battery_time(void) { return powermgmt_est_runningtime_min; }
+#endif
+
 /* default value, mAh */
 static int battery_capacity = BATTERY_CAPACITY_DEFAULT;
-
 
 #if BATTERY_TYPES_COUNT > 1
 static int battery_type = 0;
@@ -96,20 +129,13 @@ static int battery_type = 0;
 /* Power history: power_history[0] is the newest sample */
 unsigned short power_history[POWER_HISTORY_LEN] = {0};
 
-#if CONFIG_CPU == JZ4732 /* FIXME! */
+#if CONFIG_CPU == JZ4732 /* FIXME! */ || (CONFIG_PLATFORM & PLATFORM_HOSTED)
 static char power_stack[DEFAULT_STACK_SIZE + POWERMGMT_DEBUG_STACK];
 #else
 static char power_stack[DEFAULT_STACK_SIZE/2 + POWERMGMT_DEBUG_STACK];
 #endif
 static const char power_thread_name[] = "power";
 
-static int poweroff_timeout = 0;
-static int powermgmt_est_runningtime_min = -1;
-
-static bool sleeptimer_active = false;
-static long sleeptimer_endtick;
-
-static long last_event_tick;
 
 static int voltage_to_battery_level(int battery_millivolts);
 static void battery_status_update(void);
@@ -120,18 +146,18 @@ static int runcurrent(void);
 
 void battery_read_info(int *voltage, int *level)
 {
-    int millivolts = battery_adc_voltage();
+    int millivolts = _battery_voltage();
+    int percent;
 
     if (voltage)
         *voltage = millivolts;
 
-    if (level)
-        *level = voltage_to_battery_level(millivolts);
-}
-
-void reset_poweroff_timer(void)
-{
-    last_event_tick = current_tick;
+    if (level)  {
+        percent = voltage_to_battery_level(millivolts);
+        if (percent < 0)
+            percent = _battery_level();
+        *level = percent;
+    }
 }
 
 #if BATTERY_TYPES_COUNT > 1
@@ -147,6 +173,7 @@ void set_battery_type(int type)
 }
 #endif
 
+#ifdef BATTERY_CAPACITY_MIN
 void set_battery_capacity(int capacity)
 {
     if (capacity > BATTERY_CAPACITY_MAX)
@@ -158,6 +185,7 @@ void set_battery_capacity(int capacity)
 
     battery_status_update(); /* recalculate the battery status */
 }
+#endif
 
 int get_battery_capacity(void)
 {
@@ -166,7 +194,16 @@ int get_battery_capacity(void)
 
 int battery_time(void)
 {
-    return powermgmt_est_runningtime_min;
+#if ((CONFIG_BATTERY_MEASURE & TIME_MEASURE) == 0)
+
+#ifndef CURRENT_NORMAL /* no estimation without current */
+    return -1;
+#endif
+    if (battery_capacity <= 0) /* nor without capacity */
+        return -1;
+
+#endif
+    return _battery_time();
 }
 
 /* Returns battery level in percent */
@@ -179,17 +216,13 @@ int battery_level(void)
     return battery_percent;
 }
 
-/* Returns filtered battery voltage [millivolts] */
-unsigned int battery_voltage(void)
-{
-    return battery_millivolts;
-}
-
 /* Tells if the battery level is safe for disk writes */
 bool battery_level_safe(void)
 {
 #if defined(NO_LOW_BATTERY_SHUTDOWN)
     return true;
+#elif (CONFIG_BATTERY_MEASURE & PERCENTAGE_MEASURE)
+    return (battery_percent > 0);
 #elif defined(HAVE_BATTERY_SWITCH)
     /* Cannot rely upon the battery reading to be valid and the
      * device could be powered externally. */
@@ -197,31 +230,6 @@ bool battery_level_safe(void)
 #else
     return battery_millivolts > battery_level_dangerous[battery_type];
 #endif
-}
-
-void set_poweroff_timeout(int timeout)
-{
-    poweroff_timeout = timeout;
-}
-
-void set_sleep_timer(int seconds)
-{
-    if (seconds) {
-        sleeptimer_active  = true;
-        sleeptimer_endtick = current_tick + seconds * HZ;
-    }
-    else {
-        sleeptimer_active  = false;
-        sleeptimer_endtick = 0;
-    }
-}
-
-int get_sleep_timer(void)
-{
-    if (sleeptimer_active && (sleeptimer_endtick >= current_tick))
-        return (sleeptimer_endtick - current_tick) / HZ;
-    else
-        return 0;
 }
 
 /* look into the percent_to_volt_* table and get a realistic battery level */
@@ -252,6 +260,9 @@ static int voltage_to_battery_level(int battery_millivolts)
 {
     int level;
 
+    if (battery_millivolts < 0)
+        return -1;
+
 #if CONFIG_CHARGING >= CHARGING_MONITOR
     if (charging_state()) {
         /* battery level is defined to be < 100% until charging is finished */
@@ -273,7 +284,11 @@ static int voltage_to_battery_level(int battery_millivolts)
 
 static void battery_status_update(void)
 {
-    int level = voltage_to_battery_level(battery_millivolts);
+    int millivolt = battery_voltage();
+    int level = _battery_level();
+
+    if (level < 0)
+        level = voltage_to_battery_level(millivolt);
 
 #ifdef CURRENT_NORMAL  /*don't try to estimate run or charge
                         time without normal current defined*/
@@ -288,7 +303,8 @@ static void battery_status_update(void)
 #endif
 
     /* discharging: remaining running time */
-    if (battery_millivolts > percent_to_volt_discharge[0][0]) {
+    if (level > 0 && (millivolt > percent_to_volt_discharge[battery_type][0]
+        || millivolt < 0)) {
         /* linear extrapolation */
         powermgmt_est_runningtime_min = (level + battery_percent)*60
                 * battery_capacity / 200 / runcurrent();
@@ -296,81 +312,10 @@ static void battery_status_update(void)
     if (0 > powermgmt_est_runningtime_min) {
         powermgmt_est_runningtime_min = 0;
     }
-#else
-    powermgmt_est_runningtime_min=-1;
 #endif
 
     battery_percent = level;
     send_battery_level_event();
-}
-
-/*
- * We shut off in the following cases:
- * 1) The unit is idle, not playing music
- * 2) The unit is playing music, but is paused
- * 3) The battery level has reached shutdown limit
- *
- * We do not shut off in the following cases:
- * 1) The USB is connected
- * 2) The charger is connected
- * 3) We are recording, or recording with pause
- * 4) The radio is playing
- */
-static void handle_auto_poweroff(void)
-{
-    long timeout = poweroff_timeout*60*HZ;
-    int audio_stat = audio_status();
-    long tick = current_tick;
-
-#if CONFIG_CHARGING
-    /*
-     * Inhibit shutdown as long as the charger is plugged in.  If it is
-     * unplugged, wait for a timeout period and then shut down.
-     */
-    if (charger_input_state == CHARGER || audio_stat == AUDIO_STATUS_PLAY) {
-        last_event_tick = current_tick;
-    }
-#endif
-
-    if (!shutdown_timeout && query_force_shutdown()) {
-        backlight_on();
-        sys_poweroff();
-    }
-
-    if (timeout &&
-#if CONFIG_TUNER
-        !(get_radio_status() & FMRADIO_PLAYING) &&
-#endif
-        !usb_inserted() &&
-        (audio_stat == 0 ||
-         (audio_stat == (AUDIO_STATUS_PLAY | AUDIO_STATUS_PAUSE) &&
-          !sleeptimer_active))) {
-
-        if (TIME_AFTER(tick, last_event_tick + timeout) &&
-            TIME_AFTER(tick, storage_last_disk_activity() + timeout)) {
-            sys_poweroff();
-        }
-    }
-    else if (sleeptimer_active) {
-        /* Handle sleeptimer */
-        if (TIME_AFTER(tick, sleeptimer_endtick)) {
-            audio_stop();
-
-            if (usb_inserted()
-#if CONFIG_CHARGING && !defined(HAVE_POWEROFF_WHILE_CHARGING)
-                || charger_input_state != NO_CHARGER
-#endif
-            ) {
-                DEBUGF("Sleep timer timeout. Stopping...\n");
-                set_sleep_timer(0);
-                backlight_off(); /* Nighty, nighty... */
-            }
-            else {
-                DEBUGF("Sleep timer timeout. Shutting off...\n");
-                sys_poweroff();
-            }
-        }
-    }
 }
 
 #ifdef CURRENT_NORMAL /*check that we have a current defined in a config file*/
@@ -386,9 +331,9 @@ static int runcurrent(void)
     if (usb_inserted()
 #ifdef HAVE_USB_POWER
     #if (CURRENT_USB < CURRENT_NORMAL)
-       || usb_powered()
+       || usb_powered_only()
     #else
-       && !usb_powered()
+       && !usb_powered_only()
     #endif
 #endif
     ) {
@@ -441,6 +386,8 @@ bool query_force_shutdown(void)
 {
 #if defined(NO_LOW_BATTERY_SHUTDOWN)
     return false;
+#elif CONFIG_BATTERY_MEASURE & PERCENTAGE_MEASURE
+    return battery_percent == 0;
 #elif defined(HAVE_BATTERY_SWITCH)
     /* Cannot rely upon the battery reading to be valid and the
      * device could be powered externally. */
@@ -583,6 +530,101 @@ static inline bool detect_charger(unsigned int pwr)
 }
 #endif /* CONFIG_CHARGING */
 
+
+#if CONFIG_BATTERY_MEASURE & VOLTAGE_MEASURE
+/* Returns filtered battery voltage [millivolts] */
+int battery_voltage(void)
+{
+    return battery_millivolts;
+}
+
+static void average_init(void)
+{
+    /* initialize the voltages for the exponential filter */
+    avgbat = _battery_voltage() + 15;
+
+#ifdef HAVE_DISK_STORAGE /* this adjustment is only needed for HD based */
+    /* The battery voltage is usually a little lower directly after
+       turning on, because the disk was used heavily. Raise it by 5% */
+#if CONFIG_CHARGING
+    if (!charger_inserted()) /* only if charger not connected */
+#endif
+    {
+        avgbat += (percent_to_volt_discharge[battery_type][6] -
+                   percent_to_volt_discharge[battery_type][5]) / 2;
+    }
+#endif /* HAVE_DISK_STORAGE */
+
+    avgbat = avgbat * BATT_AVE_SAMPLES;
+    battery_millivolts = power_history[0] = avgbat / BATT_AVE_SAMPLES;
+}
+
+static void average_step(void)
+{
+    avgbat += _battery_voltage() - avgbat / BATT_AVE_SAMPLES;
+    /*
+     * battery_millivolts is the millivolt-scaled filtered battery value.
+     */
+    battery_millivolts = avgbat / BATT_AVE_SAMPLES;
+}
+
+static void average_step_low(void)
+{
+    battery_millivolts = (_battery_voltage() + battery_millivolts + 1) / 2;
+    avgbat += battery_millivolts - avgbat / BATT_AVE_SAMPLES;
+}
+
+static void init_battery_percent(void)
+{
+#if CONFIG_CHARGING
+    if (charger_inserted()) {
+        battery_percent = voltage_to_percent(battery_millivolts,
+                            percent_to_volt_charge);
+    }
+    else
+#endif
+    {
+        battery_percent = voltage_to_percent(battery_millivolts,
+                            percent_to_volt_discharge[battery_type]);
+        battery_percent += battery_percent < 100;
+    }
+
+}
+
+static int power_hist_item(void)
+{
+    return battery_millivolts;
+}
+#define power_history_unit() battery_millivolts
+
+#else
+int battery_voltage(void)
+{
+    return -1;
+}
+
+static void average_init(void) {}
+static void average_step(void) {}
+static void average_step_low(void) {}
+static void init_battery_percent(void)
+{
+    battery_percent = _battery_level();
+}
+
+static int power_hist_item(void)
+{
+    return battery_percent;
+}
+#endif
+
+static void collect_power_history(void)
+{
+    /* rotate the power history */
+    memmove(&power_history[1], &power_history[0],
+            sizeof(power_history) - sizeof(power_history[0]));
+    power_history[0] = power_hist_item();
+}
+
 /*
  * Monitor the presence of a charger and perform critical frequent steps
  * such as running the battery voltage filter.
@@ -612,32 +654,22 @@ static inline void power_thread_step(void)
             || charger_input_state == CHARGER
 #endif
     ) {
-        avgbat += battery_adc_voltage() - avgbat / BATT_AVE_SAMPLES;
-        /*
-         * battery_millivolts is the millivolt-scaled filtered battery value.
-         */
-        battery_millivolts = avgbat / BATT_AVE_SAMPLES;
-
+        average_step();
         /* update battery status every time an update is available */
         battery_status_update();
     }
     else if (battery_percent < 8) {
+        average_step_low();
+        /* update battery status every time an update is available */
+        battery_status_update();
+        
         /*
          * If battery is low, observe voltage during disk activity.
          * Shut down if voltage drops below shutoff level and we are not
          * using NiMH or Alkaline batteries.
          */
-        battery_millivolts = (battery_adc_voltage() +
-                              battery_millivolts + 1) / 2;
-
-        /* update battery status every time an update is available */
-        battery_status_update();
-
         if (!shutdown_timeout && query_force_shutdown()) {
             sys_poweroff();
-        }
-        else {
-            avgbat += battery_millivolts - avgbat / BATT_AVE_SAMPLES;
         }
     }
 } /* power_thread_step */
@@ -648,7 +680,9 @@ static void power_thread(void)
 
     /* Delay reading the first battery level */
 #ifdef MROBE_100
-    while (battery_adc_voltage() > 4200) /* gives false readings initially */
+    while (_battery_voltage() > 4200) /* gives false readings initially */
+#elif defined(DX50) || defined(DX90)
+    while (_battery_voltage() < 1) /* can give false readings initially */
 #endif
     {
         sleep(HZ/100);
@@ -659,38 +693,13 @@ static void power_thread(void)
     power_thread_inputs = power_input_status();
 #endif
 
-    /* initialize the voltages for the exponential filter */
-    avgbat = battery_adc_voltage() + 15;
-
-#ifdef HAVE_DISK_STORAGE /* this adjustment is only needed for HD based */
-    /* The battery voltage is usually a little lower directly after
-       turning on, because the disk was used heavily. Raise it by 5% */
-#if CONFIG_CHARGING
-    if (!charger_inserted()) /* only if charger not connected */
-#endif
-    {
-        avgbat += (percent_to_volt_discharge[battery_type][6] -
-                   percent_to_volt_discharge[battery_type][5]) / 2;
-    }
-#endif /* HAVE_DISK_STORAGE */
-
-    avgbat = avgbat * BATT_AVE_SAMPLES;
-    battery_millivolts = avgbat / BATT_AVE_SAMPLES;
-    power_history[0] = battery_millivolts;
-
-#if CONFIG_CHARGING
-    if (charger_inserted()) {
-        battery_percent = voltage_to_percent(battery_millivolts,
-                            percent_to_volt_charge);
-    }
-    else
-#endif
-    {
-        battery_percent = voltage_to_percent(battery_millivolts,
-                            percent_to_volt_discharge[battery_type]);
-        battery_percent += battery_percent < 100;
-    }
-
+    /* initialize voltage averaging (if available) */
+    average_init();
+    /* get initial battery level value (in %) */
+    init_battery_percent();
+    /* get some initial data for the power curve */
+    collect_power_history();
+    /* call target specific init now */
     powermgmt_init_target();
 
     next_power_hist = current_tick + HZ*60;
@@ -702,7 +711,7 @@ static void power_thread(void)
 #ifdef HAVE_BATTERY_SWITCH
         if ((pwr ^ power_thread_inputs) & POWER_INPUT_BATTERY) {
             sleep(HZ/10);
-            reset_battery_filter(battery_adc_voltage());
+            reset_battery_filter(_battery_voltage());
         }
 #endif
         power_thread_inputs = pwr;
@@ -720,21 +729,15 @@ static void power_thread(void)
         /* Perform target tasks */
         charging_algorithm_step();
 
-        if (TIME_BEFORE(current_tick, next_power_hist))
-            continue;
-
-        /* increment to ensure there is a record for every minute
-         * rather than go forward from the current tick */
-        next_power_hist += HZ*60;
-
-        /* rotate the power history */
-        memmove(&power_history[1], &power_history[0],
-                sizeof(power_history) - sizeof(power_history[0]));
-
-        /* insert new value at the start, in millivolts 8-) */
-        power_history[0] = battery_millivolts;
-
+        /* check if some idle or sleep timer wears off */
         handle_auto_poweroff();
+
+        if (TIME_AFTER(current_tick, next_power_hist)) {
+            /* increment to ensure there is a record for every minute
+             * rather than go forward from the current tick */
+            next_power_hist += HZ*60;
+            collect_power_history();
+        }
     }
 } /* power_thread */
 
@@ -753,7 +756,7 @@ void shutdown_hw(void)
 
     if (battery_level_safe()) { /* do not save on critical battery */
 #ifdef HAVE_LCD_BITMAP
-      glyph_cache_save(NULL);
+        font_unload_all();
 #endif
 
 /* Commit pending writes if needed. Even though we don't do write caching,
@@ -766,9 +769,6 @@ void shutdown_hw(void)
         if (storage_disk_is_active())
             storage_spindown(1);
     }
-
-    while (storage_disk_is_active())
-        sleep(HZ/10);
 
 #if CONFIG_CODEC == SWCODEC
     audiohw_close();
@@ -798,6 +798,18 @@ void shutdown_hw(void)
     power_off();
 }
 
+void set_poweroff_timeout(int timeout)
+{
+    poweroff_timeout = timeout;
+}
+
+void reset_poweroff_timer(void)
+{
+    last_event_tick = current_tick;
+    if (sleeptimer_active && sleeptimer_key_restarts)
+        set_sleep_timer(sleeptimer_duration);
+}
+
 void sys_poweroff(void)
 {
 #ifndef BOOTLOADER
@@ -805,7 +817,7 @@ void sys_poweroff(void)
     /* If the main thread fails to shut down the system, we will force a
        power off after an 20 second timeout - 28 seconds if recording */
     if (shutdown_timeout == 0) {
-#if defined(IAUDIO_X5) || defined(IAUDIO_M5) || defined(COWON_D2)
+#if (defined(IAUDIO_X5) || defined(IAUDIO_M5) || defined(COWON_D2)) && !defined(SIMULATOR)
         pcf50606_reset_timeout(); /* Reset timer on first attempt only */
 #endif
 #ifdef HAVE_RECORDING
@@ -828,7 +840,7 @@ void cancel_shutdown(void)
 {
     logf("cancel_shutdown()");
 
-#if defined(IAUDIO_X5) || defined(IAUDIO_M5) || defined(COWON_D2)
+#if (defined(IAUDIO_X5) || defined(IAUDIO_M5) || defined(COWON_D2)) && !defined(SIMULATOR)
     /* TODO: Move some things to target/ tree */
     if (shutdown_timeout)
         pcf50606_reset_timeout();
@@ -836,7 +848,6 @@ void cancel_shutdown(void)
 
     shutdown_timeout = 0;
 }
-#endif /* PLATFORM_NATIVE */
 
 /* Send system battery level update events on reaching certain significant
    levels. This must be called after battery_percent has been updated. */
@@ -855,4 +866,118 @@ void send_battery_level_event(void)
 
         level++;
     }
+}
+
+void set_sleeptimer_duration(int minutes)
+{
+    set_sleep_timer(minutes * 60);
+}
+
+static void set_sleep_timer(int seconds)
+{
+    if (seconds) {
+        sleeptimer_active  = true;
+        sleeptimer_endtick = current_tick + seconds * HZ;
+    }
+    else {
+        sleeptimer_active  = false;
+        sleeptimer_endtick = 0;
+    }
+    sleeptimer_duration = seconds;
+}
+
+int get_sleep_timer(void)
+{
+    if (sleeptimer_active && (sleeptimer_endtick >= current_tick))
+        return (sleeptimer_endtick - current_tick) / HZ;
+    else
+        return 0;
+}
+
+void set_keypress_restarts_sleep_timer(bool enable)
+{
+    sleeptimer_key_restarts = enable;
+}
+
+#ifndef BOOTLOADER
+static void handle_sleep_timer(void)
+{
+    if (!sleeptimer_active)
+      return;
+
+    /* Handle sleeptimer */
+    if (TIME_AFTER(current_tick, sleeptimer_endtick)) {
+        if (usb_inserted()
+#if CONFIG_CHARGING && !defined(HAVE_POWEROFF_WHILE_CHARGING)
+            || charger_input_state != NO_CHARGER
+#endif
+        ) {
+            DEBUGF("Sleep timer timeout. Stopping...\n");
+            audio_pause();
+            set_sleep_timer(0);
+            backlight_off(); /* Nighty, nighty... */
+        }
+        else {
+            DEBUGF("Sleep timer timeout. Shutting off...\n");
+            sys_poweroff();
+        }
+    }
+}
+#endif /* BOOTLOADER */
+
+/*
+ * We shut off in the following cases:
+ * 1) The unit is idle, not playing music
+ * 2) The unit is playing music, but is paused
+ * 3) The battery level has reached shutdown limit
+ *
+ * We do not shut off in the following cases:
+ * 1) The USB is connected
+ * 2) The charger is connected
+ * 3) We are recording, or recording with pause
+ * 4) The radio is playing
+ */
+void handle_auto_poweroff(void)
+{
+#ifndef BOOTLOADER
+    long timeout = poweroff_timeout*60*HZ;
+    int audio_stat = audio_status();
+    long tick = current_tick;
+
+    /*
+     * Inhibit shutdown as long as the charger is plugged in.  If it is
+     * unplugged, wait for a timeout period and then shut down.
+     */
+    if (audio_stat == AUDIO_STATUS_PLAY
+#if CONFIG_CHARGING
+        || charger_input_state == CHARGER
+#endif
+    ) {
+        last_event_tick = current_tick;
+    }
+
+    if (!shutdown_timeout && query_force_shutdown()) {
+        backlight_on();
+        sys_poweroff();
+    }
+
+    if (timeout &&
+#if CONFIG_TUNER
+        !(get_radio_status() & FMRADIO_PLAYING) &&
+#endif
+        !usb_inserted() &&
+        (audio_stat == 0 ||
+         (audio_stat == (AUDIO_STATUS_PLAY | AUDIO_STATUS_PAUSE) &&
+          !sleeptimer_active))) {
+
+        if (TIME_AFTER(tick, last_event_tick + timeout)
+#if !(CONFIG_PLATFORM & PLATFORM_HOSTED)
+            && TIME_AFTER(tick, storage_last_disk_activity() + timeout)
+#endif
+        ) {
+            sys_poweroff();
+        }
+    } else
+        handle_sleep_timer();
+#endif
 }

@@ -7,7 +7,6 @@
 *                     \/            \/     \/    \/            \/
 *
 *   Copyright (C) 2007 by Dominik Wenger
-*   $Id$
 *
 * All files in this archive are subject to the GNU General Public License.
 * See the file COPYING in the source tree root for full license agreement.
@@ -17,51 +16,57 @@
 *
 ****************************************************************************/
 
+#include <QtCore>
 #include "ttsexes.h"
 #include "utils.h"
 #include "rbsettings.h"
+#include "Logger.h"
 
-TTSExes::TTSExes(QString name,QObject* parent) : TTSBase(parent)
+TTSExes::TTSExes(QObject* parent) : TTSBase(parent)
 {
-    m_name = name;
-
-    m_TemplateMap["espeak"] = "\"%exe\" %options -w \"%wavfile\" \"%text\"";
-    m_TemplateMap["flite"] = "\"%exe\" %options -o \"%wavfile\" -t \"%text\"";
-    m_TemplateMap["swift"] = "\"%exe\" %options -o \"%wavfile\" \"%text\"";
-
+    /* default to espeak */
+    m_name = "espeak";
+    m_capabilities = TTSBase::CanSpeak;
+    m_TTSTemplate = "\"%exe\" %options -w \"%wavfile\" -- \"%text\"";
+    m_TTSSpeakTemplate = "\"%exe\" %options -- \"%text\"";
 }
+
 
 TTSBase::Capabilities TTSExes::capabilities()
 {
-    return RunInParallel;
+    return m_capabilities;
 }
 
 void TTSExes::generateSettings()
 {
-    QString exepath =RbSettings::subValue(m_name,RbSettings::TtsPath).toString();
-    if(exepath == "") exepath = Utils::findExecutable(m_name);
-
-    insertSetting(eEXEPATH,new EncTtsSetting(this,EncTtsSetting::eSTRING,
-        tr("Path to TTS engine:"),exepath,EncTtsSetting::eBROWSEBTN));
-    insertSetting(eOPTIONS,new EncTtsSetting(this,EncTtsSetting::eSTRING,
-        tr("TTS engine options:"),RbSettings::subValue(m_name,RbSettings::TtsOptions)));
+    loadSettings();
+    insertSetting(eEXEPATH, new EncTtsSetting(this, EncTtsSetting::eSTRING,
+        tr("Path to TTS engine:"), m_TTSexec, EncTtsSetting::eBROWSEBTN));
+    insertSetting(eOPTIONS, new EncTtsSetting(this, EncTtsSetting::eSTRING,
+        tr("TTS engine options:"), m_TTSOpts));
 }
 
 void TTSExes::saveSettings()
 {
-    RbSettings::setSubValue(m_name,RbSettings::TtsPath,
+    RbSettings::setSubValue(m_name, RbSettings::TtsPath,
             getSetting(eEXEPATH)->current().toString());
-    RbSettings::setSubValue(m_name,RbSettings::TtsOptions,
+    RbSettings::setSubValue(m_name, RbSettings::TtsOptions,
             getSetting(eOPTIONS)->current().toString());
     RbSettings::sync();
 }
 
+
+void TTSExes::loadSettings(void)
+{
+    m_TTSexec = RbSettings::subValue(m_name, RbSettings::TtsPath).toString();
+    if(m_TTSexec.isEmpty()) m_TTSexec = Utils::findExecutable(m_name);
+    m_TTSOpts = RbSettings::subValue(m_name, RbSettings::TtsOptions).toString();
+}
+
+
 bool TTSExes::start(QString *errStr)
 {
-    m_TTSexec = RbSettings::subValue(m_name,RbSettings::TtsPath).toString();
-    m_TTSOpts = RbSettings::subValue(m_name,RbSettings::TtsOptions).toString();
-
-    m_TTSTemplate = m_TemplateMap.value(m_name);
+    loadSettings();
 
     QFileInfo tts(m_TTSexec);
     if(tts.exists())
@@ -75,27 +80,48 @@ bool TTSExes::start(QString *errStr)
     }
 }
 
-TTSStatus TTSExes::voice(QString text,QString wavfile, QString *errStr)
+TTSStatus TTSExes::voice(QString text, QString wavfile, QString *errStr)
 {
     (void) errStr;
-    QString execstring = m_TTSTemplate;
+    QString execstring;
+    if(wavfile.isEmpty() && m_capabilities & TTSBase::CanSpeak) {
+        if(m_TTSSpeakTemplate.isEmpty()) {
+            LOG_ERROR() << "internal error: TTS announces CanSpeak "
+                           "but template empty!";
+            return FatalError;
+        }
+        execstring = m_TTSSpeakTemplate;
+    }
+    else if(wavfile.isEmpty()) {
+        LOG_ERROR() << "no output file passed to voice() "
+                       "but TTS can't speak directly.";
+        return FatalError;
+    }
+    else {
+        execstring = m_TTSTemplate;
+    }
 
     execstring.replace("%exe",m_TTSexec);
     execstring.replace("%options",m_TTSOpts);
     execstring.replace("%wavfile",wavfile);
     execstring.replace("%text",text);
-    //qDebug() << "voicing" << execstring;
+
     QProcess::execute(execstring);
+
+    if(!wavfile.isEmpty() && !QFileInfo(wavfile).isFile()) {
+        LOG_ERROR() << "output file does not exist:" << wavfile;
+        return FatalError;
+    }
     return NoError;
 
 }
 
 bool TTSExes::configOk()
 {
-    QString path = RbSettings::subValue(m_name,RbSettings::TtsPath).toString();
-
-    if (QFileInfo(path).exists())
+    loadSettings();
+    if (QFileInfo(m_TTSexec).exists())
         return true;
-
-    return false;
+    else
+        return false;
 }
+

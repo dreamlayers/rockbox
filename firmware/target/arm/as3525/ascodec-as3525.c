@@ -44,13 +44,12 @@
     interrupt bit 7 is raised and DACNT is not decremented after the transfer.
  */
 
-#include "ascodec-target.h"
+#include "ascodec.h"
 #include "clock-target.h"
 #include "kernel.h"
 #include "system.h"
 #include "as3525.h"
 #include "i2c.h"
-#include "usb-target.h"
 
 #define I2C2_DATA       *((volatile unsigned int *)(I2C_AUDIO_BASE + 0x00))
 #define I2C2_SLAD0      *((volatile unsigned int *)(I2C_AUDIO_BASE + 0x04))
@@ -107,7 +106,7 @@ struct ascodec_request {
     unsigned char status;
     unsigned char cnt;
     unsigned char data[ASCODEC_REQ_MAXLEN];
-    struct wakeup wkup;
+    struct semaphore complete;
     ascodec_cb_fn *callback;
     struct ascodec_request *next;
 };
@@ -115,13 +114,13 @@ struct ascodec_request {
 
 static struct mutex as_mtx;
 
-static int ascodec_enrd0_shadow = 0;
+static unsigned long ascodec_enrd0_shadow = 0;
 
 static unsigned char *req_data_ptr = NULL;
 static struct ascodec_request *req_head = NULL;
 static struct ascodec_request *req_tail = NULL;
 
-static struct wakeup adc_wkup;
+static struct semaphore adc_done_sem;
 static struct ascodec_request as_audio_req;
 
 #ifdef DEBUG
@@ -160,21 +159,12 @@ static void ascodec_finish_req(struct ascodec_request *req)
      */
     while (i2c_busy());
 
-    /* disable clock - already in IRQ context */
-    CGU_PERI &= ~CGU_I2C_AUDIO_MASTER_CLOCK_ENABLE;
-
     req->status = 1;
 
     if (req->callback) {
         req->callback(req->data, req_data_ptr - req->data);
     }
-    wakeup_signal(&req->wkup);
-
-    req_head = req->next;
-    req->next = NULL;
-    if (req_head == NULL)
-        req_tail = NULL;
-
+    semaphore_release(&req->complete);
 }
 
 static int ascodec_continue_req(struct ascodec_request *req, int irq_status)
@@ -227,13 +217,12 @@ static void ascodec_start_req(struct ascodec_request *req)
 
 void INT_I2C_AUDIO(void)
 {
+    struct ascodec_request *req = req_head;
+
     int irq_status = I2C2_MIS;
-    int status = REQ_FINISHED;
+    int status = ascodec_continue_req(req, irq_status);
 
-    if (req_head != NULL)
-        status = ascodec_continue_req(req_head, irq_status);
-
-    I2C2_INT_CLR |= irq_status; /* clear interrupt status */
+    I2C2_INT_CLR = irq_status; /* clear interrupt status */
 
     if (status != REQ_UNFINISHED) {
         /* mask rx/tx interrupts */
@@ -241,15 +230,31 @@ void INT_I2C_AUDIO(void)
                       I2C2_IRQ_RXOVER|I2C2_IRQ_ACKTIMEO);
 
         if (status == REQ_FINISHED)
-            ascodec_finish_req(req_head);
+            ascodec_finish_req(req);
+
+        int oldlevel = disable_irq_save(); /* IRQs are stacked */
 
         /*
          * If status == REQ_RETRY, this will restart
          * the request because we didn't remove it from
          * the request list
          */
-        if (req_head)
+
+        if (status == REQ_FINISHED) {
+            req_head = req->next;
+            req->next = NULL;
+        }
+
+        if (req_head == NULL) {
+            req_tail = NULL;
+
+            /* disable clock */
+            bitclr32(&CGU_PERI, CGU_I2C_AUDIO_MASTER_CLOCK_ENABLE);
+        } else {
             ascodec_start_req(req_head);
+        }
+
+        restore_irq(oldlevel);
     }
 }
 
@@ -263,7 +268,7 @@ void ascodec_init(void)
     int prescaler;
 
     mutex_init(&as_mtx);
-    wakeup_init(&adc_wkup);
+    semaphore_init(&adc_done_sem, 1, 0);
 
     /* enable clock */
     bitset32(&CGU_PERI, CGU_I2C_AUDIO_MASTER_CLOCK_ENABLE);
@@ -279,7 +284,7 @@ void ascodec_init(void)
     I2C2_CNTRL = I2C2_CNTRL_DEFAULT;
 
     I2C2_IMR = 0x00;          /* disable interrupts */
-    I2C2_INT_CLR |= I2C2_RIS; /* clear interrupt status */
+    I2C2_INT_CLR = I2C2_RIS; /* clear interrupt status */
     VIC_INT_ENABLE = INTERRUPT_I2C_AUDIO;
     VIC_INT_ENABLE = INTERRUPT_AUDIO;
 
@@ -312,7 +317,7 @@ void ascodec_init(void)
 static void ascodec_req_init(struct ascodec_request *req, int type,
                       unsigned int index, unsigned int cnt)
 {
-    wakeup_init(&req->wkup);
+    semaphore_init(&req->complete, 1, 0);
     req->next = NULL;
     req->callback = NULL;
     req->type = type;
@@ -337,19 +342,12 @@ static void ascodec_submit(struct ascodec_request *req)
     restore_irq(oldlevel);
 }
 
-static int irq_disabled(void)
-{
-    unsigned long cpsr;
-
-    asm volatile ("mrs %0, cpsr" : "=r"(cpsr));
-
-    return (cpsr & IRQ_STATUS) == IRQ_DISABLED;
-}
-
 static void ascodec_wait(struct ascodec_request *req)
 {
-    if (!irq_disabled()) {
-        wakeup_wait(&req->wkup, TIMEOUT_BLOCK);
+    /* NOTE: Only safe from thread context */
+
+    if (irq_enabled()) {
+        semaphore_wait(&req->complete, TIMEOUT_BLOCK);
         return;
     }
 
@@ -366,8 +364,10 @@ static void ascodec_wait(struct ascodec_request *req)
 static void ascodec_async_write(unsigned int index, unsigned int value,
                          struct ascodec_request *req)
 {
+#ifndef HAVE_AS3543
     if (index == AS3514_CVDD_DCDC3) /* prevent setting of the LREG_CP_not bit */
         value &= ~(1 << 5);
+#endif
 
     ascodec_req_init(req, ASCODEC_REQ_WRITE, index, 1);
     req->data[0] = value;
@@ -441,6 +441,41 @@ int ascodec_readbytes(unsigned int index, unsigned int len, unsigned char *data)
     return i;
 }
 
+#if CONFIG_CPU == AS3525v2
+void ascodec_write_pmu(unsigned int index, unsigned int subreg,
+                       unsigned int value)
+{
+    struct ascodec_request reqs[2];
+
+    int oldstatus = disable_irq_save();
+    /* we submit consecutive requests to make sure no operations happen on the
+     * i2c bus between selecting the sub register and writing to it */
+    ascodec_async_write(AS3543_PMU_ENABLE, 8 | subreg, &reqs[0]);
+    ascodec_async_write(index, value, &reqs[1]);
+    restore_irq(oldstatus);
+
+    /* Wait for second request to finish */
+    ascodec_wait(&reqs[1]);
+}
+
+int ascodec_read_pmu(unsigned int index, unsigned int subreg)
+{
+    struct ascodec_request reqs[2];
+
+    int oldstatus = disable_irq_save();
+    /* we submit consecutive requests to make sure no operations happen on the
+     * i2c bus between selecting the sub register and reading it */
+    ascodec_async_write(AS3543_PMU_ENABLE, subreg, &reqs[0]);
+    ascodec_async_read(index, 1, &reqs[1], NULL);
+    restore_irq(oldstatus);
+
+    /* Wait for second request to finish */
+    ascodec_wait(&reqs[1]);
+
+    return reqs[1].data[0];
+}
+#endif /* CONFIG_CPU == AS3525v2 */
+
 static void ascodec_read_cb(unsigned const char *data, unsigned int len)
 {
     if (UNLIKELY(len != 3)) /* some error happened? */
@@ -477,7 +512,7 @@ static void ascodec_read_cb(unsigned const char *data, unsigned int len)
     }
     if (data[2] & IRQ_ADC) { /* adc finished */
         IFDEBUG(int_adc++);
-        wakeup_signal(&adc_wkup);
+        semaphore_release(&adc_done_sem);
     }
     VIC_INT_ENABLE = INTERRUPT_AUDIO;
 }
@@ -492,20 +527,43 @@ void INT_AUDIO(void)
 
 void ascodec_wait_adc_finished(void)
 {
-    wakeup_wait(&adc_wkup, TIMEOUT_BLOCK);
+    semaphore_wait(&adc_done_sem, TIMEOUT_BLOCK);
 }
 
 #ifdef CONFIG_CHARGING
 bool ascodec_endofch(void)
 {
     bool ret = ascodec_enrd0_shadow & CHG_ENDOFCH;
-    ascodec_enrd0_shadow &= ~CHG_ENDOFCH; // clear interrupt
+    bitclr32(&ascodec_enrd0_shadow, CHG_ENDOFCH); /* clear interrupt */
     return ret;
 }
 
 bool ascodec_chg_status(void)
 {
     return ascodec_enrd0_shadow & CHG_STATUS;
+}
+
+void ascodec_monitor_endofch(void)
+{
+    /* already enabled */
+}
+
+void ascodec_write_charger(int value)
+{
+#if CONFIG_CPU == AS3525
+    ascodec_write(AS3514_CHARGER, value);
+#else
+    ascodec_write_pmu(AS3543_CHARGER, 1, value);
+#endif
+}
+
+int ascodec_read_charger(void)
+{
+#if CONFIG_CPU == AS3525
+    return ascodec_read(AS3514_CHARGER);
+#else
+    return ascodec_read_pmu(AS3543_CHARGER, 1);
+#endif
 }
 #endif /* CONFIG_CHARGING */
 

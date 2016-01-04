@@ -23,29 +23,33 @@
 #include "system.h"
 #include "lcd.h"
 #include "backlight.h"
-#include "ascodec-target.h"
+#include "ascodec.h"
 #include "as3514.h"
 
-int buttonlight_is_on = 0;
-
-void _backlight_set_brightness(int brightness)
+void backlight_hw_brightness(int brightness)
 {
     ascodec_write_pmu(AS3543_BACKLIGHT, 2, brightness * 10);
 }
 
-bool _backlight_init(void)
+bool backlight_hw_init(void)
 {
     ascodec_write_pmu(AS3543_BACKLIGHT, 1, 0x80);
     ascodec_write_pmu(AS3543_BACKLIGHT, 2, backlight_brightness * 10);
 
     /* needed for button light */
-    if (amsv2_variant == 1)
+    if (amsv2_variant == 0)
+    {
+        GPIOB_DIR |= 1<<5;
+    }
+    else
+    {
         ascodec_write_pmu(0x1a, 1, 0x30);   /* MUX_PWGD = PWM */
+    }
 
     return true;
 }
 
-void _backlight_on(void)
+void backlight_hw_on(void)
 {
 #ifdef HAVE_LCD_ENABLE
     lcd_enable(true); /* power on lcd + visible display */
@@ -53,7 +57,7 @@ void _backlight_on(void)
     ascodec_write_pmu(AS3543_BACKLIGHT, 1, 0x80);
 }
 
-void _backlight_off(void)
+void backlight_hw_off(void)
 {
     ascodec_write_pmu(AS3543_BACKLIGHT, 1, 0x0);
 #ifdef HAVE_LCD_ENABLE
@@ -61,13 +65,11 @@ void _backlight_off(void)
 #endif
 }
 
-void _buttonlight_on(void)
+void buttonlight_hw_on(void)
 {
     if (amsv2_variant == 0)
     {
-        GPIOB_DIR |= 1<<5;
         GPIOB_PIN(5) = (1<<5);
-        buttonlight_is_on = 1;
     }
     else
     {
@@ -75,13 +77,11 @@ void _buttonlight_on(void)
     }
 }
 
-void _buttonlight_off(void)
+void buttonlight_hw_off(void)
 {
     if (amsv2_variant == 0)
     {
         GPIOB_PIN(5) = 0;
-        GPIOB_DIR &= ~(1<<5);
-        buttonlight_is_on = 0;
     }
     else
     {

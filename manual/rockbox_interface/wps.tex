@@ -111,6 +111,7 @@ your WPS (While Playing Screen).
           \opt{PLAYER_PAD}{\ButtonMenu+\ButtonStop}
           \opt{ONDIO_PAD}{\ButtonMenu+\ButtonDown}
           \opt{SANSA_CLIP_PAD}{\ButtonHome+\ButtonSelect}
+          \opt{SANSA_FUZEPLUS_PAD}{\ButtonPower}
           & Key lock (software hold switch) on/off.\\
       }%
       %These actions need definitions for the other targets
@@ -125,17 +126,19 @@ your WPS (While Playing Screen).
       % on the 'pitchscreen' feature since some players have the feature but do
       % not have the button to go from the WPS to the pitch screen.
       \opt{RECORDER_PAD,IRIVER_H100_PAD,IRIVER_H300_PAD,IRIVER_H10_PAD,MROBE100_PAD%
-	           ,GIGABEAT_PAD,GIGABEAT_S_PAD,SANSA_E200_PAD,SANSA_C200_PAD}{%
+          ,GIGABEAT_PAD,GIGABEAT_S_PAD,SANSA_E200_PAD,SANSA_C200_PAD,SANSA_FUZEPLUS_PAD}{%
         \ActionWpsPitchScreen
         \opt{HAVEREMOTEKEYMAP}{& \ActionRCWpsPitchScreen}
-         & Show \setting{Pitch Screen} (see \reference{sec:pitchscreen}).\\%
+          & Show \setting{Pitch Screen} (see \reference{sec:pitchscreen}).\\%
       }%
-      \opt{GIGABEAT_PAD,GIGABEAT_S_PAD,SANSA_CLIP_PAD,MROBE100_PAD,PBELL_VIBE500_PAD}{%
-        \ActionWpsPlaylist 
+      \opt{GIGABEAT_PAD,GIGABEAT_S_PAD,SANSA_CLIP_PAD,MROBE100_PAD,PBELL_VIBE500_PAD%
+          ,SAMSUNG_YH92X_PAD,SAMSUNG_YH820_PAD}{%
+        \ActionWpsPlaylist
+        \opt{HAVEREMOTEKEYMAP}{&}
           & Show current \setting{Playlist}.\\%
       }%
       \opt{RECORDER_PAD,IRIVER_H100_PAD,IRIVER_H300_PAD,IRIVER_H10_PAD%
-          ,SANSA_E200_PAD,SANSA_C200_PAD}{%
+          ,SANSA_E200_PAD,SANSA_C200_PAD,SANSA_FUZEPLUS_PAD}{%
         \ActionWpsIdThreeScreen 
           \opt{HAVEREMOTEKEYMAP}{& \ActionRCWpsIdThreeScreen}
           & Enter \setting{ID3 Viewer}.\\%
@@ -179,6 +182,11 @@ your WPS (While Playing Screen).
     For a picture of the peak meter, please see the While
     Recording Screen in \reference{ref:while_recording_screen}.
   }
+  \opt{ipodvideo}{
+    \note{Especially the \playerman{} \playertype{}'s performance and battery runtime
+     suffers when this feature is enabled. For this \dap{} it is highly recommended
+     to not use peak meter.}
+  }
   
   \begin{description}
   \item [The bar:]
@@ -210,28 +218,27 @@ allows you quick access to some often used functions.
 
 \subsubsection{Playlist}
 The \setting{Playlist} submenu allows you to view, save, search and
-reshuffle the current playlist. To change settings for the
+reshuffle the current playlist. These and other operations are detailed in
+\reference{ref:working_with_playlists}. To change settings for the
 \setting{Playlist Viewer} press \ActionStdContext{} while viewing the current
 playlist to bring up the \setting{Playlist Viewer Menu}. In this menu, you
 can find the \setting{Playlist Viewer Settings}.
 
-\subsubsection{Playlist Viewer Settings}
+\paragraph{Playlist Viewer Settings}
   \begin{description}
     \item[Show Icons.] This toggles display of the icon for the currently 
     selected playlist entry and the icon for moving a playlist entry
-    \item[Show Indicies.] This toggles display of the line numbering for
+    \item[Show Indices.] This toggles display of the line numbering for
        the playlist
     \item[Track Display.] This toggles between filename only and full path
        for playlist entries
-    \item[Save Current Playlist.] Allows the current playlist to be saved as
-       a \fname{.m3u8} playlist file
   \end{description}
 
     
-\subsubsection{Playlist catalog}
+\subsubsection{Playlist catalogue}
   \begin{description}
-    \item [View catalog.] This lists all playlists that are part of the
-    Playlist catalog. You can load a new playlist directly from this list.
+    \item [View catalogue.] This lists all playlists that are part of the
+    Playlist catalogue. You can load a new playlist directly from this list.
     \item [Add to playlist.] Adds the currently playing file to a playlist.
     Select the playlist you want the file to be added to and it will get
     appended to that playlist.
@@ -251,7 +258,7 @@ repeat, party mode, skip length and other settings affecting the playback of you
 
 \subsubsection{Rating}
 The menu entry is only shown if \setting{Gather Runtime Information} is
-enabled. It allows the asignment of a personal rating value (0 -- 10)
+enabled. It allows the assignment of a personal rating value (0 -- 10)
 to a track which can be displayed in the WPS and used in the Database
 browser. The value wraps at 10.
 
@@ -265,11 +272,12 @@ all the identity information about the current track. This info is known as
 meta data and is stored in audio file formats to keep information on artist,
 album etc. To access this screen, %
 \opt{RECORDER_PAD,IRIVER_H100_PAD,IRIVER_H300_PAD,IRIVER_H10_PAD,%
-      SANSA_C200_PAD,SANSA_E200_PAD,SANSA_FUZE_PAD}{
+      SANSA_C200_PAD,SANSA_E200_PAD,SANSA_FUZE_PAD,SANSA_FUZEPLUS_PAD}{
   press \ActionWpsIdThreeScreen. }%
 \opt{PLAYER_PAD,ONDIO_PAD,IPOD_4G_PAD,IPOD_3G_PAD,IAUDIO_X5_PAD,IAUDIO_M3_PAD,%
       GIGABEAT_PAD,GIGABEAT_S_PAD,MROBE100_PAD,SANSA_CLIP_PAD,PBELL_VIBE500_PAD,%
-      MPIO_HD200_PAD}{press \ActionWpsContext{} to access the 
+      MPIO_HD200_PAD,MPIO_HD300_PAD,SAMSUNG_YH92X_PAD,SAMSUNG_YH820_PAD}%
+      {press \ActionWpsContext{} to access the 
       \setting{WPS Context Menu} and select \setting{Show Track Info}. }
 \opt{RECORDER_PAD,PLAYER_PAD,ONDIO_PAD}{Use \ButtonLeft\ and \ButtonRight\
   to move through the information.}%
@@ -355,7 +363,7 @@ This may even be the whole track.
         & Increase~/ Decrease pitch by 0.1\% (in procentual mode) or 0.1
           semitone (in semitone mode).\\
         %
-        \nopt{PBELL_VIBE500_PAD}{ % ther is no long scroll up or down because of slide
+        \nopt{PBELL_VIBE500_PAD}{ % there is no long scroll up or down because of slide
         \ActionPsIncBig{} / \ActionPsDecBig
         \opt{HAVEREMOTEKEYMAP}{& \ActionRCPsIncBig{} / \ActionRCPsDecBig}
         & Increase~/ Decrease pitch by 1\% (in procentual mode) or a semitone

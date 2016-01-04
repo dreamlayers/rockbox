@@ -31,12 +31,16 @@
 #include "sound_menu.h"
 #include "kernel.h"
 #include "playlist.h"
-#include "dsp.h"
 #include "scrobbler.h"
 #include "audio.h"
 #include "cuesheet.h"
+#include "misc.h"
 #if CONFIG_CODEC == SWCODEC
 #include "playback.h"
+#include "pcm_sampr.h"
+#ifdef HAVE_PLAY_FREQ
+#include "talk.h"
+#endif
 #endif
 
 
@@ -58,7 +62,7 @@ static int setcrossfadeonexit_callback(int action,const struct menu_item_ex *thi
 /***********************************/
 /*    PLAYBACK MENU                */
 static int playback_callback(int action,const struct menu_item_ex *this_item);
-    
+
 MENUITEM_SETTING(shuffle_item, &global_settings.playlist_shuffle, playback_callback);
 MENUITEM_SETTING(repeat_mode, &global_settings.repeat_mode, playback_callback);
 MENUITEM_SETTING(play_selected, &global_settings.play_selected, NULL);
@@ -80,7 +84,7 @@ static int buffermargin_callback(int action,const struct menu_item_ex *this_item
     }
     return action;
 }
-#else 
+#else
 # define buffermargin_callback NULL
 #endif
 MENUITEM_SETTING(buffer_margin, &global_settings.buffer_margin,
@@ -116,18 +120,24 @@ static int replaygain_callback(int action,const struct menu_item_ex *this_item)
     (void)this_item;
     switch (action)
     {
-        case ACTION_EXIT_MENUITEM: /* on exit */    
-            dsp_set_replaygain();
+        case ACTION_EXIT_MENUITEM: /* on exit */
+            replaygain_update();
             break;
     }
     return action;
 }
-MENUITEM_SETTING(replaygain_noclip, &global_settings.replaygain_noclip ,replaygain_callback);
-MENUITEM_SETTING(replaygain_type, &global_settings.replaygain_type ,replaygain_callback);
-MENUITEM_SETTING(replaygain_preamp, &global_settings.replaygain_preamp ,replaygain_callback);
+MENUITEM_SETTING(replaygain_noclip,
+                 &global_settings.replaygain_settings.noclip,
+                 replaygain_callback);
+MENUITEM_SETTING(replaygain_type,
+                 &global_settings.replaygain_settings.type,
+                 replaygain_callback);
+MENUITEM_SETTING(replaygain_preamp,
+                 &global_settings.replaygain_settings.preamp,
+                 replaygain_callback);
 MAKE_MENU(replaygain_settings_menu,ID2P(LANG_REPLAYGAIN),0, Icon_NOICON,
           &replaygain_type, &replaygain_noclip, &replaygain_preamp);
-          
+
 MENUITEM_SETTING(beep, &global_settings.beep ,NULL);
 #endif /* CONFIG_CODEC == SWCODEC */
 
@@ -135,6 +145,8 @@ MENUITEM_SETTING(beep, &global_settings.beep ,NULL);
 MENUITEM_SETTING(spdif_enable, &global_settings.spdif_enable, NULL);
 #endif
 MENUITEM_SETTING(next_folder, &global_settings.next_folder, NULL);
+MENUITEM_SETTING(constrain_next_folder,
+                 &global_settings.constrain_next_folder, NULL);
 static int audioscrobbler_callback(int action,const struct menu_item_ex *this_item)
 {
     (void)this_item;
@@ -142,10 +154,10 @@ static int audioscrobbler_callback(int action,const struct menu_item_ex *this_it
     {
         case ACTION_EXIT_MENUITEM: /* on exit */
             if (!scrobbler_is_enabled() && global_settings.audioscrobbler)
-                splash(HZ*2, ID2P(LANG_PLEASE_REBOOT));
-        
+                scrobbler_init();
+
             if(scrobbler_is_enabled() && !global_settings.audioscrobbler)
-                scrobbler_shutdown();
+                scrobbler_shutdown(false);
             break;
     }
     return action;
@@ -159,9 +171,13 @@ static int cuesheet_callback(int action,const struct menu_item_ex *this_item)
     switch (action)
     {
         case ACTION_EXIT_MENUITEM: /* on exit */
+#if CONFIG_CODEC == SWCODEC
+            audio_set_cuesheet(global_settings.cuesheet);
+#else
             if (global_settings.cuesheet)
                 splash(HZ*2, ID2P(LANG_PLEASE_REBOOT));
             break;
+#endif
     }
     return action;
 }
@@ -169,10 +185,9 @@ MENUITEM_SETTING(cuesheet, &global_settings.cuesheet, cuesheet_callback);
 
 #ifdef HAVE_HEADPHONE_DETECTION
 MENUITEM_SETTING(unplug_mode, &global_settings.unplug_mode, NULL);
-MENUITEM_SETTING(unplug_rw, &global_settings.unplug_rw, NULL);
 MENUITEM_SETTING(unplug_autoresume, &global_settings.unplug_autoresume, NULL);
 MAKE_MENU(unplug_menu, ID2P(LANG_HEADPHONE_UNPLUG), 0, Icon_NOICON,
-          &unplug_mode, &unplug_rw, &unplug_autoresume);
+          &unplug_mode, &unplug_autoresume);
 #endif
 
 MENUITEM_SETTING(skip_length, &global_settings.skip_length, NULL);
@@ -180,18 +195,23 @@ MENUITEM_SETTING(prevent_skip, &global_settings.prevent_skip, NULL);
 #if CONFIG_CODEC == SWCODEC
 MENUITEM_SETTING(resume_rewind, &global_settings.resume_rewind, NULL);
 #endif
+MENUITEM_SETTING(pause_rewind, &global_settings.pause_rewind, NULL);
+#ifdef HAVE_PLAY_FREQ
+MENUITEM_SETTING(play_frequency, &global_settings.play_frequency,
+                 playback_callback);
+#endif
 
 MAKE_MENU(playback_settings,ID2P(LANG_PLAYBACK),0,
           Icon_Playback_menu,
           &shuffle_item, &repeat_mode, &play_selected,
           &ff_rewind_settings_menu,
-#ifdef HAVE_DISK_STORAGE 
+#ifdef HAVE_DISK_STORAGE
           &buffer_margin,
 #endif
           &fade_on_stop, &party_mode,
-          
+
 #if (CONFIG_CODEC == SWCODEC) && defined(HAVE_CROSSFADE)
-          &crossfade_settings_menu, 
+          &crossfade_settings_menu,
 #endif
 
 #if CONFIG_CODEC == SWCODEC
@@ -201,34 +221,59 @@ MAKE_MENU(playback_settings,ID2P(LANG_PLAYBACK),0,
 #ifdef HAVE_SPDIF_POWER
           &spdif_enable,
 #endif
-          &next_folder, &audioscrobbler, &cuesheet
+          &next_folder, &constrain_next_folder, &audioscrobbler, &cuesheet
 #ifdef HAVE_HEADPHONE_DETECTION
          ,&unplug_menu
 #endif
-         ,&skip_length, &prevent_skip,
+         ,&skip_length, &prevent_skip
 
 #if CONFIG_CODEC == SWCODEC
-          &resume_rewind,
+          ,&resume_rewind
+#endif
+          ,&pause_rewind
+#ifdef HAVE_PLAY_FREQ
+          ,&play_frequency
 #endif
          );
-         
+
 static int playback_callback(int action,const struct menu_item_ex *this_item)
 {
     static bool old_shuffle = false;
+    static int old_repeat = 0;
     switch (action)
     {
         case ACTION_ENTER_MENUITEM:
             if (this_item == &shuffle_item)
-                old_shuffle = global_settings.playlist_shuffle;
-            break;
-        case ACTION_EXIT_MENUITEM: /* on exit */
-            if ((this_item == &shuffle_item) &&
-                (old_shuffle != global_settings.playlist_shuffle)
-                && (audio_status() & AUDIO_STATUS_PLAY))
             {
-#if CONFIG_CODEC == SWCODEC
-                dsp_set_replaygain();
-#endif
+                old_shuffle = global_settings.playlist_shuffle;
+            }
+            else if (this_item == &repeat_mode)
+            {
+                old_repeat = global_settings.repeat_mode;
+            }
+            break;
+
+        case ACTION_EXIT_MENUITEM: /* on exit */
+            /* Playing or not */
+#ifdef HAVE_PLAY_FREQ
+            if (this_item == &play_frequency)
+            {
+                settings_apply_play_freq(global_settings.play_frequency, false);
+                break;
+            }
+#endif /* HAVE_PLAY_FREQ */
+
+            if (!(audio_status() & AUDIO_STATUS_PLAY))
+                break;
+
+            /* Playing only */
+            if (this_item == &shuffle_item)
+            {
+                if (old_shuffle == global_settings.playlist_shuffle)
+                    break;
+
+                replaygain_update();
+
                 if (global_settings.playlist_shuffle)
                 {
                     playlist_randomise(NULL, current_tick, true);
@@ -238,6 +283,14 @@ static int playback_callback(int action,const struct menu_item_ex *this_item)
                     playlist_sort(NULL, true);
                 }
             }
+            else if (this_item == &repeat_mode)
+            {
+                if (old_repeat == global_settings.repeat_mode)
+                    break;
+
+                audio_flush_and_reload_tracks();
+            }
+
             break;
     }
     return action;

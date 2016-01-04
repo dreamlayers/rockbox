@@ -27,9 +27,9 @@
 #include "cpu.h"
 #include "system.h"
 #include "lcd.h"
-#include "kernel.h"
-#include "thread.h"
+#include "../kernel-internal.h"
 #include "storage.h"
+#include "file_internal.h"
 #include "usb.h"
 #include "disk.h"
 #include "font.h"
@@ -43,6 +43,8 @@
 #include "file.h"
 
 #include "common.h"
+#include "rb-loader.h"
+#include "loader_strerror.h"
 #include "version.h"
 
 #include <stdarg.h>
@@ -148,7 +150,7 @@ static void __shutdown(void)
     }
 
     /* Backlight OFF */
-    _backlight_off();
+    backlight_hw_off();
     __reset_cookie();
 
         power_off();
@@ -160,7 +162,7 @@ static void check_battery(void)
 
     int battery_voltage, batt_int, batt_frac;
     
-    battery_voltage = battery_adc_voltage();
+    battery_voltage = _battery_voltage();
     batt_int = battery_voltage / 1000;
     batt_frac = (battery_voltage % 1000) / 10;
 
@@ -195,39 +197,25 @@ static void rb_boot(void)
 
     reset_screen();
     printf("Rockbox boot loader");
-    printf("Version " RBVERSION);
+    printf("Version %s", rbversion);
 
     rc = storage_init();
     if(rc)
-    {
-        printf("ATA error: %d", rc);
-        sleep(HZ*5);
-        return;
-    }
+        error(EATA, rc, true);
 
-    disk_init();
+    filesystem_init();
 
     rc = disk_mount_all();
-    if (rc<=0)
-    {
-        printf("No partition found");
-        sleep(HZ*5);
-        return;
-    }
+    if (rc <= 0)
+        error(EDISK, rc, true);
 
     printf("Loading firmware");
 
     rc = load_firmware((unsigned char *)DRAM_START, 
                        BOOTFILE, MAX_LOADSIZE);
 
-    if (rc < EOK)
-    {
-        printf("Error!");
-        printf("Can't load " BOOTFILE ": ");
-        printf("Result: %s", strerror(rc));
-        sleep(HZ*5);
-        return;
-    }
+    if (rc <= EFILE_EMPTY)
+        error(EBOOTFILE, rc, true);
 
     cpu_boost(false);
     start_rockbox();
@@ -247,7 +235,7 @@ static void bootmenu(void)
     /* backbone of menu */
     /* run the loader */
     printf("Rockbox boot loader");
-    printf("Ver: " RBVERSION);
+    printf("Ver: %s", rbversion);
 
     check_battery();
 
@@ -384,7 +372,7 @@ void main(void)
     cpu_idle_mode(true);
 
     /* lowlevel init only */
-    _backlight_init();
+    backlight_hw_init();
 
     /* Handle wakeup event. Possibilities are:
      * RTC alarm (HD300)
@@ -402,9 +390,9 @@ void main(void)
         if ( hold != last_hold )
         {
             if ( hold )
-                _backlight_hw_off();
+                backlight_hw_off();
             else
-                _backlight_hw_on();
+                backlight_hw_on();
 
             last_hold = hold;
         }

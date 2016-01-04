@@ -39,7 +39,7 @@
 #include "serial.h"
 #include "power.h"
 #include "powermgmt.h"
-#if defined(IPOD_NANO2G) || defined(IPOD_6G)
+#ifdef IPOD_NANO2G
 #include "pmu-target.h"
 #endif
 
@@ -68,23 +68,23 @@
 
 int  old_wheel_value  = -1;
 int  new_wheel_value  = 0;
-int  repeat           = 0;
+static int  repeat           = 0;
 int  wheel_delta      = 0;
 bool wheel_is_touched = false;
 unsigned int  accumulated_wheel_delta = 0;
-unsigned int  wheel_repeat            = 0;
+static unsigned int  wheel_repeat            = 0;
 unsigned int  wheel_velocity          = 0;
-unsigned long last_wheel_usec         = 0;
+static unsigned long last_wheel_usec         = 0;
 
 /* Variable to use for setting button status in interrupt handler */
-int int_btn = BUTTON_NONE;
+static int int_btn = BUTTON_NONE;
 #ifdef HAVE_WHEEL_POSITION
     static int wheel_position = -1;
     static bool send_events = true;
 #endif
 
 #if CONFIG_CPU==S5L8701 || CONFIG_CPU==S5L8702
-static struct wakeup button_init_wakeup;
+static struct semaphore button_init_wakeup;
 #endif
 
 #ifdef CPU_PP
@@ -268,7 +268,13 @@ static inline int ipod_4g_button_read(void)
                 btn |= BUTTON_PLAY;
             if (status & 0x00100000)
                 btn |= BUTTON_MENU;
-            wakeup_signal(&button_init_wakeup);
+            semaphore_release(&button_init_wakeup);
+        }
+#endif
+#if CONFIG_CPU==S5L8702
+        else if (status == 0xAAAAAAAA)
+        {
+            GPIOCMD = 0xe040f;  /* DOUT = Output High */
         }
 #endif
 
@@ -347,7 +353,7 @@ void INT_WHEEL(void)
     int_btn = ipod_4g_button_read();
 }
 
-void s5l_clickwheel_init(void)
+static void s5l_clickwheel_init(void)
 {
 #if CONFIG_CPU==S5L8701
     PWRCONEXT &= ~1;
@@ -362,28 +368,46 @@ void s5l_clickwheel_init(void)
     WHEEL04 |= 1;
     PDAT10 &= ~2;
 #elif CONFIG_CPU==S5L8702
-    //TODO: Implement
+    PWRCON(1) &= ~(1 << 1); /* unmask clockgate */
+    WHEEL00 = 0;            /* stop s5l8702 controller */
+    PUNB(14) &= ~(1 << 2);  /* disable pull-up for GPIO E2 */
+    udelay(100);
+    PCON(14) = (PCON(14) & ~0x00ffff00) | 0x00222200;
+    WHEELINT = 7;
+    WHEEL10 = 1;
+    WHEEL00 = 0x380000;
+    WHEEL08 = 0x20000;
+    WHEELTX = 0x8000023A;
+    WHEEL04 |= 1;
 #endif
 }
 
 void button_init_device(void)
 {
-    wakeup_init(&button_init_wakeup);
+    semaphore_init(&button_init_wakeup, 1, 0);
 #if CONFIG_CPU==S5L8701
     INTMSK |= (1<<26);
-#elif CONFIG_CPU==S5L8702
-    //TODO: Implement
 #endif
     s5l_clickwheel_init();
-    wakeup_wait(&button_init_wakeup, HZ / 10);
+    semaphore_wait(&button_init_wakeup, HZ / 10);
+#if CONFIG_CPU==S5L8702
+    /* configure GPIO E2 as pull-up input */
+    PUNB(14) |= (1 << 2);
+    udelay(100);
+    GPIOCMD = 0xe0200;
+#endif
 }
 
 bool button_hold(void)
 {
 #if CONFIG_CPU==S5L8701
-    return ((PDAT14 & (1 << 6)) == 0);
+    bool value = (PDAT14 & (1 << 6)) == 0;
+    if (value)
+        PCON15 = PCON15 & ~0xffff0000;
+    else PCON15 = (PCON15 & ~0xffff0000) | 0x22220000;
+    return value;
 #elif CONFIG_CPU==S5L8702
-    return ((PDATE & (1 << 3)) == 0);
+    return ((PDATE & (1 << 2)) == 0);
 #endif
 }
 
@@ -393,7 +417,6 @@ bool headphones_inserted(void)
     return ((PDAT14 & (1 << 5)) != 0);
 #elif CONFIG_CPU==S5L8702
     return ((PDATA & (1 << 6)) != 0);
-    return false;
 #endif
 }
 #endif
@@ -427,7 +450,7 @@ int button_read_device(void)
             WHEEL10 = 0;
             PWRCONEXT |= 1;
 #elif CONFIG_CPU==S5L8702
-            //TODO: Implement
+            GPIOCMD = 0xe040e;  /* DOUT = Output Low */
 #endif
         }
         else
@@ -440,7 +463,7 @@ int button_read_device(void)
             pmu_ldo_power_on(1); /* enable clickwheel power supply */
             s5l_clickwheel_init();
 #elif CONFIG_CPU==S5L8702
-            //TODO: Implement
+            GPIOCMD = 0xe040f;  /* DOUT = Output High */
 #endif
         }
     }

@@ -26,7 +26,6 @@
 #include "usb_ch9.h"
 #include "usb_drv.h"
 #include "usb_core.h"
-#include "usb-target.h"
 #include "jz4740.h"
 #include "thread.h"
 
@@ -69,7 +68,7 @@ struct usb_endpoint
     unsigned short fifo_size;
 
     bool wait;
-    struct wakeup wakeup;
+    struct semaphore complete;
 };
 
 static unsigned char ep0_rx_buf[64];
@@ -171,7 +170,7 @@ static inline void ep_transfer_completed(struct usb_endpoint* ep)
     ep->buf    = NULL;
     ep->busy   = false;
     if(ep->wait)
-        wakeup_signal(&ep->wakeup);
+        semaphore_release(&ep->complete);
 }
 
 static void EP0_send(void)
@@ -577,28 +576,37 @@ void usb_drv_stall(int endpoint, bool stall, bool in)
     }
 }
 
-bool usb_drv_connected(void)
-{
-    return USB_DRV_CONNECTED();
-}
+#define GPIO_UDC_DETE      (32 * 3 + 28) /* A18 = ADP_CHK */
+#define IRQ_GPIO_UDC_DETE  (IRQ_GPIO_0 + GPIO_UDC_DETE)
+#ifndef ONDA_VX767
+# define USB_GPIO_IRQ GPIO124
+#endif
 
 int usb_detect(void)
 {
-    return usb_drv_connected() ? USB_INSERTED : USB_EXTRACTED;
+    return (__gpio_get_pin(GPIO_UDC_DETE) == 1)
+        ? USB_INSERTED : USB_EXTRACTED;
 }
 
 void usb_init_device(void)
 {
-    unsigned int i;
+#ifdef ONDA_VX767
+    REG_GPIO_PXFUNS(3) = 0x10000000;
+    REG_GPIO_PXSELS(3) = 0x10000000;
+    REG_GPIO_PXPES(3)  = 0x10000000;
+    __gpio_as_input(GPIO_UDC_DETE);
+#else
+    REG_GPIO_PXPES(3)  = 0x10000000;
+    __gpio_as_irq_rise_edge(GPIO_UDC_DETE);
+#endif
 
-    USB_INIT_GPIO();
 #ifdef USB_GPIO_IRQ
     system_enable_irq(IRQ_GPIO_UDC_DETE);
 #endif
     system_enable_irq(IRQ_UDC);
 
-    for(i=0; i<TOTAL_EP(); i++)
-        wakeup_init(&endpoints[i].wakeup);
+    for(unsigned i=0; i<TOTAL_EP(); i++)
+        semaphore_init(&endpoints[i].complete, 1, 0);
 }
 
 #ifdef USB_GPIO_IRQ
@@ -715,7 +723,7 @@ static void usb_drv_send_internal(struct usb_endpoint* ep, void* ptr, int length
 
     if(blocking)
     {
-        wakeup_wait(&ep->wakeup, TIMEOUT_BLOCK);
+        semaphore_wait(&ep->complete, TIMEOUT_BLOCK);
         ep->wait = false;
     }
 }

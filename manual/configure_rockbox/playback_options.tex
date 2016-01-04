@@ -160,8 +160,6 @@ you to configure settings related to audio playback.
     changing between songs recorded at different volume levels.
     For replaygain to work, the songs must have been processed by a program
     that adds replaygain information to the ID3 tags (or Vorbis tags).\\
-
-    \note{APEv2 tags are not currently supported.\\}
       
     Options for replaygain are:
     \begin{description}
@@ -223,8 +221,15 @@ you to configure settings related to audio playback.
 
   \note{This feature only works when songs have been played from the file
     browser.  Using it with the database may cause unexpected behaviour.}
-
   %
+
+\section{\label{ref:ConstrainAutoChange}Constrain Auto-Change}
+  If enabled and you have set \setting{Start File Browser Here} to a directory
+  other than root, \setting{Auto-Change Directory} will be constrained to the
+  directory you have chosen and those below it.
+  See \reference{ref:StartFileBrowserHere}.
+  %
+
 \opt{headphone_detection}{
 \section{Pause on Headphone Unplug}
   Enables and disables automatic pausing of 
@@ -240,9 +245,7 @@ you to configure settings related to audio playback.
       %
     \item[Pause and Resume.] Pauses when the headphones are removed, and 
       resumes playback when they are reconnected.
-  \end{description}
-  \item[Duration to Rewind.] Number of seconds (between 0 and 15) to rewind 
-    playback when the headphones are removed.
+    \end{description}
     %
   \item[Disable Auto-Resume If Phones Not Present.] This option will disable 
     the automatic resumption of playback at startup if the headphones are not 
@@ -254,7 +257,7 @@ you to configure settings related to audio playback.
 
 \section{Last.fm Log}\index{Last.fm Log}\index{Audioscrobbler|see{Last.fm Log}}
   Enables logging of your played tracks for submittal to 
-  \url{http://www.last.fm}. This service was formely known as 
+  \url{http://www.last.fm}. This service was formerly known as 
   \emph{Audioscrobbler}. When you enable this option, you'll have to reboot to
   start the logging. The log-file is called 
   \opt{rtc}{\fname{.scrobbler.log},}%
@@ -271,6 +274,15 @@ you to configure settings related to audio playback.
   found in the cuesheet file will replace the information from the ID3 tags.
   When you enable this option, you'll have to reboot for it to come into
   effect.
+
+  Cuesheet files should have the same file name as the audio file they
+  reference, except with the extension \fname{.cue}. This file can either
+  reside in the same directory as the audio file (checked first), or within the
+  \fname{.rockbox/cue} directory.
+  
+  The contents of a cuesheet file can also be embedded within the metadata of
+  an audio file. There is currently support for the FLAC tag/ Vorbis comment
+  \emph{CUESHEET} or the ID3v2 \emph{TXXX CUESHEET} tag.
   
 \section{Skip Length}\index{Skip Length}
   Designed to speed up navigation when listening to long audio tracks,
@@ -289,12 +301,30 @@ you to configure settings related to audio playback.
 
 \opt{swcodec}{
   \section{Rewind Before Resume}\index{Rewind Before Resume}
-    When resuming a track or a bookmark, a short rewind can be done before the
+    When restarting a track or a bookmark, a short rewind can be done before the
     playback is started. This can be useful when listening to speech material,
     to help remember what was being said just before playback was stopped.
     The size of the rewind can be set to various values between 0 (off) and
     60 seconds.
-    \note{The rewind is not done when resuming a paused track.}
+    \note{This option does not apply to resuming a paused track.  Use
+      the next option for rewinding on pause.}
     \note{The actual rewind distance may differ a little from the requested
       value, depending on the file in question.}
+}%\opt{swcodec}
+
+\section{Rewind on Pause}\index{Rewind on Pause}
+  This option rewinds the current track by a small amount whenever it is
+  paused (not stopped).  The amount to rewind can be set between 0 and
+  15 seconds.
+
+\opt{swcodec}{
+  \opt{play_frequency}{
+    \section{Frequency}\index{Frequency}
+      This is the sampling frequency used for the rockbox playback engine.  Audio
+      at a different sampling rate will be converted to this sampling rate prior to
+      mixing using a cubic Hermite polynomial resampler.
+      \note{For best quality and battery life, select the sampling rate used by
+      your audio.  This is typically 44.1kHz.}
+      \note{Opus files are always 48kHz.}
+  }
 }%\opt{swcodec}

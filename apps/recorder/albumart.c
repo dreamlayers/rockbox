@@ -19,6 +19,7 @@
  *
  ****************************************************************************/
 
+#include <stdio.h>
 #include "string-extra.h"
 #include "system.h"
 #include "albumart.h"
@@ -26,7 +27,7 @@
 #include "buffering.h"
 #include "dircache.h"
 #include "misc.h"
-#include "filefuncs.h"
+#include "pathfuncs.h"
 #include "settings.h"
 #include "wps.h"
 
@@ -275,7 +276,7 @@ bool search_albumart_files(const struct mp3entry *id3, const char *size_string,
  * Stores the found filename in the buf parameter.
  * Returns true if a bitmap was found, false otherwise */
 bool find_albumart(const struct mp3entry *id3, char *buf, int buflen,
-                    struct dim *dim)
+                    const struct dim *dim)
 {
     if (!id3 || !buf)
         return false;
@@ -304,7 +305,7 @@ void draw_album_art(struct gui_wps *gwps, int handle_id, bool clear)
         return;
 
     struct wps_data *data = gwps->data;
-    struct skin_albumart *aa = data->albumart;
+    struct skin_albumart *aa = SKINOFFSETTOPTR(get_skin_buffer(data), data->albumart);
 
     if (!aa)
         return;

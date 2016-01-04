@@ -37,10 +37,11 @@
 #include "power.h"
 #include "talk.h"
 #include "audio.h"
+#include "shortcuts.h"
 
 #ifdef HAVE_HOTSWAP
 #include "storage.h"
-#include "dir.h"
+#include "mv.h"
 #endif
 /* gui api */
 #include "list.h"
@@ -60,6 +61,7 @@
 #include "bookmark.h"
 #include "playlist.h"
 #include "playlist_viewer.h"
+#include "playlist_catalog.h"
 #include "menus/exported_menus.h"
 #ifdef HAVE_RTC_ALARM
 #include "rtc.h"
@@ -69,6 +71,7 @@
 #endif
 #include "language.h"
 #include "plugin.h"
+#include "disk.h"
 
 struct root_items {
     int (*function)(void* param);
@@ -82,12 +85,27 @@ static int next_screen = GO_TO_ROOT; /* holding info about the upcoming screen
 static int last_screen = GO_TO_ROOT; /* unfortunatly needed so we can resume
                                         or goto current track based on previous
                                         screen */
-                                        
+
+static int previous_music = GO_TO_WPS; /* Toggles behavior of the return-to
+                                        * playback-button depending
+                                        * on FM radio */
+
+#if (CONFIG_TUNER)
+static void rootmenu_start_playback_callback(unsigned short id, void *param)
+{
+    (void) id; (void) param;
+    /* Cancel FM radio selection as previous music. For cases where we start
+       playback without going to the WPS, such as playlist insert or
+       playlist catalog. */
+    previous_music = GO_TO_WPS;
+}
+#endif
 
 static char current_track_path[MAX_PATH];
-static void rootmenu_track_changed_callback(void* param)
+static void rootmenu_track_changed_callback(unsigned short id, void* param)
 {
-    struct mp3entry *id3 = (struct mp3entry *)param;
+    (void)id;
+    struct mp3entry *id3 = ((struct track_event *)param)->id3;
     strlcpy(current_track_path, id3->path, MAX_PATH);
 }
 static int browser(void* param)
@@ -110,7 +128,7 @@ static int browser(void* param)
     {
         case GO_TO_FILEBROWSER:
             filter = global_settings.dirfilter;
-            if (global_settings.browse_current && 
+            if (global_settings.browse_current &&
                     last_screen == GO_TO_WPS &&
                     current_track_path[0])
             {
@@ -128,13 +146,12 @@ static int browser(void* param)
                 int i;
                 for (i = 0; i < NUM_VOLUMES; i++)
                 {
-                    char vol_string[VOL_ENUM_POS + 8];
-                    if (!storage_removable(i))
+                    char vol_string[VOL_MAX_LEN + 1];
+                    if (!volume_removable(i))
                         continue;
-                    /* VOL_NAMES contains a %d */
-                    snprintf(vol_string, sizeof(vol_string), "/"VOL_NAMES, i);
+                    get_volume_name(i, vol_string);
                     /* test whether we would browse the external card */
-                    if (!storage_present(i) &&
+                    if (!volume_present(i) &&
                             (strstr(last_folder, vol_string)
 #ifdef HAVE_HOTSWAP_STORAGE_AS_MAIN
                                                                 || (i == 0)
@@ -151,6 +168,7 @@ static int browser(void* param)
 #endif
                     strcpy(folder, last_folder);
             }
+            push_current_activity(ACTIVITY_FILEBROWSER);
         break;
 #ifdef HAVE_TAGCACHE
         case GO_TO_DBBROWSER:
@@ -161,8 +179,8 @@ static int browser(void* param)
                 /* Now display progress until it's ready or the user exits */
                 while(!tagcache_is_usable())
                 {
-                    struct tagcache_stat *stat = tagcache_get_stat();                
-    
+                    struct tagcache_stat *stat = tagcache_get_stat();
+
                     /* Allow user to exit */
                     if (action_userabort(HZ/2))
                         break;
@@ -180,9 +198,9 @@ static int browser(void* param)
                         splash(0, str(LANG_TAGCACHE_BUSY));
                         continue;
                     }
-               
+
                     /* Re-init if required */
-                    if (!reinit_attempted && !stat->ready && 
+                    if (!reinit_attempted && !stat->ready &&
                         stat->processed_entries == 0 && stat->commit_step == 0)
                     {
                         /* Prompt the user */
@@ -192,7 +210,6 @@ static int browser(void* param)
                         static const struct text_message message={lines, 2};
                         if(gui_syncyesno_run(&message, NULL, NULL) == YESNO_NO)
                             break;
-                        int i;
                         FOR_NB_SCREENS(i)
                             screens[i].clear_display();
 
@@ -246,12 +263,14 @@ static int browser(void* param)
             filter = SHOW_ID3DB;
             tc->dirlevel = last_db_dirlevel;
             tc->selected_item = last_db_selection;
+            push_current_activity(ACTIVITY_DATABASEBROWSER);
         break;
 #endif
     }
 
     browse_context_init(&browse, filter, 0, NULL, NOICON, folder, NULL);
     ret_val = rockbox_browse(&browse);
+    pop_current_activity();
     switch ((intptr_t)param)
     {
         case GO_TO_FILEBROWSER:
@@ -271,14 +290,8 @@ static int browser(void* param)
 #endif
     }
     return ret_val;
-}  
-
-static int menu(void* param)
-{
-    (void)param;
-    return do_menu(NULL, 0, NULL, false);
-    
 }
+
 #ifdef HAVE_RECORDING
 static int recscrn(void* param)
 {
@@ -291,6 +304,7 @@ static int wpsscrn(void* param)
 {
     int ret_val = GO_TO_PREVIOUS;
     (void)param;
+    push_current_activity(ACTIVITY_WPS);
     if (audio_status())
     {
         talk_shutup();
@@ -298,12 +312,15 @@ static int wpsscrn(void* param)
     }
     else if ( global_status.resume_index != -1 )
     {
-        DEBUGF("Resume index %X offset %lX\n",
+        DEBUGF("Resume index %X crc32 %lX offset %lX\n",
                global_status.resume_index,
+               (unsigned long)global_status.resume_crc32,
                (unsigned long)global_status.resume_offset);
         if (playlist_resume() != -1)
         {
-            playlist_start(global_status.resume_index,
+            playlist_resume_track(global_status.resume_index,
+                global_status.resume_crc32,
+                global_status.resume_elapsed,
                 global_status.resume_offset);
             ret_val = gui_wps_show();
         }
@@ -312,6 +329,7 @@ static int wpsscrn(void* param)
     {
         splash(HZ*2, ID2P(LANG_NOTHING_TO_RESUME));
     }
+    pop_current_activity();
     return ret_val;
 }
 #if CONFIG_TUNER
@@ -323,10 +341,43 @@ static int radio(void* param)
 }
 #endif
 
+static int miscscrn(void * param)
+{
+    const struct menu_item_ex *menu = (const struct menu_item_ex*)param;
+    int result = do_menu(menu, NULL, NULL, false);
+    switch (result)
+    {
+        case GO_TO_PLAYLIST_VIEWER:
+        case GO_TO_WPS:
+            return result;
+        default:
+            return GO_TO_ROOT;
+    }
+}
+
+
+static int playlist_view_catalog(void * param)
+{
+    /* kludge untill catalog_view_playlists() returns something useful */
+    int old_playstatus = audio_status();
+    (void)param;
+    push_current_activity(ACTIVITY_PLAYLISTBROWSER);
+    catalog_view_playlists();
+    pop_current_activity();
+    if (!old_playstatus && audio_status())
+        return GO_TO_WPS;
+    return GO_TO_PREVIOUS;
+}
+
 static int playlist_view(void * param)
 {
     (void)param;
-    switch (playlist_viewer())
+    int val;
+
+    push_current_activity(ACTIVITY_PLAYLISTVIEWER);
+    val = playlist_viewer();
+    pop_current_activity();
+    switch (val)
     {
         case PLAYLIST_VIEWER_MAINMENU:
         case PLAYLIST_VIEWER_USB:
@@ -344,57 +395,19 @@ static int load_bmarks(void* param)
         return GO_TO_WPS;
     return GO_TO_PREVIOUS;
 }
-static int plugins_menu(void* param)
-{
-    (void)param;
-    MENUITEM_STRINGLIST(plugins_menu_items, ID2P(LANG_PLUGINS), NULL,
-                        ID2P(LANG_PLUGIN_GAMES),
-                        ID2P(LANG_PLUGIN_APPS), ID2P(LANG_PLUGIN_DEMOS));
-    const char *folder;
-    struct browse_context browse;
-    char *title;
-    int retval = GO_TO_PREVIOUS;
-    int selection = 0, current = 0;
-
-    while (retval == GO_TO_PREVIOUS)
-    {
-        selection = do_menu(&plugins_menu_items, &current, NULL, false);
-        switch (selection)
-        {
-            case 0:
-                folder = PLUGIN_GAMES_DIR;
-                title = str(LANG_PLUGIN_GAMES);
-                break;
-            case 1:
-                folder = PLUGIN_APPS_DIR;
-                title = str(LANG_PLUGIN_APPS);
-                break;
-            case 2:
-                folder = PLUGIN_DEMOS_DIR;
-                title = str(LANG_PLUGIN_DEMOS);
-                break;
-            default:
-                return selection;
-        }
-        browse_context_init(&browse, SHOW_PLUGINS, 0,
-                            title, Icon_Plugin, folder, NULL);
-        retval = rockbox_browse(&browse);
-    }
-    return retval;
-}
-int time_screen(void* ignored);     
 
 /* These are all static const'd from apps/menus/ *.c
    so little hack so we can use them */
-extern struct menu_item_ex 
-        file_menu, 
+extern struct menu_item_ex
+        file_menu,
 #ifdef HAVE_TAGCACHE
         tagcache_menu,
 #endif
+        main_menu_,
         manage_settings,
-        recording_settings_menu,
-        radio_settings_menu,
-        bookmark_settings_menu,
+        plugin_menu,
+        playlist_options,
+        info_menu,
         system_menu;
 static const struct root_items items[] = {
     [GO_TO_FILEBROWSER] =   { browser, (void*)GO_TO_FILEBROWSER, &file_menu},
@@ -402,33 +415,45 @@ static const struct root_items items[] = {
     [GO_TO_DBBROWSER] =     { browser, (void*)GO_TO_DBBROWSER, &tagcache_menu },
 #endif
     [GO_TO_WPS] =           { wpsscrn, NULL, &playback_settings },
-    [GO_TO_MAINMENU] =      { menu, NULL, &manage_settings },
-    
+    [GO_TO_MAINMENU] =      { miscscrn, (struct menu_item_ex*)&main_menu_,
+                                                            &manage_settings },
+
 #ifdef HAVE_RECORDING
     [GO_TO_RECSCREEN] =     {  recscrn, NULL, &recording_settings_menu },
 #endif
-    
+
 #if CONFIG_TUNER
     [GO_TO_FM] =            { radio, NULL, &radio_settings_menu },
 #endif
-    
-    [GO_TO_RECENTBMARKS] =  { load_bmarks, NULL, &bookmark_settings_menu }, 
-    [GO_TO_BROWSEPLUGINS] = { plugins_menu, NULL, NULL },
-    [GO_TO_PLAYLIST_VIEWER] = { playlist_view, NULL, NULL },
-    
+
+    [GO_TO_RECENTBMARKS] =  { load_bmarks, NULL, &bookmark_settings_menu },
+    [GO_TO_BROWSEPLUGINS] = { miscscrn, &plugin_menu, NULL },
+    [GO_TO_PLAYLISTS_SCREEN] = { playlist_view_catalog, NULL,
+                                                        &playlist_options },
+    [GO_TO_PLAYLIST_VIEWER] = { playlist_view, NULL, &playlist_options },
+    [GO_TO_SYSTEM_SCREEN] = { miscscrn, &info_menu, &system_menu },
+    [GO_TO_SHORTCUTMENU] = { do_shortcut_menu, NULL, NULL },
+
 };
 static const int nb_items = sizeof(items)/sizeof(*items);
 
 static int item_callback(int action, const struct menu_item_ex *this_item) ;
 
+MENUITEM_RETURNVALUE(shortcut_menu, ID2P(LANG_SHORTCUTS), GO_TO_SHORTCUTMENU,
+                        NULL, Icon_Bookmark);
+
 MENUITEM_RETURNVALUE(file_browser, ID2P(LANG_DIR_BROWSER), GO_TO_FILEBROWSER,
                         NULL, Icon_file_view_menu);
 #ifdef HAVE_TAGCACHE
-MENUITEM_RETURNVALUE(db_browser, ID2P(LANG_TAGCACHE), GO_TO_DBBROWSER, 
+MENUITEM_RETURNVALUE(db_browser, ID2P(LANG_TAGCACHE), GO_TO_DBBROWSER,
                         NULL, Icon_Audio);
 #endif
-MENUITEM_RETURNVALUE(rocks_browser, ID2P(LANG_PLUGINS), GO_TO_BROWSEPLUGINS, 
+MENUITEM_RETURNVALUE(rocks_browser, ID2P(LANG_PLUGINS), GO_TO_BROWSEPLUGINS,
                         NULL, Icon_Plugin);
+
+MENUITEM_RETURNVALUE(playlist_browser, ID2P(LANG_CATALOG), GO_TO_PLAYLIST_VIEWER,
+                        NULL, Icon_Playlist);
+
 static char *get_wps_item_name(int selected_item, void * data, char *buffer)
 {
     (void)selected_item; (void)data; (void)buffer;
@@ -436,22 +461,27 @@ static char *get_wps_item_name(int selected_item, void * data, char *buffer)
         return ID2P(LANG_NOW_PLAYING);
     return ID2P(LANG_RESUME_PLAYBACK);
 }
-MENUITEM_RETURNVALUE_DYNTEXT(wps_item, GO_TO_WPS, NULL, get_wps_item_name, 
+MENUITEM_RETURNVALUE_DYNTEXT(wps_item, GO_TO_WPS, NULL, get_wps_item_name,
                                 NULL, NULL, Icon_Playback_menu);
 #ifdef HAVE_RECORDING
-MENUITEM_RETURNVALUE(rec, ID2P(LANG_RECORDING), GO_TO_RECSCREEN,  
+MENUITEM_RETURNVALUE(rec, ID2P(LANG_RECORDING), GO_TO_RECSCREEN,
                         NULL, Icon_Recording);
 #endif
 #if CONFIG_TUNER
-MENUITEM_RETURNVALUE(fm, ID2P(LANG_FM_RADIO), GO_TO_FM,  
+MENUITEM_RETURNVALUE(fm, ID2P(LANG_FM_RADIO), GO_TO_FM,
                         item_callback, Icon_Radio_screen);
 #endif
-MENUITEM_RETURNVALUE(menu_, ID2P(LANG_SETTINGS), GO_TO_MAINMENU,  
+MENUITEM_RETURNVALUE(menu_, ID2P(LANG_SETTINGS), GO_TO_MAINMENU,
                         NULL, Icon_Submenu_Entered);
 MENUITEM_RETURNVALUE(bookmarks, ID2P(LANG_BOOKMARK_MENU_RECENT_BOOKMARKS),
-                        GO_TO_RECENTBMARKS,  item_callback, 
+                        GO_TO_RECENTBMARKS,  item_callback,
                         Icon_Bookmark);
-#ifdef HAVE_LCD_CHARCELLS
+MENUITEM_RETURNVALUE(playlists, ID2P(LANG_CATALOG), GO_TO_PLAYLISTS_SCREEN,
+                     NULL, Icon_Playlist);
+MENUITEM_RETURNVALUE(system_menu_, ID2P(LANG_SYSTEM), GO_TO_SYSTEM_SCREEN,
+                     NULL, Icon_System_menu);
+
+#if CONFIG_KEYPAD == PLAYER_PAD
 static int do_shutdown(void)
 {
 #if CONFIG_CHARGING
@@ -465,27 +495,132 @@ static int do_shutdown(void)
 MENUITEM_FUNCTION(do_shutdown_item, 0, ID2P(LANG_SHUTDOWN),
                   do_shutdown, NULL, NULL, Icon_NOICON);
 #endif
-MAKE_MENU(root_menu_, ID2P(LANG_ROCKBOX_TITLE),
-            item_callback, Icon_Rockbox,
-            &bookmarks, &file_browser, 
+
+struct menu_item_ex root_menu_;
+static struct menu_callback_with_desc root_menu_desc = {
+        item_callback, ID2P(LANG_ROCKBOX_TITLE), Icon_Rockbox };
+
+static struct menu_table menu_table[] = {
+    /* Order here represents the default ordering */
+    { "bookmarks", &bookmarks },
+    { "files", &file_browser },
 #ifdef HAVE_TAGCACHE
-            &db_browser,
+    { "database", &db_browser },
 #endif
-            &wps_item, &menu_, 
+    { "wps", &wps_item },
+    { "settings", &menu_ },
 #ifdef HAVE_RECORDING
-            &rec, 
+    { "recording", &rec },
 #endif
 #if CONFIG_TUNER
-            &fm,
+    { "radio", &fm },
 #endif
-            &playlist_options, &rocks_browser,  &info_menu
-
-#ifdef HAVE_LCD_CHARCELLS
-            ,&do_shutdown_item
+    { "playlists", &playlists },
+    { "plugins", &rocks_browser },
+    { "system_menu", &system_menu_ },
+#if CONFIG_KEYPAD == PLAYER_PAD
+    { "shutdown", &do_shutdown_item },
 #endif
-        );
+    { "shortcuts", &shortcut_menu },
+};
+#define MAX_MENU_ITEMS (sizeof(menu_table) / sizeof(struct menu_table))
+static struct menu_item_ex *root_menu__[MAX_MENU_ITEMS];
 
-static int item_callback(int action, const struct menu_item_ex *this_item) 
+struct menu_table *root_menu_get_options(int *nb_options)
+{
+    *nb_options = MAX_MENU_ITEMS;
+
+    return menu_table;
+}
+
+void root_menu_load_from_cfg(void* setting, char *value)
+{
+    char *next = value, *start, *end;
+    unsigned int menu_item_count = 0, i;
+    bool main_menu_added = false;
+
+    if (*value == '-')
+    {
+        root_menu_set_default(setting, NULL);
+        return;
+    }
+    root_menu_.flags = MENU_HAS_DESC | MT_MENU;
+    root_menu_.submenus = (const struct menu_item_ex **)&root_menu__;
+    root_menu_.callback_and_desc = &root_menu_desc;
+
+    while (next && menu_item_count < MAX_MENU_ITEMS)
+    {
+        start = next;
+        next = strchr(next, ',');
+        if (next)
+        {
+            *next = '\0';
+            next++;
+        }
+        start = skip_whitespace(start);
+        if ((end = strchr(start, ' ')))
+            *end = '\0';
+        for (i=0; i<MAX_MENU_ITEMS; i++)
+        {
+            if (*start && !strcmp(start, menu_table[i].string))
+            {
+                root_menu__[menu_item_count++] = (struct menu_item_ex *)menu_table[i].item;
+                if (menu_table[i].item == &menu_)
+                    main_menu_added = true;
+                break;
+            }
+        }
+    }
+    if (!main_menu_added)
+        root_menu__[menu_item_count++] = (struct menu_item_ex *)&menu_;
+    root_menu_.flags |= MENU_ITEM_COUNT(menu_item_count);
+    *(bool*)setting = true;
+}
+
+char* root_menu_write_to_cfg(void* setting, char*buf, int buf_len)
+{
+    (void)setting;
+    unsigned i, written, j;
+    for (i = 0; i < MENU_GET_COUNT(root_menu_.flags); i++)
+    {
+        for (j=0; j<MAX_MENU_ITEMS; j++)
+        {
+            if (menu_table[j].item == root_menu__[i])
+            {
+                written = snprintf(buf, buf_len, "%s, ", menu_table[j].string);
+                buf_len -= written;
+                buf += written;
+                break;
+            }
+        }
+    }
+    return buf;
+}
+
+void root_menu_set_default(void* setting, void* defaultval)
+{
+    unsigned i;
+    (void)defaultval;
+
+    root_menu_.flags = MENU_HAS_DESC | MT_MENU;
+    root_menu_.submenus = (const struct menu_item_ex **)&root_menu__;
+    root_menu_.callback_and_desc = &root_menu_desc;
+
+    for (i=0; i<MAX_MENU_ITEMS; i++)
+    {
+        root_menu__[i] = (struct menu_item_ex *)menu_table[i].item;
+    }
+    root_menu_.flags |= MENU_ITEM_COUNT(MAX_MENU_ITEMS);
+    *(bool*)setting = false;
+}
+
+bool root_menu_is_changed(void* setting, void* defaultval)
+{
+    (void)defaultval;
+    return *(bool*)setting;
+}
+
+static int item_callback(int action, const struct menu_item_ex *this_item)
 {
     switch (action)
     {
@@ -498,7 +633,7 @@ static int item_callback(int action, const struct menu_item_ex *this_item)
                 if (radio_hardware_present() == 0)
                     return ACTION_EXIT_MENUITEM;
             }
-            else 
+            else
 #endif
                 if (this_item == &bookmarks)
             {
@@ -515,7 +650,7 @@ static int get_selection(int last_screen)
     int len = ARRAYLEN(root_menu__);
     for(i=0; i < len; i++)
     {
-        if (((root_menu__[i]->flags&MENU_TYPE_MASK) == MT_RETURN_VALUE) && 
+        if (((root_menu__[i]->flags&MENU_TYPE_MASK) == MT_RETURN_VALUE) &&
             (root_menu__[i]->value == last_screen))
         {
             return i;
@@ -530,13 +665,29 @@ static inline int load_screen(int screen)
         if we dont we will always return to the wrong screen on boot */
     int old_previous = last_screen;
     int ret_val;
+    enum current_activity activity = ACTIVITY_UNKNOWN;
     if (screen <= GO_TO_ROOT)
         return screen;
     if (screen == old_previous)
         old_previous = GO_TO_ROOT;
     global_status.last_screen = (char)screen;
     status_save();
+
+    if (screen == GO_TO_BROWSEPLUGINS)
+        activity = ACTIVITY_PLUGINBROWSER;
+    else if (screen == GO_TO_MAINMENU)
+        activity = ACTIVITY_SETTINGS;
+    else if (screen == GO_TO_SYSTEM_SCREEN)
+        activity =  ACTIVITY_SYSTEMSCREEN;
+
+    if (activity != ACTIVITY_UNKNOWN)
+        push_current_activity(activity);
+
     ret_val = items[screen].function(items[screen].param);
+
+    if (activity != ACTIVITY_UNKNOWN)
+        pop_current_activity();
+
     last_screen = screen;
     if (ret_val == GO_TO_PREVIOUS)
         last_screen = old_previous;
@@ -545,6 +696,8 @@ static inline int load_screen(int screen)
 static int load_context_screen(int selection)
 {
     const struct menu_item_ex *context_menu = NULL;
+    int retval = GO_TO_PREVIOUS;
+    push_current_activity(ACTIVITY_CONTEXTMENU);
     if ((root_menu__[selection]->flags&MENU_TYPE_MASK) == MT_RETURN_VALUE)
     {
         int item = root_menu__[selection]->value;
@@ -555,22 +708,22 @@ static int load_context_screen(int selection)
     {
         context_menu = &system_menu;
     }
-    
+
     if (context_menu)
-        return do_menu(context_menu, NULL, NULL, false);
-    else
-        return GO_TO_PREVIOUS;
+        retval = do_menu(context_menu, NULL, NULL, false);
+    pop_current_activity();
+    return retval;
 }
 
 #ifdef HAVE_PICTUREFLOW_INTEGRATION
 static int load_plugin_screen(char *plug_path)
 {
     int ret_val;
-    int old_previous = last_screen;    
+    int old_previous = last_screen;
     last_screen = next_screen;
     global_status.last_screen = (char)next_screen;
     status_save();
-    
+
     switch (plugin_load(plug_path, NULL))
     {
     case PLUGIN_GOTO_WPS:
@@ -590,29 +743,22 @@ static int load_plugin_screen(char *plug_path)
 }
 #endif
 
-static int previous_music = GO_TO_WPS;
-
-void previous_music_is_wps(void)
-{
-    previous_music = GO_TO_WPS;
-}
-
-int current_screen(void)
-{
-    return next_screen;
-}
-
 void root_menu(void)
 {
     int previous_browser = GO_TO_FILEBROWSER;
     int selected = 0;
 
+    push_current_activity(ACTIVITY_MAINMENU);
+
     if (global_settings.start_in_screen == 0)
         next_screen = (int)global_status.last_screen;
     else next_screen = global_settings.start_in_screen - 2;
-    add_event(PLAYBACK_EVENT_TRACK_CHANGE, false, rootmenu_track_changed_callback);
+#if CONFIG_TUNER
+    add_event(PLAYBACK_EVENT_START_PLAYBACK, rootmenu_start_playback_callback);
+#endif
+    add_event(PLAYBACK_EVENT_TRACK_CHANGE, rootmenu_track_changed_callback);
 #ifdef HAVE_RTC_ALARM
-    if ( rtc_check_alarm_started(true) ) 
+    if ( rtc_check_alarm_started(true) )
     {
         rtc_enable_alarm(false);
         next_screen = GO_TO_WPS;
@@ -631,7 +777,7 @@ void root_menu(void)
 #endif /* HAVE_RTC_ALARM */
 
 #ifdef HAVE_HEADPHONE_DETECTION
-    if (next_screen == GO_TO_WPS && 
+    if (next_screen == GO_TO_WPS &&
         (global_settings.unplug_autoresume && !headphones_inserted() ))
             next_screen = GO_TO_ROOT;
 #endif
@@ -673,12 +819,12 @@ void root_menu(void)
             case GO_TO_ROOTITEM_CONTEXT:
                 next_screen = load_context_screen(selected);
                 break;
-#ifdef HAVE_PICTUREFLOW_INTEGRATION                
+#ifdef HAVE_PICTUREFLOW_INTEGRATION
             case GO_TO_PICTUREFLOW:
-                while ( !tagcache_is_usable() ) 
+                while ( !tagcache_is_usable() )
                 {
                     splash(0, str(LANG_TAGCACHE_BUSY));
-                    if ( action_userabort(HZ/5) ) 
+                    if ( action_userabort(HZ/5) )
                         break;
                 }
                 {
@@ -690,20 +836,18 @@ void root_menu(void)
                 }
                 previous_browser = GO_TO_PICTUREFLOW;
                 break;
-#endif                
+#endif
             default:
-                if (next_screen == GO_TO_FILEBROWSER 
 #ifdef HAVE_TAGCACHE
-                    || next_screen == GO_TO_DBBROWSER
-#endif
-                   )
+/* With !HAVE_TAGCACHE previous_browser is always GO_TO_FILEBROWSER */
+                if (next_screen == GO_TO_FILEBROWSER || next_screen == GO_TO_DBBROWSER)
                     previous_browser = next_screen;
-                if (next_screen == GO_TO_WPS 
-#if CONFIG_TUNER
-                    || next_screen == GO_TO_FM
 #endif
-                   )
+#if CONFIG_TUNER
+/* With !CONFIG_TUNER previous_music is always GO_TO_WPS */
+                if (next_screen == GO_TO_WPS || next_screen == GO_TO_FM)
                     previous_music = next_screen;
+#endif
                 next_screen = load_screen(next_screen);
                 break;
         } /* switch() */

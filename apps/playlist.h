@@ -23,6 +23,7 @@
 #define __PLAYLIST_H__
 
 #include <stdbool.h>
+#include "config.h"
 #include "file.h"
 #include "kernel.h"
 #include "metadata.h"
@@ -80,12 +81,14 @@ struct playlist_info
     int  control_fd;     /* descriptor of the open control file     */
     bool control_created; /* has control file been created?         */
     int  dirlen;         /* Length of the path to the playlist file */
-    unsigned long *indices; /* array of indices                     */
-    const struct dircache_entry **filenames; /* Entries from dircache */
+    volatile unsigned long *indices; /* array of indices            */
+    volatile int *filenames;         /* Array of dircache indices   */
     int  max_playlist_size; /* Max number of files in playlist. Mirror of
                               global_settings.max_files_in_playlist */
     bool in_ram;         /* playlist stored in ram (dirplay)        */
-    char *buffer;        /* buffer for in-ram playlists             */
+    int buffer_handle;   /* handle to the below buffer (-1 if non-buflib) */
+
+    volatile char *buffer;/* buffer for in-ram playlists        */
     int  buffer_size;    /* size of buffer                          */
     int  buffer_end_pos; /* last position where buffer was written  */
     int  index;          /* index of current playing track          */
@@ -105,7 +108,7 @@ struct playlist_info
     int num_cached;      /* number of cached entries                */
     bool pending_control_sync; /* control file needs to be synced   */
 
-    struct mutex control_mutex; /* mutex for control file access    */
+    struct mutex *control_mutex; /* mutex for control file access    */
     int last_shuffled_start; /* number of tracks when insert last
                                     shuffled command start */
 };
@@ -125,11 +128,18 @@ int playlist_create(const char *dir, const char *file);
 int playlist_resume(void);
 int playlist_add(const char *filename);
 int playlist_shuffle(int random_seed, int start_index);
-void playlist_start(int start_index, int offset);
+unsigned int playlist_get_filename_crc32(struct playlist_info *playlist,
+                                         int index);
+void playlist_resume_track(int start_index, unsigned int crc,
+                           unsigned long elapsed, unsigned long offset);
+void playlist_start(int start_index, unsigned long elapsed,
+                    unsigned long offset);
 bool playlist_check(int steps);
 const char *playlist_peek(int steps, char* buf, size_t buf_size);
 int playlist_next(int steps);
+#if CONFIG_CODEC == SWCODEC
 bool playlist_next_dir(int direction);
+#endif
 int playlist_get_resume_info(int *resume_index);
 int playlist_update_resume_info(const struct mp3entry* id3);
 int playlist_get_display_index(void);
@@ -153,7 +163,9 @@ int playlist_insert_directory(struct playlist_info* playlist,
                               bool recurse);
 int playlist_insert_playlist(struct playlist_info* playlist, const char *filename,
                              int position, bool queue);
+#if CONFIG_CODEC == SWCODEC
 void playlist_skip_entry(struct playlist_info *playlist, int steps);
+#endif
 int playlist_delete(struct playlist_info* playlist, int index);
 int playlist_move(struct playlist_info* playlist, int index, int new_index);
 int playlist_randomise(struct playlist_info* playlist, unsigned int seed,
@@ -169,7 +181,8 @@ char *playlist_get_name(const struct playlist_info* playlist, char *buf,
                         int buf_size);
 int playlist_get_track_info(struct playlist_info* playlist, int index,
                             struct playlist_track_info* info);
-int playlist_save(struct playlist_info* playlist, char *filename);
+int playlist_save(struct playlist_info* playlist, char *filename,
+                  void* temp_buffer, size_t temp_buffer_size);
 int playlist_directory_tracksearch(const char* dirname, bool recurse,
                                    int (*callback)(char*, void*),
                                    void* context);

@@ -19,6 +19,7 @@
 # - Xinlu Huang
 # - Harry Tu
 # - Jun Gu
+# - Purling Nayuki
 <phrase>
   id: LANG_SET_BOOL_YES
   desc: bool true representation
@@ -27,10 +28,10 @@
     *: "Yes"
   </source>
   <dest>
-    *: "开启"
+    *: "√"
   </dest>
   <voice>
-    *: "开启"
+    *: "是"
   </voice>
 </phrase>
 <phrase>
@@ -41,10 +42,10 @@
     *: "No"
   </source>
   <dest>
-    *: "关闭"
+    *: "×"
   </dest>
   <voice>
-    *: "关闭"
+    *: "否"
   </voice>
 </phrase>
 <phrase>
@@ -97,10 +98,10 @@
     *: "Loading..."
   </source>
   <dest>
-    *: "读取中,请稍后..."
+    *: "读取中,请稍候..."
   </dest>
   <voice>
-    *: "读取中 请稍后"
+    *: "读取中 请稍候"
   </voice>
 </phrase>
 <phrase>
@@ -113,7 +114,6 @@
   </source>
   <dest>
     *: none
-    ondavx*:"拨动电源开关关机"
     soft_shutdown: "按下OFF关机"
   </dest>
   <voice>
@@ -351,10 +351,10 @@
     *: "Balance"
   </source>
   <dest>
-    *: "左右声道平衡"
+    *: "声道平衡"
   </dest>
   <voice>
-    *: "左右声道平衡"
+    *: "声道平衡"
   </voice>
 </phrase>
 <phrase>
@@ -976,11 +976,11 @@
   </source>
   <dest>
     *: none
-    swcodec: "低通滤波器"
+    swcodec: "低架滤波器"
   </dest>
   <voice>
     *: none
-    swcodec: "低通滤波器"
+    swcodec: "低架滤波器"
   </voice>
 </phrase>
 <phrase>
@@ -1010,11 +1010,11 @@
   </source>
   <dest>
     *: none
-    swcodec: "高通滤波器"
+    swcodec: "高架滤波器"
   </dest>
   <voice>
     *: none
-    swcodec: "高通滤波器"
+    swcodec: "高架滤波器"
   </voice>
 </phrase>
 <phrase>
@@ -1464,10 +1464,10 @@
     *: "Initialize Now"
   </source>
   <dest>
-    *: "立即初始化"
+    *: "初始化媒体库"
   </dest>
   <voice>
-    *: "立即初始化"
+    *: "初始化媒体库"
   </voice>
 </phrase>
 <phrase>
@@ -1506,10 +1506,10 @@
     *: "Gather Runtime Data"
   </source>
   <dest>
-    *: "记录音乐播放记录"
+    *: "记录音乐播放历史"
   </dest>
   <voice>
-    *: "记录音乐播放记录"
+    *: "记录音乐播放历史"
   </voice>
 </phrase>
 <phrase>
@@ -2348,20 +2348,20 @@
   </voice>
 </phrase>
 <phrase>
-  id: LANG_RECORDING_FREQUENCY
-  desc: in the recording settings
+  id: LANG_FREQUENCY
+  desc: in recording and playback settings
   user: core
   <source>
     *: none
-    recording: "Frequency"
+    recording,play_frequency: "Frequency"
   </source>
   <dest>
     *: none
-    recording: "频率"
+    recording,play_frequency: "频率"
   </dest>
   <voice>
     *: none
-    recording: "频率"
+    recording,play_frequency: "频率"
   </voice>
 </phrase>
 <phrase>
@@ -4304,19 +4304,19 @@
   <source>
     *: none
     multivolume: "HD1"
-    sansae200*,sansac200*,sansafuze*: "mSD:"
+    sansae200*,sansac200*,sansafuze*,sansaclipplus: "mSD:"
     archosondio*: "MMC:"
   </source>
   <dest>
     *: none
     multivolume: "磁盘1"
-    sansae200*,sansac200*,sansafuze*: "mSD:"
+    sansae200*,sansac200*,sansafuze*,sansaclipplus: "mSD:"
     archosondio*: "MMC:"
   </dest>
   <voice>
     *: none
     multivolume: "磁盘1"
-    sansae200*,sansac200*,sansafuze*: "mSD卡"
+    sansae200*,sansac200*,sansafuze*,sansaclipplus: "mSD卡"
     archosondio*: "MMC卡"
   </voice>
 </phrase>
@@ -4454,10 +4454,12 @@
     iaudiox5,iaudiom5: "RECORD = Revert"
     iriverh10,iriverh10_5gb,sansae200*,sansafuze*: "PREV = Revert"
     gigabeatfx: "POWER = Revert"
+    sansafuzeplus: "BACK = Revert"
     mrobe100: "DISPLAY = Revert"
     gigabeats: "BACK = Revert"
     gogearsa9200: "LEFT = Revert"
     vibe500: "CANCEL = Revert"
+    samsungyh*: "REW = Revert"
   </source>
   <dest>
     *: none
@@ -4468,10 +4470,12 @@
     iaudiox5,iaudiom5: "RECORD:取消"
     iriverh10,iriverh10_5gb,sansae200*,sansafuze*: "PREV:取消"
     gigabeatfx: "POWER:取消"
+    sansafuzeplus: "BACK:取消"
     mrobe100: "DISPLAY:取消"
     gigabeats: "BACK:取消"
     gogearsa9200: "LEFT:取消"
     vibe500: "CANCEL:取消"
+    samsungyh*: "REW:取消"
   </dest>
   <voice>
     *: none
@@ -4521,6 +4525,7 @@
     iriverh100,iriverh120,iriverh300: "The disk is full. Press STOP to continue."
     iaudiom5,iaudiox5: "The disk is full. Press POWER to continue."
     sansae200*,sansac200*,vibe500: "The disk is full. Press PREV to continue."
+    samsungyh*: "Disk full. Press LEFT to continue."
   </source>
   <dest>
     *: none
@@ -4528,6 +4533,7 @@
     iriverh100,iriverh120,iriverh300: "磁盘已满，按下STOP继续."
     iaudiom5,iaudiox5: "磁盘已满，按下POWER继续."
     sansae200*,sansac200*,vibe500: "磁盘，按下PREV继续."
+    samsungyh*: "磁盘，按下LEFT继续."
   </dest>
   <voice>
     *: none
@@ -4698,6 +4704,7 @@
     gigabeats: "SELECT=Set POWER=Cancel"
     vibe500: "OK=Set C=Cancel"
     mpiohd300: "ENTER=Set MENU=Cancel"
+    sansafuzeplus: "SELECT=Set  BACK=Cancel"
   </source>
   <dest>
     *: none
@@ -4707,6 +4714,7 @@
     gigabeats: "SELECT=设置 POWER=取消"
     vibe500: "OK=设置 C=取消"
     mpiohd300: "ENTER=设置 MENU=取消"
+    sansafuzeplus: "SELECT=设置  BACK=取消"
   </dest>
   <voice>
    *: none
@@ -7160,7 +7168,7 @@
     *: "Boot changed"
   </source>
   <dest>
-    *: "引导文件已经更新"
+    *: "引导文件已被更新"
   </dest>
   <voice>
     *: "引导文件已经被更新"
@@ -7174,10 +7182,10 @@
     *: "Reboot now?"
   </source>
   <dest>
-    *: "现在就重启?"
+    *: "是否立即重新启动?"
   </dest>
   <voice>
-    *: "现在就重启吗"
+    *: "是否立即重新启动播放器"
   </voice>
 </phrase>
 <phrase>
@@ -7192,6 +7200,7 @@
     iriverh10,iriverh10_5gb,sansae200*,sansac200*,vibe500: "PREV to abort"
     gigabeats: "BACK to abort"
     gigabeatfx: "POWER to abort"
+    sansafuzeplus: "BACK to abort"
   </source>
   <dest>
     *: "按OFF键取消"
@@ -7222,15 +7231,15 @@
 </phrase>
 <phrase>
   id: LANG_BACKDROP_LOADED
-  desc: text for splash to indicate a new backdrop has been loaded successfully
+  desc: deprecated
   user: core
   <source>
     *: none
-    lcd_non-mono: "Backdrop Loaded"
+    lcd_non-mono: ""
   </source>
   <dest>
     *: none
-    lcd_non-mono: "已载入背景"
+    lcd_non-mono: ""
   </dest>
   <voice>
     *: none
@@ -7239,15 +7248,15 @@
 </phrase>
 <phrase>
   id: LANG_BACKDROP_FAILED
-  desc: text for splash to indicate a failure to load a bitmap as backdrop
+  desc: deprecated
   user: core
   <source>
     *: none
-    lcd_non-mono: "Backdrop Failed"
+    lcd_non-mono: ""
   </source>
   <dest>
     *: none
-    lcd_non-mono: "背景载入失败"
+    lcd_non-mono: ""
   </dest>
   <voice>
     *: none
@@ -7523,19 +7532,19 @@
 </phrase>
 <phrase>
   id: LANG_FM_SAVE_CHANGES
-  desc: When you try to exit radio to confirm save
+  desc: deprecated
   user: core
   <source>
     *: none
-    radio: "Save Changes?"
+    radio: ""
   </source>
   <dest>
     *: none
-    radio: "保存变动?"
+    radio: ""
   </dest>
   <voice>
     *: none
-    radio: "保存变动吗"
+    radio: ""
   </voice>
 </phrase>
 <phrase>
@@ -7631,7 +7640,7 @@
     *: "<所有曲目>"
   </dest>
   <voice>
-    *: "<所有曲目>"
+    *: "所有曲目"
   </voice>
 </phrase>
 <phrase>
@@ -7673,10 +7682,10 @@
     *: "Update Now"
   </source>
   <dest>
-    *: "立即更新"
+    *: "更新媒体库"
   </dest>
   <voice>
-    *: "立即更新"
+    *: "更新媒体库"
   </voice>
 </phrase>
 <phrase>
@@ -7701,10 +7710,10 @@
     *: "Export Modifications"
   </source>
   <dest>
-    *: "导出修改"
+    *: "导出媒体库"
   </dest>
   <voice>
-    *: "导出修改"
+    *: "导出媒体库"
   </voice>
 </phrase>
 <phrase>
@@ -7739,74 +7748,6 @@
   <voice>
     *: none
     recording: "Mono"
-  </voice>
-</phrase>
-<phrase>
-  id: LANG_SYSFONT_EQUALIZER_EDIT_MODE
-  desc: in the equalizer settings menu
-  user: core
-  <source>
-    *: none
-    swcodec: "Edit mode: %s %s"
-  </source>
-  <dest>
-    *: none
-    swcodec: "编辑模式:%s"
-  </dest>
-  <voice>
-    *: none
-    swcodec: ""
-  </voice>
-</phrase>
-<phrase>
-  id: LANG_SYSFONT_EQUALIZER_BAND_CUTOFF
-  desc: in the equalizer settings menu
-  user: core
-  <source>
-    *: none
-    swcodec: "Cutoff"
-  </source>
-  <dest>
-    *: none
-    swcodec: "截止频率"
-  </dest>
-  <voice>
-    *: none
-    swcodec: "截止频率"
-  </voice>
-</phrase>
-<phrase>
-  id: LANG_SYSFONT_RECORDING_QUALITY
-  desc: in the recording settings
-  user: core
-  <source>
-    *: none
-    recording_hwcodec: "Quality"
-  </source>
-  <dest>
-    *: none
-    recording_hwcodec: "品质"
-  </dest>
-  <voice>
-    *: none
-    recording_hwcodec: "品质"
-  </voice>
-</phrase>
-<phrase>
-  id: LANG_SYSFONT_RECORDING_FREQUENCY
-  desc: in the recording settings
-  user: core
-  <source>
-    *: none
-    recording: "Frequency"
-  </source>
-  <dest>
-    *: none
-    recording: "频率"
-  </dest>
-  <voice>
-    *: none
-    recording: "频率"
   </voice>
 </phrase>
 <phrase>
@@ -8015,17 +7956,19 @@
     *: "Building database... %d found (OFF to return)"
     iriverh100,iriverh120,iriverh300: "Building database... %d found (STOP to return)"
     ipod*: "Building database... %d found (PREV to return)"
-    iaudiox5,iaudiom5,gigabeat*,mrobe100: "Building database... %d found (LEFT to return)"
+    iaudiox5,iaudiom5,gigabeat*,mrobe100,samsungyh*: "Building database... %d found (LEFT to return)"
     iriverh10,iriverh10_5gb,sansae200*,sansac200*,sansafuze*,vibe500: "Building database... %d found (PREV to return)"
     gogearsa9200: "Building database... %d found (REW to return)"
+    archosplayer: "Building DB %d found"
   </source>
   <dest>
     *: "数据库更新中...已找到%d个(按OFF键返回)"
     iriverh100,iriverh120,iriverh300: "数据库更新中...已找到%d个(按STOP键返回)"
     ipod*: "数据库更新中...已找到%d个(按PREV键返回)"
-    iaudiox5,iaudiom5,gigabeat*,mrobe100: "数据库更新中...已找到%d个(按LEFT键返回)"
+    iaudiox5,iaudiom5,gigabeat*,mrobe100,samsungyh*: "数据库更新中...已找到%d个(按LEFT键返回)"
     iriverh10,iriverh10_5gb,sansae200*,sansac200*,sansafuze*,vibe500: "数据库更新中...已找到%d个(按PREV键返回)"
     gogearsa9200: "数据库更新中...已找到%d个(按REW键返回)"
+    archosplayer: "数据库更新中...已找到%d个"
   </dest>
   <voice>
     *: "数据库更新中"
@@ -8098,10 +8041,10 @@
     *: "Import Modifications"
   </source>
   <dest>
-    *: "导入更改"
+    *: "导入媒体库"
   </dest>
   <voice>
-    *: "导入更改"
+    *: "导入媒体库"
   </voice>
 </phrase>
 <phrase>
@@ -8136,20 +8079,6 @@
   <voice>
     *: none
     lcd_sleep: "在背光关闭后休眠时滞"
-  </voice>
-</phrase>
-<phrase>
-  id: LANG_REC_SIZE
-  desc: deprecated
-  user:
-  <source>
-    *: none
-  </source>
-  <dest>
-    *: none
-  </dest>
-  <voice>
-    *: none
   </voice>
 </phrase>
 <phrase>
@@ -8523,7 +8452,7 @@
     *: "PLAY = Yes"
     cowond2*: "MENU, or top-right = Yes"
     iriverh100,iriverh120,iriverh300: "NAVI = Yes"
-    samsungyh*,ipod*,iaudiox5,iaudiom5,gigabeat*,sansae200*,sansac200*,iriverh10,iriverh10_5gb,mrobe100,sansaclip*,sansafuze*: "SELECT = Yes"
+    ipod*,iaudiox5,iaudiom5,gigabeat*,sansae200*,sansac200*,iriverh10,iriverh10_5gb,mrobe100,sansaclip*,sansafuze*,sansaconnect: "SELECT = Yes"
     mrobe500: "PLAY, POWER, or top-right = Yes"
     archosplayer: "(PLAY/STOP)"
     vibe500: "OK = Yes"
@@ -8532,7 +8461,7 @@
     *: "PLAY:是"
     cowond2*: "MENU或TOP-RIGHT:是"
     iriverh100,iriverh120,iriverh300: "NAVI=是"
-    samsungyh*,ipod*,iaudiox5,iaudiom5,gigabeat*,sansae200*,sansac200*,iriverh10,iriverh10_5gb,mrobe100,sansaclip*,sansafuze*: "SELECT:是"
+    ipod*,iaudiox5,iaudiom5,gigabeat*,sansae200*,sansac200*,iriverh10,iriverh10_5gb,mrobe100,sansaclip*,sansafuze*,sansaconnect: "SELECT:是"
     mrobe500: "PLAY,POWER或TOP-RIGHT:是"
     archosplayer: "(PLAY/STOP)"
     vibe500: "OK:是"
@@ -8550,8 +8479,8 @@
     rtc: "ON = Set"
     mrobe500: "HEART = Set"
     iriverh100,iriverh120,iriverh300: "NAVI = Set"
-    ipod*,iaudiox5,iaudiom5,iriverh10,iriverh10_5gb,sansae200*,sansac200*,gigabeat*,mrobe100,sansaclip*,sansafuze*: "SELECT = Set"
-    gogearsa9200: "PLAY = Set"
+    ipod*,iaudiox5,iaudiom5,iriverh10,iriverh10_5gb,sansae200*,sansac200*,gigabeat*,mrobe100,sansaclip*,sansafuze*,sansaconnect: "SELECT = Set"
+    gogearsa9200,samsungyh*: "PLAY = Set"
     vibe500: "OK = Set"
     mpiohd300: "ENTER = Set"
   </source>
@@ -8560,8 +8489,8 @@
     rtc: "ON:设置"
     mrobe500: "HEART:设置"
     iriverh100,iriverh120,iriverh300: "NAVI=设置"
-    ipod*,iaudiox5,iaudiom5,iriverh10,iriverh10_5gb,sansae200*,sansac200*,gigabeat*,mrobe100,sansaclip*,sansafuze*: "SELECT:设置"
-    gogearsa9200: "PLAY:设置"
+    ipod*,iaudiox5,iaudiom5,iriverh10,iriverh10_5gb,sansae200*,sansac200*,gigabeat*,mrobe100,sansaclip*,sansafuze*,sansaconnect: "SELECT:设置"
+    gogearsa9200,samsungyh*: "PLAY:设置"
     vibe500: "OK:设置"
     mpiohd300: "ENTER:设置"
   </dest>
@@ -8777,23 +8706,6 @@
   <voice>
     *: "曲目列表结束"
     archosplayer: "列表结束"
-  </voice>
-</phrase>
-<phrase>
-  id: LANG_SYSFONT_GAIN
-  desc: in the equalizer settings menu
-  user: core
-  <source>
-    *: none
-    swcodec: "Gain"
-  </source>
-  <dest>
-    *: none
-    swcodec: "增益"
-  </dest>
-  <voice>
-    *: none
-    swcodec: "增益"
   </voice>
 </phrase>
 <phrase>
@@ -9033,7 +8945,7 @@
     *: "模式:"
   </dest>
   <voice>
-    *: ""
+    *: "模式:"
   </voice>
 </phrase>
 <phrase>
@@ -9134,16 +9046,16 @@
 </phrase>
 <phrase>
   id: LANG_CATALOG
-  desc: in onplay menu
+  desc: in main menu and onplay menu
   user: core
   <source>
-    *: "Playlist Catalog"
+    *: "Playlist Catalogue"
   </source>
   <dest>
-    *: "播放列表选项"
+    *: "播放列表目录"
   </dest>
   <voice>
-    *: "播放列表选项"
+    *: "播放列表目录"
   </voice>
 </phrase>
 <phrase>
@@ -9258,19 +9170,16 @@
 </phrase>
 <phrase>
   id: LANG_HEADPHONE_UNPLUG_RW
-  desc: in pause_phones_menu.
+  desc: deprecated
   user: core
   <source>
-    *: none
-    headphone_detection: "Duration to Rewind"
+    *: ""
   </source>
   <dest>
-    *: none
-    headphone_detection: "倒回长度"
+    *: ""
   </dest>
   <voice>
-    *: none
-    headphone_detection: "倒回长度"
+    *: ""
   </voice>
 </phrase>
 <phrase>
@@ -9306,7 +9215,7 @@
 </phrase>
 <phrase>
   id: LANG_CATALOG_ADD_TO_NEW
-  desc: in onplay playlist catalog submenu
+  desc: in onplay playlist catalogue submenu
   user: core
   <source>
     *: "Add to New Playlist"
@@ -9374,10 +9283,10 @@
     *: "Please reboot to enable"
   </source>
   <dest>
-    *: "重启后启用"
+    *: "重新启动以完成初始化"
   </dest>
   <voice>
-    *: "重启后启用"
+    *: "重新启动您的播放器以完成初始化"
   </voice>
 </phrase>
 <phrase>
@@ -9410,7 +9319,7 @@
 </phrase>
 <phrase>
   id: LANG_CATALOG_ADD_TO
-  desc: in onplay playlist catalog submenu
+  desc: in onplay playlist catalogue submenu
   user: core
   <source>
     *: "Add to Playlist"
@@ -9554,7 +9463,7 @@
     *: "<不从书签处恢复播放>"
   </dest>
   <voice>
-    *: "<不从书签处恢复播放>"
+    *: "不从书签处恢复播放"
   </voice>
 </phrase>
 <phrase>
@@ -9708,10 +9617,10 @@
 </phrase>
 <phrase>
   id: LANG_CATALOG_VIEW
-  desc: in onplay playlist catalog submenu
+  desc: in onplay playlist catalogue submenu
   user: core
   <source>
-    *: "View Catalog"
+    *: "View Catalogue"
   </source>
   <dest>
     *: "查看所有播放列表"
@@ -9846,7 +9755,7 @@
 </phrase>
 <phrase>
   id: LANG_PLAYLISTS
-  desc: in the main menu and file view setting
+  desc: in the file view setting
   user: core
   <source>
     *: "Playlists"
@@ -10003,7 +9912,7 @@
 </phrase>
 <phrase>
   id: LANG_CATALOG_NO_DIRECTORY
-  desc: error message when playlist catalog directory doesn't exist
+  desc: error message when playlist catalogue directory doesn't exist
   user: core
   <source>
     *: "%s doesn't exist"
@@ -10017,7 +9926,7 @@
 </phrase>
 <phrase>
   id: LANG_CATALOG_NO_PLAYLISTS
-  desc: error message when no playlists for playlist catalog
+  desc: error message when no playlists for playlist catalogue
   user: core
   <source>
     *: "No Playlists"
@@ -10216,15 +10125,15 @@
   user: core
   <source>
     *: none
-    ipodvideo: "Bass Cutoff"
+    ipodvideo,ipod6g,mpiohd200,mpiohd300,gigabeatfx,mrobe100: "Bass Cutoff"
   </source>
   <dest>
     *: none
-    ipodvideo: "低频截止频率"
+    ipodvideo,ipod6g,mpiohd200,mpiohd300,gigabeatfx,mrobe100: "低频截止频率"
   </dest>
   <voice>
     *: none
-    ipodvideo: "低频截止频率"
+    ipodvideo,ipod6g,mpiohd200,mpiohd300,gigabeatfx,mrobe100: "低频截止频率"
   </voice>
 </phrase>
 <phrase>
@@ -10422,15 +10331,15 @@
   user: core
   <source>
     *: none
-    ipodvideo: "Treble Cutoff"
+    ipodvideo,ipod6g,mpiohd200,mpiohd300,gigabeatfx,mrobe100: "Treble Cutoff"
   </source>
   <dest>
     *: none
-    ipodvideo: "高频截止频率"
+    ipodvideo,ipod6g,mpiohd200,mpiohd300,gigabeatfx,mrobe100: "高频截止频率"
   </dest>
   <voice>
     *: none
-    ipodvideo: "高频截止频率"
+    ipodvideo,ipod6g,mpiohd200,mpiohd300,gigabeatfx,mrobe100: "高频截止频率"
   </voice>
 </phrase>
 <phrase>
@@ -10580,15 +10489,15 @@
   user: core
   <source>
     *: none
-    gigabeatfx: "Touchpad Sensitivity"
+    gigabeatfx,sansafuzeplus: "Touchpad Sensitivity"
   </source>
   <dest>
     *: none
-    gigabeatfx: "触摸板灵敏度"
+    gigabeatfx,sansafuzeplus: "触摸板灵敏度"
   </dest>
   <voice>
     *: none
-    gigabeatfx: "触摸板灵敏度"
+    gigabeatfx,sansafuzeplus: "触摸板灵敏度"
   </voice>
 </phrase>
 <phrase>
@@ -11252,6 +11161,23 @@
   </voice>
 </phrase>
 <phrase>
+  id: LANG_COMPRESSOR_ATTACK
+  desc: in sound settings
+  user: core
+  <source>
+    *: none
+    swcodec: "Attack Time"
+  </source>
+  <dest>
+    *: none
+    swcodec: "启动时间"
+  </dest>
+  <voice>
+    *: none
+    swcodec: "启动时间"
+  </voice>
+</phrase>
+<phrase>
   id: LANG_COMPRESSOR_RELEASE
   desc: in sound settings
   user: core
@@ -11261,11 +11187,11 @@
   </source>
   <dest>
     *: none
-    swcodec: "Release Time"
+    swcodec: "恢复时间"
   </dest>
   <voice>
     *: none
-    swcodec: "Release Time"
+    swcodec: "恢复时间"
   </voice>
 </phrase>
 <phrase>
@@ -11278,11 +11204,11 @@
   </source>
   <dest>
     *: none
-    swcodec: "Threshold"
+    swcodec: "阀值"
   </dest>
   <voice>
     *: none
-    swcodec: "Threshold"
+    swcodec: "阀值"
   </voice>
 </phrase>
 <phrase>
@@ -11295,11 +11221,11 @@
   </source>
   <dest>
     *: none
-    swcodec: "Makeup Gain"
+    swcodec: "增益"
   </dest>
   <voice>
     *: none
-    swcodec: "Makeup Gain"
+    swcodec: "增益"
   </voice>
 </phrase>
 <phrase>
@@ -11380,11 +11306,11 @@
   </source>
   <dest>
     *: none
-    swcodec: "Knee"
+    swcodec: "柔和度"
   </dest>
   <voice>
     *: none
-    swcodec: "Knee"
+    swcodec: "柔和度"
   </voice>
 </phrase>
 <phrase>
@@ -11428,11 +11354,11 @@
   </source>
   <dest>
     *: none
-    swcodec: "Soft Knee"
+    swcodec: "柔和"
   </dest>
   <voice>
     *: none
-    swcodec: "Soft Knee"
+    swcodec: "柔和"
   </voice>
 </phrase>
 <phrase>
@@ -11459,11 +11385,11 @@
   </source>
   <dest>
     *: none
-    swcodec: "Ratio"
+    swcodec: "压缩比"
   </dest>
   <voice>
     *: none
-    swcodec: "Ratio"
+    swcodec: "压缩比例"
   </voice>
 </phrase>
 <phrase>
@@ -11493,11 +11419,11 @@
   </source>
   <dest>
     *: none
-    swcodec: "Hard Knee"
+    swcodec: "锐利"
   </dest>
   <voice>
     *: none
-    swcodec: "Hard Knee"
+    swcodec: "锐利"
   </voice>
 </phrase>
 <phrase>
@@ -11779,11 +11705,11 @@
   </source>
   <dest>
     *: none
-    swcodec: "Limit"
+    swcodec: "极限(Limit)"
   </dest>
   <voice>
     *: none
-    swcodec: "Limit"
+    swcodec: "极限 Limit"
   </voice>
 </phrase>
 <phrase>
@@ -11836,16 +11762,16 @@
 </phrase>
 <phrase>
   id: LANG_SKIN_RAM_USAGE
-  desc: how much RAM the skins are using
+  desc: deprecated
   user: core
   <source>
-    *: "Skin RAM usage:"
+    *: ""
   </source>
   <dest>
-    *: "Skin RAM usage:"
+    *: ""
   </dest>
   <voice>
-    *: "Skin RAM usage"
+    *: ""
   </voice>
 </phrase>
 <phrase>
@@ -11937,11 +11863,11 @@
   </source>
   <dest>
     *: none
-    swcodec: "Compressor"
+    swcodec: "压限器"
   </dest>
   <voice>
     *: none
-    swcodec: "Compressor"
+    swcodec: "压限器"
   </voice>
 </phrase>
 <phrase>
@@ -11999,11 +11925,11 @@
   </source>
   <dest>
     *: none
-    swcodec: "Speed"
+    swcodec: "速度"
   </dest>
   <voice>
     *: none
-    swcodec: "Speed"
+    swcodec: "速度"
   </voice>
 </phrase>
 <phrase>
@@ -12014,10 +11940,10 @@
     *: "Next Track:"
   </source>
   <dest>
-    *: "Next Track:"
+    *: "下一曲目:"
   </dest>
   <voice>
-    *: "Next Track:"
+    *: "下一曲目是"
   </voice>
 </phrase>
 <phrase>
@@ -12306,15 +12232,15 @@
   user: core
   <source>
     *: none
-    gigabeats: "3-D Enhancement"
+    gigabeats,mpiohd200,mpiohd300,sansafuzeplus,creativezenxfi2,creativezenxfi3: "3-D Enhancement"
   </source>
   <dest>
     *: none
-    gigabeats: "3D音场"
+    gigabeats,mpiohd200,mpiohd300,sansafuzeplus,creativezenxfi2,creativezenxfi3: "3-D增强"
   </dest>
   <voice>
     *: none
-    gigabeats: "三D音场"
+    gigabeats,mpiohd200,mpiohd300,sansafuzeplus,creativezenxfi2,creativezenxfi3: "三维增强"
   </voice>
 </phrase>
 <phrase>
@@ -12455,9 +12381,856 @@
     *: "Filesize"
   </source>
   <dest>
-    *: "按照文件大小"
+    *: "文件大小"
   </dest>
   <voice>
-    *: "按照文件大小"
+    *: "文件大小"
   </voice>
 </phrase>
+<phrase>
+  id: LANG_HW_EQ_WIDTH_WIDE
+  desc: in sound_menu, hardware equalizer tone controls wide bandwidth setting
+  user: core
+  <source>
+    *: none
+    gigabeats: "Wide"
+  </source>
+  <dest>
+    *: none
+    gigabeats: "宽度"
+  </dest>
+  <voice>
+    *: none
+    gigabeats: "宽度"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_AUTORESUME
+  desc: resume settings menu
+  user: core
+  <source>
+    *: "Automatic resume"
+  </source>
+  <dest>
+    *: "自动断点续播"
+  </dest>
+  <voice>
+    *: "音频自动断点续播"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_AUTORESUME_AUTOMATIC
+  desc: resume on automatic track change
+  user: core
+  <source>
+    *: "Resume on automatic track change"
+  </source>
+  <dest>
+    *: "自动跳转时续播"
+  </dest>
+  <voice>
+    *: "自动跳转时续播"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_HW_EQ_WIDTH_NARROW
+  desc: in sound_menu, hardware equalizer tone controls narrow bandwith setting
+  user: core
+  <source>
+    *: none
+    gigabeats: "Narrow"
+  </source>
+  <dest>
+    *: none
+    gigabeats: "窄"
+  </dest>
+  <voice>
+    *: none
+    gigabeats: "窄"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_AUTORESUME_ENABLE_YES
+  desc: deprecated
+  user: core
+  <source>
+    *: ""
+  </source>
+  <dest>
+    *: ""
+  </dest>
+  <voice>
+    *: ""
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_HW_EQ_TONE_CONTROLS_ADVANCED
+  desc: in sound_menu, advanced settings for hardware equalizer tone controls
+  user: core
+  <source>
+    *: none
+    gigabeats: "Advanced Tone Control Settings"
+  </source>
+  <dest>
+    *: none
+    gigabeats: "高级音调控制设置"
+  </dest>
+  <voice>
+    *: none
+    gigabeats: "高级音调控制设置"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_RESET_START_DIR
+  desc: reset the browser start directory
+  user: core
+  <source>
+    *: "Start File Browser at /"
+  </source>
+  <dest>
+    *: "重置文件浏览起始目录"
+  </dest>
+  <voice>
+    *: "重置文件浏览起始目录"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_FM_RSSI
+  desc: Signal strength of a received FM station
+  user: core
+  <source>
+    *: none
+    radio: "Signal strength:"
+  </source>
+  <dest>
+    *: none
+    radio: "信号强度:"
+  </dest>
+  <voice>
+    *: none
+    radio: "信号强度:"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_AUTORESUME_ENABLE
+  desc: deprecated
+  user: core
+  <source>
+    *: ""
+  </source>
+  <dest>
+    *: ""
+  </dest>
+  <voice>
+    *: ""
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_FORCE
+  desc: alternative to yes/no for tristate settings
+  user: core
+  <source>
+    *: "Force"
+  </source>
+  <dest>
+    *: "强制"
+  </dest>
+  <voice>
+    *: "强制"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_HW_EQ_TONE_CONTROLS
+  desc: in sound_menu, hardware equalizer tone controls
+  user: core
+  <source>
+    *: none
+    gigabeats: "Tone Controls"
+  </source>
+  <dest>
+    *: none
+    gigabeats: "音调控制"
+  </dest>
+  <voice>
+    *: none
+    gigabeats: "音调控制"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_AUTORESUME_CUSTOM
+  desc: enable customization of resume on automatic track change
+  user: core
+  <source>
+    *: "In custom directories only"
+  </source>
+  <dest>
+    *: "仅在指定目录中"
+  </dest>
+  <voice>
+    *: "仅在指定目录中"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_SET_AS_START_DIR
+  desc: used in the onplay menu to set a starting browser dir
+  user: core
+  <source>
+    *: "Start File Browser Here"
+  </source>
+  <dest>
+    *: "设置为文件浏览起始目录"
+  </dest>
+  <voice>
+    *: "设置本文件夹为文件浏览起始目录"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_PAUSE_REWIND
+  desc: Seconds to rewind when rewind on pause is enabled.
+  user: core
+  <source>
+    *: "Rewind on Pause"
+  </source>
+  <dest>
+    *: "暂停后倒回"
+  </dest>
+  <voice>
+    *: "暂停后倒回"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_HISTOGRAM_INTERVAL
+  desc: in record settings menu
+  user: core
+  <source>
+    *: none
+    histogram: "Histogram interval"
+  </source>
+  <dest>
+    *: none
+    histogram: "直方图区间"
+  </dest>
+  <voice>
+    *: none
+    histogram: "直方图区间"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_CURRENT_PLAYLIST
+  desc: Used when you need to say playlist, also voiced
+  user: core
+  <source>
+    *: "Current Playlist"
+  </source>
+  <dest>
+    *: "当前播放列表"
+  </dest>
+  <voice>
+    *: "当前播放列表"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_GLYPHS
+  desc: in settings_menu
+  user: core
+  <source>
+    *: "Glyphs To Cache"
+  </source>
+  <dest>
+    *: "缓存字形数"
+  </dest>
+  <voice>
+    *: "缓存字形数"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_CROSSFEED_MEIER
+  desc: in sound settings
+  user: core
+  <source>
+    *: none
+    swcodec: "Simple (Meier)"
+  </source>
+  <dest>
+    *: none
+    swcodec: "简单 (Meier)"
+  </dest>
+  <voice>
+    *: none
+    swcodec: "简单"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_SLEEP_TIMER_START_CURRENT
+  desc: shown when a sleep timer isn't running
+  user: core
+  <source>
+    *: "Start Sleep Timer"
+  </source>
+  <dest>
+    *: "启动睡眠计时器"
+  </dest>
+  <voice>
+    *: "启动睡眠计时器"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_USB_SKIP_FIRST_DRIVE
+  desc: in settings_menu
+  user: core
+  <source>
+    *: none
+    multidrive_usb: "USB Hide Internal Drive"
+  </source>
+  <dest>
+    *: none
+    multidrive_usb: "连接USB时隐藏内置存储"
+  </dest>
+  <voice>
+    *: none
+    multidrive_usb: "连接USB时隐藏内置存储"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_KEYCLICK_HARDWARE
+  desc: in keyclick settings menu
+  user: core
+  <source>
+    *: none
+    hardware_click: "Speaker Keyclick"
+  </source>
+  <dest>
+    *: none
+    hardware_click: "扬声器按键音"
+  </dest>
+  <voice>
+    *: none
+    hardware_click: "扬声器按键音"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_KEYCLICK_SOFTWARE
+  desc: in keyclick settings menu
+  user: core
+  <source>
+    *: none
+    hardware_click: "Headphone Keyclick"
+  </source>
+  <dest>
+    *: none
+    hardware_click: "耳机按键音"
+  </dest>
+  <voice>
+    *: none
+    hardware_click: "耳机按键音"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_SET_AS_PLAYLISTCAT_DIR
+  desc: used in the onplay menu to set a playlist catalogue dir
+  user: core
+  <source>
+    *: "Set As Playlist Catalogue Directory"
+  </source>
+  <dest>
+    *: "设置为播放列表目录位置"
+  </dest>
+  <voice>
+    *: "设置为播放列表目录位置"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_CODEPAGE_WESTERN_EUROPEAN
+  desc: in codepage setting menu
+  user: core
+  <source>
+    *: "Western European (CP1252)"
+  </source>
+  <dest>
+    *: "西欧 (CP1252)"
+  </dest>
+  <voice>
+    *: "西欧"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_LIST_LINE_PADDING
+  desc: list padding, in display settings
+  user: core
+  <source>
+    *: none
+    touchscreen: "Line Padding in Lists"
+  </source>
+  <dest>
+    *: none
+    touchscreen: "列表行间填充"
+  </dest>
+  <voice>
+    *: none
+    touchscreen: "列表行间填充"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_SAVE_CHANGES
+  desc: When you try to exit screens to confirm save
+  user: core
+  <source>
+    *: "Save Changes?"
+  </source>
+  <dest>
+    *: "保存改动?"
+  </dest>
+  <voice>
+    *: "是否保存改动"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_AUTOMATIC
+  desc: generic automatic
+  user: core
+  <source>
+    *: "Automatic"
+  </source>
+  <dest>
+    *: "自动"
+  </dest>
+  <voice>
+    *: "自动"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_CROSSFEED_CUSTOM
+  desc: in sound settings
+  user: core
+  <source>
+    *: none
+    swcodec: "Custom"
+  </source>
+  <dest>
+    *: none
+    swcodec: "定制"
+  </dest>
+  <voice>
+    *: none
+    swcodec: "定制"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_SHORTCUTS
+  desc: Title in the shortcuts menu
+  user: core
+  <source>
+    *: "Shortcuts"
+  </source>
+  <dest>
+    *: "捷径"
+  </dest>
+  <voice>
+    *: "捷径"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_SLEEP_TIMER_CANCEL_CURRENT
+  desc: shown instead of sleep timer when it's running
+  user: core
+  <source>
+    *: "Cancel Sleep Timer"
+  </source>
+  <dest>
+    *: "取消睡眠计时器"
+  </dest>
+  <voice>
+    *: "取消睡眠计时器"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_STARTUP_SHUTDOWN
+  desc: in the general settings menu
+  user: core
+  <source>
+    *: "Startup/Shutdown"
+  </source>
+  <dest>
+    *: "启动/关机"
+  </dest>
+  <voice>
+    *: "启动及关机"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_KEYPRESS_RESTARTS_SLEEP_TIMER
+  desc: whether to restart running sleep timer on keypress
+  user: core
+  <source>
+    *: "Restart Sleep Timer On Keypress"
+  </source>
+  <dest>
+    *: "按键时重置睡眠计时器"
+  </dest>
+  <voice>
+    *: "按键时重置睡眠计时器"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_SLEEP_TIMER_DURATION
+  desc: default sleep timer duration in minutes
+  user: core
+  <source>
+    *: "Default Sleep Timer Duration"
+  </source>
+  <dest>
+    *: "默认睡眠计时器时长"
+  </dest>
+  <voice>
+    *: "默认睡眠计时器时长"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_USE_SHORTCUTS_INSTEAD_OF_QS
+  desc: in settings_menu.
+  user: core
+  <source>
+    *: none
+    quickscreen: "Use Shortcuts Menu Instead of Quick Screen"
+  </source>
+  <dest>
+    *: none
+    quickscreen: "使用捷径菜单代替快速选项"
+  </dest>
+  <voice>
+    *: none
+    quickscreen: "使用捷径菜单代替快速选项"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_RESET_PLAYLISTCAT_DIR
+  desc:
+  user: core
+  <source>
+    *: "Reset Playlist Catalogue Directory"
+  </source>
+  <dest>
+    *: "重置播放列表目录位置"
+  </dest>
+  <voice>
+    *: "重置播放列表目录位置"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_CONSTRAIN_NEXT_FOLDER
+  desc: in settings_menu. Whether LANG_NEXT_FOLDER should be constrained to directories within LANG_SET_AS_START_DIR
+  user: core
+  <source>
+    *: "Constrain Auto-Change"
+  </source>
+  <dest>
+    *: "限制自动跳转"
+  </dest>
+  <voice>
+    *: "限制自动跳转"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_SLEEP_TIMER_ON_POWER_UP
+  desc: whether sleep timer starts on power up
+  user: core
+  <source>
+    *: "Start Sleep Timer On Boot"
+  </source>
+  <dest>
+    *: "开机即启动睡眠计时器"
+  </dest>
+  <voice>
+    *: "开机即启动睡眠计时器"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_SELECT_DATABASE_DIRS
+  desc: in settings_menu
+  user: core
+  <source>
+    *: "Select directories to scan"
+  </source>
+  <dest>
+    *: "仅扫描指定文件夹"
+  </dest>
+  <voice>
+    *: "扫描媒体时扫描指定文件夹"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_VOLUME_LIMIT
+  desc: in sound_settings
+  user: core
+  <source>
+    *: "Maximum Volume Limit"
+  </source>
+  <dest>
+    *: "音量限制"
+  </dest>
+  <voice>
+    *: "音量限制"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_FILTER_ROLL_OFF
+  desc: in sound settings
+  user: core
+  <source>
+    *: "DAC's filter roll-off"
+  </source>
+  <dest>
+    *: "DAC滤波器滚降"
+  </dest>
+  <voice>
+    *: "DAC滤波器滚降"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_FILTER_SHARP
+  desc: in sound settings
+  user: core
+  <source>
+    *: "Sharp"
+  </source>
+  <dest>
+    *: "快速"
+  </dest>
+  <voice>
+    *: "快速滚降"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_FILTER_SLOW
+  desc: in sound settings
+  user: core
+  <source>
+    *: "Slow"
+  </source>
+  <dest>
+    *: "平缓"
+  </dest>
+  <voice>
+    *: "平缓滚降"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_PBE
+  desc: in sound settings
+  user: core
+  <source>
+    *: none
+    swcodec: "Perceptual Bass Enhancement"
+  </source>
+  <dest>
+    *: none
+    swcodec: "感知性低音增强"
+  </dest>
+  <voice>
+    *: none
+    swcodec: "感知性低音增强音效"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_AFR
+  desc: in sound settings
+  user: core
+  <source>
+    *: none
+    swcodec: "Auditory Fatigue Reduction"
+  </source>
+  <dest>
+    *: none
+    swcodec: "声学抗疲劳"
+  </dest>
+  <voice>
+    *: none
+    swcodec: "声学抗疲劳音效"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_SURROUND
+  desc: in the sound settings menu
+  user: core
+  <source>
+    *: none
+    swcodec: "Haas Surround"
+  </source>
+  <dest>
+    *: none
+    swcodec: "哈斯环绕"
+  </dest>
+  <voice>
+    *: none
+    swcodec: "哈斯环绕音效"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_SURROUND_FX1
+  desc: in sound settings
+  user: core
+  <source>
+    *: none
+    swcodec: "f(x1)"
+  </source>
+  <dest>
+    *: none
+    swcodec: "f(x1)"
+  </dest>
+  <voice>
+    *: none
+    swcodec: "f(x1)"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_SURROUND_FX2
+  desc: in sound settings
+  user: core
+  <source>
+    *: none
+    swcodec: "f(x2)"
+  </source>
+  <dest>
+    *: none
+    swcodec: "f(x2)"
+  </dest>
+  <voice>
+    *: none
+    swcodec: "f(x2)"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_SURROUND_METHOD2
+  desc: in sound settings
+  user: core
+  <source>
+    *: none
+    swcodec: "SIDE ONLY"
+  </source>
+  <dest>
+    *: none
+    swcodec: "SIDE ONLY"
+  </dest>
+  <voice>
+    *: none
+    swcodec: "SIDE ONLY"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_SURROUND_MIX
+  desc: in sound settings
+  user: core
+  <source>
+    *: none
+    swcodec: "Dry / Wet Mix"
+  </source>
+  <dest>
+    *: none
+    swcodec: "干湿混合度"
+  </dest>
+  <voice>
+    *: none
+    swcodec: "干湿混合度"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_IBASSO_FREQ_SCALING_GOVERNOR
+  desc: in Settings -> General -> System -> Freq Scaling Governor
+  user: core
+  <source>
+    *: none
+    ibassodx50: "Freq Scaling Governor"
+    ibassodx90: "Freq Scaling Governor"
+  </source>
+  <dest>
+    *: none
+    ibassodx50: "CPU频率管理器"
+    ibassodx90: "CPU频率管理器"
+  </dest>
+  <voice>
+    *: none
+    ibassodx50: "CPU频率管理器"
+    ibassodx90: "CPU频率管理器"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_IBASSO_USB_MODE
+  desc: in Settings -> General -> System -> USB Mode
+  user: core
+  <source>
+    *: none
+    ibassodx50: "USB Mode"
+    ibassodx90: "USB Mode"
+  </source>
+  <dest>
+    *: none
+    ibassodx50: "USB模式"
+    ibassodx90: "USB模式"
+  </dest>
+  <voice>
+    *: none
+    ibassodx50: "USB模式"
+    ibassodx90: "USB模式"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_IBASSO_USB_MODE_MASS_STORAGE
+  desc: in Settings -> General -> System -> USB Mode: Mass Storage
+  user: core
+  <source>
+    *: none
+    ibassodx50: "Mass Storage"
+    ibassodx90: "Mass Storage"
+  </source>
+  <dest>
+    *: none
+    ibassodx50: "大容量存储"
+    ibassodx90: "大容量存储"
+  </dest>
+  <voice>
+    *: none
+    ibassodx50: "大容量存储"
+    ibassodx90: "大容量存储"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_IBASSO_USB_MODE_CHARGE
+  desc: in Settings -> General -> System -> USB Mode: Charge Only
+  user: core
+  <source>
+    *: none
+    ibassodx50: "Charge Only"
+    ibassodx90: "Charge Only"
+  </source>
+  <dest>
+    *: none
+    ibassodx50: "仅充电"
+    ibassodx90: "仅充电"
+  </dest>
+  <voice>
+    *: none
+    ibassodx50: "仅充电"
+    ibassodx90: "仅充电"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_IBASSO_USB_MODE_ADB
+  desc: in Settings -> General -> System -> USB Mode: Android Debug Bridge
+  user: core
+  <source>
+    *: none
+    ibassodx50: "Android Debug Bridge"
+    ibassodx90: "Android Debug Bridge"
+  </source>
+  <dest>
+    *: none
+    ibassodx50: "ADB调试"
+    ibassodx90: "ADB调试"
+  </dest>
+  <voice>
+    *: none
+    ibassodx50: "ADB调试"
+    ibassodx90: "ADB调试"
+  </voice>
+</phrase>
+

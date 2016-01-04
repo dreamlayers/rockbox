@@ -18,8 +18,10 @@
  * KIND, either express or implied.
  *
  ****************************************************************************/
+#ifndef LCD_TARGET_H
+#define LCD_TARGET_H
 
-extern void lcd_enable(bool state);
+#define LCD_FRAMEBUF_ADDR(col, row) ((fb_data *)FRAME + (row)*LCD_WIDTH + (col))
 
 /* Setup for Mini2440, 3.5" TFT LCD Touchscreen */
 
@@ -41,3 +43,5 @@ extern void lcd_enable(bool state);
 
 /* Config values for LCDCON4 */
 #define LCD_HSYNC_LEN 4
+
+#endif /* LCD_TARGET_H */

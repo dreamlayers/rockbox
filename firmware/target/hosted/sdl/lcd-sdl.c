@@ -24,7 +24,7 @@
 #include "sim-ui-defines.h"
 #include "system.h" /* for MIN() and MAX() */
 
-int display_zoom = 1;
+double display_zoom = 1;
 
 void sdl_update_rect(SDL_Surface *surface, int x_start, int y_start, int width,
                      int height, int max_x, int max_y,
@@ -32,7 +32,8 @@ void sdl_update_rect(SDL_Surface *surface, int x_start, int y_start, int width,
 {
     SDL_Rect dest;
 #if LCD_DEPTH >= 8 && (LCD_PIXELFORMAT == RGB565) \
-    && !defined(LCD_STRIDEFORMAT) && !defined(HAVE_LCD_SPLIT)
+    && !defined(LCD_STRIDEFORMAT) && !defined(HAVE_LCD_SPLIT) \
+    && !defined(HAVE_REMOTE_LCD)
     SDL_Rect src;
     (void)max_x;
     (void)max_y;
@@ -140,7 +141,15 @@ void sdl_set_gradient(SDL_Surface *surface, SDL_Color *start, SDL_Color *end,
 
 int lcd_get_dpi(void)
 {
+#if (CONFIG_PLATFORM & PLATFORM_MAEMO5)
+    return 267;
+#elif (CONFIG_PLATFORM & PLATFORM_MAEMO4)
+    return 225;
+#elif (CONFIG_PLATFORM & PLATFORM_PANDORA)
+    return 217;
+#else
     /* TODO: find a way to query it from the OS, SDL doesn't support it
      * directly; for now assume the more or less standard 96 */
     return 96;
+#endif
 }

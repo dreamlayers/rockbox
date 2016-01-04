@@ -25,8 +25,8 @@
 #include "system.h"
 #include "power.h"
 #include "panic.h"
-#include "ata.h"
-#include "ata-target.h"
+#include "ata-driver.h"
+#include "ata-defines.h"
 #include "ccm-imx31.h"
 #ifdef HAVE_ATA_DMA
 #include "sdma-imx31.h"
@@ -245,7 +245,7 @@ static const struct ata_udma_timings
 
 /** Threading **/
 /* Signal to tell thread when DMA is done */
-static struct wakeup ata_dma_wakeup;
+static struct semaphore ata_dma_complete;
 
 /** SDMA **/
 /* Array of buffer descriptors for large transfers and alignnment */
@@ -370,7 +370,7 @@ void ata_enable(bool on)
 
 bool ata_is_coldstart(void)
 {
-    return true;
+    return false;
 }
 
 #ifdef HAVE_ATA_DMA
@@ -444,7 +444,7 @@ static void ata_dma_callback(void)
     ATA_INTERRUPT_CLEAR = ATA_INTERRUPT_PENDING;
 
     ata_set_intrq(false);           /* Return INTRQ to MCU */
-    wakeup_signal(&ata_dma_wakeup); /* Signal waiting thread */
+    semaphore_release(&ata_dma_complete); /* Signal waiting thread */
 }
 
 bool ata_dma_setup(void *addr, unsigned long bytes, bool write)
@@ -459,6 +459,7 @@ bool ata_dma_setup(void *addr, unsigned long bytes, bool write)
          * shouldn't be reached based upon size. Otherwise we simply didn't
          * understand the DMA mode setup. Force PIO in both cases. */
         ATA_INTF_CONTROL = ATA_FIFO_RST | ATA_ATA_RST;
+        yield();
         return false;
     }
 
@@ -474,7 +475,7 @@ bool ata_dma_setup(void *addr, unsigned long bytes, bool write)
         if (LIKELY(buf != addr))
         {
             /* addr is virtual */
-            clean_dcache_range(addr, bytes);
+            commit_dcache_range(addr, bytes);
         }
 
         /* Setup ATA controller for DMA transmit */
@@ -494,7 +495,7 @@ bool ata_dma_setup(void *addr, unsigned long bytes, bool write)
         if (LIKELY(buf != addr))
         {
             /* addr is virtual */
-            dump_dcache_range(addr, bytes);
+            discard_dcache_range(addr, bytes);
 
             if ((unsigned long)addr & 31)
             {
@@ -578,7 +579,8 @@ bool ata_dma_finish(void)
     {
         int oldirq;
 
-        if (LIKELY(wakeup_wait(&ata_dma_wakeup, HZ/2) == OBJ_WAIT_SUCCEEDED))
+        if (LIKELY(semaphore_wait(&ata_dma_complete, HZ/2)
+               == OBJ_WAIT_SUCCEEDED))
             break;
 
         ata_keep_active();
@@ -592,7 +594,8 @@ bool ata_dma_finish(void)
         sdma_channel_stop(channel); /* Stop DMA */
         restore_irq(oldirq);
 
-        if (wakeup_wait(&ata_dma_wakeup, TIMEOUT_NOBLOCK) == OBJ_WAIT_SUCCEEDED)
+        if (semaphore_wait(&ata_dma_complete, TIMEOUT_NOBLOCK)
+                == OBJ_WAIT_SUCCEEDED)
             break; /* DMA really did finish after timeout */
 
         sdma_channel_reset(channel); /* Reset everything + clear error */
@@ -645,6 +648,43 @@ bool ata_dma_finish(void)
 }
 #endif /* HAVE_ATA_DMA */
 
+static int ata_wait_status(unsigned status, unsigned mask, int timeout)
+{
+    long busy_timeout = usec_timer() + 2;
+    long end_tick = current_tick + timeout;
+    
+    while (1)
+    {
+        if ((ATA_DRIVE_STATUS & mask) == status)
+            return 1;
+
+        if (!TIME_AFTER(usec_timer(), busy_timeout))
+            continue;
+
+        ata_keep_active();
+
+        if (TIME_AFTER(current_tick, end_tick))
+            break;
+
+        sleep(0);
+        busy_timeout = usec_timer() + 2;
+    }
+
+    return 0; /* timed out */
+}
+
+int ata_wait_for_bsy(void)
+{
+    /* BSY = 0 */
+    return ata_wait_status(0, STATUS_BSY, 30*HZ);
+}
+
+int ata_wait_for_rdy(void)
+{
+    /* RDY = 1 && BSY = 0 */
+    return ata_wait_status(STATUS_RDY, STATUS_RDY | STATUS_BSY, 40*HZ);
+}
+
 void ata_device_init(void)
 {
     /* Make sure we're not in reset mode */
@@ -677,7 +717,7 @@ void ata_device_init(void)
     ata_dma_selected = ATA_DMA_PIO;
 
     /* Called for first time at startup */
-    wakeup_init(&ata_dma_wakeup);
+    semaphore_init(&ata_dma_complete, 1, 0);
 
     if (!sdma_channel_init(ATA_DMA_CH_NUM_RD, &ata_cd_rd, ata_bda) ||
         !sdma_channel_init(ATA_DMA_CH_NUM_WR, &ata_cd_wr, ata_bda))

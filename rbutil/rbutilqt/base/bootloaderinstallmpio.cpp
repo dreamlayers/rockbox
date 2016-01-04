@@ -20,6 +20,7 @@
 #include <QtCore>
 #include "bootloaderinstallbase.h"
 #include "bootloaderinstallmpio.h"
+#include "Logger.h"
 
 #include "../mkmpioboot/mkmpioboot.h"
 
@@ -45,31 +46,31 @@ bool BootloaderInstallMpio::install(void)
 {
     if(m_offile.isEmpty())
         return false;
-        
-    qDebug() << "[BootloaderInstallMpio] installing bootloader";
-    
+
+    LOG_INFO() << "installing bootloader";
+
     // download firmware from server
     emit logItem(tr("Downloading bootloader file"), LOGINFO);
-    
+
     connect(this, SIGNAL(downloadDone()), this, SLOT(installStage2()));
     downloadBlStart(m_blurl);
-    
+
     return true;
 }
 
 void BootloaderInstallMpio::installStage2(void)
-{    
-    qDebug() << "[BootloaderInstallMpio] installStage2";
-    
+{
+    LOG_INFO() << "installStage2";
+
     int origin = 0xe0000;   /* MPIO HD200 bootloader address */
-    
+
     m_tempfile.open();
     QString bootfile = m_tempfile.fileName();
     m_tempfile.close();
-    
+
     int ret = mkmpioboot(m_offile.toLocal8Bit().data(),
             bootfile.toLocal8Bit().data(), m_blfile.toLocal8Bit().data(), origin);
-    
+
     if(ret != 0)
     {
         QString error;
@@ -106,15 +107,15 @@ void BootloaderInstallMpio::installStage2(void)
                 error = tr("Unknown error number: %1").arg(ret);
                 break;
         }
-    
-        qDebug() << tr("Patching original firmware failed: %1").arg(error);
+
+        LOG_ERROR() << "Patching original firmware failed:" << error;
         emit logItem(tr("Patching original firmware failed: %1").arg(error), LOGERROR);
         emit done(true);
         return;
     }
-  
+
     //end of install
-    qDebug() << "[BootloaderInstallMpio] install successful";
+    LOG_INFO() << "install successful";
     emit logItem(tr("Success: modified firmware file created"), LOGINFO);
     logInstall(LogAdd);
     emit done(false);

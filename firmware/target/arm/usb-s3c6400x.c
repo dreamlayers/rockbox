@@ -8,6 +8,7 @@
  * $Id$
  *
  * Copyright (C) 2009 by Michael Sparmann
+ * Copyright © 2010 Amaury Pouly
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -21,7 +22,6 @@
 
 #include "config.h"
 #include "usb.h"
-#include "usb-target.h"
 #include "usb_drv.h"
 
 #include "cpu.h"
@@ -31,240 +31,90 @@
 
 #include "usb-s3c6400x.h"
 
-#ifdef HAVE_USBSTACK
 #include "usb_ch9.h"
 #include "usb_core.h"
 #include <inttypes.h>
 #include "power.h"
 
+//#define LOGF_ENABLE
+#include "logf.h"
+
+#if CONFIG_CPU == AS3525v2
+#define UNCACHED_ADDR AS3525_UNCACHED_ADDR
+#define PHYSICAL_ADDR AS3525_PHYSICAL_ADDR
+static inline void discard_dma_buffer_cache(void) {}
+#elif CONFIG_CPU == S5L8702
+#define UNCACHED_ADDR S5L8702_UNCACHED_ADDR
+#define PHYSICAL_ADDR S5L8702_PHYSICAL_ADDR
+static inline void discard_dma_buffer_cache(void) {}
+#else
+#define UNCACHED_ADDR
+#define PHYSICAL_ADDR
+static inline void discard_dma_buffer_cache(void) { commit_discard_dcache(); }
+#endif
+
+/* store per endpoint, per direction, information */
 struct ep_type
 {
-    bool active;
-    bool busy;
-    bool done;
-    int rc;
-    int size;
-    struct wakeup complete;
-} ;
+    unsigned int size; /* length of the data buffer */
+    struct semaphore complete; /* wait object */
+    int8_t status; /* completion status (0 for success) */
+    bool active; /* true is endpoint has been requested (true for EP0) */
+    bool done; /* transfer completed */
+    bool busy; /* true is a transfer is pending */
+};
 
-static struct ep_type endpoints[USB_NUM_ENDPOINTS];
-static struct usb_ctrlrequest ctrlreq USB_DEVBSS_ATTR;
+static const uint8_t in_ep_list[] = {0, 1, 3, 5};
+static const uint8_t out_ep_list[] = {0, 2, 4};
 
-int usb_drv_port_speed(void)
+/* state of EP0 (to correctly schedule setup packet enqueing) */
+enum ep0state
 {
-    return (DSTS & 2) == 0 ? 1 : 0;
+    /* Setup packet is enqueud, waiting for actual data */
+    EP0_WAIT_SETUP = 0,
+    /* Waiting for ack (either IN or OUT) */
+    EP0_WAIT_ACK = 1,
+    /* Ack complete, waiting for data (either IN or OUT)
+     * This state is necessary because if both ack and data complete in the
+     * same interrupt, we might process data completion before ack completion
+     * so we need this bizarre state */
+    EP0_WAIT_DATA = 2,
+    /* Setup packet complete, waiting for ack and data */
+    EP0_WAIT_DATA_ACK = 3,
+};
+
+/* endpoints[ep_num][DIR_IN/DIR_OUT] */
+static struct ep_type endpoints[USB_NUM_ENDPOINTS][2];
+/* setup packet for EP0 */
+
+/* USB control requests may be up to 64 bytes in size.
+   Even though we never use anything more than the 8 header bytes,
+   we are required to accept request packets of up to 64 bytes size.
+   Provide buffer space for these additional payload bytes so that
+   e.g. write descriptor requests (which are rejected by us, but the
+   payload is transferred anyway) do not cause memory corruption.
+   Fixes FS#12310. -- Michael Sparmann (theseven) */
+static union {
+    struct usb_ctrlrequest header; /* 8 bytes */
+    unsigned char payload[64];
+} _ep0_setup_pkt USB_DEVBSS_ATTR;
+
+static struct usb_ctrlrequest *ep0_setup_pkt = UNCACHED_ADDR(&_ep0_setup_pkt.header);
+
+/* state of EP0 */
+static enum ep0state ep0_state;
+
+bool usb_drv_stalled(int endpoint, bool in)
+{
+    return DEPCTL(endpoint, !in) & DEPCTL_stall;
 }
 
-static void reset_endpoints(int reinit)
+void usb_drv_stall(int endpoint, bool stall, bool in)
 {
-    unsigned int i;
-    for (i = 0; i < sizeof(endpoints)/sizeof(struct ep_type); i++)
-    {
-        if (reinit) endpoints[i].active = false;
-        endpoints[i].busy = false;
-        endpoints[i].rc = -1;
-        endpoints[i].done = true;
-        wakeup_signal(&endpoints[i].complete);
-    }
-    DIEPCTL0 = 0x8800;  /* EP0 IN ACTIVE NEXT=1 */
-    DOEPCTL0 = 0x8000;  /* EP0 OUT ACTIVE */
-    DOEPTSIZ0 = 0x20080040;  /* EP0 OUT Transfer Size:
-                                64 Bytes, 1 Packet, 1 Setup Packet */
-    DOEPDMA0 = &ctrlreq;
-    DOEPCTL0 |= 0x84000000;  /* EP0 OUT ENABLE CLEARNAK */
-    if (reinit)
-    {
-        /* The size is getting set to zero, because we don't know
-           whether we are Full Speed or High Speed at this stage */
-        /* EP1 IN INACTIVE DATA0 SIZE=0 NEXT=3 */
-        DIEPCTL1 = 0x10001800;
-        /* EP2 OUT INACTIVE DATA0 SIZE=0 */
-        DOEPCTL2 = 0x10000000;
-        /* EP3 IN INACTIVE DATA0 SIZE=0 NEXT=0 */
-        DIEPCTL3 = 0x10000000;
-        /* EP4 OUT INACTIVE DATA0 SIZE=0 */
-        DOEPCTL4 = 0x10000000;
-    }
+    if (stall)
+        DEPCTL(endpoint, !in) |= DEPCTL_stall;
     else
-    {
-        /* INACTIVE DATA0 */
-        DIEPCTL1 = (DIEPCTL1 & ~0x00008000) | 0x10000000;
-        DOEPCTL2 = (DOEPCTL2 & ~0x00008000) | 0x10000000;
-        DIEPCTL3 = (DIEPCTL3 & ~0x00008000) | 0x10000000;
-        DOEPCTL4 = (DOEPCTL4 & ~0x00008000) | 0x10000000;
-    }
-    DAINTMSK = 0xFFFFFFFF;  /* Enable interrupts on all EPs */
-}
-
-int usb_drv_request_endpoint(int type, int dir)
-{
-    size_t ep;
-    int ret = -1;
-
-    if (dir == USB_DIR_IN) ep = 1;
-    else ep = 2;
-
-    while (ep < USB_NUM_ENDPOINTS)
-    {
-        if (!endpoints[ep].active)
-        {
-            endpoints[ep].active = true;
-            ret = ep | dir;
-            uint32_t newbits = (type << 18) | 0x10000000;
-            if (dir) DIEPCTL(ep) = (DIEPCTL(ep) & ~0x000C0000) | newbits;
-            else DOEPCTL(ep) = (DOEPCTL(ep) & ~0x000C0000) | newbits;
-            break;
-        }
-        ep += 2;
-    }
-
-    return ret;
-}
-
-void usb_drv_release_endpoint(int ep)
-{
-    ep = ep & 0x7f;
-
-    if (ep < 1 || ep > USB_NUM_ENDPOINTS) return;
-
-    endpoints[ep].active = false;
-}
-
-static void usb_reset(void)
-{
-    volatile int i;
-
-    DCTL = 0x802;  /* Soft Disconnect */
-
-    OPHYPWR = 0;  /* PHY: Power up */
-    OPHYUNK1 = 1;
-    OPHYUNK2 = 0xE3F;
-    OPHYCLK = SYNOPSYSOTG_CLOCK;
-    ORSTCON = 1;  /* PHY: Assert Software Reset */
-    for (i = 0; i < 50; i++);
-    ORSTCON = 0;  /* PHY: Deassert Software Reset */
-    OPHYUNK3 = 0x600;
-
-    GRSTCTL = 1;  /* OTG: Assert Software Reset */
-    while (GRSTCTL & 1);  /* Wait for OTG to ack reset */
-    while (!(GRSTCTL & 0x80000000));  /* Wait for OTG AHB master idle */
-
-    GRXFSIZ = 0x00000200;  /* RX FIFO: 512 bytes */
-    GNPTXFSIZ = 0x02000200;  /* Non-periodic TX FIFO: 512 bytes */
-    GAHBCFG = SYNOPSYSOTG_AHBCFG;
-    GUSBCFG = 0x1408;  /* OTG: 16bit PHY and some reserved bits */
-
-    DCFG = 4;  /* Address 0 */
-    DCTL = 0x800;  /* Soft Reconnect */
-    DIEPMSK = 0x0D;  /* IN EP interrupt mask */
-    DOEPMSK = 0x0D;  /* IN EP interrupt mask */
-    DAINTMSK = 0xFFFFFFFF;  /* Enable interrupts on all endpoints */
-    GINTMSK = 0xC3000;  /* Interrupt mask: IN event, OUT event, bus reset */
-
-    reset_endpoints(1);
-}
-
-/* IRQ handler */
-void INT_USB_FUNC(void)
-{
-    int i;
-    uint32_t ints = GINTSTS;
-    uint32_t epints;
-    if (ints & 0x1000)  /* bus reset */
-    {
-        DCFG = 4;  /* Address 0 */
-        reset_endpoints(1);
-        usb_core_bus_reset();
-    }
-
-    if (ints & 0x2000)  /* enumeration done, we now know the speed */
-    {
-        /* Set up the maximum packet sizes accordingly */
-        uint32_t maxpacket = usb_drv_port_speed() ? 512 : 64;
-        DIEPCTL1 = (DIEPCTL1 & ~0x000003FF) | maxpacket;
-        DOEPCTL2 = (DOEPCTL2 & ~0x000003FF) | maxpacket;
-        DIEPCTL3 = (DIEPCTL3 & ~0x000003FF) | maxpacket;
-        DOEPCTL4 = (DOEPCTL4 & ~0x000003FF) | maxpacket;
-    }
-
-    if (ints & 0x40000)  /* IN EP event */
-        for (i = 0; i < 4; i += i + 1)  // 0, 1, 3
-            if ((epints = DIEPINT(i)))
-            {
-                if (epints & 1)  /* Transfer completed */
-                {
-                    invalidate_dcache();
-                    int bytes = endpoints[i].size - (DIEPTSIZ(i) & 0x3FFFF);
-                    if (endpoints[i].busy)
-                    {
-                        endpoints[i].busy = false;
-                        endpoints[i].rc = 0;
-                        endpoints[i].done = true;
-                        usb_core_transfer_complete(i, USB_DIR_IN, 0, bytes);
-                        wakeup_signal(&endpoints[i].complete);
-                    }
-                }
-                if (epints & 4)  /* AHB error */
-                    panicf("USB: AHB error on IN EP%d", i);
-                if (epints & 8)  /* Timeout */
-                {
-                    if (endpoints[i].busy)
-                    {
-                        endpoints[i].busy = false;
-                        endpoints[i].rc = 1;
-                        endpoints[i].done = true;
-                        wakeup_signal(&endpoints[i].complete);
-                    }
-                }
-                DIEPINT(i) = epints;
-            }
-
-    if (ints & 0x80000)  /* OUT EP event */
-        for (i = 0; i < USB_NUM_ENDPOINTS; i += 2)
-            if ((epints = DOEPINT(i)))
-            {
-                if (epints & 1)  /* Transfer completed */
-                {
-                    invalidate_dcache();
-                    int bytes = endpoints[i].size - (DOEPTSIZ(i) & 0x3FFFF);
-                    if (endpoints[i].busy)
-                    {
-                        endpoints[i].busy = false;
-                        endpoints[i].rc = 0;
-                        endpoints[i].done = true;
-                        usb_core_transfer_complete(i, USB_DIR_OUT, 0, bytes);
-                        wakeup_signal(&endpoints[i].complete);
-                    }
-                }
-                if (epints & 4)  /* AHB error */
-                    panicf("USB: AHB error on OUT EP%d", i);
-                if (epints & 8)  /* SETUP phase done */
-                {
-                    invalidate_dcache();
-                    if (i == 0)
-                    {
-                        if (ctrlreq.bRequest == 5)
-                        {
-                            /* Already set the new address here,
-                               before passing the packet to the core.
-                               See below (usb_drv_set_address) for details. */
-                            DCFG = (DCFG & ~0x7F0) | (ctrlreq.wValue << 4);
-                        }
-                        usb_core_control_request(&ctrlreq);
-                    }
-                    else panicf("USB: SETUP done on OUT EP%d!?", i);
-                }
-                /* Make sure EP0 OUT is set up to accept the next request */
-                if (!i)
-                {
-                    DOEPTSIZ0 = 0x20080040;
-                    DOEPDMA0 = &ctrlreq;
-                    DOEPCTL0 |= 0x84000000;
-                }
-                DOEPINT(i) = epints;
-            }
-
-    GINTSTS = ints;
+        DEPCTL(endpoint, !in) &= ~DEPCTL_stall;
 }
 
 void usb_drv_set_address(int address)
@@ -276,105 +126,287 @@ void usb_drv_set_address(int address)
        into the USB core, which will then call this dummy function. */
 }
 
-static void ep_send(int ep, const void *ptr, int length)
+static void ep_transfer(int ep, void *ptr, int len, bool out)
 {
-    endpoints[ep].busy = true;
-    endpoints[ep].size = length;
-    DIEPCTL(ep) |= 0x8000;  /* EPx OUT ACTIVE */
-    int blocksize = usb_drv_port_speed() ? 512 : 64;
-    int packets = (length + blocksize - 1) / blocksize;
-    if (!length)
-    {
-        DIEPTSIZ(ep) = 1 << 19;  /* one empty packet */
-        DIEPDMA(ep) = NULL;
-    }
-    else
-    {
-        DIEPTSIZ(ep) = length | (packets << 19);
-        DIEPDMA(ep) = ptr;
-    }
-    clean_dcache();
-    DIEPCTL(ep) |= 0x84000000;  /* EPx OUT ENABLE CLEARNAK */
-}
+    /* disable interrupts to avoid any race */
+    int oldlevel = disable_irq_save();
 
-static void ep_recv(int ep, void *ptr, int length)
-{
-    endpoints[ep].busy = true;
-    endpoints[ep].size = length;
-    DOEPCTL(ep) &= ~0x20000;  /* EPx UNSTALL */
-    DOEPCTL(ep) |= 0x8000;  /* EPx OUT ACTIVE */
-    int blocksize = usb_drv_port_speed() ? 512 : 64;
-    int packets = (length + blocksize - 1) / blocksize;
-    if (!length)
-    {
-        DOEPTSIZ(ep) = 1 << 19;  /* one empty packet */
-        DOEPDMA(ep) = NULL;
-    }
-    else
-    {
-        DOEPTSIZ(ep) = length | (packets << 19);
-        DOEPDMA(ep) = ptr;
-    }
-    clean_dcache();
-    DOEPCTL(ep) |= 0x84000000;  /* EPx OUT ENABLE CLEARNAK */
-}
+    struct ep_type *endpoint = &endpoints[ep][out ? DIR_OUT : DIR_IN];
+    endpoint->busy   = true;
+    endpoint->size   = len;
+    endpoint->status = -1;
 
-int usb_drv_send(int endpoint, void *ptr, int length)
-{
-    endpoint &= 0x7f;
-    endpoints[endpoint].done = false;
-    ep_send(endpoint, ptr, length);
-    while (!endpoints[endpoint].done && endpoints[endpoint].busy)
-        wakeup_wait(&endpoints[endpoint].complete, TIMEOUT_BLOCK);
-    return endpoints[endpoint].rc;
+    if (out)
+        DEPCTL(ep, out) &= ~DEPCTL_stall;
+
+    int mps = usb_drv_port_speed() ? 512 : 64;
+    int nb_packets = (len + mps - 1) / mps;
+    if (nb_packets == 0)
+        nb_packets = 1;
+
+    DEPDMA(ep, out) = len ? (void*)PHYSICAL_ADDR(ptr) : NULL;
+    DEPTSIZ(ep, out) = (nb_packets << DEPTSIZ_pkcnt_bitp) | len;
+    if(out)
+        discard_dcache_range(ptr, len);
+    else
+        commit_dcache_range(ptr, len);
+
+    logf("pkt=%d dma=%lx", nb_packets, DEPDMA(ep, out));
+
+//    if (!out) while (((GNPTXSTS & 0xffff) << 2) < MIN(mps, length));
+
+    DEPCTL(ep, out) |= DEPCTL_epena | DEPCTL_cnak;
+
+    restore_irq(oldlevel);
 }
 
 int usb_drv_send_nonblocking(int endpoint, void *ptr, int length)
 {
-    ep_send(endpoint & 0x7f, ptr, length);
+    ep_transfer(EP_NUM(endpoint), ptr, length, false);
     return 0;
 }
 
 int usb_drv_recv(int endpoint, void* ptr, int length)
 {
-    ep_recv(endpoint & 0x7f, ptr, length);
+    ep_transfer(EP_NUM(endpoint), ptr, length, true);
     return 0;
 }
 
-void usb_drv_cancel_all_transfers(void)
+int usb_drv_port_speed(void)
 {
-    int flags = disable_irq_save();
-    reset_endpoints(0);
-    restore_irq(flags);
+    static const uint8_t speed[4] = {
+        [DSTS_ENUMSPD_HS_PHY_30MHZ_OR_60MHZ] = 1,
+        [DSTS_ENUMSPD_FS_PHY_30MHZ_OR_60MHZ] = 0,
+        [DSTS_ENUMSPD_FS_PHY_48MHZ]          = 0,
+        [DSTS_ENUMSPD_LS_PHY_6MHZ]           = 0,
+    };
+
+    unsigned enumspd = extract(DSTS, enumspd);
+
+    if(enumspd == DSTS_ENUMSPD_LS_PHY_6MHZ)
+        panicf("usb-drv: LS is not supported");
+
+    return speed[enumspd & 3];
 }
 
 void usb_drv_set_test_mode(int mode)
 {
-    (void)mode;
+    /* there is a perfect matching between usb test mode code
+     * and the register field value */
+    DCTL = (DCTL & ~bitm(DCTL, tstctl)) | (mode << DCTL_tstctl_bitp);
 }
 
-bool usb_drv_stalled(int endpoint, bool in)
+void usb_attach(void)
 {
-    if (in) return DIEPCTL(endpoint) & 0x00200000 ? true : false;
-    else return DOEPCTL(endpoint) & 0x00200000 ? true : false;
+    usb_enable(true); // s5l only ?
+    /* Nothing to do */
 }
 
-void usb_drv_stall(int endpoint, bool stall, bool in)
+static void prepare_setup_ep0(void)
 {
-    if (in)
+    DEPDMA(0, true) = (void*)PHYSICAL_ADDR(&_ep0_setup_pkt);
+    DEPTSIZ(0, true) = (1 << DEPTSIZ0_supcnt_bitp)
+                | (1 << DEPTSIZ0_pkcnt_bitp)
+                | 8;
+    DEPCTL(0, true) |= DEPCTL_epena | DEPCTL_cnak;
+
+    ep0_state = EP0_WAIT_SETUP;
+}
+
+static size_t num_eps(bool out)
+{
+    return out ? sizeof(out_ep_list) : sizeof(in_ep_list);
+}
+
+static void reset_endpoints(void)
+{
+    for (int dir = 0; dir < 2; dir++)
     {
-        if (stall) DIEPCTL(endpoint) |= 0x00200000;
-        else DIEPCTL(endpoint) &= ~0x00200000;
+        bool out = dir == DIR_OUT;
+        for (unsigned i = 0; i < num_eps(dir == DIR_OUT); i++)
+        {
+            int ep = ((dir == DIR_IN) ? in_ep_list : out_ep_list)[i];
+            struct ep_type *endpoint = &endpoints[ep][out];
+            endpoint->active = false;
+            endpoint->busy   = false;
+            endpoint->status = -1;
+            endpoint->done   = true;
+            semaphore_release(&endpoint->complete);
+
+            if (i != 0)
+                DEPCTL(ep, out) = DEPCTL_setd0pid;
+        }
+        DEPCTL(0, out) = /*(DEPCTL_MPS_64 << DEPCTL_mps_bitp) | */ DEPCTL_usbactep;
     }
-    else
+
+    /* Setup next chain for IN eps */
+    for (unsigned i = 0; i < num_eps(false); i++)
     {
-        if (stall) DOEPCTL(endpoint) |= 0x00200000;
-        else DOEPCTL(endpoint) &= ~0x00200000;
+        int ep = in_ep_list[i];
+        int next_ep = in_ep_list[(i + 1) % num_eps(false)];
+        DEPCTL(ep, false) |= next_ep << DEPCTL_nextep_bitp;
     }
+
+    prepare_setup_ep0();
+}
+
+static void cancel_all_transfers(bool cancel_ep0)
+{
+    int flags = disable_irq_save();
+
+    for (int dir = 0; dir < 2; dir++)
+        for (unsigned i = !!cancel_ep0; i < num_eps(dir == DIR_OUT); i++)
+        {
+            int ep = ((dir == DIR_IN) ? in_ep_list : out_ep_list)[i];
+            struct ep_type *endpoint = &endpoints[ep][dir == DIR_OUT];
+            endpoint->status = -1;
+            endpoint->busy   = false;
+            endpoint->done   = false;
+            semaphore_release(&endpoint->complete);
+            DEPCTL(ep, dir) = (DEPCTL(ep, dir) & ~DEPCTL_usbactep);
+        }
+
+    restore_irq(flags);
+}
+
+#if CONFIG_CPU == AS3525v2
+void usb_drv_init(void)
+{
+    for (int i = 0; i < USB_NUM_ENDPOINTS; i++)
+        for (int dir = 0; dir < 2; dir++)
+            semaphore_init(&endpoints[i][dir].complete, 1, 0);
+
+    bitset32(&CGU_PERI, CGU_USB_CLOCK_ENABLE);
+    CCU_USB = (CCU_USB & ~(3<<24)) | (1 << 24); /* ?? */
+    /* PHY clock */
+    CGU_USB = 1<<5  /* enable */
+        | 0 << 2
+        | 0; /* source = ? (24MHz crystal?) */
+
+    PCGCCTL = 0;
+    DCTL = DCTL_pwronprgdone | DCTL_sftdiscon;
+
+    GRSTCTL = GRSTCTL_csftrst;
+    while (GRSTCTL & GRSTCTL_csftrst);  /* Wait for OTG to ack reset */
+    while (!(GRSTCTL & GRSTCTL_ahbidle));  /* Wait for OTG AHB master idle */
+
+    GRXFSIZ = 512;
+    GNPTXFSIZ = MAKE_FIFOSIZE_DATA(512);
+
+    /* FIXME: the current code is for internal DMA only, the clip+ architecture
+     *        defines the internal DMA model */
+    GAHBCFG = (GAHBCFG_INT_DMA_BURST_INCR << GAHBCFG_hburstlen_bitp)
+                | GAHBCFG_dma_enable | GAHBCFG_glblintrmsk;
+
+    /* Select UTMI+ 16 */
+    GUSBCFG = GUSBCFG_force_device_mode | GUSBCFG_phy_if | 7 << GUSBCFG_toutcal_bitp;
+
+    /* Do something that is probably CCU related but undocumented*/
+    CCU_USB |= 0x1000;
+    CCU_USB &= ~0x300000;
+
+    DCFG = DCFG_nzstsouthshk | DCFG_devspd_hs_phy_hs; /* Address 0, high speed */
+    DCTL = DCTL_pwronprgdone;
+
+    /* Check hardware capabilities */
+    if(extract(GHWCFG2, arch) != GHWCFG2_ARCH_INTERNAL_DMA)
+        panicf("usb-drv: wrong architecture (%ld)", extract(GHWCFG2, arch));
+    if(extract(GHWCFG2, hs_phy_type) != GHWCFG2_PHY_TYPE_UTMI)
+        panicf("usb-drv: wrong HS phy type (%ld)", extract(GHWCFG2, hs_phy_type));
+    if(extract(GHWCFG2, fs_phy_type) != GHWCFG2_PHY_TYPE_UNSUPPORTED)
+        panicf("usb-drv: wrong FS phy type (%ld)", extract(GHWCFG2, fs_phy_type));
+    if(extract(GHWCFG4, utmi_phy_data_width) != 0x2)
+        panicf("usb-drv: wrong utmi data width (%ld)", extract(GHWCFG4, utmi_phy_data_width));
+    if(!(GHWCFG4 & GHWCFG4_ded_fifo_en)) /* it seems to be multiple tx fifo support */
+        panicf("usb-drv: no multiple tx fifo");
+
+    if(USB_NUM_ENDPOINTS != extract(GHWCFG2, num_ep))
+        panicf("usb-drv: wrong endpoint number");
+
+    for (int dir = 0; dir < 2; dir++)
+        for (unsigned i = 0; i < num_eps(dir == DIR_OUT); i++)
+        {
+            int ep = ((dir == DIR_IN) ? in_ep_list : out_ep_list)[i];
+            int type = (GHWCFG1 >> GHWCFG1_epdir_bitp(ep)) & GHWCFG1_epdir_bits;
+            int flag = (dir == DIR_IN) ? GHWCFG1_EPDIR_IN : GHWCFG1_EPDIR_OUT;
+            if(type != GHWCFG1_EPDIR_BIDIR && type != flag)
+                panicf("usb-drv: EP%d not in correct direction", ep);
+        }
+
+    DOEPMSK = DEPINT_xfercompl | DEPINT_ahberr | DOEPINT_setup;
+    DIEPMSK = DEPINT_xfercompl | DEPINT_ahberr | DIEPINT_timeout;
+    DAINTMSK = 0xffffffff;
+
+    reset_endpoints();
+
+    GINTMSK = GINTMSK_usbreset
+            | GINTMSK_enumdone
+            | GINTMSK_inepintr
+            | GINTMSK_outepintr
+            | GINTMSK_disconnect;
+
+    VIC_INT_ENABLE = INTERRUPT_USB;
+}
+
+void usb_drv_exit(void)
+{
+    DCTL = DCTL_pwronprgdone | DCTL_sftdiscon;
+
+    VIC_INT_EN_CLEAR = INTERRUPT_USB;
+
+    sleep(HZ/20);
+
+    CGU_USB = 0;
+    bitclr32(&CGU_PERI, CGU_USB_CLOCK_ENABLE);
+
+    /* reset USB_PHY to prevent power consumption */
+    CCU_SRC = CCU_SRC_USB_PHY_EN;
+    CCU_SRL = CCU_SRL_MAGIC_NUMBER;
+    CCU_SRL = 0;
+
+}
+#elif CONFIG_CPU == S5L8701 || CONFIG_CPU == S5L8702
+static void usb_reset(void)
+{
+    DCTL = DCTL_pwronprgdone | DCTL_sftdiscon;
+
+    OPHYPWR = 0;  /* PHY: Power up */
+    udelay(10);
+    OPHYUNK1 = 1;
+    OPHYUNK2 = 0xE3F;
+    ORSTCON = 1;  /* PHY: Assert Software Reset */
+    udelay(10);
+    ORSTCON = 0;  /* PHY: Deassert Software Reset */
+    OPHYUNK3 = 0x600;
+    OPHYCLK = SYNOPSYSOTG_CLOCK;
+    udelay(400);
+
+    GRSTCTL = GRSTCTL_csftrst;  /* OTG: Assert Software Reset */
+    while (GRSTCTL & GRSTCTL_csftrst);  /* Wait for OTG to ack reset */
+    while (!(GRSTCTL & GRSTCTL_ahbidle));  /* Wait for OTG AHB master idle */
+
+    GRXFSIZ = 1024;
+    GNPTXFSIZ = (256 << 16) | 1024;
+
+    GAHBCFG = SYNOPSYSOTG_AHBCFG;
+    GUSBCFG = (1 << 12) | (1 << 10) | GUSBCFG_phy_if; /* OTG: 16bit PHY and some reserved bits */
+
+    DCFG = DCFG_nzstsouthshk;  /* Address 0 */
+    DCTL = DCTL_pwronprgdone;  /* Soft Reconnect */
+    DIEPMSK = DIEPINT_timeout | DEPINT_ahberr | DEPINT_xfercompl;
+    DOEPMSK = DOEPINT_setup | DEPINT_ahberr | DEPINT_xfercompl;
+    DAINTMSK = 0xFFFFFFFF;  /* Enable interrupts on all endpoints */
+    GINTMSK = GINTMSK_outepintr | GINTMSK_inepintr | GINTMSK_usbreset | GINTMSK_enumdone;
+
+    reset_endpoints();
 }
 
 void usb_drv_init(void)
 {
+    for (unsigned i = 0; i < sizeof(endpoints)/(2*sizeof(struct ep_type)); i++)
+        for (unsigned dir = 0; dir < 2; dir++)
+            semaphore_init(&endpoints[i][dir].complete, 1, 0);
+
     /* Enable USB clock */
 #if CONFIG_CPU==S5L8701
     PWRCON &= ~0x4000;
@@ -393,11 +425,13 @@ void usb_drv_init(void)
 
 void usb_drv_exit(void)
 {
-    DCTL = 0x802;  /* Soft Disconnect */
+    DCTL = DCTL_pwronprgdone | DCTL_sftdiscon;
 
-    ORSTCON = 1;  /* Put the PHY into reset (needed to get current down) */
-    PCGCCTL = 1;  /* Shut down PHY clock */
     OPHYPWR = 0xF;  /* PHY: Power down */
+    udelay(10);
+    ORSTCON = 7;  /* Put the PHY into reset (needed to get current down) */
+    udelay(10);
+    PCGCCTL = 1;  /* Shut down PHY clock */
     
 #if CONFIG_CPU==S5L8701
     PWRCON |= 0x4000;
@@ -407,73 +441,185 @@ void usb_drv_exit(void)
     PWRCON(1) |= 0x8;
 #endif
 }
-
-void usb_init_device(void)
-{
-    unsigned int i;
-    for (i = 0; i < sizeof(endpoints)/sizeof(struct ep_type); i++)
-        wakeup_init(&endpoints[i].complete);
-
-    /* Power up the core clocks to allow writing
-       to some registers needed to power it down */
-    PCGCCTL = 0;
-#if CONFIG_CPU==S5L8701
-    PWRCON &= ~0x4000;
-    PWRCONEXT &= ~0x800;
-    INTMSK |= INTMSK_USB_OTG;
-#elif CONFIG_CPU==S5L8702
-    PWRCON(0) &= ~0x4;
-    PWRCON(1) &= ~0x8;
-    VIC0INTENABLE |= 1 << 19;
 #endif
 
-    usb_drv_exit();
-}
-
-void usb_enable(bool on)
+static void handle_ep_int(int ep, bool out)
 {
-    if (on) usb_core_init();
-    else usb_core_exit();
+    unsigned long sts = DEPINT(ep, out);
+    struct ep_type *endpoint = &endpoints[ep][out ? DIR_OUT : DIR_IN];
+
+    logf("%s(%d %s): sts = 0x%lx", __func__, ep, out?"OUT":"IN", sts);
+
+    if(sts & DEPINT_ahberr)
+        panicf("usb-drv: ahb error on EP%d %s", ep, out ? "OUT" : "IN");
+
+    if(sts & DEPINT_xfercompl)
+    {
+        discard_dma_buffer_cache();
+        if(endpoint->busy)
+        {
+            endpoint->busy = false;
+            endpoint->status = 0;
+            /* works even for EP0 */
+            int size = (DEPTSIZ(ep, out) & DEPTSIZ_xfersize_bits);
+            int transfered = endpoint->size - size;
+            if(ep == 0)
+            {
+                bool is_ack = endpoint->size == 0;
+                switch(ep0_state)
+                {
+                case EP0_WAIT_SETUP:
+                    panicf("usb-drv: EP0 completion while waiting for SETUP");
+                case EP0_WAIT_DATA_ACK:
+                    ep0_state = is_ack ? EP0_WAIT_DATA : EP0_WAIT_ACK;
+                    break;
+                case EP0_WAIT_ACK:
+                case EP0_WAIT_DATA:
+                    if((!is_ack && ep0_state == EP0_WAIT_ACK) || (is_ack && ep0_state == EP0_WAIT_DATA))
+                        panicf("usb-drv: bad EP0 state");
+
+                    prepare_setup_ep0();
+                    break;
+                }
+            }
+            if (!out)
+                endpoint->size = size;
+            usb_core_transfer_complete(ep, out ? USB_DIR_OUT : USB_DIR_IN, 0, transfered);
+            endpoint->done = true;
+            semaphore_release(&endpoint->complete);
+        }
+    }
+
+    if(!out && (sts & DIEPINT_timeout)) {
+        if (endpoint->busy)
+        {
+            endpoint->busy = false;
+            endpoint->status = 1;
+            endpoint->done = true;
+            semaphore_release(&endpoint->complete);
+        }
+    }
+
+    if(out && (sts & DOEPINT_setup))
+    {
+        discard_dma_buffer_cache();
+        if(ep != 0)
+            panicf("usb-drv: setup not on EP0, this is impossible");
+        if((DEPTSIZ(ep, true) & DEPTSIZ_xfersize_bits) != 0)
+        {
+            logf("usb-drv: ignore spurious setup (xfersize=%ld)", DOEPTSIZ(ep) & DEPTSIZ_xfersize_bits);
+            prepare_setup_ep0();
+        }
+        else
+        {
+            if(ep0_state == EP0_WAIT_SETUP)
+            {
+                bool data_phase = ep0_setup_pkt->wLength != 0;
+                ep0_state = data_phase ? EP0_WAIT_DATA_ACK : EP0_WAIT_ACK;
+            }
+
+            logf("  rt=%x r=%x", ep0_setup_pkt->bRequestType, ep0_setup_pkt->bRequest);
+
+            if(ep0_setup_pkt->bRequestType == USB_TYPE_STANDARD &&
+               ep0_setup_pkt->bRequest     == USB_REQ_SET_ADDRESS)
+                DCFG = (DCFG & ~bitm(DCFG, devadr)) | (ep0_setup_pkt->wValue << DCFG_devadr_bitp);
+
+            usb_core_control_request(ep0_setup_pkt);
+        }
+    }
+
+    DEPINT(ep, out) = sts;
 }
 
-void usb_attach(void)
+void INT_USB_FUNC(void)
 {
-    usb_enable(true);
+    /* some bits in GINTSTS can be set even though we didn't enable the interrupt source
+     * so AND it with the actual mask */
+    unsigned long sts = GINTSTS & GINTMSK;
+    logf("usb-drv: INT 0x%lx", sts);
+
+    if(sts & GINTMSK_usbreset)
+    {
+        DCFG &= ~bitm(DCFG, devadr); /* Address 0 */
+        reset_endpoints();
+        usb_core_bus_reset();
+    }
+
+    if(sts & GINTMSK_enumdone)  /* enumeration done, we now know the speed */
+    {
+        /* Set up the maximum packet sizes accordingly */
+        uint32_t maxpacket = (usb_drv_port_speed() ? 512 : 64) << DEPCTL_mps_bitp;
+        for (int dir = 0; dir < 2; dir++)
+        {
+            bool out = dir == DIR_OUT;
+            for (unsigned i = 1; i < num_eps(out); i++)
+            {
+                int ep = (out ? out_ep_list : in_ep_list)[i];
+                DEPCTL(ep, out) &= ~(DEPCTL_mps_bits << DEPCTL_mps_bitp);
+                DEPCTL(ep, out) |= maxpacket;
+            }
+        }
+    }
+
+    if(sts & (GINTMSK_outepintr | GINTMSK_inepintr))
+    {
+        unsigned long daint = DAINT;
+
+        for (int i = 0; i < USB_NUM_ENDPOINTS; i++)
+        {
+            if (daint & DAINT_IN_EP(i))
+                handle_ep_int(i, false);
+            if (daint & DAINT_OUT_EP(i))
+                handle_ep_int(i, true);
+        }
+
+        DAINT = daint;
+    }
+
+    if(sts & GINTMSK_disconnect)
+        cancel_all_transfers(true);
+
+    GINTSTS = sts;
 }
 
-int usb_detect(void)
+int usb_drv_request_endpoint(int type, int dir)
 {
-    if (charger_inserted())
-        return USB_INSERTED;
-    return USB_EXTRACTED;
+    bool out = dir == USB_DIR_OUT;
+    for (unsigned i = 1; i < num_eps(out); i++)
+    {
+        int ep = (out ? out_ep_list : in_ep_list)[i];
+        bool *active = &endpoints[ep][out ? DIR_OUT : DIR_IN].active;
+        if(*active)
+            continue;
+        *active = true;
+        DEPCTL(ep, out) = (DEPCTL(ep, out) & ~(DEPCTL_eptype_bits << DEPCTL_eptype_bitp))
+            | DEPCTL_setd0pid | (type << DEPCTL_eptype_bitp) | DEPCTL_usbactep;
+        return ep | dir;
+    }
+
+    return -1;
 }
 
-#else
-void usb_init_device(void)
+void usb_drv_release_endpoint(int ep)
 {
-    DCTL = 0x802;  /* Soft Disconnect */
-
-    ORSTCON = 1;  /* Put the PHY into reset (needed to get current down) */
-    PCGCCTL = 1;  /* Shut down PHY clock */
-    OPHYPWR = 0xF;  /* PHY: Power down */
-    
-#if CONFIG_CPU==S5L8701
-    PWRCON |= 0x4000;
-    PWRCONEXT |= 0x800;
-#elif CONFIG_CPU==S5L8702
-    PWRCON(0) |= 0x4;
-    PWRCON(1) |= 0x8;
-#endif
+    if ((ep & 0x7f) == 0)
+        return;
+    endpoints[EP_NUM(ep)][EP_DIR(ep)].active = false;
 }
 
-void usb_enable(bool on)
+void usb_drv_cancel_all_transfers()
 {
-    (void)on;
+    cancel_all_transfers(false);
 }
 
-/* Always return false for now */
-int usb_detect(void)
+
+int usb_drv_send(int ep, void *ptr, int len)
 {
-    return USB_EXTRACTED;
+    ep = EP_NUM(ep);
+    struct ep_type *endpoint = &endpoints[ep][1];
+    endpoint->done = false;
+    ep_transfer(ep, ptr, len, false);
+    while (endpoint->busy && !endpoint->done)
+        semaphore_wait(&endpoint->complete, TIMEOUT_BLOCK);
+    return endpoint->status;
 }
-#endif

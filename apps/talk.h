@@ -50,8 +50,7 @@ enum {
     UNIT_MB,      /* Megabytes */
     UNIT_KBIT,    /* kilobits per sec */
     UNIT_PM_TICK, /* peak meter units per tick */
-    UNIT_TIME_EXACT,/* time duration/interval in seconds, says hours,mins,secs*/
-    UNIT_TIME,    /* as above but less verbose */
+    UNIT_TIME,    /* time duration/interval in seconds, says hours,mins,secs */
     UNIT_LAST     /* END MARKER */
 };
 
@@ -72,16 +71,33 @@ enum {
 /* convenience macro to have both virtual pointer and ID as arguments */
 #define STR(id) ID2P(id), id
 
+/* Policy values for how hard to try to keep the talk/voice buffers.
+ * Affects how genereous talk.c is when it's asked for memory in
+ * shrink_callbacks().
+ *
+ * I.e. setting the policy to TALK_BUFFER_LOOSE, it will happily give its
+ * entire bufer away if asked for, e.g. due to a another module
+ * calling core_alloc_maximum(), TALK_BUFFER_HOLD on the other hand will
+ * make it keep the buffers so that a call to core_alloc_maximum() does not
+ * stop the speech-interface.
+ */
+enum talk_buffer_policies {
+    TALK_BUFFER_DEFAULT,
+    TALK_BUFFER_LOOSE,
+    TALK_BUFFER_HOLD,
+};
+
+/* This sets the actual policy. Call this before core_alloc_maximum() to
+ * get the desired outcome */
+void talk_buffer_set_policy(int policy);
+
 /* publish these strings, so they're stored only once (better than #define) */
 extern const char* const dir_thumbnail_name; /* "_dirname.talk" */
 extern const char* const file_thumbnail_ext; /* ".talk" for file voicing */
 
 void talk_init(void);
-#if CONFIG_CODEC == SWCODEC
-bool talk_voice_required(void); /* returns true if voice codec required */
-#endif
 int talk_get_bufsize(void); /* get the loaded voice file size */
-void talk_buffer_steal(void); /* claim the mp3 buffer e.g. for play/record */
+size_t talkbuf_init(char* bufstart);
 bool is_voice_queued(void); /* Are there more voice clips to be spoken? */
 int talk_id(int32_t id, bool enqueue); /* play a voice ID from voicefont */
 /* play a thumbnail from file */
@@ -90,9 +106,11 @@ int talk_file(const char *root, const char *dir, const char *file,
 /* play file's thumbnail or spell name */
 int talk_file_or_spell(const char *dirname, const char* filename,
                        const long *prefix_ids, bool enqueue);
+#if CONFIG_CODEC == SWCODEC
 /* play dir's thumbnail or spell name */
 int talk_dir_or_spell(const char* filename,
                       const long *prefix_ids, bool enqueue);
+#endif
 int talk_number(long n, bool enqueue); /* say a number */
 int talk_value(long n, int unit, bool enqueue); /* say a numeric value */
 int talk_value_decimal(long n, int unit, int decimals, bool enqueue);
@@ -143,5 +161,17 @@ int talk_idarray(const long *idarray, bool enqueue);
             talk_force_enqueue_next(); \
         } \
     }while(0)
+
+struct talk_debug_data {
+    char voicefile[32];
+    long memory_allocated, memory_used;
+    int  num_clips, num_empty_clips;
+    int  min_clipsize, avg_clipsize, max_clipsize;
+    int  cached_clips;
+    int  cache_hits;
+    int  cache_misses;
+};
+
+bool talk_get_debug_data(struct talk_debug_data *data);
 
 #endif /* __TALK_H__ */

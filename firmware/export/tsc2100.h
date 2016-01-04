@@ -21,6 +21,8 @@
 #ifndef __TSC2100_H_
 #define __TSC2100_H_
 
+AUDIOHW_SETTING(VOLUME, "dB", 0, 1, -64, 0, -25)
+
 void tsc2100_read_data(void);
 bool tsc2100_read_touch(short *x, short* y, short *z1, short *z2);
 bool tsc2100_read_volt(short *bat1, short *bat2, short *aux);
@@ -88,12 +90,6 @@ void tsc2100_keyclick(void);
 /* ts codec dac gain control */
 #define TSDACGAIN_PAGE          2
 #define TSDACGAIN_ADDRESS       0x02
-#define VOLUME_MAX  0
-#define VOLUME_MIN  -630
-
-/* ts audio control 1*/
-#define TSAC1_PAGE          2
-#define TSAC1_ADDRESS       0x00
 
 /* ts audio control 2 */
 #define TSAC2_PAGE          2
@@ -111,13 +107,13 @@ void tsc2100_keyclick(void);
 #define TSAC2_DASTC         (1<<1)
 #define TSAC2_ADGAF         (1<<0) /* r only */
 
-/* ts codec power control */
-#define TSCPC_PAGE          2
-#define TSCPC_ADDRESS       0x05
-
-/* ts audio control 3 */
-#define TSAC3_PAGE          2
-#define TSAC3_ADDRESS       0x06
+#define CONTROL_PAGE2       2
+#define TSAC1_ADDRESS       0x00    /* ts audio control 1*/
+#define TSCSC_ADDRESS       0x03    /* Codec Sidetone Control */
+#define TSCPC_ADDRESS       0x05    /* ts codec power control */
+#define TSAC3_ADDRESS       0x06    /* ts audio control 3 */
+#define TSPP1_ADDRESS       0x1b    /* PLL Programability */
+#define TSPP2_ADDRESS       0x1c    /* PLL Programability */
 
 /* ts audio control 4 */
 #define TSAC4_PAGE          2
@@ -142,8 +138,5 @@ void tsc2100_keyclick(void);
 /* ts audio control 5 */
 #define TSAC5_PAGE          2
 #define TSAC5_ADDRESS       0x1e
-
-extern int tenthdb2master(int db);
-extern void audiohw_set_master_vol(int vol_l, int vol_r);
 
 #endif

@@ -103,8 +103,16 @@ static int tv_change_preferences(const struct tv_preferences *oldp)
 
     if (oldp)
     {
+#ifdef HAVE_ADJUSTABLE_CPU_FREQ
+        rb->cpu_boost(true);
+#endif
+
         for (i = 0; i < bookmark_count; i++)
             tv_convert_fpos(bookmarks[i].pos.file_pos, &bookmarks[i].pos);
+
+#ifdef HAVE_ADJUSTABLE_CPU_FREQ
+        rb->cpu_boost(false);
+#endif
     }
     return TV_CALLBACK_OK;
 }
@@ -159,6 +167,9 @@ void tv_create_system_bookmark(void)
         bookmarks[idx].flag |= TV_BOOKMARK_SYSTEM;
     else
     {
+        /* we can't add a bookmark if there is no room left! */
+        if (bookmark_count == TV_MAX_BOOKMARKS)
+            return;
         bookmarks[bookmark_count].pos  = *pos;
         bookmarks[bookmark_count].flag = TV_BOOKMARK_SYSTEM;
         bookmark_count++;
@@ -246,7 +257,15 @@ void tv_select_bookmark(void)
     if (preferences->vertical_scroll_mode == VS_PAGE)
         select_pos.line = 0;
 
+#ifdef HAVE_ADJUSTABLE_CPU_FREQ
+    rb->cpu_boost(true);
+#endif
+
     tv_move_screen(select_pos.page, select_pos.line, SEEK_SET);
+
+#ifdef HAVE_ADJUSTABLE_CPU_FREQ
+    rb->cpu_boost(false);
+#endif
 }
 
 /* serialize or deserialize of the bookmark array */

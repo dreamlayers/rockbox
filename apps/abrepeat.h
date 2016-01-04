@@ -30,39 +30,24 @@
 
 #include "settings.h"
 
-void ab_repeat_init(void);           
-#if 0 /* Currently unused */
-unsigned int ab_get_A_marker(void);
-unsigned int ab_get_B_marker(void);
-#endif /* if 0 */
+void ab_repeat_init(void);
 bool ab_before_A_marker(unsigned int song_position);
 bool ab_after_A_marker(unsigned int song_position);
 void ab_jump_to_A_marker(void);
 void ab_reset_markers(void);
 void ab_set_A_marker(unsigned int song_position);
 void ab_set_B_marker(unsigned int song_position);
+/* These return whether the marker are actually set.
+ * The actual positions are returned via output parameter */
+bool ab_get_A_marker(unsigned int *song_position);
+bool ab_get_B_marker(unsigned int *song_position);
 #if (CONFIG_CODEC == SWCODEC)
 void ab_end_of_track_report(void);
-#endif
-#ifdef HAVE_LCD_BITMAP
-#include "screen_access.h"
-void ab_draw_markers(struct screen * screen, int capacity,
-                     int x, int y, int w, int h);
 #endif
 
 /* These functions really need to be inlined for speed */
 extern unsigned int ab_A_marker;
 extern unsigned int ab_B_marker;
-
-static inline bool ab_A_marker_set(void)
-{
-    return ab_A_marker != AB_MARKER_NONE;
-}
-
-static inline bool ab_B_marker_set(void)
-{
-    return ab_B_marker != AB_MARKER_NONE;
-}
 
 static inline bool ab_repeat_mode_enabled(void)
 {

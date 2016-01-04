@@ -22,13 +22,15 @@
 #include <stdlib.h>
 #include "config.h"
 #include "lcd.h"
+#ifdef HAVE_REMOTE_LCD
 #include "lcd-remote.h"
+#endif
 #include "font.h"
 #include "viewport.h"
 #include "screen_access.h"
 #include "settings.h"
 #include "misc.h"
-
+#include "list.h"
 /*some short cuts for fg/bg/line selector handling */
 #ifdef HAVE_LCD_COLOR
 #define FG_FALLBACK global_settings.fg_color
@@ -67,7 +69,7 @@ struct viewport_stack_item
 };
 
 #ifdef HAVE_LCD_BITMAP
-static void viewportmanager_redraw(void* data);
+static void viewportmanager_redraw(unsigned short id, void* data);
 
 static int theme_stack_top[NB_SCREENS]; /* the last item added */
 static struct viewport_stack_item theme_stack[NB_SCREENS][VPSTACK_DEPTH];
@@ -78,14 +80,12 @@ static void toggle_events(bool enable)
 {
     if (enable)
     {
-        add_event(GUI_EVENT_ACTIONUPDATE, false, viewportmanager_redraw);
+        add_event(GUI_EVENT_ACTIONUPDATE, viewportmanager_redraw);
 #if defined(HAVE_LCD_ENABLE) || defined(HAVE_LCD_SLEEP)
-        add_event(LCD_EVENT_ACTIVATION, false, do_sbs_update_callback);
+        add_event(LCD_EVENT_ACTIVATION, do_sbs_update_callback);
 #endif
-        add_event(PLAYBACK_EVENT_TRACK_CHANGE, false,
-                                                do_sbs_update_callback);
-        add_event(PLAYBACK_EVENT_NEXTTRACKID3_AVAILABLE, false,
-                                                do_sbs_update_callback);
+        add_event(PLAYBACK_EVENT_TRACK_CHANGE, do_sbs_update_callback);
+        add_event(PLAYBACK_EVENT_NEXTTRACKID3_AVAILABLE, do_sbs_update_callback);
     }
     else
     {
@@ -104,7 +104,6 @@ static void toggle_theme(enum screen_type screen, bool force)
     bool enable_event = false;
     static bool was_enabled[NB_SCREENS] = {false};
     static bool after_boot[NB_SCREENS] = {false};
-    int i;
 
     FOR_NB_SCREENS(i)
     {
@@ -118,7 +117,7 @@ static void toggle_theme(enum screen_type screen, bool force)
         bool first_boot = theme_stack_top[screen] == 0;
         /* remove the left overs from the previous screen.
          * could cause a tiny flicker. Redo your screen code if that happens */
-#if LCD_DEPTH > 1 || defined(HAVE_REMOTE_LCD) && LCD_REMOTE_DEPTH > 1
+#ifdef HAVE_BACKDROP_IMAGE
         skin_backdrop_show(sb_get_backdrop(screen));
 #endif
         if (LIKELY(after_boot[screen]) && (!was_enabled[screen] || force))
@@ -177,7 +176,8 @@ static void toggle_theme(enum screen_type screen, bool force)
 #if LCD_DEPTH > 1 || (defined(LCD_REMOTE_DEPTH) && LCD_REMOTE_DEPTH > 1)
         screens[screen].backdrop_show(NULL);
 #endif
-        screens[screen].stop_scroll();
+        screens[screen].scroll_stop();
+        skinlist_set_cfg(screen, NULL);
     }
     /* let list initialize viewport in case viewport dimensions is changed. */
     send_event(GUI_EVENT_THEME_CHANGED, NULL);
@@ -230,9 +230,9 @@ int viewport_get_nb_lines(const struct viewport *vp)
 #endif
 }
 
-static void viewportmanager_redraw(void* data)
+static void viewportmanager_redraw(unsigned short id, void* data)
 {
-    int i;
+    (void)id;
     FOR_NB_SCREENS(i)
     {
 #ifdef HAVE_LCD_BITMAP
@@ -248,7 +248,6 @@ static void viewportmanager_redraw(void* data)
 void viewportmanager_init()
 {
 #ifdef HAVE_LCD_BITMAP
-    int i;
     FOR_NB_SCREENS(i)
     {
         theme_stack_top[i] = -1; /* the next call fixes this to 0 */
@@ -256,14 +255,13 @@ void viewportmanager_init()
         viewportmanager_theme_enable(i, true, NULL);
     }
 #else
-    add_event(GUI_EVENT_ACTIONUPDATE, false, viewportmanager_redraw);
+    add_event(GUI_EVENT_ACTIONUPDATE, viewportmanager_redraw);
 #endif
 }
 
 #ifdef HAVE_LCD_BITMAP
 void viewportmanager_theme_changed(const int which)
 {
-    int i;
 #ifdef HAVE_BUTTONBAR
     if (which & THEME_BUTTONBAR)
     {   /* don't handle further, the custom ui viewport ignores the buttonbar,
@@ -271,13 +269,10 @@ void viewportmanager_theme_changed(const int which)
         screens[SCREEN_MAIN].has_buttonbar = global_settings.buttonbar;
     }
 #endif
-    if (which & THEME_UI_VIEWPORT)
-    {
-    }
     if (which & THEME_LANGUAGE)
     {
     }
-    if (which & THEME_STATUSBAR)
+    if (which & (THEME_STATUSBAR|THEME_UI_VIEWPORT))
     {
         FOR_NB_SCREENS(i)
         {
@@ -323,7 +318,7 @@ void viewport_set_fullscreen(struct viewport *vp,
 #ifndef __PCTOOL__
     set_default_align_flags(vp);
 #endif
-    vp->font = FONT_UI + screen; /* default to UI to discourage SYSFONT use */
+    vp->font = screens[screen].getuifont();
     vp->drawmode = DRMODE_SOLID;
 #if LCD_DEPTH > 1
 #ifdef HAVE_REMOTE_LCD
@@ -333,11 +328,6 @@ void viewport_set_fullscreen(struct viewport *vp,
     {
         vp->fg_pattern = FG_FALLBACK;
         vp->bg_pattern = BG_FALLBACK;
-#ifdef HAVE_LCD_COLOR
-        vp->lss_pattern = global_settings.lss_color;
-        vp->lse_pattern = global_settings.lse_color;
-        vp->lst_pattern = global_settings.lst_color;
-#endif
     }
 #endif
 

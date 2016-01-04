@@ -22,17 +22,9 @@
 #ifndef _BUTTON_TARGET_H_
 #define _BUTTON_TARGET_H_
 
-#include <stdbool.h>
-#include "config.h"
-
 #define HAS_BUTTON_HOLD
 
-bool button_hold(void);
-void button_init_device(void);
-int button_read_device(void);
-#ifndef BOOTLOADER
 void clickwheel_int(void);
-#endif
 void button_int(void);
 
 /* Sandisk Sansa E200 button codes */
@@ -50,9 +42,6 @@ void button_int(void);
 #define BUTTON_SCROLL_FWD   0x00000100
 
 #define BUTTON_MAIN         0x00000fff
-
-/* No Remote control */
-#define BUTTON_REMOTE 0
 
 #define POWEROFF_BUTTON BUTTON_POWER
 #define POWEROFF_COUNT 10

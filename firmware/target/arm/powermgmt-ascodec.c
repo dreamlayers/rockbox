@@ -27,7 +27,6 @@
 #include "adc.h"
 #include "powermgmt.h"
 #include "power.h"
-#include "usb-target.h"
 #include "usb.h"
 
 /*===========================================================================
@@ -68,7 +67,7 @@ static unsigned int batt_threshold = 0;
 /* full-scale ADC readout (2^10) in millivolt */
 
 /* Returns battery voltage from ADC [millivolts] */
-unsigned int battery_adc_voltage(void)
+int _battery_voltage(void)
 {
     return (adc_read(ADC_BATTERY) * 5125 + 512) >> 10;
 }
@@ -86,7 +85,7 @@ static void battery_voltage_sync(void)
     unsigned int mv;
 
     for (i = 0, mv = 0; i < 5; i++)
-        mv += battery_adc_voltage();
+        mv += _battery_voltage();
 
     reset_battery_filter(mv / 5);
 }
@@ -94,7 +93,7 @@ static void battery_voltage_sync(void)
 /* Disable charger and minimize all settings. Reset timers, etc. */
 static void disable_charger(void)
 {
-    ascodec_write_charger(TMPSUP_OFF | CHG_I_50MA | CHG_V_3_90V | CHG_OFF);
+    ascodec_write_charger(TMPSUP_OFF | CHG_OFF);
 
     if (charge_state > DISCHARGING)
         charge_state = DISCHARGING; /* Not an error state already */
@@ -126,11 +125,8 @@ static void enable_charger(void)
 void powermgmt_init_target(void)
 {
     /* Everything CHARGER, OFF! */
-#if CONFIG_CPU == AS3525v2
-    ascodec_write_pmu(AS3543_CHARGER, 2, 0x01); //EOC current theshold 30%
-#endif
     ascodec_monitor_endofch();
-    ascodec_write_charger(TMPSUP_OFF | CHG_I_50MA | CHG_V_3_90V | CHG_OFF);
+    ascodec_write_charger(TMPSUP_OFF | CHG_OFF);
 }
 
 static inline void charger_plugged(void)

@@ -7,7 +7,6 @@
  *                     \/            \/     \/    \/            \/
  *
  *   Copyright (C) 2007 by Dominik Riebeling
- *   $Id$
  *
  * All files in this archive are subject to the GNU General Public License.
  * See the file COPYING in the source tree root for full license agreement.
@@ -18,20 +17,37 @@
  ****************************************************************************/
 
 
-#include <QtGui>
+#include <QCoreApplication>
+#include <QSettings>
 #include "rbutilqt.h"
 #include "systrace.h"
+#include "Logger.h"
+#include "ConsoleAppender.h"
+#include "FileAppender.h"
 
 #ifdef STATIC
 #include <QtPlugin>
+#if QT_VERSION < 0x050000
 Q_IMPORT_PLUGIN(qtaccessiblewidgets)
+#else
+Q_IMPORT_PLUGIN(AccessibleFactory)
+#endif
 #endif
 
 
-
 int main( int argc, char ** argv ) {
-    qInstallMsgHandler(SysTrace::debug);
     QApplication app( argc, argv );
+    ConsoleAppender* consoleAppender = new ConsoleAppender();
+    consoleAppender->setFormat("[%f:%i %L] %m\n");
+    Logger::registerAppender(consoleAppender);
+    SysTrace::rotateTrace();
+    QString tracefile = QDir::tempPath() + "/rbutil-trace.log";
+    FileAppender* fileAppender = new FileAppender();
+    fileAppender->setFormat("[%f:%i %L] %m\n");
+    fileAppender->setFileName(tracefile);
+    Logger::registerAppender(fileAppender);
+    LOG_INFO() << "Starting trace at" << QDateTime::currentDateTime().toString(Qt::ISODate);
+
 #if defined(Q_OS_MAC)
     QDir dir(QApplication::applicationDirPath());
     dir.cdUp();
@@ -71,7 +87,13 @@ int main( int argc, char ** argv ) {
     if(QObject::tr("LTR") == "RTL")
         app.setLayoutDirection(Qt::RightToLeft);
 
+    // keep a list of installed translators. Needed to be able uninstalling them
+    // later again (in case of translation changes)
+    QList<QTranslator*> translators;
+    translators.append(&translator);
+    translators.append(&qttrans);
     RbUtilQt window(0);
+    RbUtilQt::translators = translators;
     window.show();
 
 //    app.connect( &app, SIGNAL(lastWindowClosed()), &app, SLOT(quit()) );

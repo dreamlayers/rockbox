@@ -22,9 +22,9 @@
 #ifndef __SYSTEM_H__
 #define __SYSTEM_H__
 
+#include <stdbool.h>
+#include <stdint.h>
 #include "cpu.h"
-#include "stdbool.h"
-#include "kernel.h"
 #include "gcc_extensions.h" /* for LIKELY/UNLIKELY */
 
 extern void system_reboot (void);
@@ -85,6 +85,10 @@ int get_cpu_boost_counter(void);
 
 #define BAUDRATE 9600
 
+/* wrap-safe macros for tick comparison */
+#define TIME_AFTER(a,b)         ((long)(b) - (long)(a) < 0)
+#define TIME_BEFORE(a,b)        TIME_AFTER(b,a)
+
 #ifndef NULL
 #define NULL ((void*)0)
 #endif
@@ -100,6 +104,10 @@ int get_cpu_boost_counter(void);
 /* return number of elements in array a */
 #define ARRAYLEN(a) (sizeof(a)/sizeof((a)[0]))
 
+/* is the given pointer "p" inside the said bounds of array "a"? */
+#define PTR_IN_ARRAY(a, p, numelem) \
+    ((uintptr_t)(p) - (uintptr_t)(a) < (uintptr_t)(numelem)*sizeof ((a)[0]))
+
 /* return p incremented by specified number of bytes */
 #define SKIPBYTES(p, count) ((typeof (p))((char *)(p) + (count)))
 
@@ -110,103 +118,56 @@ int get_cpu_boost_counter(void);
 #define ALIGN_UP_P2(n, p2)   ALIGN_DOWN_P2((n) + P2_M1(p2),p2)
 
 /* align up or down to nearest integer multiple of a */
-#define ALIGN_DOWN(n, a)     ((n)/(a)*(a))
+#define ALIGN_DOWN(n, a)     ((typeof(n))((uintptr_t)(n)/(a)*(a)))
 #define ALIGN_UP(n, a)       ALIGN_DOWN((n)+((a)-1),a)
 
 /* align start and end of buffer to nearest integer multiple of a */
-#define ALIGN_BUFFER(ptr,len,align) \
-{\
-    uintptr_t tmp_ptr1 = (uintptr_t)ptr; \
-    uintptr_t tmp_ptr2 = tmp_ptr1 + len;\
-    tmp_ptr1 = ALIGN_UP(tmp_ptr1,align); \
-    tmp_ptr2 = ALIGN_DOWN(tmp_ptr2,align); \
-    len = tmp_ptr2 - tmp_ptr1; \
-    ptr = (typeof(ptr))tmp_ptr1; \
-}
+#define ALIGN_BUFFER(ptr, size, align) \
+({                                           \
+    size_t    __sz = (size);                 \
+    size_t   __ali = (align);                \
+    uintptr_t __a1 = (uintptr_t)(ptr);       \
+    uintptr_t __a2 = __a1 + __sz;            \
+    __a1 = ALIGN_UP(__a1, __ali);            \
+    __a2 = ALIGN_DOWN(__a2, __ali);          \
+    (ptr)  = (typeof (ptr))__a1;             \
+    (size) = __a2 > __a1 ?  __a2 - __a1 : 0; \
+})
 
+#define IS_ALIGNED(x, a) (((x) & ((typeof(x))(a) - 1)) == 0)
 
-/* newer? SDL includes endian.h, So we ignore it */
-#if (CONFIG_PLATFORM & PLATFORM_HOSTED) || defined(__PCTOOL__)
-#undef letoh16
-#undef letoh32
-#undef htole16
-#undef htole32
-#undef betoh16
-#undef betoh32
-#undef htobe16
-#undef htobe32
-#endif
-
-/* live endianness conversion */
-#ifdef ROCKBOX_LITTLE_ENDIAN
-#define letoh16(x) (x)
-#define letoh32(x) (x)
-#define htole16(x) (x)
-#define htole32(x) (x)
-#define betoh16(x) swap16(x)
-#define betoh32(x) swap32(x)
-#define htobe16(x) swap16(x)
-#define htobe32(x) swap32(x)
-#define swap_odd_even_be32(x) (x)
-#define swap_odd_even_le32(x) swap_odd_even32(x)
-#else
-#define letoh16(x) swap16(x)
-#define letoh32(x) swap32(x)
-#define htole16(x) swap16(x)
-#define htole32(x) swap32(x)
-#define betoh16(x) (x)
-#define betoh32(x) (x)
-#define htobe16(x) (x)
-#define htobe32(x) (x)
-#define swap_odd_even_be32(x) swap_odd_even32(x)
-#define swap_odd_even_le32(x) (x)
-#endif
-
-
-/* static endianness conversion */
-#define SWAP_16(x) ((typeof(x))(unsigned short)(((unsigned short)(x) >> 8) | \
-                                                ((unsigned short)(x) << 8)))
-
-#define SWAP_32(x) ((typeof(x))(unsigned long)( ((unsigned long)(x) >> 24) | \
-                                               (((unsigned long)(x) & 0xff0000ul) >> 8) | \
-                                               (((unsigned long)(x) & 0xff00ul) << 8) | \
-                                                ((unsigned long)(x) << 24)))
-
-#ifdef ROCKBOX_LITTLE_ENDIAN
-#define LE_TO_H16(x) (x)
-#define LE_TO_H32(x) (x)
-#define H_TO_LE16(x) (x)
-#define H_TO_LE32(x) (x)
-#define BE_TO_H16(x) SWAP_16(x)
-#define BE_TO_H32(x) SWAP_32(x)
-#define H_TO_BE16(x) SWAP_16(x)
-#define H_TO_BE32(x) SWAP_32(x)
-#else
-#define LE_TO_H16(x) SWAP_16(x)
-#define LE_TO_H32(x) SWAP_32(x)
-#define H_TO_LE16(x) SWAP_16(x)
-#define H_TO_LE32(x) SWAP_32(x)
-#define BE_TO_H16(x) (x)
-#define BE_TO_H32(x) (x)
-#define H_TO_BE16(x) (x)
-#define H_TO_BE32(x) (x)
-#endif
+#define PTR_ADD(ptr, x) ((typeof(ptr))((char*)(ptr) + (x)))
+#define PTR_SUB(ptr, x) ((typeof(ptr))((char*)(ptr) - (x)))
 
 /* Get the byte offset of a type's member */
-#define OFFSETOF(type, membername) ((off_t)&((type *)0)->membername)
+#ifndef offsetof
+#define offsetof(type, member)  __builtin_offsetof(type, member)
+#endif
 
-/* Get the type pointer from one of its members */
-#define TYPE_FROM_MEMBER(type, memberptr, membername) \
-    ((type *)((intptr_t)(memberptr) - OFFSETOF(type, membername)))
+/* Get the containing item of *ptr in type */
+#ifndef container_of
+#define container_of(ptr, type, member) ({              \
+    const typeof (((type *)0)->member) *__mptr = (ptr); \
+    (type *)((void *)(__mptr) - offsetof(type, member)); })
+#endif
 
 /* returns index of first set bit or 32 if no bits are set */
+#if defined(CPU_ARM) && ARM_ARCH >= 5 && !defined(__thumb__)
+static inline int find_first_set_bit(uint32_t val)
+    { return LIKELY(val) ? __builtin_ctz(val) : 32; }
+#else
 int find_first_set_bit(uint32_t val);
+#endif
 
 static inline __attribute__((always_inline))
 uint32_t isolate_first_bit(uint32_t val)
     { return val & -val; }
 
 /* Functions to set and clear register or variable bits atomically */
+void bitmod16(volatile uint16_t *addr, uint16_t bits, uint16_t mask);
+void bitset16(volatile uint16_t *addr, uint16_t mask);
+void bitclr16(volatile uint16_t *addr, uint16_t mask);
+
 void bitmod32(volatile uint32_t *addr, uint32_t bits, uint32_t mask);
 void bitset32(volatile uint32_t *addr, uint32_t mask);
 void bitclr32(volatile uint32_t *addr, uint32_t mask);
@@ -233,46 +194,24 @@ enum {
 #include "system-target.h"
 #elif defined(HAVE_SDL) /* SDL build */
 #include "system-sdl.h"
-#define NEED_GENERIC_BYTESWAPS
+#ifdef SIMULATOR
+#include "system-sim.h"
+#endif
+#elif defined(__PCTOOL__)
+#include "system-hosted.h"
 #endif
 
-#ifdef NEED_GENERIC_BYTESWAPS
-static inline uint16_t swap16(uint16_t value)
-    /*
-      result[15..8] = value[ 7..0];
-      result[ 7..0] = value[15..8];
-    */
-{
-    return (value >> 8) | (value << 8);
-}
-
-static inline uint32_t swap32(uint32_t value)
-    /*
-      result[31..24] = value[ 7.. 0];
-      result[23..16] = value[15.. 8];
-      result[15.. 8] = value[23..16];
-      result[ 7.. 0] = value[31..24];
-    */
-{
-    uint32_t hi = swap16(value >> 16);
-    uint32_t lo = swap16(value & 0xffff);
-    return (lo << 16) | hi;
-}
-
-static inline uint32_t swap_odd_even32(uint32_t value)
-{
-    /*
-      result[31..24],[15.. 8] = value[23..16],[ 7.. 0]
-      result[23..16],[ 7.. 0] = value[31..24],[15.. 8]
-    */
-    uint32_t t = value & 0xff00ff00;
-    return (t >> 8) | ((t ^ value) << 8);
-}
-
-#endif /* NEED_GENERIC_BYTESWAPS */
+#include "bitswap.h"
+#include "rbendian.h"
 
 #ifndef BIT_N
 #define BIT_N(n) (1U << (n))
+#endif
+
+#ifndef MASK_N
+/* Make a mask of n contiguous bits, shifted left by 'shift' */
+#define MASK_N(type, n, shift) \
+    ((type)((((type)1 << (n)) - (type)1) << (shift)))
 #endif
 
 /* Declare this as HIGHEST_IRQ_LEVEL if they don't differ */
@@ -280,39 +219,15 @@ static inline uint32_t swap_odd_even32(uint32_t value)
 #define DISABLE_INTERRUPTS  HIGHEST_IRQ_LEVEL
 #endif
 
-/* Just define these as empty if not declared */
-#ifdef HAVE_CPUCACHE_INVALIDATE
-void cpucache_commit_discard(void);
-/* deprecated alias */
-void cpucache_invalidate(void);
-#else
-static inline void cpucache_commit_discard(void)
-{
-}
-/* deprecated alias */
-static inline void cpucache_invalidate(void)
-{
-}
-#endif
-
-#ifdef HAVE_CPUCACHE_FLUSH
-void cpucache_commit(void);
-/* deprecated alias */
-void cpucache_flush(void);
-#else
-static inline void cpucache_commit(void)
-{
-}
-/* deprecated alias */
-static inline void cpucache_flush(void)
-{
-}
-#endif
-
 /* Define this, if the CPU may take advantage of cache aligment. Is enabled
  * for all ARM CPUs. */
 #ifdef CPU_ARM
     #define HAVE_CPU_CACHE_ALIGN
+    #define MIN_STACK_ALIGN 8
+#endif
+
+#ifndef MIN_STACK_ALIGN
+#define MIN_STACK_ALIGN (sizeof (uintptr_t))
 #endif
 
 /* Calculate CACHEALIGN_SIZE from CACHEALIGN_BITS */
@@ -356,16 +271,24 @@ static inline void cpucache_flush(void)
 
 /* Define MEM_ALIGN_ATTR which may be used to align e.g. buffers for faster
  * access. */
-#if   defined(CPU_ARM)
+#if defined(CPU_ARM)
     /* Use ARMs cache alignment. */
     #define MEM_ALIGN_ATTR CACHEALIGN_ATTR
+    #define MEM_ALIGN_SIZE CACHEALIGN_SIZE
 #elif defined(CPU_COLDFIRE)
     /* Use fixed alignment of 16 bytes. Speed up only for 'movem' in DRAM. */
     #define MEM_ALIGN_ATTR __attribute__((aligned(16)))
+    #define MEM_ALIGN_SIZE 16
 #else
-    /* Do nothing. */
-    #define MEM_ALIGN_ATTR
+    /* Align pointer size */
+    #define MEM_ALIGN_ATTR __attribute__((aligned(sizeof(intptr_t))))
+    #define MEM_ALIGN_SIZE sizeof(intptr_t)
 #endif
+
+#define MEM_ALIGN_UP(x) \
+    ((typeof (x))ALIGN_UP((uintptr_t)(x), MEM_ALIGN_SIZE))
+#define MEM_ALIGN_DOWN(x) \
+    ((typeof (x))ALIGN_DOWN((uintptr_t)(x), MEM_ALIGN_SIZE))
 
 #ifdef STORAGE_WANTS_ALIGN
     #define STORAGE_ALIGN_ATTR __attribute__((aligned(CACHEALIGN_SIZE)))
@@ -375,15 +298,25 @@ static inline void cpucache_flush(void)
     #define STORAGE_PAD(x) ((x) + CACHEALIGN_SIZE - 1)
     /* Number of bytes in the last cacheline assuming buffer of size x is aligned */
     #define STORAGE_OVERLAP(x) ((x) & (CACHEALIGN_SIZE - 1))
+    #define STORAGE_ALIGN_BUFFER(start, size) \
+        ALIGN_BUFFER((start), (size), CACHEALIGN_SIZE)
 #else
     #define STORAGE_ALIGN_ATTR
     #define STORAGE_ALIGN_DOWN(x) (x)
     #define STORAGE_PAD(x) (x)
     #define STORAGE_OVERLAP(x) 0
+    #define STORAGE_ALIGN_BUFFER(start, size)
 #endif
 
 /* Double-cast to avoid 'dereferencing type-punned pointer will
  * break strict aliasing rules' B.S. */
 #define PUN_PTR(type, p) ((type)(intptr_t)(p))
+
+#ifndef SIMULATOR
+bool dbg_ports(void);
+#endif
+#if (CONFIG_PLATFORM & PLATFORM_NATIVE)
+bool dbg_hw_info(void);
+#endif
 
 #endif /* __SYSTEM_H__ */

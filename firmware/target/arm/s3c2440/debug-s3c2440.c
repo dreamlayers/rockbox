@@ -22,14 +22,20 @@
 #include "config.h"
 #include "cpu.h"
 #include "system.h"
+#include "kernel.h"
 #include "string.h"
 #include <stdbool.h>
 #include "button.h"
 #include "lcd.h"
 #include "font.h"
-#include "debug-target.h"
 
-bool __dbg_hw_info(void)
+#ifdef GIGABEAT_F
+#define DEBUG_CANCEL  BUTTON_POWER
+#elif defined(MINI2440)
+#define DEBUG_CANCEL  BUTTON_MENU
+#endif
+
+bool dbg_hw_info(void)
 {
     return false;
 }

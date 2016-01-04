@@ -27,6 +27,7 @@
 #include "dm320.h"
 #include "audiohw.h"
 #include "dsp-target.h"
+#include "pcm-internal.h"
 
 void pcm_play_dma_init(void)
 {
@@ -43,7 +44,7 @@ void pcm_play_dma_init(void)
 //    dsp_init();
 }
 
-void pcm_postinit(void)
+void pcm_play_dma_postinit(void)
 {
     audiohw_postinit();
 

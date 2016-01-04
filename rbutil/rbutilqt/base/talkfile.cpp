@@ -7,7 +7,6 @@
  *                     \/            \/     \/    \/            \/
  *
  *   Copyright (C) 2007 by Dominik Wenger
- *   $Id$
  *
  * All files in this archive are subject to the GNU General Public License.
  * See the file COPYING in the source tree root for full license agreement.
@@ -19,6 +18,7 @@
 
 #include "talkfile.h"
 #include "rbsettings.h"
+#include "Logger.h"
 
 TalkFileCreator::TalkFileCreator(QObject* parent): QObject(parent)
 {
@@ -33,13 +33,14 @@ bool TalkFileCreator::createTalkFiles()
     m_abort = false;
     QString errStr;
 
-    emit logItem(tr("Starting Talk file generation"),LOGINFO);
+    emit logItem(tr("Starting Talk file generation for folder %1")
+            .arg(m_dir), LOGINFO);
     emit logProgress(0,0);
     QCoreApplication::processEvents();
 
     // read in Maps of paths - file/dirnames
     emit logItem(tr("Reading Filelist..."),LOGINFO);
-    if(createTalkList(m_dir) == false)
+    if(createTalkList(m_mountpoint + "/" + m_dir) == false)
     {
         emit logItem(tr("Talk file creation aborted"),LOGERROR);
         doAbort();
@@ -50,18 +51,19 @@ bool TalkFileCreator::createTalkFiles()
     // generate entries
     {
         TalkGenerator generator(this);
+        // no string corrections yet: do not set language for TalkGenerator.
         connect(&generator,SIGNAL(done(bool)),this,SIGNAL(done(bool)));
         connect(&generator,SIGNAL(logItem(QString,int)),this,SIGNAL(logItem(QString,int)));
         connect(&generator,SIGNAL(logProgress(int,int)),this,SIGNAL(logProgress(int,int)));
         connect(this,SIGNAL(aborted()),&generator,SLOT(abort()));
-    
+
         if(generator.process(&m_talkList) == TalkGenerator::eERROR)
         {
             doAbort();
             return false;
         }
     }
-    
+
     // Copying talk files
     emit logItem(tr("Copying Talkfiles..."),LOGINFO);
     if(copyTalkFiles(&errStr) == false)
@@ -78,7 +80,7 @@ bool TalkFileCreator::createTalkFiles()
     emit logItem(tr("Finished creating Talk files"),LOGOK);
     emit logProgress(1,1);
     emit done(false);
-    
+
     return true;
 }
 
@@ -108,6 +110,7 @@ void TalkFileCreator::doAbort()
 //! \param startDir The directory from which to start scanning
 bool TalkFileCreator::createTalkList(QDir startDir)
 {
+    LOG_INFO() << "generating list of files" << startDir;
     m_talkList.clear();
 
      // create Iterator
@@ -116,7 +119,7 @@ bool TalkFileCreator::createTalkList(QDir startDir)
         flags = QDirIterator::Subdirectories;
 
     QDirIterator it(startDir,flags);
-    
+
     //create temp directory
     QDir tempDir(QDir::tempPath()+ "/talkfiles/");
     if(!tempDir.exists())
@@ -130,7 +133,7 @@ bool TalkFileCreator::createTalkList(QDir startDir)
         {
             return false;
         }
-                
+
         QFileInfo fileInf = it.fileInfo();
 
         // its a dir
@@ -146,19 +149,22 @@ bool TalkFileCreator::createTalkList(QDir startDir)
                 {
                     continue;
                 }
-                
+
                 //generate entry
-                TalkGenerator::TalkEntry entry;                
+                TalkGenerator::TalkEntry entry;
                 entry.toSpeak = dir.dirName();
-                entry.wavfilename = QDir::tempPath()+ "/talkfiles/" + QCryptographicHash::hash(entry.toSpeak.toUtf8(),
-                                        QCryptographicHash::Md5).toHex() + ".wav";
-                entry.talkfilename = QDir::tempPath()+ "/talkfiles/" + QCryptographicHash::hash(entry.toSpeak.toUtf8(),
-                                        QCryptographicHash::Md5).toHex() + ".talk";
+                entry.wavfilename = QDir::tempPath() + "/talkfiles/"
+                    + QCryptographicHash::hash(entry.toSpeak.toUtf8(),
+                    QCryptographicHash::Md5).toHex() + ".wav";
+                entry.talkfilename = QDir::tempPath() + "/talkfiles/"
+                    + QCryptographicHash::hash(entry.toSpeak.toUtf8(),
+                    QCryptographicHash::Md5).toHex() + ".talk";
                 entry.target = dir.path() + "/_dirname.talk";
                 entry.voiced = false;
                 entry.encoded = false;
-                qDebug() << "toSpeak: " << entry.toSpeak << " target: " << entry.target << " intermediates: " << 
-                        entry.wavfilename << entry.talkfilename;
+                LOG_INFO() << "toSpeak:" << entry.toSpeak
+                           << "target:" << entry.target
+                           << "intermediates:" << entry.wavfilename << entry.talkfilename;
                 m_talkList.append(entry);
             }
         }
@@ -178,33 +184,38 @@ bool TalkFileCreator::createTalkList(QDir startDir)
                 }
                 if(match)
                     continue;
-                
+
                 // check if we should ignore it
                 if(m_generateOnlyNew && QFileInfo(fileInf.path() + "/" + fileInf.fileName() + ".talk").exists())
                 {
                     continue;
                 }
-                
+
                 //generate entry
                 TalkGenerator::TalkEntry entry;
                 if(m_stripExtensions)
                     entry.toSpeak = stripExtension(fileInf.fileName());
                 else
                     entry.toSpeak = fileInf.fileName();
-                entry.wavfilename = QDir::tempPath()+ "/talkfiles/" + QCryptographicHash::hash(entry.toSpeak.toUtf8(),
-                                        QCryptographicHash::Md5).toHex() + ".wav";
-                entry.talkfilename = QDir::tempPath()+ "/talkfiles/" + QCryptographicHash::hash(entry.toSpeak.toUtf8(),
-                                        QCryptographicHash::Md5).toHex() + ".talk";
+                entry.wavfilename = QDir::tempPath() + "/talkfiles/"
+                    + QCryptographicHash::hash(entry.toSpeak.toUtf8(),
+                    QCryptographicHash::Md5).toHex() + ".wav";
+                entry.talkfilename = QDir::tempPath() + "/talkfiles/"
+                    + QCryptographicHash::hash(entry.toSpeak.toUtf8(),
+                    QCryptographicHash::Md5).toHex() + ".talk";
                 entry.target =  fileInf.path() + "/" + fileInf.fileName() + ".talk";
                 entry.voiced = false;
                 entry.encoded = false;
-                qDebug() << "toSpeak: " << entry.toSpeak << " target: " << entry.target << " intermediates: " << 
-                            entry.wavfilename << entry.talkfilename;
+                LOG_INFO() << "toSpeak:" << entry.toSpeak
+                           << "target:" << entry.target
+                           << "intermediates:"
+                           << entry.wavfilename << entry.talkfilename;
                 m_talkList.append(entry);
             }
         }
         QCoreApplication::processEvents();
     }
+    LOG_INFO() << "list created, entries:" << m_talkList.size();
     return true;
 }
 
@@ -241,7 +252,8 @@ bool TalkFileCreator::copyTalkFiles(QString* errString)
             QFile::remove(m_talkList[i].target);
 
         // copying
-        qDebug() << "copying " << m_talkList[i].talkfilename << "to" << m_talkList[i].target;
+        LOG_INFO() << "copying" << m_talkList[i].talkfilename
+                   << "to" << m_talkList[i].target;
         if(!QFile::copy(m_talkList[i].talkfilename,m_talkList[i].target))
         {
             *errString = tr("Copying of %1 to %2 failed").arg(m_talkList[i].talkfilename).arg(m_talkList[i].target);

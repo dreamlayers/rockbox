@@ -22,19 +22,15 @@
 #ifndef _BUTTON_TARGET_H_
 #define _BUTTON_TARGET_H_
 
-#include <stdbool.h>
 #include "config.h"
 
 #define MEP_BUTTON_HEADER   0x19
 #define MEP_BUTTON_ID       0x9
 #define MEP_ABSOLUTE_HEADER 0x0b
 #define MEP_FINGER          0x01
+#define MEP_GESTURE         0x02
 
 #define HAS_BUTTON_HOLD
-
-bool button_hold(void);
-void button_init_device(void);
-int button_read_device(void);
 
 #ifndef BOOTLOADER
 void button_int(void);
@@ -53,10 +49,8 @@ void button_int(void);
 #define BUTTON_NEXT         0x00000200
 #define BUTTON_PREV         0x00000400
 #define BUTTON_PLAY         0x00000800
-#define BUTTON_MAIN         0x00000fff
-
-/* No Remote control */
-#define BUTTON_REMOTE 0
+#define BUTTON_TAP          0x00001000
+#define BUTTON_MAIN         0x00001fff
 
 #define POWEROFF_BUTTON BUTTON_POWER
 #define POWEROFF_COUNT 10

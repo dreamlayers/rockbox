@@ -1,7 +1,6 @@
 /*
  * This config file is for the Sandisk Sansa View
  */
-#define TARGET_TREE /* this target is using the target tree system */
 
 /* For Rolo and boot loader */
 #define MODEL_NUMBER 63
@@ -41,26 +40,20 @@
 /* define this if you have access to the quickscreen */
 #define HAVE_QUICKSCREEN
 
-/* define this if you have access to the pitchscreen */
-#define HAVE_PITCHSCREEN
-
 /* define this if you would like tagcache to build on this target */
 #define HAVE_TAGCACHE
 
 /* LCD dimensions */
 #define LCD_WIDTH  240
 #define LCD_HEIGHT 320
+/* sqrt(240^2 + 320^2) / 2.4 = 166.7 */
+#define LCD_DPI 167
 #define LCD_DEPTH  16   /* 65536 colours */
 #define LCD_PIXELFORMAT RGB565 /* rgb565 */
 
 #ifndef BOOTLOADER
 /* define this if you have LCD enable function */
-/* #define HAVE_LCD_ENABLE */
-
-/* Define this if your LCD can be put to sleep. HAVE_LCD_ENABLE
-   should be defined as well. */
-/* #define HAVE_LCD_SLEEP */
-/* #define HAVE_LCD_SLEEP_SETTING */
+#define HAVE_LCD_ENABLE
 #endif
 
 /* define this if you can flip your LCD */
@@ -69,10 +62,11 @@
 /* define this if you can invert the colours on your LCD */
 #define HAVE_LCD_INVERT
 
-/* #define IRAM_LCDFRAMEBUFFER IDATA_ATTR *//* put the lcd frame buffer in IRAM */
-
 /* The only difference is that the power/hold is on the left instead of right on Fuze */
 #define CONFIG_KEYPAD SANSA_FUZE_PAD
+
+/* Define this to have CPU boosted while scrolling in the UI */
+#define HAVE_GUI_BOOST
 
 /* Define this to enable morse code input */
 #define HAVE_MORSE_INPUT
@@ -80,7 +74,8 @@
 /* Define this if you do software codec */
 #define CONFIG_CODEC SWCODEC
 /* There is no hardware tone control */
-#define HAVE_SW_TONE_CONTROLS
+/* #define HAVE_SW_TONE_CONTROLS*/
+#define HAVE_WM8731
 
 /* define this if you have a real-time clock */
 #ifndef BOOTLOADER
@@ -126,6 +121,8 @@
 #define BATTERY_CAPACITY_INC 0          /* capacity increment */
 #define BATTERY_TYPES_COUNT  1          /* only one type */
 
+#define CONFIG_BATTERY_MEASURE VOLTAGE_MEASURE
+
 /* Charging implemented in a target-specific algorithm */
 #define CONFIG_CHARGING CHARGING_SIMPLE
 #define HAVE_POWEROFF_WHILE_CHARGING
@@ -154,7 +151,7 @@
 /* Define this to the CPU frequency */
 #define CPU_FREQ      250000000
 
-/* Type of LCD TODO: hopefully the same as the x5 but check this*/
+/* Type of LCD */
 #define CONFIG_LCD LCD_VIEW
 
 /* Offset ( in the firmware file's header ) to the file CRC and data. These are
@@ -170,11 +167,10 @@
 #endif
 
 /* USB On-the-go */
-/* #define CONFIG_USBOTG USBOTG_ARC */
+#define CONFIG_USBOTG USBOTG_ARC
 
 /* enable these for the experimental usb stack */
 #define HAVE_USBSTACK
-#define USE_ROCKBOX_USB
 #define USB_VENDOR_ID 0x0781
 #define USB_PRODUCT_ID 0x74b1
 

@@ -21,15 +21,25 @@
 #ifndef VOICE_THREAD_H
 #define VOICE_THREAD_H
 
-void mp3_play_data(const unsigned char* start, int size,
-                   void (*get_more)(unsigned char** start, size_t* size));
+#include "config.h"
+
+#ifndef MP3_PLAY_CALLBACK_DEFINED
+#define MP3_PLAY_CALLBACK_DEFINED
+typedef void (*mp3_play_callback_t)(const void **start, size_t *size);
+#endif
+
+void mp3_play_data(const void *start, size_t size,
+                   mp3_play_callback_t get_more);
 void mp3_play_stop(void);
 void mp3_play_pause(bool play);
 bool mp3_is_playing(void);
 
+void voice_wait(void);
 void voice_stop(void);
+
 void voice_thread_init(void);
-void voice_thread_resume(void);
+#ifdef HAVE_PRIORITY_SCHEDULING
 void voice_thread_set_priority(int priority);
+#endif
 
 #endif /* VOICE_THREAD_H */

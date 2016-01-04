@@ -25,6 +25,13 @@
 #include "screen_access.h"
 #include "settings.h"
 
+#if defined (HAVE_SCROLLWHEEL)      || \
+    (CONFIG_KEYPAD == PLAYER_PAD)
+/* Define this if your target makes sense to have 
+   smaller values at the top of the list increasing down the list */
+#define ASCENDING_INT_SETTINGS
+#endif
+
 bool option_screen(const struct settings_list *setting,
                    struct viewport parent[NB_SCREENS],
                    bool use_temp_var, unsigned char* option_title);
@@ -40,5 +47,10 @@ void option_talk_value(const struct settings_list *setting, int value, bool enqu
 
 /* only use this for int and bool settings */
 int option_value_as_int(const struct settings_list *setting);
+
+int get_setting_info_for_bar(int setting_id, int *count, int *val);
+#ifdef HAVE_TOUCHSCREEN
+void update_setting_value_from_touch(int setting_id, int selection);
+#endif
 
 #endif /* _GUI_OPTION_SELECT_H_ */

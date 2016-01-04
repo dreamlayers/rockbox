@@ -248,7 +248,7 @@
     *: "PLAY = Yes"
     cowond2*: "MENU = Yes"
     iriverh100,iriverh120,iriverh300: "NAVI = Yes"
-    samsungyh*,ipod*,iaudiox5,iaudiom5,gigabeat*,sansae200*,sansac200*,iriverh10,iriverh10_5gb,mrobe100,sansaclip*,sansafuze*: "SELECT = Yes"
+    ipod*,iaudiox5,iaudiom5,gigabeat*,sansae200*,sansac200*,iriverh10,iriverh10_5gb,mrobe100,sansaclip*,sansafuze*,sansaconnect: "SELECT = Yes"
     archosplayer: "(PLAY/STOP)"
     vibe500: "OK = Yes"
   </source>
@@ -256,7 +256,7 @@
     *: "PLAY = Igen"
     cowond2*: "MENU = Igen"
     iriverh100,iriverh120,iriverh300: "NAVI = Igen"
-    samsungyh*,ipod*,iaudiox5,iaudiom5,gigabeat*,sansae200*,sansac200*,iriverh10,iriverh10_5gb,mrobe100,sansaclip*,sansafuze*: "SELECT = Igen"
+    ipod*,iaudiox5,iaudiom5,gigabeat*,sansae200*,sansac200*,iriverh10,iriverh10_5gb,mrobe100,sansaclip*,sansafuze*,sansaconnect: "SELECT = Igen"
     archosplayer: "(PLAY/STOP)"
     vibe500: "OK = Igen"
   </dest>
@@ -2214,7 +2214,7 @@
     *: "Building database... %d found (OFF to return)"
     iriverh100,iriverh120,iriverh300: "Building database... %d found (STOP to return)"
     ipod*: "Building database... %d found (PREV to return)"
-    iaudiox5,iaudiom5,gigabeat*,mrobe100: "Building database... %d found (LEFT to return)"
+    iaudiox5,iaudiom5,gigabeat*,mrobe100,samsungyh*: "Building database... %d found (LEFT to return)"
     iriverh10,iriverh10_5gb,sansae200*,sansac200*,sansafuze*,vibe500: "Building database... %d found (PREV to return)"
     gogearsa9200: "Building database... %d found (REW to return)"
   </source>
@@ -2222,7 +2222,7 @@
     *: "Készítem az adatbázist... %d-t találtam (OFF - vissza)"
     iriverh100,iriverh120,iriverh300: "Készítem az adatbázist... %d-t találtam (STOP - vissza)"
     ipod*: "Készítem az adatbázist... %d-t találtam (PREV - vissza)"
-    iaudiox5,iaudiom5,gigabeat*,mrobe100: "Készítem az adatbázist... %d-t találtam (BAL - vissza)"
+    iaudiox5,iaudiom5,gigabeat*,mrobe100,samsungyh*: "Készítem az adatbázist... %d-t találtam (BAL - vissza)"
     iriverh10,iriverh10_5gb,sansae200*,sansac200*,sansafuze*,vibe500: "Készítem az adatbázist... %d-t találtam (PREV - vissza)"
     gogearsa9200: "Készítem az adatbázist... %d-t találtam (REW - vissza)"
   </dest>
@@ -3926,8 +3926,8 @@
     rtc: "ON = Set"
     mrobe500: "HEART = Set"
     iriverh100,iriverh120,iriverh300: "NAVI = Set"
-    ipod*,iaudiox5,iaudiom5,iriverh10,iriverh10_5gb,sansae200*,sansac200*,gigabeat*,mrobe100,sansaclip*,sansafuze*: "SELECT = Set"
-    gogearsa9200: "PLAY = Set"
+    ipod*,iaudiox5,iaudiom5,iriverh10,iriverh10_5gb,sansae200*,sansac200*,gigabeat*,mrobe100,sansaclip*,sansafuze*,sansaconnect: "SELECT = Set"
+    gogearsa9200,samsungyh*: "PLAY = Set"
     vibe500: "OK = Set"
     mpiohd300: "ENTER = Set"
   </source>
@@ -3936,8 +3936,8 @@
     rtc: "ON = Beállít"
     mrobe500: "SZÍV = Beállít"
     iriverh100,iriverh120,iriverh300: "NAVI = Beállít"
-    ipod*,iaudiox5,iaudiom5,iriverh10,iriverh10_5gb,sansae200*,sansac200*,gigabeat*,mrobe100,sansaclip*,sansafuze*: "SELECT = Beállít"
-    gogearsa9200: "PLAY = Beállít"
+    ipod*,iaudiox5,iaudiom5,iriverh10,iriverh10_5gb,sansae200*,sansac200*,gigabeat*,mrobe100,sansaclip*,sansafuze*,sansaconnect: "SELECT = Beállít"
+    gogearsa9200,samsungyh*: "PLAY = Beállít"
     vibe500: "OK = Beállít"
     mpiohd300: "ENTER = Beállít"
   </dest>
@@ -3958,10 +3958,12 @@
     iaudiox5,iaudiom5: "RECORD = Revert"
     iriverh10,iriverh10_5gb,sansae200*,sansafuze*: "PREV = Revert"
     gigabeatfx: "POWER = Revert"
+    sansafuzeplus: "BACK = Revert"
     mrobe100: "DISPLAY = Revert"
     gigabeats: "BACK = Revert"
     gogearsa9200: "LEFT = Revert"
     vibe500: "CANCEL = Revert"
+    samsungyh*: "REW = Revert"
   </source>
   <dest>
     *: none
@@ -3972,10 +3974,12 @@
     iaudiox5,iaudiom5: "RECORD = mégsem"
     iriverh10,iriverh10_5gb,sansae200*,sansafuze*: "PREV = mégsem"
     gigabeatfx: "POWER = mégsem"
+    sansafuzeplus: "BACK = mégsem"
     mrobe100: "DISPLAY = mégsem"
     gigabeats: "VISSZA = mégsem"
     gogearsa9200: "BAL = mégsem"
     vibe500: "C = mégsem"
+    samsungyh*: "REW = mégsem"
   </dest>
   <voice>
     *: none
@@ -4505,6 +4509,7 @@
     gigabeats: "SELECT=Set POWER=Cancel"
     vibe500: "OK=Set C=Cancel"
     mpiohd300: "ENTER=Set MENU=Cancel"
+    sansafuzeplus: "SELECT=Set  BACK=Cancel"
   </source>
   <dest>
     *: none
@@ -4514,6 +4519,7 @@
     gigabeats: "SELECT=OK POWER=Mégsem"
     vibe500: "OK=OK C=Mégsem"
     mpiohd300: "ENTER=OK MENU=Mégsem"
+    sansafuzeplus: "SELECT=OK  BACK=Mégsem"
   </dest>
   <voice>
     *: none
@@ -5358,19 +5364,19 @@
 </phrase>
 <phrase>
   id: LANG_FM_SAVE_CHANGES
-  desc: When you try to exit radio to confirm save
+  desc: deprecated
   user: core
   <source>
     *: none
-    radio: "Save Changes?"
+    radio: ""
   </source>
   <dest>
     *: none
-    radio: "Mentsem a változtatásokat?"
+    radio: ""
   </dest>
   <voice>
     *: none
-    radio: "Save Changes?"
+    radio: ""
   </voice>
 </phrase>
 <phrase>
@@ -5612,20 +5618,20 @@
   </voice>
 </phrase>
 <phrase>
-  id: LANG_RECORDING_FREQUENCY
-  desc: in the recording settings
+  id: LANG_FREQUENCY
+  desc: in recording and playback settings
   user: core
   <source>
     *: none
-    recording: "Frequency"
+    recording,play_frequency: "Frequency"
   </source>
   <dest>
     *: none
-    recording: "Mintavétel"
+    recording,play_frequency: "Mintavétel"
   </dest>
   <voice>
     *: none
-    recording: "Frequency"
+    recording,play_frequency: "Frequency"
   </voice>
 </phrase>
 <phrase>
@@ -5850,20 +5856,6 @@
   <voice>
     *: none
     recording: "Split Filesize"
-  </voice>
-</phrase>
-<phrase>
-  id: LANG_REC_SIZE
-  desc: deprecated
-  user:
-  <source>
-    *: none
-  </source>
-  <dest>
-    *: none
-  </dest>
-  <voice>
-    *: none
   </voice>
 </phrase>
 <phrase>
@@ -6453,7 +6445,7 @@
   desc: in onplay menu
   user: core
   <source>
-    *: "Playlist Catalog"
+    *: "Playlist Catalogue"
   </source>
   <dest>
     *: "Lejátszólista katalógus"
@@ -6635,18 +6627,18 @@
   <source>
     *: none
     multivolume: "HD1"
-    sansae200*,sansac200*,sansafuze*: "mSD:"
+    sansae200*,sansac200*,sansafuze*,sansaclipplus: "mSD:"
     archosondio*: "MMC:"
   </source>
   <dest>
     *: none
     multivolume: "HD1"
-    sansae200*,sansac200*,sansafuze*: "mSD"
+    sansae200*,sansac200*,sansafuze*,sansaclipplus: "mSD"
     archosondio*: "MMC:"
   </dest>
   <voice>
     *: none
-    sansae200*,sansac200*,sansafuze*: "micro Secure Digital card:"
+    sansae200*,sansac200*,sansafuze*,sansaclipplus: "micro Secure Digital card:"
     archosondio*: "Multimedia card"
   </voice>
 </phrase>
@@ -6946,10 +6938,10 @@
 </phrase>
 <phrase>
   id: LANG_CATALOG_VIEW
-  desc: in onplay playlist catalog submenu
+  desc: in onplay playlist catalogue submenu
   user: core
   <source>
-    *: "View Catalog"
+    *: "View Catalogue"
   </source>
   <dest>
     *: "Katalógus megtekintése"
@@ -6960,7 +6952,7 @@
 </phrase>
 <phrase>
   id: LANG_CATALOG_ADD_TO
-  desc: in onplay playlist catalog submenu
+  desc: in onplay playlist catalogue submenu
   user: core
   <source>
     *: "Add to Playlist"
@@ -6974,7 +6966,7 @@
 </phrase>
 <phrase>
   id: LANG_CATALOG_ADD_TO_NEW
-  desc: in onplay playlist catalog submenu
+  desc: in onplay playlist catalogue submenu
   user: core
   <source>
     *: "Add to New Playlist"
@@ -6988,7 +6980,7 @@
 </phrase>
 <phrase>
   id: LANG_CATALOG_NO_DIRECTORY
-  desc: error message when playlist catalog directory doesn't exist
+  desc: error message when playlist catalogue directory doesn't exist
   user: core
   <source>
     *: "%s doesn't exist"
@@ -7002,7 +6994,7 @@
 </phrase>
 <phrase>
   id: LANG_CATALOG_NO_PLAYLISTS
-  desc: error message when no playlists for playlist catalog
+  desc: error message when no playlists for playlist catalogue
   user: core
   <source>
     *: "No Playlists"
@@ -7551,15 +7543,15 @@
 </phrase>
 <phrase>
   id: LANG_BACKDROP_LOADED
-  desc: text for splash to indicate a new backdrop has been loaded successfully
+  desc: deprecated
   user: core
   <source>
     *: none
-    lcd_non-mono: "Backdrop Loaded"
+    lcd_non-mono: ""
   </source>
   <dest>
     *: none
-    lcd_non-mono: "Háttér betöltve"
+    lcd_non-mono: ""
   </dest>
   <voice>
     *: none
@@ -7568,15 +7560,15 @@
 </phrase>
 <phrase>
   id: LANG_BACKDROP_FAILED
-  desc: text for splash to indicate a failure to load a bitmap as backdrop
+  desc: deprecated
   user: core
   <source>
     *: none
-    lcd_non-mono: "Backdrop Failed"
+    lcd_non-mono: ""
   </source>
   <dest>
     *: none
-    lcd_non-mono: "Háttér betöltése nem sikerült"
+    lcd_non-mono: ""
   </dest>
   <voice>
     *: none
@@ -7878,7 +7870,7 @@
     *: "Mód:"
   </dest>
   <voice>
-    *: ""
+    *: "Mód:"
   </voice>
 </phrase>
 <phrase>
@@ -7967,6 +7959,7 @@
     iriverh100,iriverh120,iriverh300: "The disk is full. Press STOP to continue."
     iaudiom5,iaudiox5: "The disk is full. Press POWER to continue."
     sansae200*,sansac200*,vibe500: "The disk is full. Press PREV to continue."
+    samsungyh*: "Disk full. Press LEFT to continue."
   </source>
   <dest>
     *: none
@@ -7974,6 +7967,7 @@
     iriverh100,iriverh120,iriverh300: "A merevlemez tele van. Folytatáshoz nyomj STOP-ot."
     iaudiom5,iaudiox5: "A merevlemez tele van. Folytatáshoz nyomd meg a POWER gombot."
     sansae200*,sansac200*,vibe500: "A merevlemez tele van. Folytatáshoz nyomd meg a PREV gombot."
+    samsungyh*: "A merevlemez tele van. Folytatáshoz nyomd meg a LEFT gombot."
   </dest>
   <voice>
     *: none
@@ -8071,6 +8065,7 @@
     iriverh10,iriverh10_5gb,sansae200*,sansac200*,vibe500: "PREV to abort"
     gigabeats: "BACK to abort"
     gigabeatfx: "POWER to abort"
+    sansafuzeplus: "BACK to abort"
   </source>
   <dest>
     *: "OFF - megszakít"
@@ -8080,6 +8075,7 @@
     iriverh10,iriverh10_5gb,sansae200*,sansac200*,vibe500: "PREV - megszakít"
     gigabeats: "VISSZA - megszakít"
     gigabeatfx: "POWER - megszakít"
+    sansafuzeplus: "BACK - megszakít"
   </dest>
   <voice>
     *: ""
@@ -10255,15 +10251,15 @@
   user: core
   <source>
     *: none
-    ipodvideo: "Bass Cutoff"
+    ipodvideo,ipod6g,mpiohd200,mpiohd300,gigabeatfx,mrobe100: "Bass Cutoff"
   </source>
   <dest>
     *: none
-    ipodvideo: "Alsó határfrekvencia"
+    ipodvideo,ipod6g,mpiohd200,mpiohd300,gigabeatfx,mrobe100: "Alsó határfrekvencia"
   </dest>
   <voice>
     *: none
-    ipodvideo: "Bass Cutoff"
+    ipodvideo,ipod6g,mpiohd200,mpiohd300,gigabeatfx,mrobe100: "Bass Cutoff"
   </voice>
 </phrase>
 <phrase>
@@ -10337,7 +10333,7 @@
   user: core
   <source>
     *: none
-    gigabeatfx: "Touchpad Sensitivity"
+    gigabeatfx,sansafuzeplus: "Touchpad Sensitivity"
   </source>
   <dest>
     *: none
@@ -10345,7 +10341,7 @@
   </dest>
   <voice>
     *: none
-    gigabeatfx: "Touchpad Sensitivity"
+    gigabeatfx,sansafuzeplus: "Touchpad Sensitivity"
   </voice>
 </phrase>
 <phrase>
@@ -10935,15 +10931,15 @@
   user: core
   <source>
     *: none
-    ipodvideo: "Treble Cutoff"
+    ipodvideo,ipod6g,mpiohd200,mpiohd300,gigabeatfx,mrobe100: "Treble Cutoff"
   </source>
   <dest>
     *: none
-    ipodvideo: "Magas határfrekvencia"
+    ipodvideo,ipod6g,mpiohd200,mpiohd300,gigabeatfx,mrobe100: "Magas határfrekvencia"
   </dest>
   <voice>
     *: none
-    ipodvideo: "Treble Cutoff"
+    ipodvideo,ipod6g,mpiohd200,mpiohd300,gigabeatfx,mrobe100: "Treble Cutoff"
   </voice>
 </phrase>
 <phrase>
@@ -11380,16 +11376,16 @@
 </phrase>
 <phrase>
   id: LANG_SKIN_RAM_USAGE
-  desc: how much RAM the skins are using
+  desc: deprecated
   user: core
   <source>
-    *: "Skin RAM usage:"
+    *: ""
   </source>
   <dest>
-    *: "Téma RAM használat:"
+    *: ""
   </dest>
   <voice>
-    *: "Téma RAM használat"
+    *: ""
   </voice>
 </phrase>
 <phrase>

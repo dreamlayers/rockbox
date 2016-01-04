@@ -1,4 +1,5 @@
 afrikaans.lang
+basque.lang
 bulgarian.lang
 catala.lang
 czech.lang
@@ -6,6 +7,7 @@ dansk.lang
 deutsch.lang
 eesti.lang
 english.lang
+english-us.lang
 espanol.lang
 esperanto.lang
 finnish.lang
@@ -13,8 +15,10 @@ francais.lang
 galego.lang
 greek.lang
 hebrew.lang
+hrvatski.lang
 islenska.lang
 italiano.lang
+latviesu.lang
 lietuviu.lang
 magyar.lang
 nederlands.lang

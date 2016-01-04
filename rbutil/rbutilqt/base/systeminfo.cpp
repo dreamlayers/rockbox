@@ -7,7 +7,6 @@
  *                     \/            \/     \/    \/            \/
  *
  *   Copyright (C) 2010 by Dominik Wenger
- *   $Id$
  *
  * All files in this archive are subject to the GNU General Public License.
  * See the file COPYING in the source tree root for full license agreement.
@@ -17,10 +16,11 @@
  *
  ****************************************************************************/
 
-#include "systeminfo.h" 
+#include "systeminfo.h"
 #include "rbsettings.h"
 
 #include <QSettings>
+#include "Logger.h"
 
 #if defined(Q_OS_LINUX)
 #include <unistd.h>
@@ -44,22 +44,23 @@ const static struct {
     { SystemInfo::DoomUrl,              "doom_url",             "" },
     { SystemInfo::ReleaseUrl,           "release_url",          "" },
     { SystemInfo::DailyUrl,             "daily_url",            "" },
-    { SystemInfo::ServerConfUrl,        "server_conf_url",      "" },
+    { SystemInfo::BuildInfoUrl,         "build_info_url",       "" },
     { SystemInfo::GenlangUrl,           "genlang_url",          "" },
     { SystemInfo::ThemesUrl,            "themes_url",           "" },
     { SystemInfo::ThemesInfoUrl,        "themes_info_url",      "" },
     { SystemInfo::RbutilUrl,            "rbutil_url",           "" },
-    { SystemInfo::BleedingInfo,         "bleeding_info",        "" },
     { SystemInfo::CurPlatformName,      ":platform:/name",      "" },
     { SystemInfo::CurManual,            ":platform:/manualname","rockbox-:platform:" },
     { SystemInfo::CurBootloaderMethod,  ":platform:/bootloadermethod", "none" },
     { SystemInfo::CurBootloaderName,    ":platform:/bootloadername", "" },
     { SystemInfo::CurBootloaderFile,    ":platform:/bootloaderfile", "" },
+    { SystemInfo::CurBootloaderFilter,  ":platform:/bootloaderfilter", "" },
     { SystemInfo::CurEncoder,           ":platform:/encoder",   "" },
     { SystemInfo::CurBrand,             ":platform:/brand",     "" },
     { SystemInfo::CurName,              ":platform:/name",      "" },
     { SystemInfo::CurBuildserverModel,  ":platform:/buildserver_modelname", "" },
     { SystemInfo::CurConfigureModel,    ":platform:/configure_modelname", "" },
+    { SystemInfo::CurPlayerPicture,     ":platform:/playerpic", "" },
 };
 
 //! pointer to setting object to NULL
@@ -89,7 +90,7 @@ QVariant SystemInfo::value(enum SystemInfos info)
     s.replace(":platform:", platform);
     QString d = SystemInfosList[i].def;
     d.replace(":platform:", platform);
-    qDebug() << "[SystemInfo] GET:" << s << systemInfos->value(s, d).toString();
+    LOG_INFO() << "GET:" << s << systemInfos->value(s, d).toString();
     return systemInfos->value(s, d);
 }
 
@@ -106,7 +107,7 @@ QVariant SystemInfo::platformValue(QString platform, enum SystemInfos info)
     s.replace(":platform:", platform);
     QString d = SystemInfosList[i].def;
     d.replace(":platform:", platform);
-    qDebug() << "[SystemInfo] GET P:" << s << systemInfos->value(s, d).toString();
+    LOG_INFO() << "GET P:" << s << systemInfos->value(s, d).toString();
     return systemInfos->value(s, d);
 }
 
@@ -143,27 +144,27 @@ QStringList SystemInfo::platforms(enum SystemInfo::PlatformType type, QString va
     return result;
 }
 
-QStringList SystemInfo::languages()
+QMap<QString, QStringList> SystemInfo::languages(void)
 {
     ensureSystemInfoExists();
 
-    QStringList result;
+    QMap<QString, QStringList> result;
     systemInfos->beginGroup("languages");
     QStringList a = systemInfos->childKeys();
     for(int i = 0; i < a.size(); i++)
     {
-        result.append(systemInfos->value(a.at(i), "null").toString());
+        result.insert(a.at(i), systemInfos->value(a.at(i), "null").toStringList());
     }
     systemInfos->endGroup();
     return result;
 }
 
 
-QMap<int, QString> SystemInfo::usbIdMap(enum MapType type)
+QMap<int, QStringList> SystemInfo::usbIdMap(enum MapType type)
 {
     ensureSystemInfoExists();
 
-    QMap<int, QString> map;
+    QMap<int, QStringList> map;
     // get a list of ID -> target name
     QStringList platforms;
     systemInfos->beginGroup("platforms");
@@ -191,9 +192,18 @@ QMap<int, QString> SystemInfo::usbIdMap(enum MapType type)
         systemInfos->beginGroup(target);
         QStringList ids = systemInfos->value(t).toStringList();
         int j = ids.size();
-        while(j--)
-            map.insert(ids.at(j).toInt(0, 16), target);
-
+        while(j--) {
+            QStringList l;
+            int id = ids.at(j).toInt(0, 16);
+            if(id == 0) {
+                continue;
+            }
+            if(map.keys().contains(id)) {
+                l = map.take(id);
+            }
+            l.append(target);
+            map.insert(id, l);
+        }
         systemInfos->endGroup();
     }
     return map;

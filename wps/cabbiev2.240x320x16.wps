@@ -1,7 +1,6 @@
-# cabbie 2.0
-# (C) 20077, Johannes Voggenthaler (Zinc Alloy)
-# (C) Keith Perri (kperri) ported to (Gigabeat)
-#derived from "cabbie" (C) Yohann Misquitta
+# Cabbie v2.0
+# (C) 2007-2012 The Authors (see /rockbox/wps/AUTHORS)
+# Derived from "cabbie" (C) Yohann Misquitta
 #
 # Disable Status Bar
 %wd
@@ -13,7 +12,7 @@
 %xl(A,lock-240x320x16.bmp,0,0,2)
 %xl(B,battery-240x320x16.bmp,0,0,10)
 %xl(C,volume-240x320x16.bmp,0,0,10)
-%xl(D,shuffle-240x320x16.bmp,139,0)
+%xl(D,shuffle-240x320x16.bmp,0,0)
 %xl(E,repeat-240x320x16.bmp,0,0,4)
 %xl(F,playmode-240x320x16.bmp,0,0,5)
 #

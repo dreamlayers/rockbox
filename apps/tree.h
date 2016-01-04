@@ -24,20 +24,36 @@
 #include <stdbool.h>
 #include <applimits.h>
 #include <file.h>
+#include "config.h"
 #include "icon.h"
 
+/* keep this struct compatible (total size and name member)
+ * with struct tagtree_entry (tagtree.h) */
 struct entry {
-    short attr; /* FAT attributes + file type flags */
-    unsigned long time_write; /* Last write time */
     char *name;
+    int attr; /* FAT attributes + file type flags */
+    unsigned time_write; /* Last write time */
 };
-
 
 #define BROWSE_SELECTONLY       0x0001  /* exit on selecting a file */
 #define BROWSE_NO_CONTEXT_MENU  0x0002  /* disable context menu */
+#define BROWSE_RUNFILE          0x0004  /* do ft_open() on the file instead of browsing */
 #define BROWSE_SELECTED         0x0100  /* this bit is set if user selected item */
 
+
 struct tree_context;
+
+struct tree_cache {
+    /* A big buffer with plenty of entry structs, contains all files and dirs
+     * in the current dir (with filters applied)
+     * Note that they're buflib-allocated and can therefore possibly move
+     * They need to be locked if used around yielding functions */
+    int     entries_handle;         /* handle to the entry cache */
+    int     name_buffer_handle;     /* handle to the name cache */
+    int     max_entries;            /* Max entries in the cache */
+    int     name_buffer_size;       /* in bytes */
+    volatile int lock_count;        /* non-0 if buffers may not move */
+};
 
 struct browse_context {
     int dirfilter;
@@ -80,20 +96,16 @@ struct tree_context {
     int currtable; /* db use */
     int currextra; /* db use */
 #endif
-    /* A big buffer with plenty of entry structs,
-     * contains all files and dirs in the current
-     * dir (with filters applied) */
-    void* dircache;
-    int dircache_size;
-    char* name_buffer;
-    int name_buffer_size;
-    int dentry_size;
+    struct tree_cache cache;
     bool dirfull;
     int sort_dir; /* directory sort order */
     struct browse_context *browse;
 };
 
-void tree_drawlists(void);
+/*
+ * Call one of the two below after yields since the entrys may move inbetween */
+struct entry* tree_get_entries(struct tree_context *t);
+struct entry* tree_get_entry_at(struct tree_context *t, int index);
 void tree_mem_init(void) INIT_ATTR;
 void tree_gui_init(void) INIT_ATTR;
 char* get_current_file(char* buffer, size_t buffer_len);
@@ -106,6 +118,14 @@ void browse_context_init(struct browse_context *browse,
 int rockbox_browse(struct browse_context *browse);
 bool create_playlist(void);
 void resume_directory(const char *dir);
+static inline void tree_lock_cache(struct tree_context *t)
+{
+    t->cache.lock_count++;
+}
+static inline void tree_unlock_cache(struct tree_context *t)
+{
+    t->cache.lock_count--;
+}
 #ifdef WIN32
 /* it takes an int on windows */
 #define getcwd_size_t int
@@ -119,8 +139,8 @@ struct tree_context* tree_get_context(void);
 void tree_flush(void);
 void tree_restore(void);
 
-bool bookmark_play(char* resume_file, int index, int offset, int seed,
-                   char *filename);
+bool bookmark_play(char* resume_file, int index, unsigned long elapsed,
+                   unsigned long offset, int seed, char *filename);
 
 extern struct gui_synclist tree_lists;
 #endif

@@ -34,15 +34,16 @@ const uint32_t gustable[]=
   523251, 554365, 587329, 622254, 659255, 698456, 739989, 783991, 830609, 880000, 932328, 987767,
   1046503, 1108731, 1174660, 1244509, 1318511, 1396914, 1479979, 1567983, 1661220, 1760002, 1864657, 1975536,
   2093007, 2217464, 2349321, 2489019, 2637024, 2793830, 2959960, 3135968, 3322443, 3520006, 3729316, 3951073,
-  4186073, 4434930, 4698645, 4978041, 5274051, 5587663, 5919922, 6271939, 6644889, 7040015, 7458636, 7902150
+  4186073, 4434930, 4698645, 4978041, 5274051, 5587663, 5919922, 6271939, 6644889, 7040015, 7458636, 7902150,
+  8372036, 8869863, 9397293, 9956085, 10548105, 11175328, 11839847, 12543881
 };
 
-unsigned int readWord(int file)
+static unsigned int readWord(int file)
 {
     return (readChar(file)<<0) | (readChar(file)<<8); // | (readChar(file)<<8) | (readChar(file)<<0);
 }
 
-unsigned int readDWord(int file)
+static unsigned int readDWord(int file)
 {
     return (readChar(file)<<0) | (readChar(file)<<8) | (readChar(file)<<16) | (readChar(file)<<24);
 }
@@ -50,7 +51,7 @@ unsigned int readDWord(int file)
 int curr_waveform;
 struct GWaveform waveforms[256] IBSS_ATTR;
 
-struct GWaveform * loadWaveform(int file)
+static struct GWaveform * loadWaveform(int file)
 {
     struct GWaveform * wav = &waveforms[curr_waveform++];
     rb->memset(wav, 0, sizeof(struct GWaveform));
@@ -122,7 +123,7 @@ struct GWaveform * loadWaveform(int file)
     /* Byte-swap if necessary. Gus files are little endian */
     for(a=0; a<wav->numSamples; a++)
     {
-        ((unsigned short *) wav->data)[a] = letoh16(((unsigned short *) wav->data)[a]);
+        ((uint16_t*) wav->data)[a] = letoh16(((uint16_t *) wav->data)[a]);
     }
 #endif
 
@@ -130,14 +131,14 @@ struct GWaveform * loadWaveform(int file)
     if(wav->mode & 2)
     {
         for(a=0; a<wav->numSamples; a++)
-            ((short *) wav->data)[a] = ((unsigned short *) wav->data)[a] - 32768;
+            ((int16_t *) wav->data)[a] = ((uint16_t *) wav->data)[a] - 32768;
 
     }
 
     return wav;
 }
 
-int selectWaveform(struct GPatch * pat, int midiNote)
+static int selectWaveform(struct GPatch * pat, int midiNote)
 {
     /* We divide by 100 here because everyone's freq formula is slightly different */
     unsigned int tabFreq = gustable[midiNote]/100; /* Comparison */

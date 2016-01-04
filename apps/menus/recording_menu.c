@@ -53,7 +53,6 @@
 #include "splash.h"
 #if CONFIG_CODEC == SWCODEC
 #include "metadata.h"
-#include "dsp.h"
 #include "menus/eq_menu.h"
 #ifdef HAVE_RECORDING
 #include "enc_config.h"
@@ -125,7 +124,7 @@ static int recfrequency_func(void)
         { "24kHz", TALK_ID(24, UNIT_KHZ) },
         { "16kHz", TALK_ID(16, UNIT_KHZ) }
     };
-    return set_option(str(LANG_RECORDING_FREQUENCY),
+    return set_option(str(LANG_FREQUENCY),
                       &global_settings.rec_frequency, INT,
                       names, 6, NULL );
 #endif /* CONFIG_CODEC == MAS3587F */
@@ -192,7 +191,7 @@ static int recfrequency_func(void)
                 table, n_opts, false);
     }
 
-    ret = set_option(str(LANG_RECORDING_FREQUENCY),
+    ret = set_option(str(LANG_FREQUENCY),
                      &rec_frequency, INT, opts, n_opts, NULL );
 
     if (!ret
@@ -210,7 +209,7 @@ static int recfrequency_func(void)
     return ret;
 #endif /* CONFIG_CODEC == SWCODEC */
 } /* recfrequency */
-MENUITEM_FUNCTION(recfrequency, 0, ID2P(LANG_RECORDING_FREQUENCY), 
+MENUITEM_FUNCTION(recfrequency, 0, ID2P(LANG_FREQUENCY),
                     recfrequency_func, NULL, NULL, Icon_Menu_setting);
 
 
@@ -392,26 +391,6 @@ MENUITEM_FUNCTION(agc_cliptime, 0, ID2P(LANG_RECORDING_AGC_CLIPTIME),
                     agc_cliptime_func, NULL, NULL, Icon_Menu_setting);
 #endif /* HAVE_AGC */
 
-#if defined(HAVE_RECORDING_HISTOGRAM)
-static bool history_interval(void)
-{
-    static const struct opt_items names[] = {
-        { "0s", TALK_ID(0, UNIT_SEC) },
-        { "1s", TALK_ID(1, UNIT_SEC) },
-        { "2s", TALK_ID(2, UNIT_SEC) },
-        { "4s", TALK_ID(4, UNIT_SEC) }
-    };
-    return set_option(str(LANG_RECORDING_HISTOGRAM_INTERVAL),
-                          &global_settings.rec_histogram_interval,
-                          INT, names, 4, NULL );
-}
-
-MENUITEM_FUNCTION(recording_histogram, 0,
-                  ID2P(LANG_RECORDING_HISTOGRAM_INTERVAL),
-                  history_interval, NULL, NULL, Icon_Menu_setting);
-
-#endif
-
 /** Rec trigger **/
 enum trigger_menu_option
 {
@@ -478,7 +457,7 @@ int rectrigger(void)
 {
     struct viewport vp[NB_SCREENS], triggervp[NB_SCREENS];
     struct gui_synclist lists;
-    int i, action = ACTION_REDRAW;
+    int action = ACTION_REDRAW;
     bool done = false, changed = true;
     const struct settings_list *settings[TRIG_OPTION_COUNT];
 
@@ -570,7 +549,7 @@ int rectrigger(void)
                                          pm_x, pm_y, pm_h, NB_SCREENS, triggervp);
         FOR_NB_SCREENS(i)
             screens[i].update();
-        i = gui_synclist_get_sel_pos(&lists);
+        int i = gui_synclist_get_sel_pos(&lists);
         switch (action)
         {
             case ACTION_STD_CANCEL:
@@ -665,9 +644,6 @@ MAKE_MENU(recording_settings_menu, ID2P(LANG_RECORDING_SETTINGS),
             &rectrigger_item,
 #ifdef HAVE_AGC
             &agc_preset, &agc_cliptime,
-#endif
-#if defined(HAVE_RECORDING_HISTOGRAM)
-            &recording_histogram,
 #endif
 #ifdef HAVE_LCD_BITMAP
             &peak_meter_menu,

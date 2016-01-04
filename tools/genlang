@@ -13,6 +13,7 @@
 # See apps/language.c (TODO: Use common include for both)
 # Cookie and binary version for the binary lang file
 my $LANGUAGE_COOKIE   = 0x1a;
+my $VOICE_COOKIE      = 0x9a;
 my $LANGUAGE_VERSION  = 0x06;
 my $LANGUAGE_FLAG_RTL = 0x01;
 
@@ -37,6 +38,10 @@ Usage: genlang [options] <langv2 file>
  -b=<outfile>
     Make the tool create a binary language (.lng) file named [outfile].
     The use of this option requires that you also use -e, -t and -i.
+
+ -c=<outfile>
+    Create binary voicestring file named [outfile]. Works like -b and can be
+    used the same time.
 
  -u
     Update language file. Given the translated file and the most recent english
@@ -89,18 +94,19 @@ my $prefix = $p;
 my $binary = $b;
 my $update = $u;
 my $sortfile = $s;
+my $binvoice = $c;
 
 my $english = $e;
 my $voiceout = $o;
 
-my $check = ($binary?1:0) + ($prefix?1:0) + ($update?1:0) + ($voiceout?1:0) + ($sortfile?1:0);
+my $check = ($binary?.5:0) + ($prefix?1:0) + ($update?1:0) + ($voiceout?1:0) + ($sortfile?1:0) + ($binvoice?.5:0);
 
 if($check > 1) {
-    print STDERR "Please use only one of -p, -u, -o, -b and -s\n";
+    print STDERR "Please use only one of -p, -u, -o, -b, -c and -s\n";
     exit;
 }
 if(!$check) {
-    print STDERR "Please use at least one of -p, -u, -o, -b and -s\n";
+    print STDERR "Please use at least one of -p, -u, -o, -c, -e and -s\n";
     exit;
 }
 
@@ -121,6 +127,29 @@ if(!$target && !$update && !$sortfile) {
     print STDERR "Please specify a target (with -t)!\n";
     exit;
 }
+
+# Build up a regex which can be applied to target wildcard lists. We only need
+# to support prefix matches, so a target parameter of foo:bar can be expanded
+# to the regex "\*|f\*|fo\*|foo|b\*|ba\*|bar" and applied to the wildcard list
+# (plus end-of-string or commas on either side). The regex engine should
+# discard any duplicates generated for us in the process of constructing the
+# state machine, so we don't bother to check.
+my $target_regex = "(?:^|,) *(?:\\*";
+foreach my $target_part (split ':', $target) {
+    for (my $c=1; $c<=length $target_part; $c++) {
+        my $partial = substr $target_part, 0, $c;
+        $target_regex .= "|$partial\\*";
+    }
+    $target_regex .= "|$target_part";
+}
+$target_regex .= ") *(?:,|\$)";
+$target_regex = qr/$target_regex/;
+
+my $binpath = "";
+if ($binary =~ m|(.*)/[^/]+|) {
+    $binpath = $1;
+}
+
 my $verbose=$v;
 
 my %id; # string to num hash
@@ -144,15 +173,6 @@ sub trim {
     $string =~ s/^\s+//;
     $string =~ s/\s+$//;
     return $string;
-}
-
-sub match {
-    my ($string, $pattern)=@_;
-
-    $pattern =~ s/\*/.*/g;
-    $pattern =~ s/\?/./g;
-
-    return ($string =~ /^$pattern\z/);
 }
 
 sub blank {
@@ -180,18 +200,10 @@ sub options {
 sub parsetarget {
     my ($debug, $strref, $full, $n, $v)=@_;
     my $string;
-    my @all= split(" *, *", $n);
-    my $test;
-    for $test (@all) {
-#        print "TEST ($debug) $target for $test\n";
-        for my $part (split(":", $target)) {
-            if(match($part, $test)) {
-                $string = $v;
-#                print "MATCH: $test => $v\n";
-                $$strref = $string;
-                return $string;
-            }
-        }
+    if ($n =~ $target_regex) {
+        $string = $v;
+        $$strref = $string;
+        return $string;
     }
 }
 
@@ -210,15 +222,44 @@ sub voice {
     parsetarget("voice", \$voice, @_);
 }
 
+sub file_is_newer {
+    my ($file1, $file2) = @_;
+
+    my @s1 = stat $file1;
+    my @s2 = stat $file2;
+
+    return 1 if ($s1[9] > $s2[9]);
+    return 0;
+}
+
 my %idmap;
 my %english;
 if($english) {
+    readenglish();
+}
+
+sub readenglish {
     # For the cases where the english file needs to be scanned/read, we do
     # it before we read the translated file. For -b it isn't necessary, but for
     # -u it is convenient.
 
     my @idnum = ((0));       # start with a true number
     my @vidnum = ((0x8000)); # first voice id
+
+
+    if ($binary and file_is_newer("$binpath/english.list", $english)) {
+        open(ENG, "<$binpath/english.list") ||
+            die "Error: can't open $binpath/english.list";
+        while (<ENG>) {
+            my ($user, $id, $value) = split ':', $_;
+            $idmap[$user]{$id} = $value;
+            $english{$id} = 1;
+        }
+        close ENG;
+
+        return;
+    }
+
     open(ENG, "<$english") || die "Error: can't open $english";
     my @phrase;
     my $id;
@@ -231,12 +272,12 @@ if($english) {
     while(<ENG>) {
 
         # get rid of DOS newlines
-        $_ =~ s/\r//g;
+        $_ =~ tr/\r//d;
 
         if($_ =~ /^ *\<phrase\>/) {
             # this is the start of a phrase
         }
-        elsif($_ =~ /^ *\<\/phrase\>/) {
+        elsif($_ =~ /\<\/phrase\>/) {
 
             # if id is something, when we count and store this phrase
             if($id) {
@@ -407,7 +448,7 @@ while(<LANG>) {
     $line++;
 
     # get rid of DOS newlines
-    $_ =~ s/\r//g;
+    $_ =~ tr/\r//d;
 
     if($_ =~ /^( *\#|[ \t\n\r]*\z)/) {
         # comment or empty line - output it if it's part of the header
@@ -638,7 +679,7 @@ MOO
     for $i (0 .. $idcount[$users{"core"}]-1) {
         my $name=$idnum[$users{"core"}][$i]; # get the ID name
         
-        $name =~ s/\"//g; # cut off the quotes
+        $name =~ tr/\"//d; # cut off the quotes
         
         printf HFILE_CORE ("    %s, /* %d */\n", $name, $i);
     }
@@ -656,7 +697,7 @@ MOO
     for $i (0x8001 .. ($voiceid[$users{"core"}]-1)) {
         my $name=$idnum[$users{"core"}][$i]; # get the ID name
         
-        $name =~ s/\"//g; # cut off the quotes
+        $name =~ tr/\"//d; # cut off the quotes
         
         printf HFILE_CORE ("    %s, /* 0x%x */\n", $name, $i);
     }
@@ -689,7 +730,7 @@ MOO
     close(HFILE_CORE);
     close(CFILE_CORE);
 } # end of the c/h file generation
-elsif($binary) {
+elsif($binary || $binvoice) {
     # Creation of a binary lang file was requested
 
     # We must first scan the english file to get the correct order of the id
@@ -697,10 +738,18 @@ elsif($binary) {
     # files. The english file is scanned before the translated file was
     # scanned.
 
-    open(OUTF, ">$binary") or die "Error: Can't create $binary";
-    binmode OUTF;
-    printf OUTF ("%c%c%c%c", $LANGUAGE_COOKIE, $LANGUAGE_VERSION, $target_id,
-      $langoptions); # magic lang file header
+    if($binary) {
+        open(OUTF, ">$binary") or die "Error: Can't create $binary";
+        binmode OUTF;
+        printf OUTF ("%c%c%c%c", $LANGUAGE_COOKIE, $LANGUAGE_VERSION, $target_id,
+            $langoptions); # magic lang file header
+    }
+    if($binvoice) {
+        open(OUTV, ">$binvoice") or die "Error: Can't create $binary";
+        binmode OUTV;
+        printf OUTV ("%c%c%c%c", $VOICE_COOKIE, $LANGUAGE_VERSION, $target_id,
+            $langoptions); # magic lang file header
+    }
 
     # output the number of strings for each user
     my $foffset = $HEADER_SIZE + $SUBHEADER_SIZE * keys(%users);
@@ -709,18 +758,28 @@ elsif($binary) {
         for $n (0 .. $idcount[$_]-1) {
             $size += length(trim($dest{$idnum[$_][$n]})) + 1;
         }
-        printf OUTF ("%c%c%c%c%c%c", ($idcount[$_] >> 8), ($idcount[$_] & 0xff),
-                     ($size >> 8), ($size & 0xff), ($foffset >> 8), ($foffset & 0xff));
+        if($binary) {
+            printf OUTF ("%c%c%c%c%c%c", ($idcount[$_] >> 8), ($idcount[$_] & 0xff),
+                ($size >> 8), ($size & 0xff), ($foffset >> 8), ($foffset & 0xff));
+        }
+        if($binvoice) {
+            printf OUTV ("%c%c%c%c%c%c", ($idcount[$_] >> 8), ($idcount[$_] & 0xff),
+                ($size >> 8), ($size & 0xff), ($foffset >> 8), ($foffset & 0xff));
+        }
         $foffset += $size;
     }
 
     for (keys %users) {
         # loop over the target phrases
-        for $n (0 .. $idcount[$_]-1) {
+        # This loops over the strings in the translated language file order
+        my @ids = ((0 .. ($idcount[$_]-1)));
+        push @ids, (0x8000 .. ($voiceid[$_]-1));
+        for $n (@ids) {
             my $name=$idnum[$_][$n]; # get the ID
             my $dest = $dest{$name}; # get the destination phrase
+            my $voice = $voice{$name}; # get the destination voice string
 
-            if($dest) {
+            if($dest && $n < 0x8000 && $binary) {
                 $dest =~ s/^\"(.*)\"\s*$/$1/g; # cut off quotes
 
                 # Now, make sure we get the number from the english sort order:
@@ -728,7 +787,19 @@ elsif($binary) {
 
                 printf OUTF ("%c%c%s\x00", ($idnum>>8), ($idnum&0xff), $dest);
             }
+            if($voice && $binvoice) {
+                $voice =~ s/^\"(.*)\"\s*$/$1/g; # cut off quotes
+                # Now, make sure we get the number from the english sort order:
+                $idnum = $idmap[$_]{$name};
+                printf OUTV ("%c%c%s\x00", ($idnum>>8), ($idnum&0xff), $voice);
+            }
         }
+    }
+    if($binary) {
+        close(OUTF);
+    }
+    if($binvoice) {
+        close(OUTV);
     }
 }
 elsif($voiceout) {
@@ -772,7 +843,12 @@ elsif($voiceout) {
         my $o = $engl[$i];
 
         if(($o < 0) || !length($o)) {
-            print "#$i\nid: NOT_USED_$i\nvoice: \"\"\n";
+            if($i < 0x8000) {
+                print "#$i\nid: NOT_USED_$i\nvoice: \"\"\n";
+            }
+            else {
+                print "#$i\nid: VOICE_NOT_USED_$i\nvoice: \"\"\n";
+            }
             next;
         }
 
@@ -800,3 +876,13 @@ if($verbose) {
     }
 }
 
+if ($binary and !file_is_newer("$binpath/english.list", $english)) {
+    open(ENGLIST, ">$binpath/english.list") ||
+        die "Failed creating $binpath/english.list";
+    for my $user (keys %users) {
+        for my $id (keys %{$idmap[$user]}) {
+            print ENGLIST "$user:$id:$idmap[$user]{$id}\n";
+        }
+    }
+    close ENGLIST;
+}

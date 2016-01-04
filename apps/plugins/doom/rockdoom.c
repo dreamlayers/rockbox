@@ -114,12 +114,11 @@ int printf(const char *fmt, ...)
 {
    static int p_xtpt;
    char p_buf[50];
-   bool ok;
    rb->yield();
    va_list ap;
 
    va_start(ap, fmt);
-   ok = vsnprintf(p_buf,sizeof(p_buf), fmt, ap);
+   vsnprintf(p_buf,sizeof(p_buf), fmt, ap);
    va_end(ap);
 
    rb->lcd_putsxy(1,p_xtpt, (unsigned char *)p_buf);
@@ -668,7 +667,7 @@ enum plugin_status plugin_start(const void* parameter)
    rb->cpu_boost(true);
 #endif
 
-   rb->lcd_setfont(0);
+   rb->lcd_setfont(FONT_SYSFIXED);
 
    // We're using doom's memory management since it implements a proper free (and re-uses the memory)
    // and now with prboom's code: realloc and calloc
@@ -713,7 +712,7 @@ enum plugin_status plugin_start(const void* parameter)
 
    Dhandle_ver( namemap[ result ] );
 
-   rb->lcd_setfont(0);
+   rb->lcd_setfont(FONT_SYSFIXED);
 
    rb->lcd_clear_display();
 
@@ -723,7 +722,7 @@ enum plugin_status plugin_start(const void* parameter)
    systemvol= rb->global_settings->volume-rb->global_settings->volume%mod;
    general_translucency = default_translucency;                    // phares
 
-   backlight_force_on();
+   backlight_ignore_timeout();
 #ifdef RB_PROFILE
    rb->profile_thread();
 #endif

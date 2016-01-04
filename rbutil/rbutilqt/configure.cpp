@@ -7,7 +7,6 @@
  *                     \/            \/     \/    \/            \/
  *
  *   Copyright (C) 2007 by Dominik Riebeling
- *   $Id$
  *
  * All files in this archive are subject to the GNU General Public License.
  * See the file COPYING in the source tree root for full license agreement.
@@ -17,14 +16,19 @@
  *
  ****************************************************************************/
 
-#include <QtGui>
+#include <QMessageBox>
+#include <QProgressDialog>
+#include <QFileDialog>
+#include <QUrl>
+#if !defined(Q_OS_LINUX)
+#include <QSound>
+#endif
 
 #include "version.h"
 #include "configure.h"
 #include "autodetection.h"
 #include "ui_configurefrm.h"
-#include "browsedirtree.h"
-#include "encoders.h"
+#include "encoderbase.h"
 #include "ttsbase.h"
 #include "system.h"
 #include "encttscfggui.h"
@@ -32,7 +36,7 @@
 #include "serverinfo.h"
 #include "systeminfo.h"
 #include "utils.h"
-#include <stdio.h>
+#include "comboboxviewdelegate.h"
 #if defined(Q_OS_WIN32)
 #if defined(UNICODE)
 #define _UNICODE
@@ -40,6 +44,10 @@
 #include <tchar.h>
 #include <windows.h>
 #endif
+#include "rbutilqt.h"
+
+#include "systrace.h"
+#include "Logger.h"
 
 #define DEFAULT_LANG "English (en)"
 #define DEFAULT_LANG_CODE "en"
@@ -66,6 +74,13 @@ Config::Config(QWidget *parent,int index) : QDialog(parent)
         ui.listLanguages->addItem(i.key());
         i++;
     }
+
+    ComboBoxViewDelegate *delegate = new ComboBoxViewDelegate(this);
+    ui.mountPoint->setItemDelegate(delegate);
+#if !defined(DBG)
+    ui.mountPoint->setEditable(false);
+#endif
+
     ui.listLanguages->setSelectionMode(QAbstractItemView::SingleSelection);
     ui.proxyPass->setEchoMode(QLineEdit::Password);
     ui.treeDevices->setAlternatingRowColors(true);
@@ -88,7 +103,7 @@ Config::Config(QWidget *parent,int index) : QDialog(parent)
     connect(ui.buttonCancel, SIGNAL(clicked()), this, SLOT(abort()));
     connect(ui.radioNoProxy, SIGNAL(toggled(bool)), this, SLOT(setNoProxy(bool)));
     connect(ui.radioSystemProxy, SIGNAL(toggled(bool)), this, SLOT(setSystemProxy(bool)));
-    connect(ui.browseMountPoint, SIGNAL(clicked()), this, SLOT(browseFolder()));
+    connect(ui.refreshMountPoint, SIGNAL(clicked()), this, SLOT(refreshMountpoint()));
     connect(ui.buttonAutodetect,SIGNAL(clicked()),this,SLOT(autodetect()));
     connect(ui.buttonCacheBrowse, SIGNAL(clicked()), this, SLOT(browseCache()));
     connect(ui.buttonCacheClear, SIGNAL(clicked()), this, SLOT(cacheClear()));
@@ -98,6 +113,12 @@ Config::Config(QWidget *parent,int index) : QDialog(parent)
     connect(ui.treeDevices, SIGNAL(itemSelectionChanged()), this, SLOT(updateEncState()));
     connect(ui.testTTS,SIGNAL(clicked()),this,SLOT(testTts()));
     connect(ui.showDisabled, SIGNAL(toggled(bool)), this, SLOT(showDisabled(bool)));
+    connect(ui.mountPoint, SIGNAL(editTextChanged(QString)), this, SLOT(updateMountpoint(QString)));
+    connect(ui.mountPoint, SIGNAL(currentIndexChanged(int)), this, SLOT(updateMountpoint(int)));
+    connect(ui.checkShowProxyPassword, SIGNAL(toggled(bool)), this, SLOT(showProxyPassword(bool)));
+    // delete this dialog after it finished automatically.
+    connect(this, SIGNAL(finished(int)), this, SLOT(deleteLater()));
+
     setUserSettings();
     setDevices();
 }
@@ -105,7 +126,7 @@ Config::Config(QWidget *parent,int index) : QDialog(parent)
 
 void Config::accept()
 {
-    qDebug() << "[Config] checking configuration";
+    LOG_INFO() << "checking configuration";
     QString errormsg = tr("The following errors occurred:") + "<ul>";
     bool error = false;
 
@@ -118,8 +139,23 @@ void Config::accept()
         proxy.setPort(ui.proxyPort->text().toInt());
     }
 
-    RbSettings::setValue(RbSettings::Proxy, proxy.toString());
-    qDebug() << "[Config] setting proxy to:" << proxy;
+    // Encode the password using base64 before storing it to the configuration
+    // file.
+    // There are two reasons for doing this:
+    // - QUrl::toEncoded() has problems with some characters like the colon and
+    //   @. Those are not percent encoded, causing the string getting parsed
+    //   wrongly when reading it back (see FS#12166).
+    // - The password is cleartext in the configuration file.
+    //   While using base64 doesn't provide any real security either it's at
+    //   least better than plaintext.
+    //   Since this program is open source any fixed mechanism to obfuscate /
+    //   encrypt the password isn't much help either since anyone interested in
+    //   the password can look at the sources. The best way would be to
+    //   eventually use host OS functionality to store the password.
+    QUrl p = proxy;
+    p.setPassword(proxy.password().toUtf8().toBase64());
+    RbSettings::setValue(RbSettings::Proxy, p.toString());
+    LOG_INFO() << "setting proxy to:" << proxy.toString(QUrl::RemovePassword);
     // proxy type
     QString proxyType;
     if(ui.radioNoProxy->isChecked()) proxyType = "none";
@@ -127,34 +163,33 @@ void Config::accept()
     else proxyType = "manual";
     RbSettings::setValue(RbSettings::ProxyType, proxyType);
 
-    // language
-    if(RbSettings::value(RbSettings::Language).toString() != language
-            && !language.isEmpty()) {
-        QMessageBox::information(this, tr("Language changed"),
-            tr("You need to restart the application for the changed language to take effect."));
-        RbSettings::setValue(RbSettings::Language, language);
+    RbSettings::setValue(RbSettings::Language, language);
+
+    // make sure mountpoint is read from dropdown box
+    if(mountpoint.isEmpty()) {
+        updateMountpoint(ui.mountPoint->currentIndex());
     }
 
     // mountpoint
-    QString mp = ui.mountPoint->text();
-    if(mp.isEmpty()) {
+    if(mountpoint.isEmpty()) {
         errormsg += "<li>" + tr("No mountpoint given") + "</li>";
         error = true;
     }
-    else if(!QFileInfo(mp).exists()) {
+    else if(!QFileInfo(mountpoint).exists()) {
         errormsg += "<li>" + tr("Mountpoint does not exist") + "</li>";
         error = true;
     }
-    else if(!QFileInfo(mp).isDir()) {
+    else if(!QFileInfo(mountpoint).isDir()) {
         errormsg += "<li>" + tr("Mountpoint is not a directory.") + "</li>";
         error = true;
     }
-    else if(!QFileInfo(mp).isWritable()) {
+    else if(!QFileInfo(mountpoint).isWritable()) {
         errormsg += "<li>" + tr("Mountpoint is not writeable") + "</li>";
         error = true;
     }
     else {
-        RbSettings::setValue(RbSettings::Mountpoint, QDir::fromNativeSeparators(mp));
+        RbSettings::setValue(RbSettings::Mountpoint,
+                QDir::fromNativeSeparators(mountpoint));
     }
 
     // platform
@@ -181,9 +216,9 @@ void Config::accept()
     else // default to system temp path
         RbSettings::setValue(RbSettings::CachePath, QDir::tempPath());
     RbSettings::setValue(RbSettings::CacheDisabled, ui.cacheDisable->isChecked());
-    RbSettings::setValue(RbSettings::CacheOffline, ui.cacheOfflineMode->isChecked());
 
     // tts settings
+    RbSettings::setValue(RbSettings::UseTtsCorrections, ui.ttsCorrections->isChecked());
     int i = ui.comboTts->currentIndex();
     RbSettings::setValue(RbSettings::Tts, ui.comboTts->itemData(i).toString());
 
@@ -206,7 +241,7 @@ void Config::accept()
 
 void Config::abort()
 {
-    qDebug() << "[Config] aborted.";
+    LOG_INFO() << "aborted.";
     this->close();
 }
 
@@ -214,7 +249,11 @@ void Config::abort()
 void Config::setUserSettings()
 {
     // set proxy
-    proxy = RbSettings::value(RbSettings::Proxy).toString();
+    proxy.setUrl(RbSettings::value(RbSettings::Proxy).toString(),
+            QUrl::StrictMode);
+    // password is base64 encoded in configuration.
+    QByteArray pw = QByteArray::fromBase64(proxy.password().toUtf8());
+    proxy.setPassword(pw);
 
     if(proxy.port() > 0)
         ui.proxyPort->setText(QString("%1").arg(proxy.port()));
@@ -256,15 +295,19 @@ void Config::setUserSettings()
     connect(ui.listLanguages, SIGNAL(itemSelectionChanged()), this, SLOT(updateLanguage()));
 
     // devices tab
-    ui.mountPoint->setText(QDir::toNativeSeparators(RbSettings::value(RbSettings::Mountpoint).toString()));
+    refreshMountpoint();
+    mountpoint = QDir::toNativeSeparators(RbSettings::value(RbSettings::Mountpoint).toString());
+    setMountpoint(mountpoint);
 
     // cache tab
     if(!QFileInfo(RbSettings::value(RbSettings::CachePath).toString()).isDir())
         RbSettings::setValue(RbSettings::CachePath, QDir::tempPath());
     ui.cachePath->setText(QDir::toNativeSeparators(RbSettings::value(RbSettings::CachePath).toString()));
     ui.cacheDisable->setChecked(RbSettings::value(RbSettings::CacheDisabled).toBool());
-    ui.cacheOfflineMode->setChecked(RbSettings::value(RbSettings::CacheOffline).toBool());
     updateCacheInfo(RbSettings::value(RbSettings::CachePath).toString());
+
+    // TTS tab
+    ui.ttsCorrections->setChecked(RbSettings::value(RbSettings::UseTtsCorrections).toBool());
 }
 
 
@@ -281,9 +324,18 @@ void Config::updateCacheInfo(QString path)
 }
 
 
+void Config::showProxyPassword(bool show)
+{
+    if(show)
+        ui.proxyPass->setEchoMode(QLineEdit::Normal);
+    else
+        ui.proxyPass->setEchoMode(QLineEdit::Password);
+}
+
+
 void Config::showDisabled(bool show)
 {
-    qDebug() << "[Config] disabled targets shown:" << show;
+    LOG_INFO() << "disabled targets shown:" << show;
     if(show)
         QMessageBox::warning(this, tr("Showing disabled targets"),
                 tr("You just enabled showing targets that are marked disabled. "
@@ -298,7 +350,7 @@ void Config::setDevices()
 {
 
     // setup devices table
-    qDebug() << "[Config] setting up devices list";
+    LOG_INFO() << "setting up devices list";
 
     QStringList platformList;
     if(ui.showDisabled->isChecked())
@@ -342,7 +394,7 @@ void Config::setDevices()
                                 SystemInfo::CurName).toString() +
                 " (" +ServerInfo::platformValue(platformList.at(it),
                             ServerInfo::CurStatus).toString() +")";
-            qDebug() << "[Config] add supported device:" << brands.at(c) << curname;
+            LOG_INFO() << "add supported device:" << brands.at(c) << curname;
             w2 = new QTreeWidgetItem(w, QStringList(curname));
             w2->setData(0, Qt::UserRole, platformList.at(it));
 
@@ -391,17 +443,26 @@ void Config::updateTtsState(int index)
     QString ttsName = ui.comboTts->itemData(index).toString();
     TTSBase* tts = TTSBase::getTTS(this,ttsName);
 
+    if(!tts)
+    {
+        QMessageBox::critical(this, tr("TTS error"),
+            tr("The selected TTS failed to initialize. You can't use this TTS."));
+        return;
+    }
+
     if(tts->configOk())
     {
         ui.configTTSstatus->setText(tr("Configuration OK"));
         ui.configTTSstatusimg->setPixmap(QPixmap(QString::fromUtf8(":/icons/go-next.png")));
+        ui.testTTS->setEnabled(true);
     }
     else
     {
         ui.configTTSstatus->setText(tr("Configuration INVALID"));
         ui.configTTSstatusimg->setPixmap(QPixmap(QString::fromUtf8(":/icons/dialog-error.png")));
+        ui.testTTS->setEnabled(false);
     }
-    
+
     delete tts; /* Config objects are never deleted (in fact, they are leaked..), so we can't rely on QObject,
                    since that would delete the TTSBase instance on application exit*/
 }
@@ -414,10 +475,10 @@ void Config::updateEncState()
     QString devname = ui.treeDevices->selectedItems().at(0)->data(0, Qt::UserRole).toString();
     QString encoder = SystemInfo::platformValue(devname,
                         SystemInfo::CurEncoder).toString();
-    ui.encoderName->setText(EncBase::getEncoderName(SystemInfo::platformValue(devname,
+    ui.encoderName->setText(EncoderBase::getEncoderName(SystemInfo::platformValue(devname,
                         SystemInfo::CurEncoder).toString()));
 
-    EncBase* enc = EncBase::getEncoder(this,encoder);
+    EncoderBase* enc = EncoderBase::getEncoder(this,encoder);
 
     if(enc->configOk())
     {
@@ -434,20 +495,19 @@ void Config::updateEncState()
 
 void Config::setNoProxy(bool checked)
 {
-    bool i = !checked;
-    ui.proxyPort->setEnabled(i);
-    ui.proxyHost->setEnabled(i);
-    ui.proxyUser->setEnabled(i);
-    ui.proxyPass->setEnabled(i);
+    ui.proxyPort->setEnabled(!checked);
+    ui.proxyHost->setEnabled(!checked);
+    ui.proxyUser->setEnabled(!checked);
+    ui.proxyPass->setEnabled(!checked);
+    ui.checkShowProxyPassword->setEnabled(!checked);
+    ui.checkShowProxyPassword->setChecked(false);
+    showProxyPassword(false);
 }
 
 
 void Config::setSystemProxy(bool checked)
 {
-    ui.proxyPort->setEnabled(!checked);
-    ui.proxyHost->setEnabled(!checked);
-    ui.proxyUser->setEnabled(!checked);
-    ui.proxyPass->setEnabled(!checked);
+    setNoProxy(checked);
     if(checked) {
         // save values in input box
         proxy.setScheme("http");
@@ -457,7 +517,7 @@ void Config::setSystemProxy(bool checked)
         proxy.setPort(ui.proxyPort->text().toInt());
         // show system values in input box
         QUrl envproxy = System::systemProxy();
-        qDebug() << "[Config] setting system proxy" << envproxy;
+        LOG_INFO() << "setting system proxy" << envproxy;
 
         ui.proxyHost->setText(envproxy.host());
         ui.proxyPort->setText(QString("%1").arg(envproxy.port()));
@@ -465,7 +525,7 @@ void Config::setSystemProxy(bool checked)
         ui.proxyPass->setText(envproxy.password());
 
         if(envproxy.host().isEmpty() || envproxy.port() == -1) {
-            qDebug() << "[Config] sytem proxy is invalid.";
+            LOG_WARNING() << "system proxy is invalid.";
             QMessageBox::warning(this, tr("Proxy Detection"),
                     tr("The System Proxy settings are invalid!\n"
                         "Rockbox Utility can't work with this proxy settings. "
@@ -512,7 +572,7 @@ QStringList Config::findLanguageFiles()
         langs.append(a);
     }
     langs.sort();
-    qDebug() << "[Config] available lang files:" << langs;
+    LOG_INFO() << "available lang files:" << langs;
 
     return langs;
 }
@@ -533,33 +593,45 @@ QString Config::languageName(const QString &qmFile)
 
 void Config::updateLanguage()
 {
-    qDebug() << "[Config] update selected language";
+    LOG_INFO() << "update selected language";
+
+    // remove all old translators
+    for(int i = 0; i < RbUtilQt::translators.size(); ++i) {
+        qApp->removeTranslator(RbUtilQt::translators.at(i));
+        // do not delete old translators, this confuses Qt.
+    }
+    RbUtilQt::translators.clear();
     QList<QListWidgetItem*> a = ui.listLanguages->selectedItems();
     if(a.size() > 0)
         language = lang.value(a.at(0)->text());
-    qDebug() << "[Config] new language:" << language;
-}
+    LOG_INFO() << "new language:" << language;
 
+    QString applang = QLocale::system().name();
+    QTranslator *translator = new QTranslator(qApp);
+    QTranslator *qttrans = new QTranslator(qApp);
+    QString absolutePath = QCoreApplication::instance()->applicationDirPath();
 
-void Config::browseFolder()
-{
-    browser = new BrowseDirtree(this,tr("Select your device"));
-#if defined(Q_OS_LINUX) || defined(Q_OS_MACX)
-    browser->setFilter(QDir::AllDirs | QDir::NoDotAndDotDot | QDir::NoSymLinks);
-#elif defined(Q_OS_WIN32)
-    browser->setFilter(QDir::Drives);
-#endif
-#if defined(Q_OS_MACX)
-    browser->setRoot("/Volumes");
-#elif defined(Q_OS_LINUX)
-    browser->setDir("/media");
-#endif
-    if( ui.mountPoint->text() != "" )
-    {
-        browser->setDir(ui.mountPoint->text());
-    }
-    browser->show();
-    connect(browser, SIGNAL(itemChanged(QString)), this, SLOT(setMountpoint(QString)));
+    if(!translator->load("rbutil_" + language, absolutePath))
+        translator->load("rbutil_" + language, ":/lang");
+    if(!qttrans->load("qt_" + language,
+                QLibraryInfo::location(QLibraryInfo::TranslationsPath)))
+        qttrans->load("qt_" + language, ":/lang");
+
+    qApp->installTranslator(translator);
+    qApp->installTranslator(qttrans);
+    //: This string is used to indicate the writing direction. Translate it
+    //: to "RTL" (without quotes) for RTL languages. Anything else will get
+    //: treated as LTR language.
+    if(QObject::tr("LTR") == "RTL")
+        qApp->setLayoutDirection(Qt::RightToLeft);
+    else
+        qApp->setLayoutDirection(Qt::LeftToRight);
+
+    RbUtilQt::translators.append(translator);
+    RbUtilQt::translators.append(qttrans);
+
+    QLocale::setDefault(language);
+
 }
 
 
@@ -578,9 +650,73 @@ void Config::browseCache()
 }
 
 
+void Config::refreshMountpoint()
+{
+    // avoid QComboBox to send signals during rebuild to avoid changing to an
+    // unwanted item.
+    ui.mountPoint->blockSignals(true);
+    ui.mountPoint->clear();
+    QStringList mps = Utils::mountpoints(Utils::MountpointsSupported);
+    for(int i = 0; i < mps.size(); ++i) {
+        // add mountpoint as user data so we can change the displayed string
+        // later (to include volume label or similar)
+        // Skip unwritable mountpoints, they are not useable for us.
+        if(QFileInfo(mps.at(i)).isWritable()) {
+            QString description = tr("%1 (%2 GiB of %3 GiB free)")
+                .arg(Utils::filesystemName(mps.at(i)))
+                .arg((double)Utils::filesystemFree(mps.at(i))/(1<<30), 0, 'f', 2)
+                .arg((double)Utils::filesystemTotal(mps.at(i))/(1<<30), 0, 'f', 2);
+            ui.mountPoint->addItem(QDir::toNativeSeparators(mps.at(i)), description);
+        }
+        else {
+            LOG_WARNING() << "mountpoint not writable, skipping:" << mps.at(i);
+        }
+    }
+    if(!mountpoint.isEmpty()) {
+        setMountpoint(mountpoint);
+    }
+    ui.mountPoint->blockSignals(false);
+}
+
+
+void Config::updateMountpoint(QString m)
+{
+    if(!m.isEmpty()) {
+        mountpoint = QDir::fromNativeSeparators(m);
+        LOG_INFO() << "Mountpoint set to" << mountpoint;
+    }
+}
+
+
+void Config::updateMountpoint(int idx)
+{
+    if(idx == -1) {
+        return;
+    }
+    QString mp = ui.mountPoint->itemText(idx);
+    if(!mp.isEmpty()) {
+        mountpoint = QDir::fromNativeSeparators(mp);
+        LOG_INFO() << "Mountpoint set to" << mountpoint;
+    }
+}
+
+
 void Config::setMountpoint(QString m)
 {
-    ui.mountPoint->setText(m);
+    if(m.isEmpty()) {
+        return;
+    }
+    int index = ui.mountPoint->findText(QDir::toNativeSeparators(m));
+    if(index != -1) {
+        ui.mountPoint->setCurrentIndex(index);
+    }
+    else {
+        // keep a mountpoint that is not in the list for convenience (to allow
+        // easier development)
+        ui.mountPoint->addItem(QDir::toNativeSeparators(m));
+        ui.mountPoint->setCurrentIndex(ui.mountPoint->findText(m));
+    }
+    LOG_INFO() << "Mountpoint set to" << mountpoint;
 }
 
 
@@ -593,90 +729,136 @@ void Config::autodetect()
     this->setCursor(Qt::WaitCursor);
     QCoreApplication::processEvents();
 
-    if(detector.detect())  //let it detect
-    {
-        QString devicename = detector.getDevice();
-        // deexpand all items
-        for(int a = 0; a < ui.treeDevices->topLevelItemCount(); a++)
-            ui.treeDevices->topLevelItem(a)->setExpanded(false);
-        //deselect the selected item(s)
-        for(int a = 0; a < ui.treeDevices->selectedItems().size(); a++)
-            ui.treeDevices->selectedItems().at(a)->setSelected(false);
-
-        // find the new item
-        // enumerate all platform items
-        QList<QTreeWidgetItem*> itmList
-            = ui.treeDevices->findItems("*",Qt::MatchWildcard);
-        for(int i=0; i< itmList.size();i++)
-        {
-            //enumerate device items
-            for(int j=0;j < itmList.at(i)->childCount();j++)
-            {
-                QString data = itmList.at(i)->child(j)->data(0, Qt::UserRole).toString();
-
-                if(devicename == data) // item found
-                {
-                    itmList.at(i)->child(j)->setSelected(true); //select the item
-                    itmList.at(i)->setExpanded(true); //expand the platform item
-                    //ui.treeDevices->indexOfTopLevelItem(itmList.at(i)->child(j));
-                    ui.treeDevices->scrollToItem(itmList.at(i)->child(j));
-                    break;
-                }
+    detector.detect();
+    QList<struct Autodetection::Detected> detected;
+    detected = detector.detected();
+    this->unsetCursor();
+    if(detected.size() > 1) {
+        // FIXME: handle multiple found players.
+        QString msg;
+        msg = tr("Multiple devices have been detected. Please disconnect "
+                 "all players but one and try again.");
+        msg += "<br/>";
+        msg += tr("Detected devices:");
+        msg += "<ul>";
+        for(int i = 0; i < detected.size(); ++i) {
+            QString mp = detected.at(i).mountpoint;
+            if(mp.isEmpty()) {
+                mp = tr("(unknown)");
             }
+            msg += QString("<li>%1</li>").arg(tr("%1 at %2").arg(
+                        SystemInfo::platformValue(detected.at(i).device,
+                            SystemInfo::CurPlatformName).toString(),
+                        QDir::toNativeSeparators(mp)));
         }
-        this->unsetCursor();
-
-        if(!detector.errdev().isEmpty()) {
-            QString text;
-            if(detector.errdev() == "sansae200")
-                text = tr("Sansa e200 in MTP mode found!\n"
-                        "You need to change your player to MSC mode for installation. ");
-            if(detector.errdev() == "h10")
-                text = tr("H10 20GB in MTP mode found!\n"
-                        "You need to change your player to UMS mode for installation. ");
-            if(SystemInfo::platformValue(detector.errdev(),
-                                         SystemInfo::CurBootloaderMethod) == "ipod")
-                text = tr("%1 \"MacPod\" found!\n"
-                        "Rockbox needs a FAT formatted Ipod (so-called \"WinPod\") "
-                        "to run. ").arg(SystemInfo::platformValue(
-                                detector.errdev(), SystemInfo::CurName).toString());
-            text += tr("Unless you changed this installation will fail!");
-
-            QMessageBox::critical(this, tr("Fatal error"), text, QMessageBox::Ok);
-            return;
-        }
-        if(!detector.incompatdev().isEmpty()) {
-            QString text;
-            text = tr("Detected an unsupported player:\n%1\n"
-                      "Sorry, Rockbox doesn't run on your player.")
-                      .arg(SystemInfo::platformValue(detector.incompatdev(),
-                                  SystemInfo::CurName).toString());
-
-            QMessageBox::critical(this, tr("Fatal: player incompatible"),
-                                  text, QMessageBox::Ok);
-                return;
-            }
-
-        if(detector.getMountPoint() != "" )
-        {
-            ui.mountPoint->setText(QDir::toNativeSeparators(detector.getMountPoint()));
-        }
-        else
-        {
-            QMessageBox::warning(this, tr("Autodetection"),
-                    tr("Could not detect a Mountpoint.\n"
-                    "Select your Mountpoint manually."),
-                    QMessageBox::Ok ,QMessageBox::Ok);
-        }
+        msg += "</ul>";
+        msg += tr("Note: detecting connected devices might be ambiguous. "
+                  "You might have less devices connected than listed. "
+                  "In this case it might not be possible to detect your "
+                  "player unambiguously.");
+        QMessageBox::information(this, tr("Device Detection"), msg);
+        ui.treeDevices->setEnabled(true);
     }
-    else
-    {
-        this->unsetCursor();
-        QMessageBox::warning(this, tr("Autodetection"),
+    else if(detected.size() == 0) {
+        QMessageBox::warning(this, tr("Device Detection"),
                 tr("Could not detect a device.\n"
                    "Select your device and Mountpoint manually."),
                    QMessageBox::Ok ,QMessageBox::Ok);
+        ui.treeDevices->setEnabled(true);
+    }
+    else if(detected.at(0).status != Autodetection::PlayerOk
+            && detected.at(0).status != Autodetection::PlayerAmbiguous) {
+        QString msg;
+        switch(detected.at(0).status) {
+            case Autodetection::PlayerIncompatible:
+                msg += tr("Detected an unsupported player:\n%1\n"
+                          "Sorry, Rockbox doesn't run on your player.")
+                          .arg(SystemInfo::platformValue(detected.at(0).device,
+                               SystemInfo::CurName).toString());
+                break;
+            case Autodetection::PlayerMtpMode:
+                msg = tr("%1 in MTP mode found!\n"
+                         "You need to change your player to MSC mode for installation. ")
+                         .arg(SystemInfo::platformValue(detected.at(0).device,
+                                    SystemInfo::CurName).toString());
+                break;
+            case Autodetection::PlayerWrongFilesystem:
+                if(SystemInfo::platformValue(detected.at(0).device,
+                            SystemInfo::CurBootloaderMethod) == "ipod") {
+                    msg = tr("%1 \"MacPod\" found!\n"
+                            "Rockbox needs a FAT formatted Ipod (so-called \"WinPod\") "
+                            "to run. ").arg(SystemInfo::platformValue(
+                                    detected.at(0).device, SystemInfo::CurName).toString());
+                }
+                else {
+                    msg = tr("The player contains an incompatible filesystem.\n"
+                            "Make sure you selected the correct mountpoint and "
+                            "the player is set up to use a filesystem compatible "
+                            "with Rockbox.");
+                }
+                break;
+            case Autodetection::PlayerError:
+            default:
+                msg += tr("An unknown error occured during player detection.");
+                break;
+        }
+        QMessageBox::information(this, tr("Device Detection"), msg);
+        ui.treeDevices->setEnabled(true);
+    }
+    else {
+        selectDevice(detected.at(0).device, detected.at(0).mountpoint);
+    }
 
+}
+
+void Config::selectDevice(QString device, QString mountpoint)
+{
+    // collapse all items
+    for(int a = 0; a < ui.treeDevices->topLevelItemCount(); a++)
+        ui.treeDevices->topLevelItem(a)->setExpanded(false);
+    // deselect the selected item(s)
+    for(int a = 0; a < ui.treeDevices->selectedItems().size(); a++)
+        ui.treeDevices->selectedItems().at(a)->setSelected(false);
+
+    // find the new item
+    // enumerate all platform items
+    QList<QTreeWidgetItem*> itmList
+        = ui.treeDevices->findItems("*",Qt::MatchWildcard);
+    for(int i=0; i< itmList.size();i++)
+    {
+        //enumerate device items
+        for(int j=0;j < itmList.at(i)->childCount();j++)
+        {
+            QString data = itmList.at(i)->child(j)->data(0, Qt::UserRole).toString();
+            // unset bold flag
+            QFont f = itmList.at(i)->child(j)->font(0);
+            f.setBold(false);
+            itmList.at(i)->child(j)->setFont(0, f);
+
+            if(device == data) // item found
+            {
+                f.setBold(true);
+                itmList.at(i)->child(j)->setFont(0, f);
+                itmList.at(i)->child(j)->setSelected(true); //select the item
+                itmList.at(i)->setExpanded(true); //expand the platform item
+                //ui.treeDevices->indexOfTopLevelItem(itmList.at(i)->child(j));
+                ui.treeDevices->scrollToItem(itmList.at(i)->child(j));
+                break;
+            }
+        }
+    }
+    this->unsetCursor();
+
+    if(!mountpoint.isEmpty())
+    {
+        setMountpoint(mountpoint);
+    }
+    else
+    {
+        QMessageBox::warning(this, tr("Autodetection"),
+                tr("Could not detect a Mountpoint.\n"
+                    "Select your Mountpoint manually."),
+                QMessageBox::Ok, QMessageBox::Ok);
     }
     ui.treeDevices->setEnabled(true);
 }
@@ -713,61 +895,77 @@ void Config::configTts()
 {
     int index = ui.comboTts->currentIndex();
     TTSBase* tts = TTSBase::getTTS(this,ui.comboTts->itemData(index).toString());
-
     EncTtsCfgGui gui(this,tts,TTSBase::getTTSName(ui.comboTts->itemData(index).toString()));
     gui.exec();
     updateTtsState(ui.comboTts->currentIndex());
-    delete tts; /* Config objects are never deleted (in fact, they are leaked..), so we can't rely on QObject,
-                   since that would delete the TTSBase instance on application exit*/
+    delete tts; /* Config objects are never deleted (in fact, they are
+                   leaked..), so we can't rely on QObject, since that would
+                   delete the TTSBase instance on application exit */
 }
 
 void Config::testTts()
 {
     QString errstr;
     int index = ui.comboTts->currentIndex();
-    TTSBase* tts = TTSBase::getTTS(this,ui.comboTts->itemData(index).toString());
+    TTSBase* tts;
+    tts = TTSBase::getTTS(this,ui.comboTts->itemData(index).toString());
+    if(!tts)
+    {
+        QMessageBox::critical(this, tr("TTS error"),
+            tr("The selected TTS failed to initialize. You can't use this TTS."));
+        return;
+    }
+    ui.testTTS->setEnabled(false);
     if(!tts->configOk())
     {
         QMessageBox::warning(this,tr("TTS configuration invalid"),
                 tr("TTS configuration invalid. \n Please configure TTS engine."));
         return;
     }
-    
     if(!tts->start(&errstr))
     {
         QMessageBox::warning(this,tr("Could not start TTS engine."),
                 tr("Could not start TTS engine.\n") + errstr
                 + tr("\nPlease configure TTS engine."));
+        ui.testTTS->setEnabled(true);
         return;
     }
-    
+
+    QString filename;
     QTemporaryFile file(this);
-    file.open();
-    QString filename = file.fileName();
-    file.close();
-    
+    // keep filename empty if the TTS can do speaking for itself.
+    if(!(tts->capabilities() & TTSBase::CanSpeak)) {
+        file.open();
+        filename = file.fileName();
+        file.close();
+    }
+
     if(tts->voice(tr("Rockbox Utility Voice Test"),filename,&errstr) == FatalError)
     {
         tts->stop();
         QMessageBox::warning(this,tr("Could not voice test string."),
                 tr("Could not voice test string.\n") + errstr
                 + tr("\nPlease configure TTS engine."));
+        ui.testTTS->setEnabled(false);
         return;
     }
     tts->stop();
+    if(!filename.isEmpty()) {
 #if defined(Q_OS_LINUX)
-    QString exe = Utils::findExecutable("aplay");
-    if(exe == "") exe = Utils::findExecutable("play");
-    if(exe != "")
-    {
-        QProcess::execute(exe+" "+filename);
-    }
+        QString exe = Utils::findExecutable("aplay");
+        if(exe == "") exe = Utils::findExecutable("play");
+        if(exe != "")
+        {
+            QProcess::execute(exe+" "+filename);
+        }
 #else
-    QSound::play(filename);
+        QSound::play(filename);
 #endif
-    
-    delete tts; /* Config objects are never deleted (in fact, they are leaked..), so we can't rely on QObject,
-                   since that would delete the TTSBase instance on application exit*/
+    }
+    ui.testTTS->setEnabled(true);
+    delete tts; /* Config objects are never deleted (in fact, they are
+                   leaked..), so we can't rely on QObject, since that would
+                   delete the TTSBase instance on application exit */
 }
 
 void Config::configEnc()
@@ -778,15 +976,26 @@ void Config::configEnc()
     QString devname = ui.treeDevices->selectedItems().at(0)->data(0, Qt::UserRole).toString();
     QString encoder = SystemInfo::platformValue(devname,
                     SystemInfo::CurEncoder).toString();
-    ui.encoderName->setText(EncBase::getEncoderName(SystemInfo::platformValue(devname,
+    ui.encoderName->setText(EncoderBase::getEncoderName(SystemInfo::platformValue(devname,
                     SystemInfo::CurEncoder).toString()));
 
 
-    EncBase* enc = EncBase::getEncoder(this,encoder);
+    EncoderBase* enc = EncoderBase::getEncoder(this,encoder);
 
-    EncTtsCfgGui gui(this,enc,EncBase::getEncoderName(encoder));
+    EncTtsCfgGui gui(this,enc,EncoderBase::getEncoderName(encoder));
     gui.exec();
 
     updateEncState();
+}
+
+
+void Config::changeEvent(QEvent *e)
+{
+    if(e->type() == QEvent::LanguageChange) {
+        ui.retranslateUi(this);
+        updateCacheInfo(ui.cachePath->text());
+    } else {
+        QWidget::changeEvent(e);
+    }
 }
 

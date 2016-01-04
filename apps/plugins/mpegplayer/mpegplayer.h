@@ -23,8 +23,6 @@
 #ifndef MPEGPLAYER_H
 #define MPEGPLAYER_H
 
-#include "mpeg2.h"
-
 #ifdef HAVE_SCHEDULER_BOOSTCTRL
 #define trigger_cpu_boost rb->trigger_cpu_boost
 #define cancel_cpu_boost  rb->cancel_cpu_boost
@@ -46,7 +44,7 @@
 #define AUDIOBUF_ALLOC_SIZE (AUDIOBUF_SIZE+AUDIOBUF_GUARD_SIZE)
 
 /** PCM buffer **/
-#define CLOCK_RATE NATIVE_FREQUENCY /* Our clock rate in ticks/second (samplerate) */
+#define CLOCK_RATE 44100 /* Our clock rate in ticks/second (samplerate) */
 
 /* Define this as "1" to have a test tone instead of silence clip */
 #define SILENCE_TEST_TONE 0
@@ -74,7 +72,7 @@
 
 #include "lib/mylcd.h"
 
-#include "mpeg2.h"
+#include "libmpeg2/mpeg2.h"
 #include "video_out.h"
 #include "mpeg_stream.h"
 #include "mpeg_misc.h"

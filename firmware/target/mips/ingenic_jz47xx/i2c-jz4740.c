@@ -24,6 +24,7 @@
 #include "system.h"
 #include "jz4740.h"
 #include "logf.h"
+#include "i2c.h"
 
 /*
  * Jz4740 I2C routines.
@@ -186,7 +187,7 @@ L_timeout:
     return -1;
 }
 
-int i2c_write(int device, unsigned char *buf, int count)
+int i2c_write(int device, const unsigned char *buf, int count)
 {
     int cnt = count;
     int timeout = 5;

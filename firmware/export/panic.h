@@ -22,8 +22,9 @@
 #ifndef __PANIC_H__
 #define __PANIC_H__
 
+#include "config.h"
 #include "gcc_extensions.h"
 
-void panicf( const char *fmt, ... ) ATTRIBUTE_PRINTF(1, 2);
+void panicf( const char *fmt, ... ) ATTRIBUTE_PRINTF(1, 2) NORETURN_ATTR;
 
 #endif /* __PANIC_H__ */

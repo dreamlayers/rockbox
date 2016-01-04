@@ -88,12 +88,16 @@ masd
 morse_input
 #endif
 
-#if defined(HAVE_PITCHSCREEN)
+#if defined(HAVE_PITCHCONTROL)
 pitchscreen
 #endif
 
 #if defined(HAVE_MULTIVOLUME)
 multivolume
+#endif
+
+#if defined(HAVE_MULTIDRIVE) && defined(USB_ENABLE_STORAGE)
+multidrive_usb
 #endif
 
 #if defined(HAVE_QUICKSCREEN)
@@ -129,8 +133,8 @@ recording_mic
 #endif
 #endif
 
-#if defined(HAVE_RECORDING_HISTOGRAM)
-recording_histogram
+#if defined(HAVE_HISTOGRAM)
+histogram
 #endif
 
 #if defined(HAVE_REMOTE_LCD)
@@ -195,7 +199,13 @@ lineout_poweroff
 touchscreen
 #endif
 
+#if defined(HAVE_TOUCHPAD_DEADZONE)
+touchpad_deadzone
+#endif
 
+#if defined(HAVE_IMX233_CODEC) || defined(HAVE_WM8750) || defined(HAVE_WM8978)
+depth_3d
+#endif
 
 
 /* These features are only used by the manual so they won't break binary
@@ -248,7 +258,7 @@ scrollwheel
 usb_power
 #endif
 
-#if defined(HAVE_USBSTACK) && defined(USE_ROCKBOX_USB)
+#if defined(HAVE_USBSTACK)
 usbstack
 #endif
 
@@ -265,4 +275,12 @@ recording_digital
 
 #if MEMORYSIZE <= 2
 lowmem
+#endif
+
+#if defined(HAVE_HARDWARE_CLICK)
+hardware_click
+#endif
+
+#if defined(HAVE_PLAY_FREQ)
+play_frequency
 #endif

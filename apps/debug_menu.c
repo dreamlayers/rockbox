@@ -25,6 +25,7 @@
 #include <stdbool.h>
 #include <string.h>
 #include "lcd.h"
+#include "lang.h"
 #include "menu.h"
 #include "debug_menu.h"
 #include "kernel.h"
@@ -45,18 +46,20 @@
 #include "screens.h"
 #include "misc.h"
 #include "splash.h"
+#include "shortcuts.h"
 #include "dircache.h"
 #include "viewport.h"
 #ifdef HAVE_TAGCACHE
 #include "tagcache.h"
 #endif
+#ifdef HAVE_REMOTE_LCD
 #include "lcd-remote.h"
+#endif
 #include "crc32.h"
 #include "logf.h"
 #if (CONFIG_PLATFORM & PLATFORM_NATIVE)
 #include "disk.h"
 #include "adc.h"
-#include "power.h"
 #include "usb.h"
 #include "rtc.h"
 #include "storage.h"
@@ -72,13 +75,21 @@
 #include "tuner.h"
 #include "radio.h"
 #endif
+#endif /* CONFIG_PLATFORM & PLATFORM_NATIVE */
+#include "power.h"
+
+#if (defined(SAMSUNG_YPR0) || defined(SAMSUNG_YPR1)) && defined(CONFIG_TUNER)
+#include "tuner.h"
+#include "radio.h"
 #endif
 
 #ifdef HAVE_LCD_BITMAP
 #include "scrollbar.h"
 #include "peakmeter.h"
+#include "skin_engine/skin_engine.h"
 #endif
 #include "logfdisp.h"
+#include "core_alloc.h"
 #if CONFIG_CODEC == SWCODEC
 #include "pcmbuf.h"
 #include "buffering.h"
@@ -99,15 +110,9 @@
 #include "pcf50605.h"
 #endif
 #include "appevents.h"
-#if (CONFIG_PLATFORM & PLATFORM_NATIVE)
-#include "debug-target.h"
-#endif
 
-#if defined(SANSA_E200) || defined(SANSA_C200) || defined(PHILIPS_SA9200) \
-      || (CONFIG_CPU == AS3525 && defined(CONFIG_CHARGING)) \
-      || CONFIG_CPU == AS3525v2
+#if defined(HAVE_AS3514) && defined(CONFIG_CHARGING)
 #include "ascodec.h"
-#include "as3514.h"
 #endif
 
 #ifdef IPOD_NANO2G
@@ -122,69 +127,46 @@
 #include "iap.h"
 #endif
 
-/*---------------------------------------------------*/
-/*    SPECIAL DEBUG STUFF                            */
-/*---------------------------------------------------*/
-extern struct thread_entry threads[MAXTHREADS];
+#ifdef HAVE_RDS_CAP
+#include "rds.h"
+#endif
 
-static char thread_status_char(unsigned status)
-{
-    static const char thread_status_chars[THREAD_NUM_STATES+1] =
-    {
-        [0 ... THREAD_NUM_STATES] = '?',
-        [STATE_RUNNING]           = 'R',
-        [STATE_BLOCKED]           = 'B',
-        [STATE_SLEEPING]          = 'S',
-        [STATE_BLOCKED_W_TMO]     = 'T',
-        [STATE_FROZEN]            = 'F',
-        [STATE_KILLED]            = 'K',
-    };
-
-    if (status > THREAD_NUM_STATES)
-        status = THREAD_NUM_STATES;
-
-    return thread_status_chars[status];
-}
+#include "talk.h"
 
 static const char* threads_getname(int selected_item, void *data,
                                    char *buffer, size_t buffer_len)
 {
     (void)data;
-    struct thread_entry *thread;
-    char name[32];
 
 #if NUM_CORES > 1
     if (selected_item < (int)NUM_CORES)
     {
+        struct core_debug_info coreinfo;
+        core_get_debug_info(selected_item, &coreinfo);
         snprintf(buffer, buffer_len, "Idle (%d): %2d%%", selected_item,
-                 idle_stack_usage(selected_item));
+                 coreinfo.idle_stack_usage);
         return buffer;
     }
 
     selected_item -= NUM_CORES;
 #endif
 
-    thread = &threads[selected_item];
+    const char *fmtstr = "%2d: ---";
 
-    if (thread->state == STATE_KILLED)
+    struct thread_debug_info threadinfo;
+    if (thread_get_debug_info(selected_item, &threadinfo) > 0)
     {
-        snprintf(buffer, buffer_len, "%2d: ---", selected_item);
-        return buffer;
+        fmtstr = "%2d:" IF_COP(" (%d)") " %s" IF_PRIO(" %d %d")
+                 IFN_SDL(" %2d%%") " %s";
     }
 
-    thread_get_name(name, 32, thread);
-
-    snprintf(buffer, buffer_len,
-             "%2d: " IF_COP("(%d) ") "%c%c " IF_PRIO("%d %d ") "%2d%% %s",
+    snprintf(buffer, buffer_len, fmtstr,
              selected_item,
-             IF_COP(thread->core,)
-#ifdef HAVE_SCHEDULER_BOOSTCTRL
-             (thread->cpu_boost) ? '+' :
-#endif
-                 ((thread->state == STATE_RUNNING) ? '*' : ' '),
-             thread_status_char(thread->state),
-             IF_PRIO(thread->base_priority, thread->priority, )
-             thread_stack_usage(thread), name);
+             IF_COP(threadinfo.core,)
+             threadinfo.statusstr,
+             IF_PRIO(threadinfo.base_priority, threadinfo.current_priority,)
+             IFN_SDL(threadinfo.stack_usage,)
+             threadinfo.name);
 
     return buffer;
 }
@@ -192,19 +174,6 @@ static const char* threads_getname(int selected_item, void *data,
 static int dbg_threads_action_callback(int action, struct gui_synclist *lists)
 {
     (void)lists;
-#ifdef ROCKBOX_HAS_LOGF
-    if (action == ACTION_STD_OK)
-    {
-        int selpos = gui_synclist_get_sel_pos(lists);
-#if NUM_CORES > 1
-        if (selpos >= NUM_CORES)
-            remove_thread(threads[selpos - NUM_CORES].id);
-#else
-        remove_thread(threads[selpos].id);
-#endif
-        return ACTION_REDRAW;
-    }
-#endif /* ROCKBOX_HAS_LOGF */
     if (action == ACTION_NONE)
         action = ACTION_REDRAW;
     return action;
@@ -214,20 +183,133 @@ static bool dbg_os(void)
 {
     struct simplelist_info info;
     simplelist_info_init(&info, IF_COP("Core and ") "Stack usage:",
-#if NUM_CORES == 1
-                            MAXTHREADS,
-#else
-                            MAXTHREADS+NUM_CORES,
-#endif
-                            NULL);
-#ifndef ROCKBOX_HAS_LOGF
+                         MAXTHREADS IF_COP( + NUM_CORES ), NULL);
     info.hide_selection = true;
     info.scroll_all = true;
-#endif
     info.action_callback = dbg_threads_action_callback;
     info.get_name = threads_getname;
     return simplelist_show_list(&info);
 }
+
+#ifdef __linux__
+#include "cpuinfo-linux.h"
+
+#define MAX_STATES 16
+static struct time_state states[MAX_STATES];
+
+static const char* get_cpuinfo(int selected_item, void *data,
+                                   char *buffer, size_t buffer_len)
+{
+    (void)data;(void)buffer_len;
+    const char* text;
+    long time, diff;
+    struct cpuusage us;
+    static struct cpuusage last_us;
+    int state_count = *(int*)data;
+
+    if (cpuusage_linux(&us) != 0)
+        return NULL;
+
+    switch(selected_item)
+    {
+        case 0:
+            diff = abs(last_us.usage - us.usage);
+            sprintf(buffer, "Usage: %ld.%02ld%% (%c %ld.%02ld)",
+                                    us.usage/100, us.usage%100,
+                                    (us.usage >= last_us.usage) ? '+':'-',
+                                    diff/100, diff%100);
+            last_us.usage = us.usage;
+            return buffer;
+        case 1:
+            text = "User";
+            time = us.utime;
+            diff = us.utime - last_us.utime;
+            last_us.utime = us.utime;
+            break;
+        case 2:
+            text = "Sys";
+            time = us.stime;
+            diff = us.stime - last_us.stime;
+            last_us.stime = us.stime;
+            break;
+        case 3:
+            text = "Real";
+            time = us.rtime;
+            diff = us.rtime - last_us.rtime;
+            last_us.rtime = us.rtime;
+            break;
+        case 4:
+            return "*** Per CPU freq stats ***";
+        default:
+        {
+            int cpu = (selected_item - 5) / (state_count + 1);
+            int cpu_line = (selected_item - 5) % (state_count + 1);
+#if defined(DX50) || defined(DX90)
+            int min_freq = min_scaling_frequency(cpu);
+            int cur_freq = current_scaling_frequency(cpu);
+            int max_freq = max_scaling_frequency(cpu);
+            char governor[20];
+            bool have_governor = current_scaling_governor(cpu, governor, sizeof(governor));
+            if(cpu_line == 0)
+            {
+                sprintf(buffer,
+                        " CPU%d: %s: %d/%d/%d MHz",
+                        cpu,
+                        have_governor ? governor : "Min/Cur/Max freq",
+                        min_freq > 0 ? min_freq/1000 : -1,
+                        cur_freq > 0 ? cur_freq/1000 : -1,
+                        max_freq > 0 ? max_freq/1000 : -1);
+            }
+#else
+            int freq1 = frequency_linux(cpu, false);
+            int freq2 = frequency_linux(cpu, true);
+            if (cpu_line == 0)
+            {
+                sprintf(buffer, " CPU%d: Cur/Scal freq: %d/%d MHz", cpu,
+                                freq1 > 0 ? freq1/1000 : -1,
+                                freq2 > 0 ? freq2/1000 : -1);
+            }
+#endif
+            else
+            {
+                cpustatetimes_linux(cpu, states, ARRAYLEN(states));
+                snprintf(buffer, buffer_len, "   %ld %ld",
+                            states[cpu_line-1].frequency,
+                            states[cpu_line-1].time);
+            }
+            return buffer;
+        }
+    }
+    sprintf(buffer, "%s: %ld.%02lds (+ %ld.%02ld)", text,
+                    time / us.hz, time % us.hz,
+                    diff / us.hz, diff % us.hz);
+    return buffer;
+}
+
+static int cpuinfo_cb(int action, struct gui_synclist *lists)
+{
+    (void)lists;
+    if (action == ACTION_NONE)
+        action = ACTION_REDRAW;
+    return action;
+}
+
+static bool dbg_cpuinfo(void)
+{
+    struct simplelist_info info;
+    int cpu_count = MAX(cpucount_linux(), 1);
+    int state_count = cpustatetimes_linux(0, states, ARRAYLEN(states));
+    printf("%s(): %d %d\n", __func__, cpu_count, state_count);
+    simplelist_info_init(&info, "CPU info:", 5 + cpu_count*(state_count+1), &state_count);
+    info.get_name = get_cpuinfo;
+    info.action_callback = cpuinfo_cb;
+    info.timeout = HZ;
+    info.hide_selection = true;
+    info.scroll_all = true;
+    return simplelist_show_list(&info);
+}
+
+#endif
 
 #ifdef HAVE_LCD_BITMAP
 #if CONFIG_CODEC != SWCODEC
@@ -272,13 +354,18 @@ static bool dbg_audio_thread(void)
 }
 #endif /* !SIMULATOR */
 #else /* CONFIG_CODEC == SWCODEC */
-static unsigned int ticks, boost_ticks, freq_sum;
+static unsigned int ticks, freq_sum;
+#ifndef CPU_MULTI_FREQUENCY
+static unsigned int boost_ticks;
+#endif
 
 static void dbg_audio_task(void)
 {
 #ifdef CPUFREQ_NORMAL
+#ifndef CPU_MULTI_FREQUENCY
     if(FREQ > CPUFREQ_NORMAL)
         boost_ticks++;
+#endif
     freq_sum += FREQ/1000000; /* in MHz */
 #endif
     ticks++;
@@ -287,7 +374,7 @@ static void dbg_audio_task(void)
 static bool dbg_buffering_thread(void)
 {
     int button;
-    int line, i;    
+    int line;    
     bool done = false;
     size_t bufused;
     size_t bufsize = pcmbuf_get_bufsize();
@@ -296,7 +383,10 @@ static bool dbg_buffering_thread(void)
     size_t filebuflen = audio_get_filebuflen();
     /* This is a size_t, but call it a long so it puts a - when it's bad. */
 
-    ticks = boost_ticks = freq_sum = 0;
+#ifndef CPU_MULTI_FREQUENCY
+    boost_ticks = 0;
+#endif
+    ticks = freq_sum = 0;
 
     tick_add_task(dbg_audio_task);
     
@@ -378,8 +468,13 @@ static bool dbg_buffering_thread(void)
 
             if (ticks > 0)
             {
-                int boostquota = boost_ticks * 1000 / ticks; /* in 0.1 % */
                 int avgclock   = freq_sum * 10 / ticks;      /* in 100 kHz */
+#ifdef CPU_MULTI_FREQUENCY
+                int boostquota = (avgclock * 100 - CPUFREQ_NORMAL/1000) /
+                    ((CPUFREQ_MAX - CPUFREQ_NORMAL) / 1000000); /* in 0.1 % */
+#else
+                int boostquota = boost_ticks * 1000 / ticks; /* in 0.1 % */
+#endif
                 screens[i].putsf(0, line++, "boost:%3d.%d%% (%d.%dMHz)",
                                  boostquota/10, boostquota%10, avgclock/10, avgclock%10);
             }
@@ -403,360 +498,47 @@ static bool dbg_buffering_thread(void)
 #endif /* CONFIG_CODEC */
 #endif /* HAVE_LCD_BITMAP */
 
-
-#if (CONFIG_CPU == SH7034 || defined(CPU_COLDFIRE))
-/* Tool function to read the flash manufacturer and type, if available.
-   Only chips which could be reprogrammed in system will return values.
-   (The mode switch addresses vary between flash manufacturers, hence addr1/2) */
-   /* In IRAM to avoid problems when running directly from Flash */
-static bool dbg_flash_id(unsigned* p_manufacturer, unsigned* p_device,
-                         unsigned addr1, unsigned addr2)
-                         ICODE_ATTR __attribute__((noinline));
-static bool dbg_flash_id(unsigned* p_manufacturer, unsigned* p_device,
-                         unsigned addr1, unsigned addr2)
-
+static const char* bf_getname(int selected_item, void *data,
+                                   char *buffer, size_t buffer_len)
 {
-    unsigned not_manu, not_id; /* read values before switching to ID mode */
-    unsigned manu, id; /* read values when in ID mode */
-
-#if CONFIG_CPU == SH7034
-    volatile unsigned char* flash = (unsigned char*)0x2000000; /* flash mapping */
-#elif defined(CPU_COLDFIRE)
-    volatile unsigned short* flash = (unsigned short*)0; /* flash mapping */
-#endif
-    int old_level; /* saved interrupt level */
-
-    not_manu = flash[0]; /* read the normal content */
-    not_id   = flash[1]; /* should be 'A' (0x41) and 'R' (0x52) from the "ARCH" marker */
-
-    /* disable interrupts, prevent any stray flash access */
-    old_level = disable_irq_save();
-
-    flash[addr1] = 0xAA; /* enter command mode */
-    flash[addr2] = 0x55;
-    flash[addr1] = 0x90; /* ID command */
-    /* Atmel wants 20ms pause here */
-    /* sleep(HZ/50); no sleeping possible while interrupts are disabled */
-
-    manu = flash[0]; /* read the IDs */
-    id   = flash[1];
-
-    flash[0] = 0xF0; /* reset flash (back to normal read mode) */
-    /* Atmel wants 20ms pause here */
-    /* sleep(HZ/50); no sleeping possible while interrupts are disabled */
-
-    restore_irq(old_level); /* enable interrupts again */
-
-    /* I assume success if the obtained values are different from
-        the normal flash content. This is not perfectly bulletproof, they
-        could theoretically be the same by chance, causing us to fail. */
-    if (not_manu != manu || not_id != id) /* a value has changed */
-    {
-        *p_manufacturer = manu; /* return the results */
-        *p_device = id;
-        return true; /* success */
-    }
-    return false; /* fail */
+    (void)data;
+    core_print_block_at(selected_item, buffer, buffer_len);
+    return buffer;
 }
-#endif /* (CONFIG_CPU == SH7034 || CPU_COLDFIRE) */
 
-#if (CONFIG_PLATFORM & PLATFORM_NATIVE)
-#ifdef CPU_PP
-static int perfcheck(void)
+static int bf_action_cb(int action, struct gui_synclist* list)
 {
-    int result;
-
-    asm (
-        "mrs     r2, CPSR            \n"
-        "orr     r0, r2, #0xc0       \n" /* disable IRQ and FIQ */
-        "msr     CPSR_c, r0          \n"
-        "mov     %[res], #0          \n"
-        "ldr     r0, [%[timr]]       \n"
-        "add     r0, r0, %[tmo]      \n"
-    "1:                              \n"
-        "add     %[res], %[res], #1  \n"
-        "ldr     r1, [%[timr]]       \n"
-        "cmp     r1, r0              \n"
-        "bmi     1b                  \n"
-        "msr     CPSR_c, r2          \n" /* reset IRQ and FIQ state */
-        :
-        [res]"=&r"(result)
-        :
-        [timr]"r"(&USEC_TIMER),
-        [tmo]"r"(
-#if CONFIG_CPU == PP5002
-        16000
-#else /* PP5020/5022/5024 */
-        10226
-#endif
-        )
-        :
-        "r0", "r1", "r2"
-    );
-    return result;
-}
-#endif
-
-#ifdef HAVE_LCD_BITMAP
-static bool dbg_hw_info(void)
-{
-#if CONFIG_CPU == SH7034
-    int bitmask = HW_MASK;
-    int rom_version = ROM_VERSION;
-    unsigned manu, id; /* flash IDs */
-    bool got_id; /* flag if we managed to get the flash IDs */
-    unsigned rom_crc = 0xffffffff; /* CRC32 of the boot ROM */
-    bool has_bootrom; /* flag for boot ROM present */
-    int oldmode;  /* saved memory guard mode */
-
-    oldmode = system_memory_guard(MEMGUARD_NONE);  /* disable memory guard */
-
-    /* get flash ROM type */
-    got_id = dbg_flash_id(&manu, &id, 0x5555, 0x2AAA); /* try SST, Atmel, NexFlash */
-    if (!got_id)
-        got_id = dbg_flash_id(&manu, &id, 0x555, 0x2AA); /* try AMD, Macronix */
-
-    /* check if the boot ROM area is a flash mirror */
-    has_bootrom = (memcmp((char*)0, (char*)0x02000000, 64*1024) != 0);
-    if (has_bootrom)  /* if ROM and Flash different */
+    if (action == ACTION_STD_OK)
     {
-        /* calculate CRC16 checksum of boot ROM */
-        rom_crc = crc_32((unsigned char*)0x0000, 64*1024, 0xffffffff);
-    }
-
-    system_memory_guard(oldmode);  /* re-enable memory guard */
-
-    lcd_setfont(FONT_SYSFIXED);
-    lcd_clear_display();
-
-    lcd_puts(0, 0, "[Hardware info]");
-
-    lcd_putsf(0, 1, "ROM: %d.%02d", rom_version/100, rom_version%100);
-
-    lcd_putsf(0, 2, "Mask: 0x%04x", bitmask);
-
-    if (got_id)
-        lcd_putsf(0, 3, "Flash: M=%02x D=%02x", manu, id);
-    else
-        lcd_puts(0, 3, "Flash: M=?? D=??"); /* unknown, sorry */
-
-    if (has_bootrom)
-    {
-        if (rom_crc == 0x56DBA4EE) /* known Version 1 */
-            lcd_puts(0, 4, "Boot ROM: V1");
-        else
-            lcd_putsf(0, 4, "ROMcrc: 0x%08x", rom_crc);
-    }
-    else
-    {
-        lcd_puts(0, 4, "Boot ROM: none");
-    }
-
-    lcd_update();
-
-    while (!(action_userabort(TIMEOUT_BLOCK)));
-
-#elif CONFIG_CPU == MCF5249 || CONFIG_CPU == MCF5250
-    unsigned manu, id; /* flash IDs */
-    int got_id; /* flag if we managed to get the flash IDs */
-    int oldmode;  /* saved memory guard mode */
-    int line = 0;
-
-    oldmode = system_memory_guard(MEMGUARD_NONE);  /* disable memory guard */
-
-    /* get flash ROM type */
-    got_id = dbg_flash_id(&manu, &id, 0x5555, 0x2AAA); /* try SST, Atmel, NexFlash */
-    if (!got_id)
-        got_id = dbg_flash_id(&manu, &id, 0x555, 0x2AA); /* try AMD, Macronix */
-
-    system_memory_guard(oldmode);  /* re-enable memory guard */
-
-    lcd_setfont(FONT_SYSFIXED);
-    lcd_clear_display();
-
-    lcd_puts(0, line++, "[Hardware info]");
-
-    if (got_id)
-        lcd_putsf(0, line++, "Flash: M=%04x D=%04x", manu, id);
-    else
-        lcd_puts(0, line++, "Flash: M=???? D=????"); /* unknown, sorry */
-
-#ifdef IAUDIO_X5
-    {
-        struct ds2411_id id;
-
-        lcd_puts(0, ++line, "Serial Number:");
-
-        got_id = ds2411_read_id(&id);
-
-        if (got_id == DS2411_OK)
+        if (gui_synclist_get_sel_pos(list) == 0 && core_test_free())
         {
-            lcd_putsf(0, ++line, "  FC=%02x", (unsigned)id.family_code);
-            lcd_putsf(0, ++line, "  ID=%02X %02X %02X %02X %02X %02X",
-                (unsigned)id.uid[0], (unsigned)id.uid[1], (unsigned)id.uid[2],
-                (unsigned)id.uid[3], (unsigned)id.uid[4], (unsigned)id.uid[5]);
-            lcd_putsf(0, ++line, "  CRC=%02X", (unsigned)id.crc);
+            splash(HZ, "Freed test handle. New alloc should trigger compact");
         }
         else
         {
-            lcd_putsf(0, ++line, "READ ERR=%d", got_id);
+            splash(HZ/1, "Attempting a 64k allocation");
+            int handle = core_alloc("test", 64<<10);
+            splash(HZ/2, (handle > 0) ? "Success":"Fail");
+            /* for some reason simplelist doesn't allow adding items here if
+             * info.get_name is given, so use normal list api */
+            gui_synclist_set_nb_items(list, core_get_num_blocks());
+            if (handle > 0)
+                core_free(handle);
         }
+        action = ACTION_REDRAW;
     }
-#endif
-
-    lcd_update();
-
-    while (!(action_userabort(TIMEOUT_BLOCK)));
-
-#elif defined(CPU_PP502x)
-    int line = 0;
-    char pp_version[] = { (PP_VER2 >> 24) & 0xff, (PP_VER2 >> 16) & 0xff,
-                          (PP_VER2 >> 8) & 0xff, (PP_VER2) & 0xff,
-                          (PP_VER1 >> 24) & 0xff, (PP_VER1 >> 16) & 0xff,
-                          (PP_VER1 >> 8) & 0xff, (PP_VER1) & 0xff, '\0' };
-
-    lcd_setfont(FONT_SYSFIXED);
-    lcd_clear_display();
-
-    lcd_puts(0, line++, "[Hardware info]");
-
-#ifdef IPOD_ARCH
-    lcd_putsf(0, line++, "HW rev: 0x%08lx", IPOD_HW_REVISION);
-#endif
-
-#ifdef IPOD_COLOR
-    extern int lcd_type; /* Defined in lcd-colornano.c */
-
-    lcd_putsf(0, line++, "LCD type: %d", lcd_type);
-#endif
-
-    lcd_putsf(0, line++, "PP version: %s", pp_version);
-
-    lcd_putsf(0, line++, "Est. clock (kHz): %d", perfcheck());
-
-    lcd_update();
-
-    while (!(action_userabort(TIMEOUT_BLOCK)));
-
-#elif CONFIG_CPU == PP5002
-    int line = 0;
-    char pp_version[] = { (PP_VER4 >> 8) & 0xff, PP_VER4 & 0xff,
-                          (PP_VER3 >> 8) & 0xff, PP_VER3 & 0xff,
-                          (PP_VER2 >> 8) & 0xff, PP_VER2 & 0xff,
-                          (PP_VER1 >> 8) & 0xff, PP_VER1 & 0xff, '\0' };
-
-
-    lcd_setfont(FONT_SYSFIXED);
-    lcd_clear_display();
-
-    lcd_puts(0, line++, "[Hardware info]");
-
-#ifdef IPOD_ARCH
-    lcd_putsf(0, line++, "HW rev: 0x%08lx", IPOD_HW_REVISION);
-#endif
-
-    lcd_putsf(0, line++, "PP version: %s", pp_version);
-
-    lcd_putsf(0, line++, "Est. clock (kHz): %d", perfcheck());
-
-    lcd_update();
-
-    while (!(action_userabort(TIMEOUT_BLOCK)));
-    
-#else
-    /* Define this function in your target tree */
-    return __dbg_hw_info();
-#endif /* CONFIG_CPU */
-    lcd_setfont(FONT_UI);
-    return false;
+    return action;
 }
-#else /* !HAVE_LCD_BITMAP */
-static bool dbg_hw_info(void)
+
+static bool dbg_buflib_allocs(void)
 {
-    int button;
-    int currval = 0;
-    int rom_version = ROM_VERSION;
-    unsigned manu, id; /* flash IDs */
-    bool got_id; /* flag if we managed to get the flash IDs */
-    unsigned rom_crc = 0xffffffff; /* CRC32 of the boot ROM */
-    bool has_bootrom; /* flag for boot ROM present */
-    int oldmode;  /* saved memory guard mode */
-
-    oldmode = system_memory_guard(MEMGUARD_NONE);  /* disable memory guard */
-
-    /* get flash ROM type */
-    got_id = dbg_flash_id(&manu, &id, 0x5555, 0x2AAA); /* try SST, Atmel, NexFlash */
-    if (!got_id)
-        got_id = dbg_flash_id(&manu, &id, 0x555, 0x2AA); /* try AMD, Macronix */
-
-    /* check if the boot ROM area is a flash mirror */
-    has_bootrom = (memcmp((char*)0, (char*)0x02000000, 64*1024) != 0);
-    if (has_bootrom)  /* if ROM and Flash different */
-    {
-        /* calculate CRC16 checksum of boot ROM */
-        rom_crc = crc_32((unsigned char*)0x0000, 64*1024, 0xffffffff);
-    }
-
-    system_memory_guard(oldmode);  /* re-enable memory guard */
-
-    lcd_clear_display();
-
-    lcd_puts(0, 0, "[HW Info]");
-    while(1)
-    {
-        switch(currval)
-        {
-            case 0:
-                lcd_putsf(0, 1, "ROM: %d.%02d",
-                         rom_version/100, rom_version%100);
-                break;
-            case 1:
-                if (got_id)
-                    lcd_putsf(0, 1, "Flash:%02x,%02x", manu, id);
-                else
-                    lcd_puts(0, 1, "Flash:??,??"); /* unknown, sorry */
-                break;
-            case 2:
-                if (has_bootrom)
-                {
-                    if (rom_crc == 0x56DBA4EE) /* known Version 1 */
-                        lcd_puts(0, 1, "BootROM: V1");
-                    else if (rom_crc == 0x358099E8)
-                        lcd_puts(0, 1, "BootROM: V2");
-                        /* alternative boot ROM found in one single player so far */
-                    else
-                        lcd_putsf(0, 1, "R: %08x", rom_crc);
-                }
-                else
-                    lcd_puts(0, 1, "BootROM: no");
-        }
-
-        lcd_update();
-
-        button = get_action(CONTEXT_SETTINGS,TIMEOUT_BLOCK);
-
-        switch(button)
-        {
-            case ACTION_STD_CANCEL:
-                return false;
-
-            case ACTION_SETTINGS_DEC:
-                currval--;
-                if(currval < 0)
-                    currval = 2;
-                break;
-
-            case ACTION_SETTINGS_INC:
-                currval++;
-                if(currval > 2)
-                    currval = 0;
-                break;
-        }
-    }
-    return false;
+    struct simplelist_info info;
+    simplelist_info_init(&info, "mem allocs", core_get_num_blocks(), NULL);
+    info.get_name = bf_getname;
+    info.action_callback = bf_action_cb;
+    info.timeout = HZ;
+    return simplelist_show_list(&info);
 }
-#endif /* !HAVE_LCD_BITMAP */
-#endif /* PLATFORM_NATIVE */
 
 #if (CONFIG_PLATFORM & PLATFORM_NATIVE)
 static const char* dbg_partitions_getname(int selected_item, void *data,
@@ -764,19 +546,24 @@ static const char* dbg_partitions_getname(int selected_item, void *data,
 {
     (void)data;
     int partition = selected_item/2;
-    struct partinfo* p = disk_partinfo(partition);
+
+    struct partinfo p;
+    if (!disk_partinfo(partition, &p))
+        return buffer;
+
     if (selected_item%2)
     {
-        snprintf(buffer, buffer_len, "   T:%x %ld MB", p->type, p->size / ( 2048 / ( SECTOR_SIZE / 512 )));
+        snprintf(buffer, buffer_len, "   T:%x %ld MB", p.type,
+                 p.size / ( 2048 / ( SECTOR_SIZE / 512 )));
     }
     else
     {
-        snprintf(buffer, buffer_len, "P%d: S:%lx", partition, p->start);
+        snprintf(buffer, buffer_len, "P%d: S:%lx", partition, p.start);
     }
     return buffer;
 }
 
-bool dbg_partitions(void)
+static bool dbg_partitions(void)
 {
     struct simplelist_info info;
     simplelist_info_init(&info, "Partition Info", 4, NULL);
@@ -978,7 +765,7 @@ static bool dbg_pcf(void)
         lcd_putsf(0, line++, "D3REGC: %02x", pcf50605_read(0x26));
         lcd_putsf(0, line++, "LPREG1: %02x", pcf50605_read(0x27));
         lcd_update();
-        if (button_get_w_tmo(HZ/10) == (DEBUG_CANCEL|BUTTON_REL))
+        if (action_userabort(HZ/10))
         {
             lcd_setfont(FONT_UI);
             return false;
@@ -1039,20 +826,6 @@ static bool dbg_cpufreq(void)
 
 #if defined(HAVE_TSC2100) && (CONFIG_PLATFORM & PLATFORM_NATIVE)
 #include "tsc2100.h"
-static char *itob(int n, int len)
-{
-    static char binary[64];
-    int i,j;
-    for (i=1, j=0;i<=len;i++)
-    {
-        binary[j++] = n&(1<<(len-i))?'1':'0';
-        if (i%4 == 0)
-            binary[j++] = ' ';
-    }
-    binary[j] = '\0';
-    return binary;
-}
-
 static const char* tsc2100_debug_getname(int selected_item, void * data,
                                          char *buffer, size_t buffer_len)
 {
@@ -1077,10 +850,10 @@ static const char* tsc2100_debug_getname(int selected_item, void * data,
             break;
     }
     if (reserved)
-        snprintf(buffer, buffer_len, "%02x: RESERVED", selected_item);
+        snprintf(buffer, buffer_len, "%02x: RSVD", selected_item);
     else
-        snprintf(buffer, buffer_len, "%02x: %s", selected_item,
-                    itob(tsc2100_readreg(*page, selected_item)&0xffff,16));
+        snprintf(buffer, buffer_len, "%02x: %04x", selected_item,
+                    tsc2100_readreg(*page, selected_item)&0xffff);
     return buffer;
 }
 static int tsc2100debug_action_callback(int action, struct gui_synclist *lists)
@@ -1107,8 +880,7 @@ static bool tsc2100_debug(void)
     return simplelist_show_list(&info);
 }
 #endif
-#if (CONFIG_PLATFORM & PLATFORM_NATIVE)
-#ifdef HAVE_LCD_BITMAP
+#if (CONFIG_BATTERY_MEASURE != 0) && defined(HAVE_LCD_BITMAP) && !defined(SIMULATOR)
 /*
  * view_battery() shows a automatically scaled graph of the battery voltage
  * over time. Usable for estimating battery life / charging rate.
@@ -1116,13 +888,14 @@ static bool tsc2100_debug(void)
  */
 
 #define BAT_LAST_VAL  MIN(LCD_WIDTH, POWER_HISTORY_LEN)
-#define BAT_YSPACE    (LCD_HEIGHT - 20)
+#define BAT_TSPACE    20
+#define BAT_YSPACE    (LCD_HEIGHT - BAT_TSPACE)
 
 
 static bool view_battery(void)
 {
     int view = 0;
-    int i, x, y, y1, y2, grid, graph;
+    int i, x, y, z, y1, y2, grid, graph;
     unsigned short maxv, minv;
 
     lcd_setfont(FONT_SYSFIXED);
@@ -1141,19 +914,28 @@ static bool view_battery(void)
                     if (power_history[i] < minv)
                         minv = power_history[i];
                 }
-                
+                /* print header */
+#if (CONFIG_BATTERY_MEASURE & VOLTAGE_MEASURE)
                 /* adjust grid scale */ 
                 if ((maxv - minv) > 50)
                     grid = 50;
                 else
                     grid = 5;
-                
-                /* print header */                
+
                 lcd_putsf(0, 0, "battery %d.%03dV", power_history[0] / 1000,
                          power_history[0] % 1000);
                 lcd_putsf(0, 1, "%d.%03d-%d.%03dV (%2dmV)",
                           minv / 1000, minv % 1000, maxv / 1000, maxv % 1000,
                           grid);
+#elif (CONFIG_BATTERY_MEASURE & PERCENTAGE_MEASURE)
+                /* adjust grid scale */ 
+                if ((maxv - minv) > 10)
+                    grid = 10;
+                else
+                    grid = 1;
+                lcd_putsf(0, 0, "battery %d%%", power_history[0]);
+                lcd_putsf(0, 1, "%d%%-%d%% (%d %%)", minv, maxv, grid);
+#endif
                 
                 i = 1;
                 while ((y = (minv - (minv % grid)+i*grid)) < maxv)
@@ -1178,11 +960,11 @@ static bool view_battery(void)
                     {
                         y1 = (power_history[i] - minv) * BAT_YSPACE / 
                             (maxv - minv);
-                        y1 = MIN(MAX(LCD_HEIGHT-1 - y1, 20), 
+                        y1 = MIN(MAX(LCD_HEIGHT-1 - y1, BAT_TSPACE), 
                                  LCD_HEIGHT-1);
                         y2 = (power_history[i-1] - minv) * BAT_YSPACE /
                             (maxv - minv);
-                        y2 = MIN(MAX(LCD_HEIGHT-1 - y2, 20),
+                        y2 = MIN(MAX(LCD_HEIGHT-1 - y2, BAT_TSPACE),
                                  LCD_HEIGHT-1);
 
                         lcd_set_drawmode(DRMODE_SOLID);
@@ -1206,10 +988,13 @@ static bool view_battery(void)
                 lcd_putsf(0, 0, "Pwr status: %s",
                          charging_state() ? "charging" : "discharging");
 #else 
-                lcd_puts(0, 0, "Power status:");
+                lcd_puts(0, 0, "Power status: unknown");
 #endif
-                battery_read_info(&y, NULL);
-                lcd_putsf(0, 1, "Battery: %d.%03d V", y / 1000, y % 1000);
+                battery_read_info(&y, &z);
+                if (y > 0)
+                    lcd_putsf(0, 1, "Battery: %d.%03d V (%d %%)", y / 1000, y % 1000, z);
+                else if (z > 0)
+                    lcd_putsf(0, 1, "Battery: %d %%", z);
 #ifdef ADC_EXT_POWER
                 y = (adc_read(ADC_EXT_POWER) * EXT_SCALE_FACTOR) / 1000;
                 lcd_putsf(0, 2, "External: %d.%03d V", y / 1000, y % 1000);
@@ -1245,10 +1030,10 @@ static bool view_battery(void)
                 if(probed_ramsize == 64)
                     x = (adc_read(ADC_4066_ISTAT) * 2400) / (1024 * 2);
                 else
+#endif
                     x = (adc_read(ADC_4066_ISTAT) * 2400) / (1024 * 3);
                 lcd_putsf(0, 8, "Ibat: %d mA", x);
                 lcd_putsf(0, 9, "Vbat * Ibat: %d mW", x * y / 1000);
-#endif
 #elif defined TOSHIBA_GIGABEAT_S
                 int line = 3;
                 unsigned int st;
@@ -1322,8 +1107,7 @@ static bool view_battery(void)
                     lcd_puts(0, line++, "T Battery: ?");
                 }
                     
-#elif defined(SANSA_E200) || defined(SANSA_C200) || CONFIG_CPU == AS3525 || \
-      CONFIG_CPU == AS3525v2
+#elif defined(HAVE_AS3514) && defined(CONFIG_CHARGING)
                 static const char * const chrgstate_strings[] =
                 {
                     [CHARGE_STATE_DISABLED - CHARGE_STATE_DISABLED]= "Disabled",
@@ -1376,16 +1160,23 @@ static bool view_battery(void)
 #endif /* target type */
 #endif /* CONFIG_CHARGING */
                 break;
-
             case 2: /* voltage deltas: */
+#if (CONFIG_BATTERY_MEASURE & VOLTAGE_MEASURE)
                 lcd_puts(0, 0, "Voltage deltas:");
-
-                for (i = 0; i <= 6; i++) {
+                for (i = 0; i < POWER_HISTORY_LEN-1; i++) {
                     y = power_history[i] - power_history[i+1];
-                    lcd_putsf(0, i+1, "-%d min: %s%d.%03d V", i,
-                             (y < 0) ? "-" : "", ((y < 0) ? y * -1 : y) / 1000,
+                    lcd_putsf(0, i+1, "-%d min: %c%d.%03d V", i,
+                             (y < 0) ? '-' : ' ', ((y < 0) ? y * -1 : y) / 1000,
                              ((y < 0) ? y * -1 : y ) % 1000);
                 }
+#elif (CONFIG_BATTERY_MEASURE & PERCENTAGE_MEASURE)
+                lcd_puts(0, 0, "Percentage deltas:");
+                for (i = 0; i < POWER_HISTORY_LEN-1; i++) {
+                    y = power_history[i] - power_history[i+1];
+                    lcd_putsf(0, i+1, "-%d min: %c%d%%", i,
+                             (y < 0) ? '-' : ' ', ((y < 0) ? y * -1 : y));
+                }
+#endif
                 break;
 
             case 3: /* remaining time estimation: */
@@ -1402,13 +1193,19 @@ static bool view_battery(void)
                 lcd_putsf(0, 4, "Trickle sec: %d/60", trickle_sec);
 #endif /* ARCHOS_RECORDER */
 
+#if (CONFIG_BATTERY_MEASURE & VOLTAGE_MEASURE)
                 lcd_putsf(0, 5, "Last PwrHist: %d.%03dV",
                     power_history[0] / 1000,
                     power_history[0] % 1000);
+#endif
 
                 lcd_putsf(0, 6, "battery level: %d%%", battery_level());
 
-                lcd_putsf(0, 7, "Est. remain: %d m", battery_time());
+                int time_left = battery_time();
+                if (time_left >= 0)
+                    lcd_putsf(0, 7, "Est. remain: %d m", time_left);
+                else
+                    lcd_puts(0, 7, "Estimation n/a");
                 break;
         }
 
@@ -1435,8 +1232,7 @@ static bool view_battery(void)
     return false;
 }
 
-#endif /* HAVE_LCD_BITMAP */
-#endif
+#endif /* (CONFIG_BATTERY_MEASURE != 0) && HAVE_LCD_BITMAP */
 
 #if (CONFIG_PLATFORM & PLATFORM_NATIVE)
 #if (CONFIG_STORAGE & STORAGE_MMC) || (CONFIG_STORAGE & STORAGE_SD)
@@ -1484,11 +1280,11 @@ static int disk_callback(int btn, struct gui_synclist *lists)
                 card_name[i] = card_extract_bits(card->cid, (103-8*i), 8);
             }
             strlcpy(card_name, card_name, sizeof(card_name));
-            simplelist_addline(SIMPLELIST_ADD_LINE,
+            simplelist_addline(
                     "%s Rev %d.%d", card_name,
                     (int) card_extract_bits(card->cid, 63, 4),
                     (int) card_extract_bits(card->cid, 59, 4));
-            simplelist_addline(SIMPLELIST_ADD_LINE,
+            simplelist_addline(
                     "Prod: %d/%d",
 #if (CONFIG_STORAGE & STORAGE_SD)
                     (int) card_extract_bits(card->cid, 11, 4),
@@ -1498,7 +1294,7 @@ static int disk_callback(int btn, struct gui_synclist *lists)
                     (int) card_extract_bits(card->cid, 11, 4) + 1997
 #endif
                     );
-            simplelist_addline(SIMPLELIST_ADD_LINE,
+            simplelist_addline(
 #if (CONFIG_STORAGE & STORAGE_SD)
                     "Ser#: 0x%08lx",
                     card_extract_bits(card->cid, 55, 32)
@@ -1508,7 +1304,7 @@ static int disk_callback(int btn, struct gui_synclist *lists)
 #endif
                     );
 
-            simplelist_addline(SIMPLELIST_ADD_LINE, "M=%02x, "
+            simplelist_addline("M=%02x, "
 #if (CONFIG_STORAGE & STORAGE_SD)
                     "O=%c%c",
                     (int) card_extract_bits(card->cid, 127, 8),
@@ -1523,41 +1319,47 @@ static int disk_callback(int btn, struct gui_synclist *lists)
 
 #if (CONFIG_STORAGE & STORAGE_MMC)
             int temp = card_extract_bits(card->csd, 125, 4);
-            simplelist_addline(SIMPLELIST_ADD_LINE,
+            simplelist_addline(
                      "MMC v%s", temp < 5 ?
                             mmc_spec_vers[temp] : "?.?");
 #endif
-            simplelist_addline(SIMPLELIST_ADD_LINE,
+            simplelist_addline(
                     "Blocks: 0x%08lx", card->numblocks);
             output_dyn_value(pbuf, sizeof pbuf, card->speed / 1000,
                                             kbit_units, false);
-            simplelist_addline(SIMPLELIST_ADD_LINE,
+            simplelist_addline(
                     "Speed: %s", pbuf);
             output_dyn_value(pbuf, sizeof pbuf, card->taac,
                             nsec_units, false);
-            simplelist_addline(SIMPLELIST_ADD_LINE,
+            simplelist_addline(
                     "Taac: %s", pbuf);
-            simplelist_addline(SIMPLELIST_ADD_LINE,
+            simplelist_addline(
                     "Nsac: %d clk", card->nsac);
-            simplelist_addline(SIMPLELIST_ADD_LINE,
+            simplelist_addline(
                     "R2W: *%d", card->r2w_factor);
-            simplelist_addline(SIMPLELIST_ADD_LINE,
+#if (CONFIG_STORAGE & STORAGE_SD)
+            int csd_structure = card_extract_bits(card->csd, 127, 2);
+            if (csd_structure == 0) /* CSD version 1.0 */
+#endif
+            {
+            simplelist_addline(
                     "IRmax: %d..%d mA",
                     i_vmin[card_extract_bits(card->csd, 61, 3)],
                     i_vmax[card_extract_bits(card->csd, 58, 3)]);
-            simplelist_addline(SIMPLELIST_ADD_LINE,
+            simplelist_addline(
                     "IWmax: %d..%d mA",
                     i_vmin[card_extract_bits(card->csd, 55, 3)],
                     i_vmax[card_extract_bits(card->csd, 52, 3)]);
+            }
         }
         else if (card->initialized == 0)
         {
-            simplelist_addline(SIMPLELIST_ADD_LINE, "Not Found!");
+            simplelist_addline("Not Found!");
         }
 #if (CONFIG_STORAGE & STORAGE_SD)
         else /* card->initialized < 0 */
         {
-            simplelist_addline(SIMPLELIST_ADD_LINE, "Init Error! (%d)", card->initialized);
+            simplelist_addline("Init Error! (%d)", card->initialized);
         }
 #endif
         snprintf(title, 16, "[" CARDTYPE " %d]", *cardnum);
@@ -1586,31 +1388,31 @@ static int disk_callback(int btn, struct gui_synclist *lists)
     /* kill trailing space */
     for (i=39; i && buf[i]==' '; i--)
         buf[i] = 0;
-    simplelist_addline(SIMPLELIST_ADD_LINE, "Model: %s", buf);
+    simplelist_addline("Model: %s", buf);
     for (i=0; i < 4; i++)
         ((unsigned short*)buf)[i]=htobe16(identify_info[i+23]);
     buf[8]=0;
-    simplelist_addline(SIMPLELIST_ADD_LINE,
+    simplelist_addline(
              "Firmware: %s", buf);
     snprintf(buf, sizeof buf, "%ld MB",
              ((unsigned long)identify_info[61] << 16 |
               (unsigned long)identify_info[60]) / 2048 );
-    simplelist_addline(SIMPLELIST_ADD_LINE,
+    simplelist_addline(
              "Size: %s", buf);
     unsigned long free;
-    fat_size( IF_MV2(0,) NULL, &free );
-    simplelist_addline(SIMPLELIST_ADD_LINE,
+    volume_size( IF_MV(0,) NULL, &free );
+    simplelist_addline(
              "Free: %ld MB", free / 1024);
-    simplelist_addline(SIMPLELIST_ADD_LINE,
+    simplelist_addline(
              "Spinup time: %d ms", storage_spinup_time() * (1000/HZ));
     i = identify_info[83] & (1<<3);
-    simplelist_addline(SIMPLELIST_ADD_LINE,
+    simplelist_addline(
              "Power mgmt: %s", i ? "enabled" : "unsupported");
     i = identify_info[83] & (1<<9);
-    simplelist_addline(SIMPLELIST_ADD_LINE,
+    simplelist_addline(
              "Noise mgmt: %s", i ? "enabled" : "unsupported");
     i = identify_info[82] & (1<<6);
-    simplelist_addline(SIMPLELIST_ADD_LINE,
+    simplelist_addline(
              "Read-ahead: %s", i ? "enabled" : "unsupported");
     timing_info_present = identify_info[53] & (1<<1);
     if(timing_info_present) {
@@ -1618,27 +1420,27 @@ static int disk_callback(int btn, struct gui_synclist *lists)
         pio4[1] = 0;
         pio3[0] = (identify_info[64] & (1<<0)) ? '3' : 0;
         pio4[0] = (identify_info[64] & (1<<1)) ? '4' : 0;
-        simplelist_addline(SIMPLELIST_ADD_LINE,
+        simplelist_addline(
                  "PIO modes: 0 1 2 %s %s", pio3, pio4);
     }
     else {
-        simplelist_addline(SIMPLELIST_ADD_LINE,
+        simplelist_addline(
                  "No PIO mode info");
     }
     timing_info_present = identify_info[53] & (1<<1);
     if(timing_info_present) {
-        simplelist_addline(SIMPLELIST_ADD_LINE,
+        simplelist_addline(
                  "Cycle times %dns/%dns",
                  identify_info[67],
                  identify_info[68] );
     } else {
-        simplelist_addline(SIMPLELIST_ADD_LINE,
+        simplelist_addline(
                  "No timing info");
     }
     int sector_size = 512;
     if((identify_info[106] & 0xe000) == 0x6000)
         sector_size *= BIT_N(identify_info[106] & 0x000f);
-    simplelist_addline(SIMPLELIST_ADD_LINE,
+    simplelist_addline(
             "Physical sector size: %d", sector_size);
 #ifdef HAVE_ATA_DMA
     if (identify_info[63] & (1<<0)) {
@@ -1647,15 +1449,15 @@ static int disk_callback(int btn, struct gui_synclist *lists)
         mdma0[0] = (identify_info[63] & (1<<0)) ? '0' : 0;
         mdma1[0] = (identify_info[63] & (1<<1)) ? '1' : 0;
         mdma2[0] = (identify_info[63] & (1<<2)) ? '2' : 0;
-        simplelist_addline(SIMPLELIST_ADD_LINE,
+        simplelist_addline(
                  "MDMA modes: %s %s %s", mdma0, mdma1, mdma2);
-        simplelist_addline(SIMPLELIST_ADD_LINE,
+        simplelist_addline(
                  "MDMA Cycle times %dns/%dns",
                  identify_info[65],
                  identify_info[66] );
     }
     else {
-        simplelist_addline(SIMPLELIST_ADD_LINE,
+        simplelist_addline(
                 "No MDMA mode info");
     }
     if (identify_info[53] & (1<<2)) {
@@ -1668,36 +1470,36 @@ static int disk_callback(int btn, struct gui_synclist *lists)
         udma4[0] = (identify_info[88] & (1<<4)) ? '4' : 0;
         udma5[0] = (identify_info[88] & (1<<5)) ? '5' : 0;
         udma6[0] = (identify_info[88] & (1<<6)) ? '6' : 0;
-        simplelist_addline(SIMPLELIST_ADD_LINE,
+        simplelist_addline(
                  "UDMA modes: %s %s %s %s %s %s %s", udma0, udma1, udma2,
                                                      udma3, udma4, udma5, udma6);
     }
     else {
-        simplelist_addline(SIMPLELIST_ADD_LINE,
+        simplelist_addline(
                 "No UDMA mode info");
     }
 #endif /* HAVE_ATA_DMA */
     timing_info_present = identify_info[53] & (1<<1);
     if(timing_info_present) {
         i = identify_info[49] & (1<<11);
-        simplelist_addline(SIMPLELIST_ADD_LINE,
+        simplelist_addline(
             "IORDY support: %s", i ? "yes" : "no");
         i = identify_info[49] & (1<<10);
-        simplelist_addline(SIMPLELIST_ADD_LINE,
+        simplelist_addline(
                 "IORDY disable: %s", i ? "yes" : "no");
     } else {
-        simplelist_addline(SIMPLELIST_ADD_LINE,
+        simplelist_addline(
                 "No timing info");
     }
-    simplelist_addline(SIMPLELIST_ADD_LINE,
-             "Cluster size: %d bytes", fat_get_cluster_size(IF_MV(0)));
+    simplelist_addline(
+             "Cluster size: %d bytes", volume_get_cluster_size(IF_MV(0)));
 #ifdef HAVE_ATA_DMA
     i = ata_get_dma_mode();
     if (i == 0) {
-        simplelist_addline(SIMPLELIST_ADD_LINE,
+        simplelist_addline(
                  "DMA not enabled");
     } else {
-        simplelist_addline(SIMPLELIST_ADD_LINE,
+        simplelist_addline(
                  "DMA mode: %s %c",
                 (i & 0x40) ? "UDMA" : "MDMA",
                 '0' + (i & 7));
@@ -1705,24 +1507,222 @@ static int disk_callback(int btn, struct gui_synclist *lists)
 #endif /* HAVE_ATA_DMA */
     return btn;
 }
+
+#ifdef HAVE_ATA_SMART
+static struct ata_smart_values *smart_data = NULL;
+
+static const char * ata_smart_get_attr_name(unsigned char id)
+{
+    switch (id)
+    {
+        case 1:     return "Raw Read Error Rate";
+        case 2:     return "Throughput Performance";
+        case 3:     return "Spin-Up Time";
+        case 4:     return "Start/Stop Count";
+        case 5:     return "Reallocated Sector Count";
+        case 7:     return "Seek Error Rate";
+        case 8:     return "Seek Time Performance";
+        case 9:     return "Power-On Hours Count";
+        case 10:    return "Spin-Up Retry Count";
+        case 12:    return "Power Cycle Count";
+        case 192:   return "Power-Off Retract Count";
+        case 193:   return "Load/Unload Cycle Count";
+        case 194:   return "HDA Temperature";
+        case 196:   return "Reallocated Event Count";
+        case 197:   return "Current Pending Sector Count";
+        case 198:   return "Uncorrectable Sector Count";
+        case 199:   return "UltraDMA CRC Error Count";
+        case 220:   return "Disk Shift";
+        case 222:   return "Loaded Hours";
+        case 223:   return "Load/Unload Retry Count";
+        case 224:   return "Load Friction";
+        case 226:   return "Load-In Time";
+        case 240:   return "Transfer Error Rate";   /* Fujitsu */
+        /*case 240:   return "Head Flying Hours";*/
+        default:    return "Unknown Attribute";
+    }
+};
+
+static int ata_smart_get_attr_rawfmt(unsigned char id)
+{
+    switch (id)
+    {
+        case 3:   /* Spin-up time */
+            return RAWFMT_RAW16_OPT_AVG16;
+
+        case 5:   /* Reallocated sector count */
+        case 196: /* Reallocated event count */
+            return RAWFMT_RAW16_OPT_RAW16;
+
+        case 190: /* Airflow Temperature */
+        case 194: /* HDA Temperature */
+            return RAWFMT_TEMPMINMAX;
+
+        default:
+            return RAWFMT_RAW48;
+    }
+};
+
+static int ata_smart_attr_to_string(
+                struct ata_smart_attribute *attr, char *str, int size)
+{
+    uint16_t w[3]; /* 3 words to store 6 bytes of raw data */
+    char buf[size]; /* temp string to store attribute data */
+    int len, slen;
+    int id = attr->id;
+
+    if (id == 0)
+        return 0; /* null attribute */
+
+    /* align and convert raw data */
+    memcpy(w, attr->raw, 6);
+    w[0] = letoh16(w[0]);
+    w[1] = letoh16(w[1]);
+    w[2] = letoh16(w[2]);
+
+    len = snprintf(buf, size, ": %u,%u ", attr->current, attr->worst);
+
+    switch (ata_smart_get_attr_rawfmt(id))
+    {
+        case RAWFMT_RAW16_OPT_RAW16:
+            len += snprintf(buf+len, size-len, "%u", w[0]);
+            if ((w[1] || w[2]) && (len < size))
+                len += snprintf(buf+len, size-len, " %u %u", w[1],w[2]);
+            break;
+
+        case RAWFMT_RAW16_OPT_AVG16:
+            len += snprintf(buf+len, size-len, "%u", w[0]);
+            if (w[1] && (len < size))
+                len += snprintf(buf+len, size-len, " Avg: %u", w[1]);
+            break;
+
+        case RAWFMT_TEMPMINMAX:
+            len += snprintf(buf+len, size-len, "%u -/+: %u/%u", w[0],w[1],w[2]);
+            break;
+
+        case RAWFMT_RAW48:
+        default:
+            /* shows first 4 bytes of raw data as uint32 LE,
+               and the ramaining 2 bytes as uint16 LE */
+            len += snprintf(buf+len, size-len, "%lu", letoh32(*((uint32_t*)w)));
+            if (w[2] && (len < size))
+                len += snprintf(buf+len, size-len, " %u", w[2]);
+            break;
+    }
+    /* ignore trailing \0 when truncated */
+    if (len >= size) len = size-1;
+
+    /* fill return string; when max. size is exceded: first truncate
+       attribute name, then attribute data and finally attribute id */
+    slen = snprintf(str, size, "%d ", id);
+    if (slen < size) {
+        /* maximum space disponible for attribute name,
+           including initial space separator */
+        int name_sz = size - (slen + len);
+        if (name_sz > 1) {
+            len = snprintf(str+slen, name_sz, " %s",
+                           ata_smart_get_attr_name(id));
+            if (len >= name_sz) len = name_sz-1;
+            slen += len;
+        }
+        snprintf(str+slen, size-slen, "%s", buf);
+    }
+
+    return 1; /* ok */
+}
+
+static bool ata_smart_dump(void)
+{
+    int fd;
+
+    fd = creat("/smart_data.bin", 0666);
+    if(fd >= 0)
+    {
+        write(fd, smart_data, sizeof(struct ata_smart_values));
+        close(fd);
+    }
+
+    fd = creat("/smart_data.txt", 0666);
+    if(fd >= 0)
+    {
+        int i;
+        char buf[128];
+        for (i = 0; i < NUMBER_ATA_SMART_ATTRIBUTES; i++)
+        {
+            if (ata_smart_attr_to_string(
+                    &smart_data->vendor_attributes[i], buf, sizeof(buf)))
+            {
+                write(fd, buf, strlen(buf));
+                write(fd, "\n", 1);
+            }
+        }
+        close(fd);
+    }
+
+    return false;
+}
+
+static int ata_smart_callback(int btn, struct gui_synclist *lists)
+{
+    (void)lists;
+
+    if (btn == ACTION_STD_CANCEL)
+    {
+        smart_data = NULL;
+        return btn;
+    }
+
+    /* read S.M.A.R.T. data only on first redraw */
+    if (!smart_data)
+    {
+        int i;
+        char buf[SIMPLELIST_MAX_LINELENGTH];
+        smart_data = ata_read_smart();
+        simplelist_set_line_count(0);
+        simplelist_addline("Id  Name:  Current,Worst  Raw");
+        for (i = 0; i < NUMBER_ATA_SMART_ATTRIBUTES; i++) {
+            if (ata_smart_attr_to_string(
+                        &smart_data->vendor_attributes[i], buf, sizeof(buf)))
+                simplelist_addline(buf);
+        }
+    }
+
+    if (btn == ACTION_STD_CONTEXT)
+    {
+        ata_smart_dump();
+        splashf(HZ, "S.M.A.R.T. data dumped");
+    }
+
+    return btn;
+}
+
+static bool dbg_ata_smart(void)
+{
+    struct simplelist_info info;
+    simplelist_info_init(&info, "S.M.A.R.T. Data [CONTEXT to dump]", 1, NULL);
+    info.action_callback = ata_smart_callback;
+    info.hide_selection = true;
+    info.scroll_all = true;
+    return simplelist_show_list(&info);
+}
+#endif /* HAVE_ATA_SMART */
 #else /* No SD, MMC or ATA */
 static int disk_callback(int btn, struct gui_synclist *lists)
 {
-    (void)btn;
     (void)lists;
     struct storage_info info;
     storage_get_info(0,&info);
-    simplelist_addline(SIMPLELIST_ADD_LINE, "Vendor: %s", info.vendor);
-    simplelist_addline(SIMPLELIST_ADD_LINE, "Model: %s", info.product);
-    simplelist_addline(SIMPLELIST_ADD_LINE, "Firmware: %s", info.revision);
-    simplelist_addline(SIMPLELIST_ADD_LINE,
+    simplelist_addline("Vendor: %s", info.vendor);
+    simplelist_addline("Model: %s", info.product);
+    simplelist_addline("Firmware: %s", info.revision);
+    simplelist_addline(
              "Size: %ld MB", info.num_sectors*(info.sector_size/512)/2024);
     unsigned long free;
-    fat_size( IF_MV2(0,) NULL, &free );
-    simplelist_addline(SIMPLELIST_ADD_LINE,
+    volume_size( IF_MV(0,) NULL, &free );
+    simplelist_addline(
              "Free: %ld MB", free / 1024);
-    simplelist_addline(SIMPLELIST_ADD_LINE,
-             "Cluster size: %d bytes", fat_get_cluster_size(IF_MV(0)));
+    simplelist_addline(
+             "Cluster size: %d bytes", volume_get_cluster_size(IF_MV(0)));
     return btn;
 }
 #endif
@@ -1764,29 +1764,64 @@ static bool dbg_disk_info(void)
 #ifdef HAVE_DIRCACHE
 static int dircache_callback(int btn, struct gui_synclist *lists)
 {
-    (void)btn; (void)lists;
+    struct dircache_info info;
+    dircache_get_info(&info);
+
+    if (global_settings.dircache)
+    {
+        switch (btn)
+        {
+        case ACTION_STD_CONTEXT:
+            splash(HZ/2, "Rebuilding cache");
+            dircache_suspend();
+            *(int *)lists->data = dircache_resume();
+        case ACTION_UNKNOWN:
+            btn = ACTION_NONE;
+            break;
+    #ifdef DIRCACHE_DUMPSTER
+        case ACTION_STD_OK:
+            splash(0, "Dumping cache");
+            dircache_dump();
+            btn = ACTION_NONE;
+            break;
+    #endif /* DIRCACHE_DUMPSTER */
+        case ACTION_STD_CANCEL:
+            if (*(int *)lists->data > 0 && info.status == DIRCACHE_SCANNING)
+            {
+                splash(HZ, str(LANG_SCANNING_DISK));
+                btn = ACTION_NONE;
+            }
+            break;
+        }
+    }
+
     simplelist_set_line_count(0);
-    simplelist_addline(SIMPLELIST_ADD_LINE, "Cache initialized: %s",
-             dircache_is_enabled() ? "Yes" : "No");
-    simplelist_addline(SIMPLELIST_ADD_LINE, "Cache size: %d B",
-             dircache_get_cache_size());
-    simplelist_addline(SIMPLELIST_ADD_LINE, "Last size: %d B",
-             global_status.dircache_size);
-    simplelist_addline(SIMPLELIST_ADD_LINE, "Limit: %d B",
-             DIRCACHE_LIMIT);
-    simplelist_addline(SIMPLELIST_ADD_LINE, "Reserve: %d/%d B",
-             dircache_get_reserve_used(), DIRCACHE_RESERVE);
-    simplelist_addline(SIMPLELIST_ADD_LINE, "Scanning took: %d s",
-             dircache_get_build_ticks() / HZ);
-    simplelist_addline(SIMPLELIST_ADD_LINE, "Entry count: %d",
-             dircache_get_entry_count());
+
+    simplelist_addline("Cache status: %s", info.statusdesc);
+    simplelist_addline("Last size: %lu B", info.last_size);
+    simplelist_addline("Size: %lu B", info.size);
+    unsigned int utilized = info.size ? 1000ull*info.sizeused / info.size : 0;
+    simplelist_addline("Used: %lu B (%u.%u%%)", info.sizeused,
+                       utilized / 10, utilized % 10);
+    simplelist_addline("Limit: %lu B", info.size_limit);
+    simplelist_addline("Reserve: %lu/%lu B", info.reserve_used, info.reserve);
+    long ticks = ALIGN_UP(info.build_ticks, HZ / 10);
+    simplelist_addline("Scanning took: %ld.%ld s",
+                       ticks / HZ, (ticks*10 / HZ) % 10);
+    simplelist_addline("Entry count: %u", info.entry_count);
+
+    if (btn == ACTION_NONE)
+        btn = ACTION_REDRAW;
+
     return btn;
+    (void)lists;
 }
 
 static bool dbg_dircache_info(void)
 {
     struct simplelist_info info;
-    simplelist_info_init(&info, "Dircache Info", 7, NULL);
+    int syncbuild = 0;
+    simplelist_info_init(&info, "Dircache Info", 8, &syncbuild);
     info.action_callback = dircache_callback;
     info.hide_selection = true;
     info.scroll_all = true;
@@ -1804,24 +1839,24 @@ static int database_callback(int btn, struct gui_synclist *lists)
 
     simplelist_set_line_count(0);
 
-    simplelist_addline(SIMPLELIST_ADD_LINE, "Initialized: %s",
+    simplelist_addline("Initialized: %s",
              stat->initialized ? "Yes" : "No");
-    simplelist_addline(SIMPLELIST_ADD_LINE, "DB Ready: %s",
+    simplelist_addline("DB Ready: %s",
              stat->ready ? "Yes" : "No");
-    simplelist_addline(SIMPLELIST_ADD_LINE, "RAM Cache: %s",
+    simplelist_addline("RAM Cache: %s",
              stat->ramcache ? "Yes" : "No");
-    simplelist_addline(SIMPLELIST_ADD_LINE, "RAM: %d/%d B",
+    simplelist_addline("RAM: %d/%d B",
              stat->ramcache_used, stat->ramcache_allocated);
-    simplelist_addline(SIMPLELIST_ADD_LINE, "Progress: %d%% (%d entries)",
+    simplelist_addline("Progress: %d%% (%d entries)",
              stat->progress, stat->processed_entries);
-    simplelist_addline(SIMPLELIST_ADD_LINE, "Curfile: %s",
+    simplelist_addline("Curfile: %s",
                        stat->curentry ? stat->curentry : "---");
-    simplelist_addline(SIMPLELIST_ADD_LINE, "Commit step: %d",
+    simplelist_addline("Commit step: %d",
              stat->commit_step);
-    simplelist_addline(SIMPLELIST_ADD_LINE, "Commit delayed: %s",
+    simplelist_addline("Commit delayed: %s",
              stat->commit_delayed ? "Yes" : "No");
 
-    simplelist_addline(SIMPLELIST_ADD_LINE, "Queue length: %d", 
+    simplelist_addline("Queue length: %d", 
              stat->queue_length);
     
     if (synced)
@@ -1933,9 +1968,7 @@ static bool dbg_save_roms(void)
 #elif defined(CPU_PP) && !(CONFIG_STORAGE & STORAGE_SD)
 static bool dbg_save_roms(void)
 {
-    int fd;
-
-    fd = creat("/internal_rom_000000-0FFFFF.bin", 0666);
+    int fd = creat("/internal_rom_000000-0FFFFF.bin", 0666);
     if(fd >= 0)
     {
         write(fd, (void *)0x20000000, FLASH_SIZE);
@@ -1944,12 +1977,23 @@ static bool dbg_save_roms(void)
 
     return false;
 }
-#elif CONFIG_CPU == IMX31L
+#elif CONFIG_CPU == AS3525v2 || CONFIG_CPU == AS3525
 static bool dbg_save_roms(void)
 {
-    int fd;
+    int fd = creat("/rom.bin", 0666);
+    if(fd >= 0)
+    {
+        write(fd, (void *)0x80000000, 0x20000);
+        close(fd);
+    }
 
-    fd = creat("/flash_rom_A0000000-A01FFFFF.bin", 0666);
+    return false;
+}
+#elif CONFIG_CPU == IMX31L
+bool __dbg_dvfs_dptc(void);
+static bool dbg_save_roms(void)
+{
+    int fd = creat("/flash_rom_A0000000-A01FFFFF.bin", 0666);
     if (fd >= 0)
     {
         write(fd, (void*)0xa0000000, FLASH_SIZE);
@@ -1961,14 +2005,44 @@ static bool dbg_save_roms(void)
 #elif defined(CPU_TCC780X)
 static bool dbg_save_roms(void)
 {
-    int fd;
-
-    fd = creat("/eeprom_E0000000-E0001FFF.bin", 0666);
+    int fd = creat("/eeprom_E0000000-E0001FFF.bin", 0666);
     if (fd >= 0)
     {
         write(fd, (void*)0xe0000000, 0x2000);
         close(fd);
     }
+
+    return false;
+}
+#elif CONFIG_CPU == RK27XX
+static bool dbg_save_roms(void)
+{
+    char buf[0x200];
+
+    int fd = creat("/rom.bin", 0666);
+    if(fd < 0)
+        return false;
+
+    for(int addr = 0; addr < 0x2000; addr += sizeof(buf))
+    {
+        int old_irq = disable_irq_save();
+
+        /* map rom at 0 */
+        SCU_REMAP = 0;
+        commit_discard_idcache();
+
+        /* copy rom */
+        memcpy((void *)buf, (void *)addr, sizeof(buf));
+
+        /* map iram back at 0 */
+        SCU_REMAP = 0xdeadbeef;
+        commit_discard_idcache();
+
+        restore_irq(old_irq);
+
+        write(fd, (void *)buf, sizeof(buf));
+    }
+    close(fd);
 
     return false;
 }
@@ -1992,36 +2066,36 @@ static int radio_callback(int btn, struct gui_synclist *lists)
     simplelist_set_line_count(1);
 
 #if (CONFIG_TUNER & LV24020LP)
-    simplelist_addline(SIMPLELIST_ADD_LINE,
+    simplelist_addline(
                         "CTRL_STAT: %02X", lv24020lp_get(LV24020LP_CTRL_STAT) );
-    simplelist_addline(SIMPLELIST_ADD_LINE,
+    simplelist_addline(
                         "RADIO_STAT: %02X", lv24020lp_get(LV24020LP_REG_STAT) );
-    simplelist_addline(SIMPLELIST_ADD_LINE,
+    simplelist_addline(
                         "MSS_FM: %d kHz", lv24020lp_get(LV24020LP_MSS_FM) );
-    simplelist_addline(SIMPLELIST_ADD_LINE,
+    simplelist_addline(
                         "MSS_IF: %d Hz", lv24020lp_get(LV24020LP_MSS_IF) );
-    simplelist_addline(SIMPLELIST_ADD_LINE,
+    simplelist_addline(
                         "MSS_SD: %d Hz", lv24020lp_get(LV24020LP_MSS_SD) );
-    simplelist_addline(SIMPLELIST_ADD_LINE,
+    simplelist_addline(
                         "if_set: %d Hz", lv24020lp_get(LV24020LP_IF_SET) );
-    simplelist_addline(SIMPLELIST_ADD_LINE,
+    simplelist_addline(
                         "sd_set: %d Hz", lv24020lp_get(LV24020LP_SD_SET) );
 #endif /* LV24020LP */
 #if (CONFIG_TUNER & S1A0903X01)
-    simplelist_addline(SIMPLELIST_ADD_LINE,
+    simplelist_addline(
                         "Samsung regs: %08X", s1a0903x01_get(RADIO_ALL));
     /* This one doesn't return dynamic data atm */
 #endif /* S1A0903X01 */
 #if (CONFIG_TUNER & TEA5767)
     struct tea5767_dbg_info nfo;
     tea5767_dbg_info(&nfo);
-    simplelist_addline(SIMPLELIST_ADD_LINE, "Philips regs:");
-    simplelist_addline(SIMPLELIST_ADD_LINE,
+    simplelist_addline("Philips regs:");
+    simplelist_addline(
              "   Read: %02X %02X %02X %02X %02X",
              (unsigned)nfo.read_regs[0], (unsigned)nfo.read_regs[1],
              (unsigned)nfo.read_regs[2], (unsigned)nfo.read_regs[3],
              (unsigned)nfo.read_regs[4]);
-    simplelist_addline(SIMPLELIST_ADD_LINE,
+    simplelist_addline(
              "   Write: %02X %02X %02X %02X %02X",
              (unsigned)nfo.write_regs[0], (unsigned)nfo.write_regs[1],
              (unsigned)nfo.write_regs[2], (unsigned)nfo.write_regs[3],
@@ -2031,11 +2105,10 @@ static int radio_callback(int btn, struct gui_synclist *lists)
     IF_TUNER_TYPE(SI4700)
     {
         struct si4700_dbg_info nfo;
-        int i;
         si4700_dbg_info(&nfo);
-        simplelist_addline(SIMPLELIST_ADD_LINE, "SI4700 regs:");
-        for (i = 0; i < 16; i += 4) {
-            simplelist_addline(SIMPLELIST_ADD_LINE,"%02X: %04X %04X %04X %04X",
+        simplelist_addline("SI4700 regs:");
+        for (int i = 0; i < 16; i += 4) {
+            simplelist_addline("%02X: %04X %04X %04X %04X",
                 i, nfo.regs[i], nfo.regs[i+1], nfo.regs[i+2], nfo.regs[i+3]);
         }
     }
@@ -2044,15 +2117,48 @@ static int radio_callback(int btn, struct gui_synclist *lists)
     IF_TUNER_TYPE(RDA5802)
     {
         struct rda5802_dbg_info nfo;
-        int i;
         rda5802_dbg_info(&nfo);
-        simplelist_addline(SIMPLELIST_ADD_LINE, "RDA5802 regs:");
-        for (i = 0; i < 16; i += 4) {
-            simplelist_addline(SIMPLELIST_ADD_LINE,"%02X: %04X %04X %04X %04X",
+        simplelist_addline("RDA5802 regs:");
+        for (int i = 0; i < 16; i += 4) {
+            simplelist_addline("%02X: %04X %04X %04X %04X",
                 i, nfo.regs[i], nfo.regs[i+1], nfo.regs[i+2], nfo.regs[i+3]);
         }
     }
 #endif /* RDA55802 */
+#if (CONFIG_TUNER & STFM1000)
+    IF_TUNER_TYPE(STFM1000)
+    {
+        struct stfm1000_dbg_info nfo;
+        stfm1000_dbg_info(&nfo);
+        simplelist_addline("STFM1000 regs:");
+        simplelist_addline("chipid: 0x%x", nfo.chipid);
+    }
+#endif /* STFM1000 */
+#if (CONFIG_TUNER & TEA5760)
+    IF_TUNER_TYPE(TEA5760)
+    {
+        struct tea5760_dbg_info nfo;
+        tea5760_dbg_info(&nfo);
+        simplelist_addline("TEA5760 regs:");
+        for (int i = 0; i < 16; i += 4) {
+            simplelist_addline("%02X: %02X %02X %02X %02X",
+                i, nfo.read_regs[i], nfo.read_regs[i+1], nfo.read_regs[i+2], nfo.read_regs[i+3]);
+        }
+    }
+#endif /* TEA5760 */
+
+#ifdef HAVE_RDS_CAP
+        simplelist_addline("PI:%04X PS:'%8s'",
+                           rds_get_pi(), rds_get_ps());
+        simplelist_addline("RT:%s",
+                           rds_get_rt());
+        time_t seconds = rds_get_ct();
+        struct tm* time = gmtime(&seconds);
+        simplelist_addline(
+            "CT:%4d-%02d-%02d %02d:%02d",
+            time->tm_year + 1900, time->tm_mon + 1, time->tm_mday,
+            time->tm_hour, time->tm_min, time->tm_sec);
+#endif
     return ACTION_REDRAW;
 }
 static bool dbg_fm_radio(void)
@@ -2064,7 +2170,7 @@ static bool dbg_fm_radio(void)
     info.scroll_all = true;
     simplelist_info_init(&info, "FM Radio", 1, NULL);
     simplelist_set_line_count(0);
-    simplelist_addline(SIMPLELIST_ADD_LINE, "HW detected: %s",
+    simplelist_addline("HW detected: %s",
                        radio_hardware_present() ? "yes" : "no");
 
     info.action_callback = radio_hardware_present()?radio_callback : NULL;
@@ -2074,14 +2180,13 @@ static bool dbg_fm_radio(void)
 #endif /* CONFIG_TUNER */
 #endif /* !SIMULATOR */
 
-#ifdef HAVE_LCD_BITMAP
+#if defined(HAVE_LCD_BITMAP) && !defined(APPLICATION)
 extern bool do_screendump_instead_of_usb;
 
 static bool dbg_screendump(void)
 {
     do_screendump_instead_of_usb = !do_screendump_instead_of_usb;
-    splashf(HZ, "Screendump %s",
-                 do_screendump_instead_of_usb?"enabled":"disabled");
+    splashf(HZ, "Screendump %sabled", do_screendump_instead_of_usb?"en":"dis");
     return false;
 }
 #endif /* HAVE_LCD_BITMAP */
@@ -2091,8 +2196,7 @@ extern bool write_metadata_log;
 static bool dbg_metadatalog(void)
 {
     write_metadata_log = !write_metadata_log;
-    splashf(HZ, "Metadata log %s",
-                 write_metadata_log?"enabled":"disabled");
+    splashf(HZ, "Metadata log %sabled", write_metadata_log ? "en" : "dis");
     return false;
 }
 
@@ -2116,23 +2220,18 @@ static bool dbg_set_memory_guard(void)
 #if defined(HAVE_EEPROM) && !defined(HAVE_EEPROM_SETTINGS)
 static bool dbg_write_eeprom(void)
 {
-    int fd;
-    int rc;
-    int old_irq_level;
-    char buf[EEPROM_SIZE];
-    int err;
-
-    fd = open("/internal_eeprom.bin", O_RDONLY);
+    int fd = open("/internal_eeprom.bin", O_RDONLY);
 
     if (fd >= 0)
     {
-        rc = read(fd, buf, EEPROM_SIZE);
+        char buf[EEPROM_SIZE];
+        int rc = read(fd, buf, EEPROM_SIZE);
 
         if(rc == EEPROM_SIZE)
         {
-            old_irq_level = disable_irq_save();
+            int old_irq_level = disable_irq_save();
 
-            err = eeprom_24cxx_write(0, buf, sizeof buf);
+            int err = eeprom_24cxx_write(0, buf, sizeof buf);
             if (err)
                 splashf(HZ*3, "Eeprom write failure (%d)", err);
             else
@@ -2157,17 +2256,14 @@ static bool dbg_write_eeprom(void)
 #ifdef CPU_BOOST_LOGGING
 static bool cpu_boost_log(void)
 {
-    int i = 0,j=0;
     int count = cpu_boost_log_getcount();
-    int lines = LCD_HEIGHT/SYSFONT_HEIGHT;
-    char *str;
+    char *str = cpu_boost_log_getlog_first();
     bool done;
     lcd_setfont(FONT_SYSFIXED);
-    str = cpu_boost_log_getlog_first();
-    while (i < count)
+    for (int i = 0; i < count ;)
     {
         lcd_clear_display();
-        for(j=0; j<lines; j++,i++)
+        for(int j=0; j<LCD_HEIGHT/SYSFONT_HEIGHT; j++,i++)
         {
             if (!str)
                 str = cpu_boost_log_getlog_next();
@@ -2198,7 +2294,7 @@ static bool cpu_boost_log(void)
             }
         }
     }
-    lcd_stop_scroll();
+    lcd_scroll_stop();
     get_action(CONTEXT_STD,TIMEOUT_BLOCK);
     lcd_setfont(FONT_UI);
     return false;
@@ -2216,8 +2312,6 @@ extern unsigned int wheel_velocity;
 
 static bool dbg_scrollwheel(void)
 {
-    unsigned int speed;
-
     lcd_setfont(FONT_SYSFIXED);
 
     while (1)
@@ -2236,8 +2330,8 @@ static bool dbg_scrollwheel(void)
         lcd_putsf(0, 5, "velo [deg/s]: %4d", (int)wheel_velocity);
 
         /* show effective accelerated scrollspeed */
-        speed = button_apply_acceleration( (1<<31)|(1<<24)|wheel_velocity);
-        lcd_putsf(0, 6, "accel. speed: %4d", speed);
+        lcd_putsf(0, 6, "accel. speed: %4d",
+                button_apply_acceleration((1<<31)|(1<<24)|wheel_velocity) );
 
         lcd_update();
     }
@@ -2245,6 +2339,67 @@ static bool dbg_scrollwheel(void)
     return false;
 }
 #endif
+
+static const char* dbg_talk_get_name(int selected_item, void *data,
+                                     char *buffer, size_t buffer_len)
+{
+    struct talk_debug_data *talk_data = data;
+    switch(selected_item)
+    {
+        case 0:
+            if (talk_data)
+                snprintf(buffer, buffer_len, "Current voice file: %s",
+                        talk_data->voicefile);
+            else
+                buffer = "No voice information available";
+            break;
+        case 1:
+            snprintf(buffer, buffer_len, "Number of (empty) clips in voice file: (%d) %d",
+                    talk_data->num_empty_clips, talk_data->num_clips);
+            break;
+        case 2:
+            snprintf(buffer, buffer_len, "Min/Avg/Max size of clips: %d / %d / %d",
+                    talk_data->min_clipsize, talk_data->avg_clipsize, talk_data->max_clipsize);
+            break;
+        case 3:
+            snprintf(buffer, buffer_len, "Memory allocated: %ld.%02ld KB",
+                    talk_data->memory_allocated / 1024, talk_data->memory_allocated % 1024);
+            break;
+        case 4:
+            snprintf(buffer, buffer_len, "Memory used: %ld.%02ld KB",
+                    talk_data->memory_used / 1024, talk_data->memory_used % 1024);
+            break;
+        case 5:
+            snprintf(buffer, buffer_len, "Number of clips in cache: %d",
+                    talk_data->cached_clips);
+            break;
+        case 6:
+            snprintf(buffer, buffer_len, "Cache hits / misses: %d / %d",
+                    talk_data->cache_hits, talk_data->cache_misses);
+            break;
+        default:
+            buffer = "TODO";
+            break;
+    }
+
+    return buffer;
+}
+
+static bool dbg_talk(void)
+{
+    struct simplelist_info list;
+    struct talk_debug_data data;
+    if (talk_get_debug_data(&data))
+        simplelist_info_init(&list, "Voice Information:", 7, &data);
+    else
+        simplelist_info_init(&list, "Voice Information:", 1, NULL);
+    list.scroll_all = true;
+    list.hide_selection = true;
+    list.timeout = HZ;
+    list.get_name = dbg_talk_get_name;
+
+    return simplelist_show_list(&list);
+}
 
 #if defined (HAVE_USBSTACK)
 
@@ -2259,7 +2414,7 @@ static bool toggle_usb_core_driver(int driver, char *msg)
     return false;
 }
 
-#ifdef USB_ENABLE_SERIAL
+#if defined(ROCKBOX_HAS_LOGF) && defined(USB_ENABLE_SERIAL)
 static bool toggle_usb_serial(void)
 {
     return toggle_usb_core_driver(USB_DRIVER_SERIAL,"USB Serial");
@@ -2335,21 +2490,78 @@ static bool dbg_pic(void)
 }
 #endif
 
+#ifdef HAVE_LCD_BITMAP
+static bool dbg_skin_engine(void)
+{
+    struct simplelist_info info;
+    int i, total = 0;
+#if defined(HAVE_BACKDROP_IMAGE)
+    int ref_count;
+    char *path;
+    size_t bytes;
+    int path_prefix_len = strlen(ROCKBOX_DIR "/wps/");
+#endif
+    simplelist_info_init(&info, "Skin engine usage", 0, NULL);
+    simplelist_set_line_count(0);
+    info.hide_selection = true;
+    FOR_NB_SCREENS(j) {
+#if NB_SCREENS > 1
+        simplelist_addline("%s display:",
+                           j == 0 ? "Main" : "Remote");
+#endif
+        for (i = 0; i < skin_get_num_skins(); i++) {
+            struct skin_stats *stats = skin_get_stats(i, j);
+            if (stats->buflib_handles)
+            {
+                simplelist_addline("Skin ID: %d, %d allocations",
+                        i, stats->buflib_handles);
+                simplelist_addline("\tskin: %d bytes",
+                        stats->tree_size);
+                simplelist_addline("\tImages: %d bytes",
+                        stats->images_size);
+                simplelist_addline("\tTotal: %d bytes",
+                        stats->tree_size + stats->images_size);
+                total += stats->tree_size + stats->images_size;
+            }
+        }
+    }
+    simplelist_addline("Skin total usage: %d bytes", total);
+#if defined(HAVE_BACKDROP_IMAGE)
+    simplelist_addline("Backdrop Images:");
+    i = 0;
+    while (skin_backdrop_get_debug(i++, &path, &ref_count, &bytes)) {
+        if (ref_count > 0) {
+
+            if (!strncasecmp(path, ROCKBOX_DIR "/wps/", path_prefix_len))
+                path += path_prefix_len;
+            simplelist_addline("%s", path);
+            simplelist_addline("\tref_count: %d", ref_count);
+            simplelist_addline("\tsize: %d", bytes);
+            total += bytes;
+        }
+    }
+    simplelist_addline("Total usage: %d bytes", total);
+#endif
+    return simplelist_show_list(&info);
+}
+#endif
+
 
 /****** The menu *********/
-struct the_menu_item {
+static const struct {
     unsigned char *desc; /* string or ID */
     bool (*function) (void); /* return true if USB was connected */
-};
-static const struct the_menu_item menuitems[] = {
+} menuitems[] = {
 #if CONFIG_CPU == SH7034 || defined(CPU_COLDFIRE) || \
     (defined(CPU_PP) && !(CONFIG_STORAGE & STORAGE_SD)) || \
-    CONFIG_CPU == IMX31L || defined(CPU_TCC780X)
+    CONFIG_CPU == IMX31L || defined(CPU_TCC780X) || CONFIG_CPU == AS3525v2 || \
+    CONFIG_CPU == AS3525 || CONFIG_CPU == RK27XX
         { "Dump ROM contents", dbg_save_roms },
 #endif
 #if CONFIG_CPU == SH7034 || defined(CPU_COLDFIRE) || defined(CPU_PP) \
     || CONFIG_CPU == S3C2440 || CONFIG_CPU == IMX31L || CONFIG_CPU == AS3525 \
-    || CONFIG_CPU == DM320 || defined(CPU_S5L870X) || CONFIG_CPU == AS3525v2
+    || CONFIG_CPU == DM320 || defined(CPU_S5L870X) || CONFIG_CPU == AS3525v2 \
+    || CONFIG_CPU == RK27XX
         { "View I/O ports", dbg_ports },
 #endif
 #if (CONFIG_RTC == RTC_PCF50605) && (CONFIG_PLATFORM & PLATFORM_NATIVE)
@@ -2361,6 +2573,9 @@ static const struct the_menu_item menuitems[] = {
 #ifdef HAVE_ADJUSTABLE_CPU_FREQ
         { "CPU frequency", dbg_cpufreq },
 #endif
+#if CONFIG_CPU == IMX31L
+        { "DVFS/DPTC", __dbg_dvfs_dptc },
+#endif
 #if defined(IRIVER_H100_SERIES) && !defined(SIMULATOR)
         { "S/PDIF analyzer", dbg_spdif },
 #endif
@@ -2368,11 +2583,17 @@ static const struct the_menu_item menuitems[] = {
         { "Catch mem accesses", dbg_set_memory_guard },
 #endif
         { "View OS stacks", dbg_os },
+#ifdef __linux__
+        { "View CPU stats", dbg_cpuinfo },
+#endif
 #ifdef HAVE_LCD_BITMAP
-#if (CONFIG_PLATFORM & PLATFORM_NATIVE)
+#if (CONFIG_BATTERY_MEASURE != 0) && !defined(SIMULATOR)
         { "View battery", view_battery },
 #endif
+#ifndef APPLICATION
         { "Screendump", dbg_screendump },
+#endif
+        { "Skin Engine RAM usage", dbg_skin_engine },
 #endif
 #if (CONFIG_PLATFORM & PLATFORM_NATIVE)
         { "View HW info", dbg_hw_info },
@@ -2384,6 +2605,9 @@ static const struct the_menu_item menuitems[] = {
         { "View disk info", dbg_disk_info },
 #if (CONFIG_STORAGE & STORAGE_ATA)
         { "Dump ATA identify info", dbg_identify_info},
+#ifdef HAVE_ATA_SMART
+        { "View/Dump S.M.A.R.T. data", dbg_ata_smart},
+#endif
 #endif
 #endif
         { "Metadata log", dbg_metadatalog },
@@ -2403,6 +2627,7 @@ static const struct the_menu_item menuitems[] = {
         { "pm histogram", peak_meter_histogram},
 #endif /* PM_DEBUG */
 #endif /* HAVE_LCD_BITMAP */
+        { "View buflib allocs", dbg_buflib_allocs },
 #ifndef SIMULATOR
 #if CONFIG_TUNER
         { "FM Radio", dbg_fm_radio },
@@ -2439,23 +2664,32 @@ static const struct the_menu_item menuitems[] = {
      && !defined(IPOD_MINI) && !defined(SIMULATOR))
         {"Debug scrollwheel", dbg_scrollwheel },
 #endif
-    };
+        {"Talk engine stats", dbg_talk },
+};
+
 static int menu_action_callback(int btn, struct gui_synclist *lists)
 {
-   int i;
+    int selection = gui_synclist_get_sel_pos(lists);
     if (btn == ACTION_STD_OK)
     {
         FOR_NB_SCREENS(i)
            viewportmanager_theme_enable(i, false, NULL);
-        menuitems[gui_synclist_get_sel_pos(lists)].function();
+        menuitems[selection].function();
         btn = ACTION_REDRAW;
         FOR_NB_SCREENS(i)
             viewportmanager_theme_undo(i, false);
     }
+    else if (btn == ACTION_STD_CONTEXT)
+    {
+        MENUITEM_STRINGLIST(menu_items, "Debug Menu", NULL, ID2P(LANG_ADD_TO_FAVES));
+        if (do_menu(&menu_items, NULL, NULL, false) == 0)
+            shortcuts_add(SHORTCUT_DEBUGITEM, menuitems[selection].desc);
+        return ACTION_STD_CANCEL;
+    }
     return btn;
 }
 
-static const char* dbg_menu_getname(int item, void * data,
+static const char* menu_get_name(int item, void * data,
                                     char *buffer, size_t buffer_len)
 {
     (void)data; (void)buffer; (void)buffer_len;
@@ -2468,6 +2702,22 @@ bool debug_menu(void)
 
     simplelist_info_init(&info, "Debug Menu", ARRAYLEN(menuitems), NULL);
     info.action_callback = menu_action_callback;
-    info.get_name = dbg_menu_getname;
+    info.get_name        = menu_get_name;
     return simplelist_show_list(&info);
+}
+
+bool run_debug_screen(char* screen)
+{
+    for (unsigned i=0; i<ARRAYLEN(menuitems); i++)
+        if (!strcmp(screen, menuitems[i].desc))
+        {
+            FOR_NB_SCREENS(j)
+               viewportmanager_theme_enable(j, false, NULL);
+            menuitems[i].function();
+            FOR_NB_SCREENS(j)
+                viewportmanager_theme_undo(j, false);
+            return true;
+        }
+
+    return false;
 }

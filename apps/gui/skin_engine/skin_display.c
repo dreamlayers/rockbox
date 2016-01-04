@@ -22,6 +22,7 @@
 #include "config.h"
 #include <stdio.h>
 #include "string-extra.h"
+#include "core_alloc.h"
 #include "misc.h"
 #include "font.h"
 #include "system.h"
@@ -39,9 +40,12 @@
 #include "settings.h"
 #include "scrollbar.h"
 #include "screen_access.h"
+#include "line.h"
 #include "playlist.h"
 #include "audio.h"
 #include "tagcache.h"
+#include "list.h"
+#include "option_select.h"
 
 #ifdef HAVE_LCD_BITMAP
 #include "peakmeter.h"
@@ -93,42 +97,77 @@ void skin_update(enum skinnable_screens skin, enum screen_type screen,
 
 #ifdef HAVE_LCD_BITMAP
 
-void skin_statusbar_changed(struct gui_wps *skin)
+
+#ifdef AB_REPEAT_ENABLE
+
+#define DIRECTION_RIGHT 1
+#define DIRECTION_LEFT -1
+
+static int ab_calc_mark_x_pos(int mark, int capacity, 
+        int offset, int size)
 {
-    if (!skin)
-        return;
-    struct wps_data *data = skin->data;
-    const struct screen *display = skin->display;
-    const int   screen = display->screen_type;
+    return offset + ( (size * mark) / capacity );
+}
 
-    struct viewport *vp = &find_viewport(VP_DEFAULT_LABEL, false, data)->vp;
-    viewport_set_defaults(vp, screen);
+static void ab_draw_vertical_line_mark(struct screen * screen,
+                                              int x, int y, int h)
+{
+    screen->set_drawmode(DRMODE_COMPLEMENT);
+    screen->vline(x, y, y+h-1);
+}
 
-    if (data->wps_sb_tag)
-    {   /* fix up the default viewport */
-        if (data->show_sb_on_wps)
-        {
-            if (statusbar_position(screen) != STATUSBAR_OFF)
-                return;     /* vp is fixed already */
-
-            vp->y       = STATUSBAR_HEIGHT;
-            vp->height  = display->lcdheight - STATUSBAR_HEIGHT;
-        }
-        else
-        {
-            if (statusbar_position(screen) == STATUSBAR_OFF)
-                return;     /* vp is fixed already */
-            vp->y       = vp->x = 0;
-            vp->height  = display->lcdheight;
-            vp->width   = display->lcdwidth;
-        }
+static void ab_draw_arrow_mark(struct screen * screen,
+                                      int x, int y, int h, int direction)
+{
+    /* draw lines in decreasing size until a height of zero is reached */
+    screen->set_drawmode(DRMODE_SOLID|DRMODE_INVERSEVID);
+    while( h > 0 )
+    {
+        screen->vline(x, y, y+h-1);
+        h -= 2;
+        y++;
+        x += direction;
+        screen->set_drawmode(DRMODE_COMPLEMENT);
     }
 }
+
+void ab_draw_markers(struct screen * screen, int capacity, 
+                     int x, int y, int w, int h)
+{
+    bool a_set, b_set;
+    unsigned int a, b;
+    int xa, xb;
+
+    a_set = ab_get_A_marker(&a);
+    b_set = ab_get_B_marker(&b);
+    xa = ab_calc_mark_x_pos(a, capacity, x, w);
+    xb = ab_calc_mark_x_pos(b, capacity, x, w);
+    /* if both markers are set, determine if they're far enough apart
+    to draw arrows */
+    if ( a_set && b_set )
+    {
+        int arrow_width = (h+1) / 2;
+        if ( (xb-xa) < (arrow_width*2) )
+        {
+            ab_draw_vertical_line_mark(screen, xa, y, h);
+            ab_draw_vertical_line_mark(screen, xb, y, h);
+            return;
+        }
+    }
+
+    if (a_set)
+        ab_draw_arrow_mark(screen, xa, y, h, DIRECTION_RIGHT);
+
+    if (b_set)
+        ab_draw_arrow_mark(screen, xb, y, h, DIRECTION_LEFT);
+}
+
+#endif
 
 void draw_progressbar(struct gui_wps *gwps, int line, struct progressbar *pb)
 {
     struct screen *display = gwps->display;
-    struct viewport *vp = pb->vp;
+    struct viewport *vp = SKINOFFSETTOPTR(get_skin_buffer(gwps->data), pb->vp);
     struct wps_state *state = skin_get_global_state();
     struct mp3entry *id3 = state->id3;
     int x = pb->x, y = pb->y, width = pb->width, height = pb->height;
@@ -158,6 +197,29 @@ void draw_progressbar(struct gui_wps *gwps, int line, struct progressbar *pb)
     {
         length = 100;
         end = battery_level();
+    }
+    else if (pb->type == SKIN_TOKEN_PEAKMETER_LEFTBAR ||
+             pb->type == SKIN_TOKEN_PEAKMETER_RIGHTBAR)
+    {
+        int left, right, val;
+        peak_meter_current_vals(&left, &right);
+        val = pb->type == SKIN_TOKEN_PEAKMETER_LEFTBAR ? left : right;
+        length = MAX_PEAK;
+        end = peak_meter_scale_value(val, length);
+    }
+    else if (pb->type == SKIN_TOKEN_LIST_SCROLLBAR)
+    {
+        int val, min, max;
+        skinlist_get_scrollbar(&val, &min, &max);
+        end = val - min;
+        length = max - min;
+    }
+    else if (pb->type == SKIN_TOKEN_SETTINGBAR)
+    {
+        int val, count;
+        get_setting_info_for_bar(pb->setting_id, &count, &val);
+        length = count - 1;
+        end = val;
     }
 #if CONFIG_TUNER
     else if (in_radio_screen() || (get_radio_status() != FMRADIO_OFF))
@@ -207,40 +269,58 @@ void draw_progressbar(struct gui_wps *gwps, int line, struct progressbar *pb)
         flags |= INNER_NOFILL;
     }
 
-    if (pb->slider)
+    if (pb->noborder)
     {
-        struct gui_img *img = pb->slider;
+        flags |= BORDER_NOFILL;
+    }
+
+    if (SKINOFFSETTOPTR(get_skin_buffer(gwps->data), pb->slider))
+    {
+        struct gui_img *img = SKINOFFSETTOPTR(get_skin_buffer(gwps->data), pb->slider);
         /* clear the slider */
         screen_clear_area(display, x, y, width, height);
 
-        /* shrink the bar so the slider is inside bounds */
+        /* account for the sliders width in the progressbar */
         if (flags&HORIZONTAL)
         {
             width -= img->bm.width;
-            x += img->bm.width / 2;
         }
         else
         {
             height -= img->bm.height;
-            y += img->bm.height / 2;
         }
     }
+
+    if (SKINOFFSETTOPTR(get_skin_buffer(gwps->data), pb->backdrop))
+    {
+        struct gui_img *img = SKINOFFSETTOPTR(get_skin_buffer(gwps->data), pb->backdrop);
+        img->bm.data = core_get_data(img->buflib_handle);
+        display->bmp_part(&img->bm, 0, 0, x, y, pb->width, height);
+        flags |= DONT_CLEAR_EXCESS;
+    }
+
     if (!pb->nobar)
     {
-        if (pb->image)
-            gui_bitmap_scrollbar_draw(display, &pb->image->bm,
+        struct gui_img *img = SKINOFFSETTOPTR(get_skin_buffer(gwps->data), pb->image);
+        if (img)
+        {
+            char *img_data = core_get_data(img->buflib_handle);
+            img->bm.data = img_data;
+            gui_bitmap_scrollbar_draw(display, &img->bm,
                                     x, y, width, height,
                                     length, 0, end, flags);
+        }
         else
             gui_scrollbar_draw(display, x, y, width, height,
                                length, 0, end, flags);
     }
 
-    if (pb->slider)
+    if (SKINOFFSETTOPTR(get_skin_buffer(gwps->data), pb->slider))
     {
         int xoff = 0, yoff = 0;
         int w = width, h = height;
-        struct gui_img *img = pb->slider;
+        struct gui_img *img = SKINOFFSETTOPTR(get_skin_buffer(gwps->data), pb->slider);
+        img->bm.data = core_get_data(img->buflib_handle);
 
         if (flags&HORIZONTAL)
         {
@@ -248,7 +328,6 @@ void draw_progressbar(struct gui_wps *gwps, int line, struct progressbar *pb)
             xoff = width * end / length;
             if (flags&INVERTFILL)
                 xoff = width - xoff;
-            xoff -= w / 2;
         }
         else
         {
@@ -256,23 +335,8 @@ void draw_progressbar(struct gui_wps *gwps, int line, struct progressbar *pb)
             yoff = height * end / length;
             if (flags&INVERTFILL)
                 yoff = height - yoff;
-            yoff -= h / 2;
         }
-#if LCD_DEPTH > 1
-        if(img->bm.format == FORMAT_MONO) {
-#endif
-            display->mono_bitmap_part(img->bm.data,
-                                      0, 0, img->bm.width,
-                                      x + xoff, y + yoff, w, h);
-#if LCD_DEPTH > 1
-        } else {
-            display->transparent_bitmap_part((fb_data *)img->bm.data,
-                                             0, 0,
-                                             STRIDE(display->screen_type,
-                                             img->bm.width, img->bm.height),
-                                             x + xoff, y + yoff, w, h);
-        }
-#endif
+        display->bmp_part(&img->bm, 0, 0, x + xoff, y + yoff, w, h);
     }
 
     if (pb->type == SKIN_TOKEN_PROGRESSBAR)
@@ -307,47 +371,33 @@ void clear_image_pos(struct gui_wps *gwps, struct gui_img *img)
     gwps->display->set_drawmode(DRMODE_SOLID);
 }
 
-void wps_draw_image(struct gui_wps *gwps, struct gui_img *img, int subimage)
+void wps_draw_image(struct gui_wps *gwps, struct gui_img *img,
+                    int subimage, struct viewport* vp)
 {
     struct screen *display = gwps->display;
-    if(img->always_display)
-        display->set_drawmode(DRMODE_FG);
+    img->bm.data = core_get_data(img->buflib_handle);
+    display->set_drawmode(DRMODE_SOLID);
+
+    if (img->is_9_segment)
+        display->nine_segment_bmp(&img->bm, 0, 0, vp->width, vp->height);
     else
-        display->set_drawmode(DRMODE_SOLID);
-
-#if LCD_DEPTH > 1
-    if(img->bm.format == FORMAT_MONO) {
-#endif
-        display->mono_bitmap_part(img->bm.data,
-                                  0, img->subimage_height * subimage,
-                                  img->bm.width, img->x,
-                                  img->y, img->bm.width,
-                                  img->subimage_height);
-#if LCD_DEPTH > 1
-    } else {
-        display->transparent_bitmap_part((fb_data *)img->bm.data,
-                                         0, img->subimage_height * subimage,
-                                         STRIDE(display->screen_type,
-                                            img->bm.width, img->bm.height),
-                                         img->x, img->y, img->bm.width,
-                                         img->subimage_height);
-    }
-#endif
+        display->bmp_part(&img->bm, 0, img->subimage_height * subimage,
+                          img->x, img->y, img->bm.width, img->subimage_height);
 }
-
 
 void wps_display_images(struct gui_wps *gwps, struct viewport* vp)
 {
     if(!gwps || !gwps->data || !gwps->display)
         return;
-
+    (void)vp;
     struct wps_data *data = gwps->data;
     struct screen *display = gwps->display;
-    struct skin_token_list *list = data->images;
+    struct skin_token_list *list = SKINOFFSETTOPTR(get_skin_buffer(data), data->images);
 
     while (list)
     {
-        struct gui_img *img = (struct gui_img*)list->token->value.data;
+        struct wps_token *token = SKINOFFSETTOPTR(get_skin_buffer(data), list->token);
+        struct gui_img *img = (struct gui_img*)SKINOFFSETTOPTR(get_skin_buffer(data), token->value.data);
         if (img->using_preloaded_icons && img->display >= 0)
         {
             screen_put_icon(display, img->x, img->y, img->display);
@@ -356,22 +406,19 @@ void wps_display_images(struct gui_wps *gwps, struct viewport* vp)
         {
             if (img->display >= 0)
             {
-                wps_draw_image(gwps, img, img->display);
-            }
-            else if (img->always_display && img->vp == vp)
-            {
-                wps_draw_image(gwps, img, 0);
+                wps_draw_image(gwps, img, img->display, vp);
             }
         }
-        list = list->next;
+        list = SKINOFFSETTOPTR(get_skin_buffer(data), list->next);
     }
 #ifdef HAVE_ALBUMART
     /* now draw the AA */
-    if (data->albumart && data->albumart->vp == vp
-        && data->albumart->draw_handle >= 0)
+    struct skin_albumart *aa = SKINOFFSETTOPTR(get_skin_buffer(data), data->albumart);
+    if (aa && SKINOFFSETTOPTR(get_skin_buffer(data), aa->vp) == vp
+        && aa->draw_handle >= 0)
     {
-        draw_album_art(gwps, data->albumart->draw_handle, false);
-        data->albumart->draw_handle = -1;
+        draw_album_art(gwps, aa->draw_handle, false);
+        aa->draw_handle = -1;
     }
 #endif
 
@@ -394,8 +441,8 @@ int evaluate_conditional(struct gui_wps *gwps, int offset,
 
     int intval = num_options < 2 ? 2 : num_options;
     /* get_token_value needs to know the number of options in the enum */
-    value = get_token_value(gwps, conditional->token, offset,
-                            result, sizeof(result), &intval);
+    value = get_token_value(gwps, SKINOFFSETTOPTR(get_skin_buffer(gwps->data), conditional->token),
+                    offset, result, sizeof(result), &intval);
 
     /* intval is now the number of the enum option we want to read,
        starting from 1. If intval is -1, we check if value is empty. */
@@ -418,18 +465,16 @@ int evaluate_conditional(struct gui_wps *gwps, int offset,
    line is the index of the line on the screen.
    scroll indicates whether the line is a scrolling one or not.
 */
-void write_line(struct screen *display,
-                       struct align_pos *format_align,
-                       int line,
-                       bool scroll)
+void write_line(struct screen *display, struct align_pos *format_align,
+                int line, bool scroll, struct line_desc *linedes)
 {
-    int left_width = 0, left_xpos;
+    int left_width = 0;
     int center_width = 0, center_xpos;
     int right_width = 0,  right_xpos;
-    int ypos;
     int space_width;
     int string_height;
     int scroll_width;
+    int viewport_width = display->getwidth();
 
     /* calculate different string sizes and positions */
     display->getstringsize((unsigned char *)" ", &space_width, &string_height);
@@ -448,11 +493,10 @@ void write_line(struct screen *display,
                                 &center_width, &string_height);
     }
 
-    left_xpos = 0;
-    right_xpos = (display->getwidth() - right_width);
-    center_xpos = (display->getwidth() + left_xpos - center_width) / 2;
+    right_xpos = (viewport_width - right_width);
+    center_xpos = (viewport_width - center_width) / 2;
 
-    scroll_width = display->getwidth() - left_xpos;
+    scroll_width = viewport_width;
 
     /* Checks for overlapping strings.
         If needed the overlapping strings will be merged, separated by a
@@ -461,7 +505,7 @@ void write_line(struct screen *display,
     /* CASE 1: left and centered string overlap */
     /* there is a left string, need to merge left and center */
     if ((left_width != 0 && center_width != 0) &&
-        (left_xpos + left_width + space_width > center_xpos)) {
+        (left_width + space_width > center_xpos)) {
         /* replace the former separator '\0' of left and
             center string with a space */
         *(--format_align->center) = ' ';
@@ -472,7 +516,7 @@ void write_line(struct screen *display,
     }
     /* there is no left string, move center to left */
     if ((left_width == 0 && center_width != 0) &&
-        (left_xpos + left_width > center_xpos)) {
+        (left_width > center_xpos)) {
         /* move the center string to the left string */
         format_align->left = format_align->center;
         /* calculate the new width and position of the string */
@@ -492,7 +536,7 @@ void write_line(struct screen *display,
         format_align->right = format_align->center;
         /* calculate the new width and position of the merged string */
         right_width = center_width + space_width + right_width;
-        right_xpos = (display->getwidth() - right_width);
+        right_xpos = (viewport_width - right_width);
         /* there is no centered string anymore */
         center_width = 0;
     }
@@ -503,7 +547,7 @@ void write_line(struct screen *display,
         format_align->right = format_align->center;
         /* calculate the new width and position of the string */
         right_width = center_width;
-        right_xpos = (display->getwidth() - right_width);
+        right_xpos = (viewport_width - right_width);
         /* there is no centered string anymore */
         center_width = 0;
     }
@@ -513,7 +557,7 @@ void write_line(struct screen *display,
         was one or it has been merged in case 1 or 2 */
     /* there is a left string, need to merge left and right */
     if ((left_width != 0 && center_width == 0 && right_width != 0) &&
-        (left_xpos + left_width + space_width > right_xpos)) {
+        (left_width + space_width > right_xpos)) {
         /* replace the former separator '\0' of left and
             right string with a space */
         *(--format_align->right) = ' ';
@@ -533,45 +577,42 @@ void write_line(struct screen *display,
         right_width = 0;
     }
 
-    ypos = (line * string_height);
-
-
     if (scroll && ((left_width > scroll_width) ||
                    (center_width > scroll_width) ||
                    (right_width > scroll_width)))
     {
-        display->puts_scroll(0, line,
-                             (unsigned char *)format_align->left);
+        /* strings can be as large as MAX_LINE which exceeds put_lines()
+         * limit for inline strings. Use $t to avoid truncation */
+        linedes->scroll = true;
+        display->put_line(0, line * string_height, linedes, "$t", format_align->left);
     }
     else
     {
+        linedes->scroll = false;
 #ifdef HAVE_LCD_BITMAP
         /* clear the line first */
         display->set_drawmode(DRMODE_SOLID|DRMODE_INVERSEVID);
-        display->fillrect(left_xpos, ypos, display->getwidth(), string_height);
+        display->fillrect(0, line*string_height, viewport_width, string_height);
         display->set_drawmode(DRMODE_SOLID);
 #endif
 
         /* Nasty hack: we output an empty scrolling string,
         which will reset the scroller for that line */
         display->puts_scroll(0, line, (unsigned char *)"");
+#ifdef HAVE_LCD_BITMAP
+        line *= string_height;
+        center_xpos = (viewport_width-center_width)/2;
+        right_xpos = viewport_width-right_width;
+#endif
+        /* print aligned strings. print whole line at once so that %Vs works
+         * across the full viewport width */
+        char *left   = format_align->left   ?: "";
+        char *center = format_align->center ?: "";
+        char *right  = format_align->right  ?: "";
 
-        /* print aligned strings */
-        if (left_width != 0)
-        {
-            display->putsxy(left_xpos, ypos,
-                            (unsigned char *)format_align->left);
-        }
-        if (center_width != 0)
-        {
-            display->putsxy(center_xpos, ypos,
-                            (unsigned char *)format_align->center);
-        }
-        if (right_width != 0)
-        {
-            display->putsxy(right_xpos, ypos,
-                            (unsigned char *)format_align->right);
-        }
+        display->put_line(0, line, linedes, "$t$*s$t$*s$t", left,
+                center_xpos - left_width, center,
+                right_xpos - (center_xpos + center_width), right);
     }
 }
 
@@ -624,7 +665,6 @@ int skin_wait_for_action(enum skinnable_screens skin, int context, int timeout)
     (void)skin; /* silence charcell warning */
     int button = ACTION_NONE;
 #ifdef HAVE_LCD_BITMAP
-    int i;
     /* when the peak meter is enabled we want to have a
         few extra updates to make it look smooth. On the
         other hand we don't want to waste energy if it

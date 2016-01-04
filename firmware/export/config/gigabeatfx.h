@@ -1,7 +1,6 @@
 /*
  * This config file is for toshiba Gigabeat F
  */
-#define TARGET_TREE /* this target is using the target tree system */
 
 #define TOSHIBA_GIGABEAT_F 1
 
@@ -34,9 +33,6 @@
 /* define this if you have access to the quickscreen */
 #define HAVE_QUICKSCREEN
 
-/* define this if you have access to the pitchscreen */
-#define HAVE_PITCHSCREEN
-
 /* define this if you would like tagcache to build on this target */
 #define HAVE_TAGCACHE
 
@@ -46,6 +42,8 @@
 /* LCD dimensions */
 #define LCD_WIDTH  240
 #define LCD_HEIGHT 320
+/* sqrt(240^2 + 320^2) / 2.2 = 181.8 */
+#define LCD_DPI 182
 #define LCD_DEPTH  16   /* 65k colours */
 #define LCD_PIXELFORMAT RGB565 /* rgb565 */
 
@@ -128,6 +126,8 @@
 #define BATTERY_CAPACITY_MAX 830        /* max. capacity selectable */
 #define BATTERY_CAPACITY_INC 25         /* capacity increment */
 #define BATTERY_TYPES_COUNT  1          /* only one type */
+
+#define CONFIG_BATTERY_MEASURE VOLTAGE_MEASURE
 
 /* Hardware controlled charging with monitoring */
 #define CONFIG_CHARGING CHARGING_MONITOR

@@ -19,7 +19,6 @@ use strict;
 use warnings;
 use File::Basename;
 use File::Copy;
-use Switch;
 use vars qw($V $C $t $l $e $E $s $S $i $v);
 use IPC::Open2;
 use IPC::Open3;
@@ -74,36 +73,35 @@ sub init_tts {
     our $verbose;
     my ($tts_engine, $tts_engine_opts, $language) = @_;
     my %ret = ("name" => $tts_engine);
-    switch($tts_engine) {
-        case "festival" {
-            print("> festival $tts_engine_opts --server\n") if $verbose;
-            my $pid = open(FESTIVAL_SERVER, "| festival $tts_engine_opts --server > /dev/null 2>&1");
-            my $dummy = *FESTIVAL_SERVER; #suppress warning
-            $SIG{INT} = sub { kill TERM => $pid; print("foo"); panic_cleanup(); };
-            $SIG{KILL} = sub { kill TERM => $pid; print("boo"); panic_cleanup(); };
-            $ret{"pid"} = $pid;
-        }
-        case "sapi" {
-            my $toolsdir = dirname($0);
-            my $path = `cygpath $toolsdir -a -w`;
-            chomp($path);                                    
-            $path = $path . '\\';
-            my $cmd = $path . "sapi_voice.vbs /language:$language $tts_engine_opts";
-            $cmd =~ s/\\/\\\\/g;
-            print("> cscript //nologo $cmd\n") if $verbose;
-            my $pid = open2(*CMD_OUT, *CMD_IN, "cscript //nologo $cmd");
-            binmode(*CMD_IN, ':encoding(utf16le)');
-            binmode(*CMD_OUT, ':encoding(utf16le)');
-            $SIG{INT} = sub { print(CMD_IN "QUIT\r\n"); panic_cleanup(); };
-            $SIG{KILL} = sub { print(CMD_IN "QUIT\r\n"); panic_cleanup(); };
-            print(CMD_IN "QUERY\tVENDOR\r\n");
-            my $vendor = readline(*CMD_OUT);
-            $vendor =~ s/\r\n//;
-            %ret = (%ret,
-                    "stdin" => *CMD_IN,
-                    "stdout" => *CMD_OUT,
-                    "vendor" => $vendor);
-        }
+    # Don't use given/when here - it's not compatible with old perl versions
+    if ($tts_engine eq 'festival') {
+        print("> festival $tts_engine_opts --server\n") if $verbose;
+        my $pid = open(FESTIVAL_SERVER, "| festival $tts_engine_opts --server > /dev/null 2>&1");
+        my $dummy = *FESTIVAL_SERVER; #suppress warning
+        $SIG{INT} = sub { kill TERM => $pid; print("foo"); panic_cleanup(); };
+        $SIG{KILL} = sub { kill TERM => $pid; print("boo"); panic_cleanup(); };
+        $ret{"pid"} = $pid;
+    }
+    elsif ($tts_engine eq 'sapi') {
+        my $toolsdir = dirname($0);
+        my $path = `cygpath $toolsdir -a -w`;
+        chomp($path);
+        $path = $path . '\\';
+        my $cmd = $path . "sapi_voice.vbs /language:$language $tts_engine_opts";
+        $cmd =~ s/\\/\\\\/g;
+        print("> cscript //nologo $cmd\n") if $verbose;
+        my $pid = open2(*CMD_OUT, *CMD_IN, "cscript //nologo $cmd");
+        binmode(*CMD_IN, ':encoding(utf16le)');
+        binmode(*CMD_OUT, ':encoding(utf16le)');
+        $SIG{INT} = sub { print(CMD_IN "QUIT\r\n"); panic_cleanup(); };
+        $SIG{KILL} = sub { print(CMD_IN "QUIT\r\n"); panic_cleanup(); };
+        print(CMD_IN "QUERY\tVENDOR\r\n");
+        my $vendor = readline(*CMD_OUT);
+        $vendor =~ s/\r\n//;
+        %ret = (%ret,
+                "stdin" => *CMD_IN,
+                "stdout" => *CMD_OUT,
+                "vendor" => $vendor);
     }
     return \%ret;
 }
@@ -111,15 +109,13 @@ sub init_tts {
 # Shutdown TTS engine if necessary.
 sub shutdown_tts {
     my ($tts_object) = @_;
-    switch($$tts_object{"name"}) {
-        case "festival" {
-            # Send SIGTERM to festival server
-            kill TERM => $$tts_object{"pid"};
-        }
-        case "sapi" {
-            print({$$tts_object{"stdin"}} "QUIT\r\n");
-            close($$tts_object{"stdin"});
-        }
+    if ($$tts_object{'name'} eq 'festival') {
+        # Send SIGTERM to festival server
+        kill TERM => $$tts_object{"pid"};
+    }
+    elsif ($$tts_object{'name'} eq 'sapi') {
+        print({$$tts_object{"stdin"}} "QUIT\r\n");
+        close($$tts_object{"stdin"});
     }
 }
 
@@ -128,106 +124,12 @@ sub correct_string {
     our $verbose;
     my ($string, $language, $tts_object) = @_;
     my $orig = $string;
-    switch($language) {
-        # General for all engines and languages
-        $string =~ s/USB/U S B/g;
-        $string =~ s/ID3/I D 3/g;
+    my $corrections = $tts_object->{"corrections"};
 
-        case "english" {
-            switch($$tts_object{"name"}) {
-                case ["sapi","festival"] {
-                    $string =~ s/plugin(s?)/plug-in$1/ig; next
-                }
-                case "festival" {
-                    $string =~ s/\ba\b/ay/ig;
-                    $string =~ s/$/./;
-                }
-            }
-        }
-        case "deutsch" {
-            # for all german engines (e.g. for english words)
-            $string =~ s/alkaline/alkalein/ig;
-            $string =~ s/byte(s?)/beit$1/ig;
-            $string =~ s/clip(s?)/klipp$1/ig;
-            $string =~ s/\bcover/kawwer/ig;
-            $string =~ s/cuesheet/kjuschiet/ig;
-            $string =~ s/dither/didder/ig;
-            $string =~ s/equalizer/iquileiser/ig;
-            $string =~ s/\bflash\b/fläsh/ig;
-            $string =~ s/\bfirmware(s?)\b/firmwer$1/ig;
-            $string =~ s/\bI D 3 tag\b/I D 3 täg/ig; # can't just use "tag" here
-            $string =~ s/\bloudness\b/laudness/ig;
-            $string =~ s/\bunicode\b/unikod/ig;
-            switch($$tts_object{"name"}) {
-                 case "sapi" {   # just for SAPI
-                    switch($$tts_object{"vendor"}) {
-                        case "AT&T Labs" {
-                            $string =~ s/alphabet/alfabet/ig;
-                            $string =~ s/ampere/amper/ig;
-                            $string =~ s/\bdezibel\b/de-zibell/ig;
-                            $string =~ s/diddering/didde-ring/ig;
-                            $string =~ s/energie\b/ener-gie/ig;
-                            $string =~ s/\Blauf\b/-lauf/ig;
-                            $string =~ s/\bnumerisch\b/numehrisch/ig;
-                        }
-                    }
-                }
-            }
-        }
-        case "svenska" {
-            # for all swedish engines (e.g. for english words)
-            $string =~ s/kilobyte/kilobajt/ig;
-            $string =~ s/megabyte/megabajt/ig;
-            $string =~ s/gigabyte/gigabajt/ig;
-            $string =~ s/\bloudness\b/laudness/ig;
-
-            switch($$tts_object{"name"}) {
-                 case "espeak" {   # just for eSpeak
-                     $string =~ s/ampere/ampär/ig;
-                     $string =~ s/bokmärken/bok-märken/ig;
-                     $string =~ s/generella/schenerella/ig;
-                     $string =~ s/dithering/diddering/ig;
-                     $string =~ s/\bunicode\b/jynikod/ig;
-                     $string =~ s/uttoning/utoning/ig;
-                     $string =~ s/procent/pro-cent/ig;
-                     $string =~ s/spellistor/spelistor/ig;
-                     $string =~ s/cuesheet/qjyschiit/ig;
-                 }
-            }
-        }
-        case "italiano" {
-            # for all italian engines (e.g. for english words)
-            $string =~ s/Replaygain/Ripleyghein/ig;
-            $string =~ s/Crossfade/Crossfeid/ig;
-            $string =~ s/beep/Bip/ig;
-            $string =~ s/cuesheet/chiushit/ig;
-            $string =~ s/fade/feid/ig;
-            $string =~ s/Crossfeed/crossfid/ig;
-            $string =~ s/Cache/chash/ig;
-            $string =~ s/\bfirmware(s?)\b/firmuer$1/ig;
-            $string =~ s/\bFile(s?)\b/fail$1/ig;
-            $string =~ s/\bloudness\b/laudness/ig;
-            $string =~ s/\bunicode\b/unikod/ig;
-            $string =~ s/Playlist/pleylist/ig;
-            $string =~ s/WavPack/wave pak/ig;
-            $string =~ s/BITRATE/bit reit/ig;
-            $string =~ s/Codepage/cod page/ig;
-            $string =~ s/PCM Wave/pcm Ue'iv/ig;
-            switch($$tts_object{"name"}) {
-                 case "sapi" {   # just for SAPI
-                    switch($$tts_object{"vendor"}) {
-                        case "Loquendo" {
-                            $string =~ s/Inizializza/inizializa/ig;
-                        }
-                        case "ScanSoft, Inc" {
-                            $string =~ s/V/v/ig;
-                            $string =~ s/X/x/ig;
-                            $string =~ s/stop/stohp/ig;
-                        }
-                    }
-                }
-            }
-        }
+    foreach (@$corrections) {
+        my $r = "s" . $_->{separator} . $_->{search} . $_->{separator}
+                . $_->{replace} . $_->{separator} . $_->{modifier};
+        eval ('$string =~' . "$r;");
     }
     if ($orig ne $string) {
         printf("%s -> %s\n", $orig, $string) if $verbose;
@@ -240,48 +142,47 @@ sub voicestring {
     our $verbose;
     my ($string, $output, $tts_engine_opts, $tts_object) = @_;
     my $cmd;
-    printf("Generate \"%s\" with %s in file %s\n", $string, $$tts_object{"name"}, $output) if $verbose;
-    switch($$tts_object{"name"}) {
-        case "festival" {
-            # festival_client lies to us, so we have to do awful soul-eating
-            # work with IPC::open3()
-            $cmd = "festival_client --server localhost --otype riff --ttw --output \"$output\"";
-            # Use festival-prolog.scm if it's there (created by user of tools/configure)
-            if (-f "festival-prolog.scm") {
-                $cmd .= " --prolog festival-prolog.scm";
-            }
-            print("> $cmd\n") if $verbose;
-            # Open command, and filehandles for STDIN, STDOUT, STDERR
-            my $pid = open3(*CMD_IN, *CMD_OUT, *CMD_ERR, $cmd);
-            # Put the string to speak into STDIN and close it
-            print(CMD_IN $string);
-            close(CMD_IN);
-            # Read all output from festival_client (because it LIES TO US)
-            while (<CMD_ERR>) {
-            }
-            close(CMD_OUT);
-            close(CMD_ERR);
+    my $name = $$tts_object{'name'};
+    printf("Generate \"%s\" with %s in file %s\n", $string, $name, $output) if $verbose;
+    if ($name eq 'festival') {
+        # festival_client lies to us, so we have to do awful soul-eating
+        # work with IPC::open3()
+        $cmd = "festival_client --server localhost --otype riff --ttw --output \"$output\"";
+        # Use festival-prolog.scm if it's there (created by user of tools/configure)
+        if (-f "festival-prolog.scm") {
+            $cmd .= " --prolog festival-prolog.scm";
         }
-        case "flite" {
-            $cmd = "flite $tts_engine_opts -t \"$string\" \"$output\"";
-            print("> $cmd\n") if $verbose;
-            `$cmd`;
+        print("> $cmd\n") if $verbose;
+        # Open command, and filehandles for STDIN, STDOUT, STDERR
+        my $pid = open3(*CMD_IN, *CMD_OUT, *CMD_ERR, $cmd);
+        # Put the string to speak into STDIN and close it
+        print(CMD_IN $string);
+        close(CMD_IN);
+        # Read all output from festival_client (because it LIES TO US)
+        while (<CMD_ERR>) {
         }
-        case "espeak" {
-            $cmd = "espeak $tts_engine_opts -w \"$output\"";
-            print("> $cmd\n") if $verbose;
-            open(ESPEAK, "| $cmd");
-            print ESPEAK $string . "\n";
-            close(ESPEAK);
-        }
-        case "sapi" {
-            print({$$tts_object{"stdin"}} "SPEAK\t$output\t$string\r\n");
-        }
-        case "swift" {
-            $cmd = "swift $tts_engine_opts -o \"$output\" \"$string\"";
-            print("> $cmd\n") if $verbose;
-            system($cmd);
-        }
+        close(CMD_OUT);
+        close(CMD_ERR);
+    }
+    elsif ($name eq 'flite') {
+        $cmd = "flite $tts_engine_opts -t \"$string\" \"$output\"";
+        print("> $cmd\n") if $verbose;
+        `$cmd`;
+    }
+    elsif ($name eq 'espeak') {
+        $cmd = "espeak $tts_engine_opts -w \"$output\"";
+        print("> $cmd\n") if $verbose;
+        open(ESPEAK, "| $cmd");
+        print ESPEAK $string . "\n";
+        close(ESPEAK);
+    }
+    elsif ($name eq 'sapi') {
+        print({$$tts_object{"stdin"}} "SPEAK\t$output\t$string\r\n");
+    }
+    elsif ($name eq 'swift') {
+        $cmd = "swift $tts_engine_opts -o \"$output\" \"$string\"";
+        print("> $cmd\n") if $verbose;
+        system($cmd);
     }
 }
 
@@ -331,6 +232,7 @@ sub generateclips {
     my ($language, $target, $encoder, $encoder_opts, $tts_engine, $tts_engine_opts) = @_;
     my $english = dirname($0) . '/../apps/lang/english.lang';
     my $langfile = dirname($0) . '/../apps/lang/' . $language . '.lang';
+    my $correctionsfile = dirname($0) . '/voice-corrections.txt';
     my $id = '';
     my $voice = '';
     my $cmd = "genlang -o -t=$target -e=$english $langfile 2>/dev/null";
@@ -340,6 +242,37 @@ sub generateclips {
     local $| = 1; # make progress indicator work reliably
 
     my $tts_object = init_tts($tts_engine, $tts_engine_opts, $language);
+    # add string corrections to tts_object.
+    my @corrects = ();
+    open(VOICEREGEXP, "<$correctionsfile") or die "Can't open corrections file!\n";
+    while(<VOICEREGEXP>) {
+        # get first character of line
+        my $line = $_;
+        my $separator = substr($_, 0, 1);
+        if($separator =~ m/\s+/) {
+            next;
+        }
+        chomp($line);
+        $line =~ s/^.//g; # remove separator at beginning
+        my ($lang, $engine, $vendor, $search, $replace, $modifier) = split(/$separator/, $line);
+
+        # does language match?
+        if($language !~ m/$lang/) {
+            next;
+        }
+        if($$tts_object{"name"} !~ m/$engine/) {
+            next;
+        }
+        my $v = $$tts_object{"vendor"} || ""; # vendor might be empty in $tts_object
+        if($v !~ m/$vendor/) {
+            next;
+        }
+        push @corrects, {separator => $separator, search => $search, replace => $replace, modifier => $modifier};
+
+    }
+    close(VOICEREGEXP);
+    $tts_object->{corrections} = [@corrects];
+
     print("Generating voice clips");
     print("\n") if $verbose;
     for (`$cmd`) {

@@ -29,8 +29,6 @@
 # If the required Qt installation isn't in PATH use --qmake option.
 # Tested on Linux and MinGW / W32
 #
-# requires python which package (http://code.google.com/p/which/)
-# requires pysvn package.
 # requires upx.exe in PATH on Windows.
 #
 
@@ -45,20 +43,10 @@ import getopt
 import time
 import hashlib
 import tempfile
+import gitscraper
+from datetime import datetime
 
 # modules that are not part of python itself.
-try:
-    import pysvn
-except ImportError:
-    print "Fatal: This script requires the pysvn package to run."
-    print "       See http://pysvn.tigris.org/."
-    sys.exit(-5)
-try:
-    import which
-except ImportError:
-    print "Fatal: This script requires the which package to run."
-    print "       See http://code.google.com/p/which/."
-    sys.exit(-5)
 cpus = 1
 try:
     import multiprocessing
@@ -68,27 +56,6 @@ except ImportError:
     print "Warning: multiprocessing module not found. Assuming 1 core."
 
 # == Global stuff ==
-# Windows nees some special treatment. Differentiate between program name
-# and executable filename.
-program = ""
-project = ""
-environment = os.environ
-progexe = ""
-make = "make"
-programfiles = []
-nsisscript = ""
-
-svnserver = ""
-# Paths and files to retrieve from svn when creating a tarball.
-# This is a mixed list, holding both paths and filenames.
-svnpaths = [ ]
-# set this to true to run upx on the resulting binary, false to skip this step.
-# only used on w32.
-useupx = False
-
-# OS X: files to copy into the bundle. Workaround for out-of-tree builds.
-bundlecopy = { }
-
 # DLL files to ignore when searching for required DLL files.
 systemdlls = ['advapi32.dll',
         'comdlg32.dll',
@@ -107,6 +74,8 @@ systemdlls = ['advapi32.dll',
         'winspool.drv',
         'ws2_32.dll']
 
+gitrepo = os.path.abspath(os.path.join(os.path.dirname(__file__), "../.."))
+
 
 # == Functions ==
 def usage(myself):
@@ -121,36 +90,32 @@ def usage(myself):
         print "       -n, --makensis=<file> path to makensis for building Windows setup program."
     if sys.platform != "darwin":
         print "       -d, --dynamic         link dynamically instead of static"
+    if sys.platform != "win32":
+        print "       -x, --cross=          prefix to cross compile for win32"
     print "       -k, --keep-temp       keep temporary folder on build failure"
     print "       -h, --help            this help"
     print "  If neither a project file nor tag is specified trunk will get downloaded"
     print "  from svn."
 
-def getsources(svnsrv, filelist, dest):
-    '''Get the files listed in filelist from svnsrv and put it at dest.'''
-    client = pysvn.Client()
-    print "Checking out sources from %s, please wait." % svnsrv
 
-    for elem in filelist:
-        url = re.subn('/$', '', svnsrv + elem)[0]
-        destpath = re.subn('/$', '', dest + elem)[0]
-        # make sure the destination path does exist
-        d = os.path.dirname(destpath)
-        if not os.path.exists(d):
-            os.makedirs(d)
-        # get from svn
-        try:
-            client.export(url, destpath)
-        except:
-            print "SVN client error: %s" % sys.exc_value
-            print "URL: %s, destination: %s" % (url, destpath)
-            return -1
-    print "Checkout finished."
+def which(executable):
+    path = os.environ.get("PATH", "").split(os.pathsep)
+    for p in path:
+        fullpath = p + "/" + executable
+        if os.path.exists(fullpath):
+            return fullpath
+    print "which: could not find " + executable
+    return ""
+
+
+def getsources(treehash, filelist, dest):
+    '''Get the files listed in filelist from svnsrv and put it at dest.'''
+    gitscraper.scrape_files(gitrepo, treehash, filelist, dest)
     return 0
 
 
-def gettrunkrev(svnsrv):
-    '''Get the revision of trunk for svnsrv'''
+def getfolderrev(svnsrv):
+    '''Get the most recent revision for svnsrv'''
     client = pysvn.Client()
     entries = client.info2(svnsrv, recurse=False)
     return entries[0][1].rev.number
@@ -162,22 +127,21 @@ def findversion(versionfile):
     h = open(versionfile, "r")
     c = h.read()
     h.close()
-    r = re.compile("#define +VERSION +\"(.[0-9\.a-z]+)\"")
-    m = re.search(r, c)
-    s = re.compile("\$Revision: +([0-9]+)")
-    n = re.search(s, c)
-    if n == None:
-        print "WARNING: Revision not found!"
-    return m.group(1)
+    version = dict()
+    for v in ['MAJOR', 'MINOR', 'MICRO']:
+        r = re.compile("#define +VERSION_" + v + " +([0-9a-z]+)")
+        m = re.search(r, c)
+        version[v] = m.group(1)
+    return "%s.%s.%s" % (version['MAJOR'], version['MINOR'], version['MICRO'])
 
 
-def findqt():
+def findqt(cross=""):
     '''Search for Qt4 installation. Return path to qmake.'''
     print "Searching for Qt"
-    bins = ["qmake", "qmake-qt4"]
+    bins = [cross + "qmake", cross + "qmake-qt4"]
     for binary in bins:
         try:
-            q = which.which(binary)
+            q = which(binary)
             if len(q) > 0:
                 result = checkqt(q)
                 if not result == "":
@@ -212,14 +176,19 @@ def checkqt(qmakebin):
     return result
 
 
-def qmake(qmake="qmake", projfile=project, wd=".", static=True):
+def qmake(qmake, projfile, platform=sys.platform, wd=".", static=True, cross=""):
     print "Running qmake in %s..." % wd
     command = [qmake, "-config", "release", "-config", "noccache"]
     if static == True:
-        command.append("-config")
-        command.append("static")
+        command.extend(["-config", "-static"])
+    # special spec required?
+    if len(qmakespec[platform]) > 0:
+        command.extend(["-spec", qmakespec[platform]])
+    # cross compiling prefix set?
+    if len(cross) > 0:
+        command.extend(["-config", "cross"])
     command.append(projfile)
-    output = subprocess.Popen(command, stdout=subprocess.PIPE, cwd=wd, env=environment)
+    output = subprocess.Popen(command, stdout=subprocess.PIPE, cwd=wd)
     output.communicate()
     if not output.returncode == 0:
         print "qmake returned an error!"
@@ -227,10 +196,11 @@ def qmake(qmake="qmake", projfile=project, wd=".", static=True):
     return 0
 
 
-def build(wd="."):
+def build(wd=".", platform=sys.platform, cross=""):
     # make
     print "Building ..."
-    command = [make]
+    # use the current platforms make here, cross compiling uses the native make.
+    command = [make[sys.platform]]
     if cpus > 1:
         command.append("-j")
         command.append(str(cpus))
@@ -246,10 +216,11 @@ def build(wd="."):
                 print "Build failed!"
                 return -1
             break
-    if sys.platform != "darwin":
+    if platform != "darwin":
         # strip. OS X handles this via macdeployqt.
         print "Stripping binary."
-        output = subprocess.Popen(["strip", progexe], stdout=subprocess.PIPE, cwd=wd)
+        output = subprocess.Popen([cross + "strip", progexe[platform]], \
+                                  stdout=subprocess.PIPE, cwd=wd)
         output.communicate()
         if not output.returncode == 0:
             print "Stripping failed!"
@@ -257,10 +228,11 @@ def build(wd="."):
     return 0
 
 
-def upxfile(wd="."):
+def upxfile(wd=".", platform=sys.platform):
     # run upx on binary
     print "UPX'ing binary ..."
-    output = subprocess.Popen(["upx", progexe], stdout=subprocess.PIPE, cwd=wd)
+    output = subprocess.Popen(["upx", progexe[platform]], \
+                              stdout=subprocess.PIPE, cwd=wd)
     output.communicate()
     if not output.returncode == 0:
         print "UPX'ing failed!"
@@ -279,11 +251,14 @@ def runnsis(versionstring, nsis, script, srcfolder):
 
     # FIXME: instead of copying binaries around copy the NSI file and inject
     # the correct paths.
-    b = srcfolder + "/" + os.path.dirname(script) + "/" + os.path.dirname(progexe)
+    # Only win32 supported as target platform so hard coded.
+    b = srcfolder + "/" + os.path.dirname(script) + "/" \
+        + os.path.dirname(progexe["win32"])
     if not os.path.exists(b):
         os.mkdir(b)
-    shutil.copy(srcfolder + "/" + progexe, b)
-    output = subprocess.Popen([nsis, srcfolder + "/" + script], stdout=subprocess.PIPE)
+    shutil.copy(srcfolder + "/" + progexe["win32"], b)
+    output = subprocess.Popen([nsis, srcfolder + "/" + script], \
+                              stdout=subprocess.PIPE)
     output.communicate()
     if not output.returncode == 0:
         print "NSIS failed!"
@@ -297,7 +272,8 @@ def runnsis(versionstring, nsis, script, srcfolder):
     if nsissetup == "":
         print "Could not retrieve output file name!"
         return -1
-    shutil.copy(srcfolder + "/" + os.path.dirname(script) + "/" + nsissetup, setupfile)
+    shutil.copy(srcfolder + "/" + os.path.dirname(script) + "/" + nsissetup, \
+                setupfile)
     return 0
 
 
@@ -309,20 +285,24 @@ def nsisfileinject(nsis, outscript, filelist):
     output = open(outscript, "w")
     for line in open(nsis, "r"):
         output.write(line)
-	# inject files after the progexe binary. Match the basename only to avoid path mismatches.
-	if re.match(r'^\s*File\s*.*' + os.path.basename(progexe), line, re.IGNORECASE):
+        # inject files after the progexe binary.
+        # Match the basename only to avoid path mismatches.
+        if re.match(r'^\s*File\s*.*' + os.path.basename(progexe["win32"]), \
+                    line, re.IGNORECASE):
             for f in filelist:
-                injection = "    File /oname=$INSTDIR\\" + os.path.basename(f) + " " + os.path.normcase(f) + "\n"
+                injection = "    File /oname=$INSTDIR\\" + os.path.basename(f) \
+                             + " " + os.path.normcase(f) + "\n"
                 output.write(injection)
             output.write("    ; end of injected files\n")
     output.close()
 
 
-def finddlls(program, extrapaths = []):
+def finddlls(program, extrapaths=[], cross=""):
     '''Check program for required DLLs. Find all required DLLs except ignored
        ones and return a list of DLL filenames (including path).'''
     # ask objdump about dependencies.
-    output = subprocess.Popen(["objdump", "-x", program], stdout=subprocess.PIPE)
+    output = subprocess.Popen([cross + "objdump", "-x", program], \
+                              stdout=subprocess.PIPE)
     cmdout = output.communicate()
 
     # create list of used DLLs. Store as lower case as W32 is case-insensitive.
@@ -336,26 +316,26 @@ def finddlls(program, extrapaths = []):
     dllpaths = []
     for file in dlls:
         if file in systemdlls:
-            print file + ": System DLL"
+            print "System DLL:  " + file
             continue
         dllpath = ""
         for path in extrapaths:
             if os.path.exists(path + "/" + file):
                 dllpath = re.sub(r"\\", r"/", path + "/" + file)
-		print file + ": found at " + dllpath
+                print file + ": found at " + dllpath
                 dllpaths.append(dllpath)
                 break
         if dllpath == "":
             try:
-                dllpath = re.sub(r"\\", r"/", which.which(file))
-		print file + ": found at " + dllpath
-		dllpaths.append(dllpath)
+                dllpath = re.sub(r"\\", r"/", which(file))
+                print file + ": found at " + dllpath
+                dllpaths.append(dllpath)
             except:
-                print file + ": NOT FOUND."
+                print "MISSING DLL: " + file
     return dllpaths
 
 
-def zipball(versionstring, buildfolder):
+def zipball(programfiles, versionstring, buildfolder, platform=sys.platform):
     '''package created binary'''
     print "Creating binary zipball."
     archivebase = program + "-" + versionstring
@@ -373,12 +353,8 @@ def zipball(versionstring, buildfolder):
     zf = zipfile.ZipFile(archivename, mode='w', compression=zipfile.ZIP_DEFLATED)
     for root, dirs, files in os.walk(outfolder):
         for name in files:
-            physname = os.path.join(root, name)
-            filename = re.sub("^" + buildfolder, "", physname)
-            zf.write(physname, filename)
-        for name in dirs:
-            physname = os.path.join(root, name)
-            filename = re.sub("^" + buildfolder, "", physname)
+            physname = os.path.normpath(os.path.join(root, name))
+            filename = os.path.relpath(physname, buildfolder)
             zf.write(physname, filename)
     zf.close()
     # remove output folder
@@ -386,7 +362,7 @@ def zipball(versionstring, buildfolder):
     return archivename
 
 
-def tarball(versionstring, buildfolder):
+def tarball(programfiles, versionstring, buildfolder):
     '''package created binary'''
     print "Creating binary tarball."
     archivebase = program + "-" + versionstring
@@ -406,10 +382,10 @@ def tarball(versionstring, buildfolder):
     return archivename
 
 
-def macdeploy(versionstring, buildfolder):
+def macdeploy(versionstring, buildfolder, platform=sys.platform):
     '''package created binary to dmg'''
     dmgfile = program + "-" + versionstring + ".dmg"
-    appbundle = buildfolder + "/" + progexe
+    appbundle = buildfolder + "/" + progexe[platform]
 
     # workaround to Qt issues when building out-of-tree. Copy files into bundle.
     sourcebase = buildfolder + re.sub('[^/]+.pro$', '', project) + "/"
@@ -418,7 +394,8 @@ def macdeploy(versionstring, buildfolder):
         shutil.copy(sourcebase + src, appbundle + "/" + bundlecopy[src])
     # end of Qt workaround
 
-    output = subprocess.Popen(["macdeployqt", progexe, "-dmg"], stdout=subprocess.PIPE, cwd=buildfolder)
+    output = subprocess.Popen(["macdeployqt", progexe[platform], "-dmg"], \
+                              stdout=subprocess.PIPE, cwd=buildfolder)
     output.communicate()
     if not output.returncode == 0:
         print "macdeployqt failed!"
@@ -426,6 +403,7 @@ def macdeploy(versionstring, buildfolder):
     # copy dmg to output folder
     shutil.copy(buildfolder + "/" + program + ".dmg", dmgfile)
     return dmgfile
+
 
 def filehashes(filename):
     '''Calculate md5 and sha1 hashes for a given file.'''
@@ -468,8 +446,9 @@ def deploy():
     startup = time.time()
 
     try:
-        opts, args = getopt.getopt(sys.argv[1:], "q:p:t:a:n:sbdkh",
-            ["qmake=", "project=", "tag=", "add=", "makensis=", "source-only", "binary-only", "dynamic", "keep-temp", "help"])
+        opts, args = getopt.getopt(sys.argv[1:], "q:p:t:a:n:sbdkx:i:h",
+            ["qmake=", "project=", "tag=", "add=", "makensis=", "source-only",
+             "binary-only", "dynamic", "keep-temp", "cross=", "buildid=", "help"])
     except getopt.GetoptError, err:
         print str(err)
         usage(sys.argv[0])
@@ -484,6 +463,10 @@ def deploy():
     source = True
     keeptemp = False
     makensis = ""
+    cross = ""
+    buildid = None
+    platform = sys.platform
+    treehash = gitscraper.get_refs(gitrepo)['refs/remotes/origin/HEAD']
     if sys.platform != "darwin":
         static = True
     else:
@@ -494,9 +477,6 @@ def deploy():
         if o in ("-p", "--project"):
             proj = a
             cleanup = False
-        if o in ("-t", "--tag"):
-            tag = a
-            svnbase = svnserver + "tags/" + tag + "/"
         if o in ("-a", "--add"):
             addfiles.append(a)
         if o in ("-n", "--makensis"):
@@ -509,6 +489,13 @@ def deploy():
             static = False
         if o in ("-k", "--keep-temp"):
             keeptemp = True
+        if o in ("-t", "--tree"):
+            treehash = a
+        if o in ("-x", "--cross") and sys.platform != "win32":
+            cross = a
+            platform = "win32"
+        if o in ("-i", "--buildid"):
+            buildid = a
         if o in ("-h", "--help"):
             usage(sys.argv[0])
             sys.exit(0)
@@ -517,9 +504,10 @@ def deploy():
         print "Building build neither source nor binary means nothing to do. Exiting."
         sys.exit(1)
 
+    print "Building " + progexe[platform] + " for " + platform
     # search for qmake
     if qt == "":
-        qm = findqt()
+        qm = findqt(cross)
     else:
         qm = checkqt(qt)
     if qm == "":
@@ -532,17 +520,24 @@ def deploy():
         # make sure the path doesn't contain backslashes to prevent issues
         # later when running on windows.
         workfolder = re.sub(r'\\', '/', w)
-        if not tag == "":
-            sourcefolder = workfolder + "/" + tag + "/"
-            archivename = tag + "-src.tar.bz2"
-            # get numeric version part from tag
-            ver = "v" + re.sub('^[^\d]+', '', tag)
+        revision = gitscraper.describe_treehash(gitrepo, treehash)
+        # try to find a version number from describe output.
+        # WARNING: this is broken and just a temporary workaround!
+        v = re.findall('([\d\.a-f]+)', revision)
+        if v:
+            if v[-1].find('.') >= 0:
+                revision = "v" + v[-1]
+            else:
+                revision = v[-1]
+        if buildid == None:
+            versionextra = ""
         else:
-            trunk = gettrunkrev(svnbase)
-            sourcefolder = workfolder + "/" + program + "-r" + str(trunk) + "/"
-            archivename = program + "-r" + str(trunk) + "-src.tar.bz2"
-            ver = "r" + str(trunk)
+            versionextra = "-" + buildid
+        sourcefolder = workfolder + "/" + program + "-" + str(revision) + versionextra + "/"
+        archivename = program + "-" + str(revision) + versionextra + "-src.tar.bz2"
+        ver = str(revision)
         os.mkdir(sourcefolder)
+        print "Version: %s" % revision
     else:
         workfolder = "."
         sourcefolder = "."
@@ -551,11 +546,36 @@ def deploy():
     if proj == "":
         proj = sourcefolder + project
         # get sources and pack source tarball
-        if not getsources(svnbase, svnpaths, sourcefolder) == 0:
+        if not getsources(treehash, svnpaths, sourcefolder) == 0:
             tempclean(workfolder, cleanup and not keeptemp)
             sys.exit(1)
 
+        # replace version strings.
+        print "Updating version information in sources"
+        for f in regreplace:
+            infile = open(sourcefolder + "/" + f, "r")
+            incontents = infile.readlines()
+            infile.close()
+
+            outfile = open(sourcefolder + "/" + f, "w")
+            for line in incontents:
+                newline = line
+                for r in regreplace[f]:
+                    # replacements made on the replacement string:
+                    # %REVISION% is replaced with the revision number
+                    replacement = re.sub("%REVISION%", str(revision), r[1])
+                    newline = re.sub(r[0], replacement, newline)
+                    # %BUILD% is replaced with buildid as passed on the command line
+                    if buildid != None:
+                        replacement = re.sub("%BUILDID%", "-" + str(buildid), replacement)
+                    else:
+                        replacement = re.sub("%BUILDID%", "", replacement)
+                    newline = re.sub(r[0], replacement, newline)
+                outfile.write(newline)
+            outfile.close()
+
         if source == True:
+            print "Creating source tarball %s\n" % archivename
             tf = tarfile.open(archivename, mode='w:bz2')
             tf.add(sourcefolder, os.path.basename(re.subn('/$', '', sourcefolder)[0]))
             tf.close()
@@ -565,7 +585,10 @@ def deploy():
     else:
         # figure version from sources. Need to take path to project file into account.
         versionfile = re.subn('[\w\.]+$', "version.h", proj)[0]
-        ver = findversion(versionfile)
+        ver = findversion(versionfile) + "-dev" + datetime.now().strftime('%Y%m%d%H%M%S')
+    # append buildid if any.
+    if buildid != None:
+        ver += "-" + buildid
 
     # check project file
     if not os.path.exists(proj):
@@ -581,32 +604,44 @@ def deploy():
     print len(header) * "="
 
     # build it.
-    if not qmake(qm, proj, sourcefolder, static) == 0:
+    if not qmake(qm, proj, platform, sourcefolder, static, cross) == 0:
         tempclean(workfolder, cleanup and not keeptemp)
         sys.exit(1)
-    if not build(sourcefolder) == 0:
+    if not build(sourcefolder, platform, cross) == 0:
         tempclean(workfolder, cleanup and not keeptemp)
         sys.exit(1)
     buildtime = time.time() - buildstart
-    if sys.platform == "win32":
+    progfiles = programfiles
+    progfiles.append(progexe[platform])
+    if platform == "win32":
         if useupx == True:
-            if not upxfile(sourcefolder) == 0:
+            if not upxfile(sourcefolder, platform) == 0:
                 tempclean(workfolder, cleanup and not keeptemp)
                 sys.exit(1)
-        dllfiles = finddlls(sourcefolder + "/" + progexe, [os.path.dirname(qm)])
-        if dllfiles.count > 0:
-            programfiles.extend(dllfiles)
-        archive = zipball(ver, sourcefolder)
+        dllfiles = finddlls(sourcefolder + "/" + progexe[platform], \
+                            [os.path.dirname(qm)], cross)
+        if len(dllfiles) > 0:
+            progfiles.extend(dllfiles)
+        archive = zipball(progfiles, ver, sourcefolder, platform)
         # only when running native right now.
         if nsisscript != "" and makensis != "":
-            nsisfileinject(sourcefolder + "/" + nsisscript, sourcefolder + "/" + nsisscript + ".tmp", dllfiles)
+            nsisfileinject(sourcefolder + "/" + nsisscript, sourcefolder \
+                           + "/" + nsisscript + ".tmp", dllfiles)
             runnsis(ver, makensis, nsisscript + ".tmp", sourcefolder)
-    elif sys.platform == "darwin":
-        archive = macdeploy(ver, sourcefolder)
+    elif platform == "darwin":
+        archive = macdeploy(ver, sourcefolder, platform)
     else:
-        if os.uname()[4].endswith("64"):
-            ver += "-64bit"
-        archive = tarball(ver, sourcefolder)
+        if platform == "linux2":
+            for p in progfiles:
+                prog = sourcefolder + "/" + p
+                output = subprocess.Popen(["file", prog],
+                        stdout=subprocess.PIPE)
+                res = output.communicate()
+                if re.findall("ELF 64-bit", res[0]):
+                    ver += "-64bit"
+                    break
+
+        archive = tarball(progfiles, ver, sourcefolder)
 
     # remove temporary files
     tempclean(workfolder, cleanup)
@@ -627,5 +662,5 @@ def deploy():
 
 
 if __name__ == "__main__":
-    deploy()
-
+    print "You cannot run this module directly!"
+    print "Set required environment and call deploy()."

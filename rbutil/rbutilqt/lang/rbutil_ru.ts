@@ -2,34 +2,93 @@
 <!DOCTYPE TS>
 <TS version="2.0" language="ru">
 <context>
+    <name>BackupDialog</name>
+    <message>
+        <source>Backup</source>
+        <translation>Резервная копия</translation>
+    </message>
+    <message>
+        <source>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;This dialog will create a backup by archiving the contents of the Rockbox installation on the player into a zip file. This will include installed themes and settings stored below the .rockbox folder on the player.&lt;/p&gt;&lt;p&gt;The backup filename will be created based on the installed version. &lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</source>
+        <translation>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Здесь можно создать резервную копию текущей установки Rockbox и упаковать её в ZIP-файл. Это также касается установленных тем и настроек, находящихся в папке .rockbox на Вашем плеере.&lt;/p&gt;&lt;p&gt;Название файла резервной копии будет соответствовать установленной версии прошивки.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</translation>
+    </message>
+    <message>
+        <source>Size: unknown</source>
+        <translation>Размер: неизвестен</translation>
+    </message>
+    <message>
+        <source>Backup to: unknown</source>
+        <translation>Создать в: неизвстно</translation>
+    </message>
+    <message>
+        <source>&amp;Change</source>
+        <translation>&amp;Изменить</translation>
+    </message>
+    <message>
+        <source>&amp;Backup</source>
+        <translation>&amp;Создать копию</translation>
+    </message>
+    <message>
+        <source>&amp;Cancel</source>
+        <translation>&amp;Отмена</translation>
+    </message>
+    <message>
+        <source>Installation size: calculating ...</source>
+        <translation>Размер установки: вычисляется...</translation>
+    </message>
+    <message>
+        <source>Select Backup Filename</source>
+        <translation>Выберите название файла резервной копии</translation>
+    </message>
+    <message>
+        <source>Installation size: %L1 %2</source>
+        <translation>Размер установки: %L1 %2</translation>
+    </message>
+    <message>
+        <source>Starting backup ...</source>
+        <translation>Начало копии ...</translation>
+    </message>
+    <message>
+        <source>Backup successful.</source>
+        <translation>Резервная копия удалась.</translation>
+    </message>
+    <message>
+        <source>Backup failed!</source>
+        <translation>Не удалось создать резервную копию!</translation>
+    </message>
+    <message>
+        <source>File exists</source>
+        <translation>Файл уже существует</translation>
+    </message>
+    <message>
+        <source>The selected backup file already exists. Overwrite?</source>
+        <translation>Такой файл уже существует. Заменить?</translation>
+    </message>
+</context>
+<context>
     <name>BootloaderInstallAms</name>
     <message>
         <source>Downloading bootloader file</source>
-        <translation>Скачиваю файл загрузчика</translation>
+        <translation>Скачивается файл загрузчика</translation>
     </message>
     <message>
         <source>Could not load %1</source>
-        <translation>Не могу загрузить %1</translation>
+        <translation>Не удалось загрузить %1</translation>
     </message>
     <message>
         <source>Patching Firmware...</source>
-        <translation>Патчирую микропрограмму...</translation>
+        <translation>Изменяется прошивка...</translation>
     </message>
     <message>
         <source>Could not open %1 for writing</source>
-        <translation>Не могу открыть %1 для записи</translation>
+        <translation>Не удалось открыть %1 для записи</translation>
     </message>
     <message>
         <source>Could not write firmware file</source>
-        <translation>Сбой записи файла микропрограммы</translation>
+        <translation>Сбой записи файла прошивки</translation>
     </message>
     <message>
         <source>Success: modified firmware file created</source>
         <translation>Изменённая прошивка успешно создана</translation>
-    </message>
-    <message>
-        <source>Bootloader installation requires you to provide a firmware file of the original firmware (bin file). You need to download this file yourself due to legal reasons. Please browse the &lt;a href=&apos;http://forums.sandisk.com/sansa/&apos;&gt;Sansa Forums&apos;&lt;/a&gt; or refer to the &lt;a href=&apos;http://www.rockbox.org/manual.shtml&apos;&gt;manual&lt;/a&gt; and the &lt;a href=&apos;http://www.rockbox.org/wiki/SansaAMS&apos;&gt;SansaAMS&lt;/a&gt; wiki page on how to obtain this file.&lt;br/&gt;Press Ok to continue and browse your computer for the firmware file.</source>
-        <translation>Для установки загрузчика вам необходимо предоставить файл прошивки с фирменной микропрограммой (bin-файл). По законодательным причинам, вам необходимо скачать этот файл вручную. Как найти этот файл, смотрите на &lt;a href=&apos;http://forums.sandisk.com/sansa/&apos;&gt;форумах Sansa&lt;/a&gt;, в &lt;a href=&apos;http://www.rockbox.org/manual.shtml&apos;&gt;руководстве по экслуатации&lt;/a&gt; или на вики-странице &lt;a href=&apos;http://www.rockbox.org/wiki/SansaAMS&apos;&gt;SansaAMS&lt;/a&gt;.&lt;br/&gt;Чтобы продолжить, нажмите на OK и укажите файл прошивки на компьютере.</translation>
     </message>
     <message>
         <source>No room to insert bootloader, try another firmware version</source>
@@ -38,6 +97,14 @@
     <message>
         <source>To uninstall, perform a normal upgrade with an unmodified original firmware</source>
         <translation>Для удаления выполните нормальное обновление с неизменённой фирменной прошивкой</translation>
+    </message>
+    <message>
+        <source>Bootloader installation requires you to provide a copy of the original Sandisk firmware (bin file). This firmware file will be patched and then installed to your player along with the rockbox bootloader. You need to download this file yourself due to legal reasons. Please browse the &lt;a href=&apos;http://forums.sandisk.com/sansa/&apos;&gt;Sansa Forums&lt;/a&gt; or refer to the &lt;a href=&apos;http://www.rockbox.org/manual.shtml&apos;&gt;manual&lt;/a&gt; and the &lt;a href=&apos;http://www.rockbox.org/wiki/SansaAMS&apos;&gt;SansaAMS&lt;/a&gt; wiki page on how to obtain this file.&lt;br/&gt;Press Ok to continue and browse your computer for the firmware file.</source>
+        <translation type="obsolete">Установка загрузчика потребует от вас копию оригинальной прошивки Sandisk\&apos;а (bin файл). Эта прошивка будет пропатчена и затем установлена в ваш плеер вместе с зарузчиком Rockbox\&apos;а. По причинам легальности данного действия вам нужно будет самим скачать загрузчик. Зайдите на &lt;a href=\&apos;http://forums.sandisk.com/sansa/\&apos;&gt;Sansa Forums\&apos;&lt;/a&gt; или обратитесь к &lt;a href=\&apos;http://www.rockbox.org/manual.shtml\&apos;&gt;инструкции&lt;/a&gt; и вики-странице &lt;a href=\&apos;http://www.rockbox.org/wiki/SansaAMS\&apos;&gt;SansaAMS&lt;/a&gt; за помощью с получением файла.&lt;br/&gt;Нажмите ОК чтобы продолжить и выбрать файл прошивки.</translation>
+    </message>
+    <message>
+        <source>Bootloader installation requires you to provide a copy of the original Sandisk firmware (bin file). This firmware file will be patched and then installed to your player along with the rockbox bootloader. You need to download this file yourself due to legal reasons. Please browse the &lt;a href=&apos;http://forums.sandisk.com/sansa/&apos;&gt;Sansa Forums&lt;/a&gt; or refer to the &lt;a href=&apos;http://www.rockbox.org/manual.shtml&apos;&gt;manual&lt;/a&gt; and the &lt;a href=&apos;http://www.rockbox.org/wiki/SansaAMS&apos;&gt;SansaAMS&lt;/a&gt; wiki page on how to obtain this file.&lt;br/&gt;&lt;b&gt;Note:&lt;/b&gt; This file is not present on your player and will disappear automatically after installing it.&lt;br/&gt;&lt;br/&gt;Press Ok to continue and browse your computer for the firmware file.</source>
+        <translation>Установка загрузчика потребует от вас копию оригинальной прошивки от Sandisk (bin-файл). Эта прошивка будет пропатчена, а затем установлена на ваш плеер вместе с зарузчиком Rockbox\&apos;а. По законным причинам, Вам необходимо скачать файл самостоятельно. Зайдите на &lt;a href=&apos;http://forums.sandisk.com/sansa/&apos;&gt;форумы Sansa&lt;/a&gt; или читайте &lt;a href=&apos;http://www.rockbox.org/manual.shtml&apos;&gt;инструкцию&lt;/a&gt; и вики-страничку &lt;a href=&apos;http://www.rockbox.org/wiki/SansaAMS&apos;&gt;SansaAMS&lt;/a&gt; о том, как получить файл.&lt;br/&gt;Нажмите ОК чтобы продолжить и выбрать файл прошивки.</translation>
     </message>
 </context>
 <context>
@@ -79,36 +146,12 @@
         <translation>Создаётся журнал установки</translation>
     </message>
     <message>
-        <source>Bootloader installation is almost complete. Installation &lt;b&gt;requires&lt;/b&gt; you to perform the following steps manually:</source>
-        <translation>Установка загрузчика почти завершена. Вам &lt;b&gt;обязательно&lt;/b&gt; выполнить следующие операции вручную:</translation>
-    </message>
-    <message>
-        <source>&lt;li&gt;Safely remove your player.&lt;/li&gt;</source>
-        <translation>&lt;li&gt;Безопасно отключить плеер.&lt;/li&gt;</translation>
-    </message>
-    <message>
-        <source>&lt;li&gt;Reboot your player into the original firmware.&lt;/li&gt;&lt;li&gt;Perform a firmware upgrade using the update functionality of the original firmware. Please refer to your player&apos;s manual on details.&lt;/li&gt;&lt;li&gt;After the firmware has been updated reboot your player.&lt;/li&gt;</source>
-        <translation>&lt;li&gt;Перезагрузите Ваш плеер на фирменную микропрограмму.&lt;/li&gt;&lt;li&gt;Обновите микропрограмму с помощью функции обновления фирменной микропрограммы. Дополнительную информацию вы найдёте в руководстве по эксплуатации Вашего плеера.&lt;/li&gt;&lt;li&gt;После обновления прошивки, перезагрузите Ваш плеер.&lt;/li&gt;</translation>
-    </message>
-    <message>
-        <source>&lt;li&gt;Turn the player off&lt;/li&gt;&lt;li&gt;Insert the charger&lt;/li&gt;</source>
-        <translation>&lt;li&gt;Выключить плеер&lt;/li&gt;&lt;li&gt;Подключить зарядное устройство&lt;/li&gt;</translation>
-    </message>
-    <message>
-        <source>&lt;li&gt;Unplug USB and power adaptors&lt;/li&gt;&lt;li&gt;Hold &lt;i&gt;Power&lt;/i&gt; to turn the player off&lt;/li&gt;&lt;li&gt;Toggle the battery switch on the player&lt;/li&gt;&lt;li&gt;Hold &lt;i&gt;Power&lt;/i&gt; to boot into Rockbox&lt;/li&gt;</source>
-        <translation>&lt;li&gt;Отключить плеер от USB и сетевого питания&lt;/li&gt;&lt;li&gt;Выключить плеер&lt;/li&gt;&lt;li&gt;Переключить плеер в режим питания от батареи&lt;/li&gt;&lt;li&gt;Обратно включить плеер для загрузки Rockbox&lt;/li&gt;</translation>
-    </message>
-    <message>
-        <source>&lt;p&gt;&lt;b&gt;Note:&lt;/b&gt; You can safely install other parts first, but the above steps are &lt;b&gt;required&lt;/b&gt; to finish the installation!&lt;/p&gt;</source>
-        <translation>&lt;p&gt;&lt;b&gt;Примечание:&lt;/b&gt; Вы можете безопасно устанавливать дополнения, но выше указанные операции &lt;b&gt;обязательны&lt;/b&gt; для завершения установки!&lt;/p&gt;</translation>
-    </message>
-    <message>
         <source>Installation log created</source>
         <translation>Журнал установки создан</translation>
     </message>
     <message>
         <source>Waiting for system to remount player</source>
-        <translation>Ожидание, пока система смонтирует плеер</translation>
+        <translation>Ожидание, пока система заново смонтирует плеер</translation>
     </message>
     <message>
         <source>Player remounted</source>
@@ -116,18 +159,90 @@
     </message>
     <message>
         <source>Timeout on remount</source>
-        <translation>Срок на монтирование</translation>
+        <translation>Время ожидания для монтирования истекло</translation>
+    </message>
+    <message>
+        <source>Zip file format detected</source>
+        <translation>Обнаружен формат ZIP</translation>
+    </message>
+    <message>
+        <source>Extracting firmware %1 from archive</source>
+        <translation>Извлекается прошивка %1 из архива</translation>
+    </message>
+    <message>
+        <source>Error extracting firmware from archive</source>
+        <translation>Ошибка при извлечении прошивки</translation>
+    </message>
+    <message>
+        <source>Could not find firmware in archive</source>
+        <translation>Прошивка в архиве не найдена</translation>
+    </message>
+    <message>
+        <source>CAB file format detected</source>
+        <translation>Обнаружен формат CAB</translation>
     </message>
 </context>
 <context>
     <name>BootloaderInstallChinaChip</name>
     <message>
         <source>Bootloader installation requires you to provide a firmware file of the original firmware (HXF file). You need to download this file yourself due to legal reasons. Please refer to the &lt;a href=&apos;http://www.rockbox.org/manual.shtml&apos;&gt;manual&lt;/a&gt; and the &lt;a href=&apos;http://www.rockbox.org/wiki/OndaVX747#Download_and_extract_a_recent_ve&apos;&gt;OndaVX747&lt;/a&gt; wiki page on how to obtain this file.&lt;br/&gt;Press Ok to continue and browse your computer for the firmware file.</source>
-        <translation>Чтобы установить загрузчик, вам необходимо предоставить файл фирменной прошивки (HXF-файл). По законодательным причинам, этот файл вам необходимо скачать вручную. О том, как получить этот файл, смотрите в &lt;a href=&apos;http://www.rockbox.org/manual.shtml&apos;&gt;руководстве по эксплуатации&lt;/a&gt; и на &lt;a href=&apos;http://www.rockbox.org/wiki/OndaVX747#Download_and_extract_a_recent_ve&apos;&gt;wiki-странице OndaVX747&lt;/a&gt;. &lt;br/&gt; Нажмине на ОК, чтобы продолжить и указать путь к прошивке на Вашем компьютере.</translation>
+        <translation>Чтобы установить загрузчик, требуется файл фирменной прошивки (HXF-файл). По законодательным причинам, этот файл вам необходимо скачать самостоятельно. О том, как получить этот файл, смотрите в &lt;a href=&apos;http://www.rockbox.org/manual.shtml&apos;&gt;руководстве по эксплуатации&lt;/a&gt; и на &lt;a href=&apos;http://www.rockbox.org/wiki/OndaVX747#Download_and_extract_a_recent_ve&apos;&gt;вики-страничке OndaVX747&lt;/a&gt;. &lt;br/&gt; Нажмине на ОК, чтобы продолжить и указать путь к прошивке на Вашем компьютере.</translation>
     </message>
     <message>
         <source>Downloading bootloader file</source>
         <translation>Скачивается файл загрузчика</translation>
+    </message>
+    <message>
+        <source>Could not open firmware file</source>
+        <translation>Не удалось открыть файл прошивки</translation>
+    </message>
+    <message>
+        <source>Could not open bootloader file</source>
+        <translation>Не удалось открыть файл загрузчика</translation>
+    </message>
+    <message>
+        <source>Could not allocate memory</source>
+        <translation>Не удалось выделить память</translation>
+    </message>
+    <message>
+        <source>Could not load firmware file</source>
+        <translation>Не удалось загрузить файл прошивки</translation>
+    </message>
+    <message>
+        <source>File is not a valid ChinaChip firmware</source>
+        <translation>Файл не является годной прошивкой ChinaChip</translation>
+    </message>
+    <message>
+        <source>Could not find ccpmp.bin in input file</source>
+        <translation>ccpmp.bin во входном файле не найден</translation>
+    </message>
+    <message>
+        <source>Could not open backup file for ccpmp.bin</source>
+        <translation>Не удалось открыть резервную копию для ccpmp.bin</translation>
+    </message>
+    <message>
+        <source>Could not write backup file for ccpmp.bin</source>
+        <translation>Не удалось записать резервную копию для ccpmp.bin</translation>
+    </message>
+    <message>
+        <source>Could not load bootloader file</source>
+        <translation>Не удалось считать файл загрузчика</translation>
+    </message>
+    <message>
+        <source>Could not get current time</source>
+        <translation>Не удалось получить текущее время</translation>
+    </message>
+    <message>
+        <source>Could not open output file</source>
+        <translation>Не удалось открыть выходной файл</translation>
+    </message>
+    <message>
+        <source>Could not write output file</source>
+        <translation>Не удалось записать выходной файл</translation>
+    </message>
+    <message>
+        <source>Unexpected error from chinachippatcher</source>
+        <translation>Неожиданный сбой chinachippatcher</translation>
     </message>
 </context>
 <context>
@@ -154,11 +269,11 @@
     </message>
     <message>
         <source>Can&apos;t remove Rockbox bootloader file.</source>
-        <translation>Не могу удалить файл загрузчика Rockbox.</translation>
+        <translation>Не удалось удалить файл загрузчика Rockbox.</translation>
     </message>
     <message>
         <source>Can&apos;t restore bootloader file.</source>
-        <translation>Не могу восстановить файл загрузчика.</translation>
+        <translation>Не удалось восстановить файл загрузчика.</translation>
     </message>
     <message>
         <source>Original bootloader restored successfully.</source>
@@ -167,6 +282,14 @@
     <message>
         <source>Bootloader successful installed</source>
         <translation>Загрузчик успешно установлен</translation>
+    </message>
+    <message>
+        <source>A firmware file is already present on player</source>
+        <translation>Файл прошивки уже присутствует на плеере</translation>
+    </message>
+    <message>
+        <source>Copying modified firmware file failed</source>
+        <translation>Не удалось скопировать изменённый файл прошивки</translation>
     </message>
 </context>
 <context>
@@ -177,7 +300,7 @@
     </message>
     <message>
         <source>Could not verify original firmware file</source>
-        <translation>Не могу проверить фирменную прошивку</translation>
+        <translation>Не удалось проверить фирменную прошивку</translation>
     </message>
     <message>
         <source>Firmware file not recognized.</source>
@@ -201,7 +324,7 @@
     </message>
     <message>
         <source>Downloading bootloader file</source>
-        <translation>Скачиваю файл загрузчика</translation>
+        <translation>Скачивается файл загрузчика</translation>
     </message>
     <message>
         <source>Adding bootloader to firmware file</source>
@@ -209,7 +332,7 @@
     </message>
     <message>
         <source>could not open input file</source>
-        <translation>Не могу открыть входной файл</translation>
+        <translation>Не удалось открыть входной файл</translation>
     </message>
     <message>
         <source>reading header failed</source>
@@ -217,11 +340,11 @@
     </message>
     <message>
         <source>reading firmware failed</source>
-        <translation>Сбой чтения микропрограммы</translation>
+        <translation>Сбой чтения прошивки</translation>
     </message>
     <message>
         <source>can&apos;t open bootloader file</source>
-        <translation>Не могу открыть файл загрузчика</translation>
+        <translation>Не удалось открыть файл загрузчика</translation>
     </message>
     <message>
         <source>reading bootloader file failed</source>
@@ -229,7 +352,7 @@
     </message>
     <message>
         <source>can&apos;t open output file</source>
-        <translation>Не могу открыть выходной файл</translation>
+        <translation>Не удалось открыть выходной файл</translation>
     </message>
     <message>
         <source>writing output file failed</source>
@@ -237,11 +360,11 @@
     </message>
     <message>
         <source>Error in patching: %1</source>
-        <translation>Ошибка патчирования: %1</translation>
+        <translation>Ошибка применения патча: %1</translation>
     </message>
     <message>
         <source>Error in scramble: %1</source>
-        <translation>Ошибка шифрования: %1</translation>
+        <translation>Ошибка кодирования: %1</translation>
     </message>
     <message>
         <source>Checking modified firmware file</source>
@@ -257,31 +380,31 @@
     </message>
     <message>
         <source>Can&apos;t open input file</source>
-        <translation>Не могу открыть входной файл</translation>
+        <translation>Не удалось открыть входной файл</translation>
     </message>
     <message>
         <source>Can&apos;t open output file</source>
-        <translation>Не могу открыть выходной вайл</translation>
+        <translation>Не удалось открыть выходной вайл</translation>
     </message>
     <message>
         <source>invalid file: header length wrong</source>
-        <translation>Файл негоден: неверная длина заголовка</translation>
+        <translation>Неверный файл: неверная длина заголовка</translation>
     </message>
     <message>
         <source>invalid file: unrecognized header</source>
-        <translation>Файл негоден: неопознанный заголовок</translation>
+        <translation>Неверный файл: неопознанный заголовок</translation>
     </message>
     <message>
         <source>invalid file: &quot;length&quot; field wrong</source>
-        <translation>Файл негоден: неверное поле &quot;длина&quot;</translation>
+        <translation>Неверный файл: неверное поле &quot;длина&quot;</translation>
     </message>
     <message>
         <source>invalid file: &quot;length2&quot; field wrong</source>
-        <translation>Файл негоден: неверное поле &quot;длина2&quot;</translation>
+        <translation>Неверный файл: неверное поле &quot;длина2&quot;</translation>
     </message>
     <message>
         <source>invalid file: internal checksum error</source>
-        <translation>Файл негоден: ошибка во внутренней контрольной сумме</translation>
+        <translation>Неверный файл: ошибка во внутренней контрольной сумме</translation>
     </message>
     <message>
         <source>unknown</source>
@@ -289,26 +412,73 @@
     </message>
     <message>
         <source>Bootloader installation requires you to provide a firmware file of the original firmware (hex file). You need to download this file yourself due to legal reasons. Please refer to the &lt;a href=&apos;http://www.rockbox.org/manual.shtml&apos;&gt;manual&lt;/a&gt; and the &lt;a href=&apos;http://www.rockbox.org/wiki/IriverBoot#Download_and_extract_a_recent_ve&apos;&gt;IriverBoot&lt;/a&gt; wiki page on how to obtain this file.&lt;br/&gt;Press Ok to continue and browse your computer for the firmware file.</source>
-        <translation>Для установки загрузчика вам необходимо предоставить файл прошивки с фирменной микропрограммой (hex-файл). По законодательным причинам, вам необходимо скачать этот файл вручную. Как найти этот файл, смотрите в &lt;a href=&apos;http://www.rockbox.org/manual.shtml&apos;&gt;руководстве по экслуатации&lt;/a&gt; и на вики-странице &lt;a href=&apos;http://www.rockbox.org/wiki/IriverBoot#Download_and_extract_a_recent_ve&apos;&gt;IriverBoot&lt;/a&gt;.&lt;br/&gt;Чтобы продолжить, нажмите на OK и укажите файл прошивки на компьютере.</translation>
+        <translation>Для установки загрузчика требуется файл прошивки с фирменной прошивкой (hex-файл). По законодательным причинам, вам необходимо скачать этот файл самостоятельно. Как найти этот файл, смотрите в &lt;a href=&apos;http://www.rockbox.org/manual.shtml&apos;&gt;руководстве по экслуатации&lt;/a&gt; и на вики-странице &lt;a href=&apos;http://www.rockbox.org/wiki/IriverBoot#Download_and_extract_a_recent_ve&apos;&gt;IriverBoot&lt;/a&gt;.&lt;br/&gt;Чтобы продолжить, нажмите на OK и укажите файл прошивки на компьютере.</translation>
     </message>
     <message>
         <source>invalid file: &quot;length3&quot; field wrong</source>
-        <translation>файл негоден: неверное поле &quot;длина3&quot;</translation>
+        <translation>Неверный файл: неверное поле &quot;длина3&quot;</translation>
     </message>
     <message>
         <source>Uninstallation not possible, only installation info removed</source>
         <translation>Полное удаление невозможно, удалена только информация об установке</translation>
+    </message>
+    <message>
+        <source>A firmware file is already present on player</source>
+        <translation>Файл прошивки уже присутствует на плеере</translation>
+    </message>
+    <message>
+        <source>Copying modified firmware file failed</source>
+        <translation>Не удалось скопировать изменённый файл прошивки</translation>
+    </message>
+</context>
+<context>
+    <name>BootloaderInstallImx</name>
+    <message>
+        <source>Bootloader installation requires you to provide a copy of the original Sandisk firmware (firmware.sb file). This file will be patched with the Rockbox bootloader and installed to your player. You need to download this file yourself due to legal reasons. Please browse the &lt;a href=&apos;http://forums.sandisk.com/sansa/&apos;&gt;Sansa Forums&lt;/a&gt; or refer to the &lt;a href= &apos;http://www.rockbox.org/wiki/SansaFuzePlus&apos;&gt;SansaFuzePlus&lt;/a&gt; wiki page on how to obtain this file.&lt;br/&gt;Press Ok to continue and browse your computer for the firmware file.</source>
+        <translation>Установка загрузчика потребует от вас копию оригинальной прошивки от Sandisk (файл firmware.sb). Эта прошивка будет пропатчена, а затем установлена на ваш плеер вместе с зарузчиком Rockbox. По законным причинам, Вам необходимо скачать файл самостоятельно. Зайдите на &lt;a href=&apos;http://forums.sandisk.com/sansa/&apos;&gt;форумы Sansa&lt;/a&gt; или читайте вики-страничку &lt;a href=&apos;http://www.rockbox.org/wiki/SansaFuzePlus&apos;&gt;SansaFuzePlus&lt;/a&gt; о том, как получить файл.&lt;br/&gt;Нажмите ОК чтобы продолжить и выбрать файл прошивки.</translation>
+    </message>
+    <message>
+        <source>Could not read original firmware file</source>
+        <translation>Не удалось прочитать фирменную прошивку</translation>
+    </message>
+    <message>
+        <source>Downloading bootloader file</source>
+        <translation>Скачивается файл загрузчика</translation>
+    </message>
+    <message>
+        <source>Patching file...</source>
+        <translation>Изменяется прошивка...</translation>
+    </message>
+    <message>
+        <source>Patching the original firmware failed</source>
+        <translation>Сбой патчирования фирменной прошивки</translation>
+    </message>
+    <message>
+        <source>Succesfully patched firmware file</source>
+        <translation>Прошивка успешно пропатчена</translation>
+    </message>
+    <message>
+        <source>Bootloader successful installed</source>
+        <translation>Загрузчик успешно установлен</translation>
+    </message>
+    <message>
+        <source>Patched bootloader could not be installed</source>
+        <translation>Не удалось установить пропатченный загрузчик</translation>
+    </message>
+    <message>
+        <source>To uninstall, perform a normal upgrade with an unmodified original firmware.</source>
+        <translation>Для удаления выполните нормальное обновление с неизменённой фирменной прошивкой.</translation>
     </message>
 </context>
 <context>
     <name>BootloaderInstallIpod</name>
     <message>
         <source>Error: can&apos;t allocate buffer memory!</source>
-        <translation>Ошибка: не могу выделить буферную память!</translation>
+        <translation>Ошибка: не удалось выделить буферную память!</translation>
     </message>
     <message>
         <source>Downloading bootloader file</source>
-        <translation>Скачиваю файл заргузчика</translation>
+        <translation>Скачивается файл заргузчика</translation>
     </message>
     <message>
         <source>Failed to read firmware directory</source>
@@ -316,11 +486,11 @@
     </message>
     <message>
         <source>Unknown version number in firmware (%1)</source>
-        <translation>Неизвестный номер версии микропрограммы (%1)</translation>
+        <translation>Неизвестный номер версии прошивки (%1)</translation>
     </message>
     <message>
         <source>Could not open Ipod in R/W mode</source>
-        <translation>Не могу открыть iPod в режиме записи</translation>
+        <translation>Не удалось открыть iPod в режиме записи</translation>
     </message>
     <message>
         <source>Failed to add bootloader</source>
@@ -340,11 +510,11 @@
     </message>
     <message>
         <source>Could not open Ipod</source>
-        <translation>Не могу открыть iPod</translation>
+        <translation>Не удалось открыть iPod</translation>
     </message>
     <message>
         <source>No firmware partition on disk</source>
-        <translation>Не найдено раздела микропрограммы на диске</translation>
+        <translation>Не найдено раздела прошивки на диске</translation>
     </message>
     <message>
         <source>Installing Rockbox bootloader</source>
@@ -361,7 +531,7 @@
     <message>
         <source>Warning: This is a MacPod, Rockbox only runs on WinPods. 
 See http://www.rockbox.org/wiki/IpodConversionToFAT32</source>
-        <translation>Предупреждение: это - MacPod, а Rockbox работает только на WinPod&apos;ах.
+        <translation>Предупреждение: это - MacPod, Rockbox работает только на WinPod&apos;ах.
 См. http://www.rockbox.org/wiki/IpodConversionToFAT32</translation>
     </message>
     <message>
@@ -382,18 +552,18 @@ See http://www.rockbox.org/wiki/IpodConversionToFAT32</source>
     </message>
     <message>
         <source>Could not open Ipod: permission denied</source>
-        <translation>Не могу открыть iPod: доступ запрещён</translation>
+        <translation>Не удалось открыть iPod: доступ запрещён</translation>
     </message>
     <message>
         <source>Error: could not retrieve device name</source>
-        <translation>Ошибка: не могу найти имя устройства</translation>
+        <translation>Ошибка: не удалось найти название устройства</translation>
     </message>
 </context>
 <context>
     <name>BootloaderInstallMi4</name>
     <message>
         <source>Downloading bootloader</source>
-        <translation>Скачиваю загрузчик</translation>
+        <translation>Скачивается загрузчик</translation>
     </message>
     <message>
         <source>Installing Rockbox bootloader</source>
@@ -423,12 +593,20 @@ See http://www.rockbox.org/wiki/IpodConversionToFAT32</source>
         <source>Rockbox bootloader successful removed</source>
         <translation>Загрузчик Rockbox успешно удалён</translation>
     </message>
+    <message>
+        <source>A firmware file is already present on player</source>
+        <translation>Файл прошивки уже присутствует на плеере</translation>
+    </message>
+    <message>
+        <source>Copying modified firmware file failed</source>
+        <translation>Не удалось скопировать изменённый файл прошивки</translation>
+    </message>
 </context>
 <context>
     <name>BootloaderInstallMpio</name>
     <message>
         <source>Bootloader installation requires you to provide a firmware file of the original firmware (bin file). You need to download this file yourself due to legal reasons. Please refer to the &lt;a href=&apos;http://www.rockbox.org/manual.shtml&apos;&gt;manual&lt;/a&gt; and the &lt;a href=&apos;http://www.rockbox.org/wiki/MPIOHD200Port&apos;&gt;MPIOHD200Port&lt;/a&gt; wiki page on how to obtain this file.&lt;br/&gt;Press Ok to continue and browse your computer for the firmware file.</source>
-        <translation>Для установки загрузчика вам необходимо предоставить файл прошивки с фирменной микропрограммой (hex-файл). По законодательным причинам, вам необходимо скачать этот файл вручную. Как найти этот файл, смотрите в &lt;a href=&apos;http://www.rockbox.org/manual.shtml&apos;&gt;руководстве по экслуатации&lt;/a&gt; и на вики-странице &lt;a href=&apos;http://www.rockbox.org/wiki/MPIOHD200Port&apos;&gt;MPIOHD200Port&lt;/a&gt;.&lt;br/&gt;Чтобы продолжить, нажмите на OK и укажите файл прошивки на компьютере.</translation>
+        <translation>Для установки загрузчика требуется файл прошивки с фирменной микропрограммой (hex-файл). По законодательным причинам, вам необходимо скачать этот файл самостоятельно. Как найти этот файл, смотрите в &lt;a href=&apos;http://www.rockbox.org/manual.shtml&apos;&gt;руководстве по экслуатации&lt;/a&gt; и на вики-странице &lt;a href=&apos;http://www.rockbox.org/wiki/MPIOHD200Port&apos;&gt;MPIOHD200Port&lt;/a&gt;.&lt;br/&gt;Чтобы продолжить, нажмите на OK и укажите файл прошивки на компьютере.</translation>
     </message>
     <message>
         <source>Downloading bootloader file</source>
@@ -436,15 +614,15 @@ See http://www.rockbox.org/wiki/IpodConversionToFAT32</source>
     </message>
     <message>
         <source>Could not open the original firmware.</source>
-        <translation>Не могу открыть фирменную прошивку.</translation>
+        <translation>Не удалось открыть фирменную прошивку.</translation>
     </message>
     <message>
         <source>Could not read the original firmware.</source>
-        <translation>Не могу прочитать фирменную прошивку.</translation>
+        <translation>Не удалось прочитать фирменную прошивку.</translation>
     </message>
     <message>
         <source>Could not open downloaded bootloader.</source>
-        <translation>Не могу открыть скачаный загрузчик.</translation>
+        <translation>Не удалось открыть скачаный загрузчик.</translation>
     </message>
     <message>
         <source>Place for bootloader in OF file not empty.</source>
@@ -452,7 +630,7 @@ See http://www.rockbox.org/wiki/IpodConversionToFAT32</source>
     </message>
     <message>
         <source>Could not read the downloaded bootloader.</source>
-        <translation>Не могу прочитать скачаный загрузчик.</translation>
+        <translation>Не удалось прочитать полученный загрузчик.</translation>
     </message>
     <message>
         <source>Bootloader checksum error.</source>
@@ -476,7 +654,7 @@ See http://www.rockbox.org/wiki/IpodConversionToFAT32</source>
     </message>
     <message>
         <source>Could not open output file.</source>
-        <translation>Не могу открыть выходной вайл.</translation>
+        <translation>Не удалось открыть выходной вайл.</translation>
     </message>
     <message>
         <source>Could not write output file.</source>
@@ -491,7 +669,7 @@ See http://www.rockbox.org/wiki/IpodConversionToFAT32</source>
     <name>BootloaderInstallSansa</name>
     <message>
         <source>Error: can&apos;t allocate buffer memory!</source>
-        <translation>Ошибка: не могу выделить буферную память!</translation>
+        <translation>Ошибка: не удалось выделить буферную память!</translation>
     </message>
     <message>
         <source>Searching for Sansa</source>
@@ -509,7 +687,7 @@ This is required to install the bootloader</source>
     </message>
     <message>
         <source>Downloading bootloader file</source>
-        <translation>Скачиваю файл загрузчика</translation>
+        <translation>Скачивается файл загрузчика</translation>
     </message>
     <message>
         <source>OLD ROCKBOX INSTALLATION DETECTED, ABORTING.
@@ -524,7 +702,7 @@ See http://www.rockbox.org/wiki/SansaE200Install
     </message>
     <message>
         <source>Could not open Sansa in R/W mode</source>
-        <translation>Не могу открыть плеер в режиме записи</translation>
+        <translation>Не удалось открыть плеер в режиме записи</translation>
     </message>
     <message>
         <source>Successfully installed bootloader</source>
@@ -536,15 +714,15 @@ See http://www.rockbox.org/wiki/SansaE200Install
     </message>
     <message>
         <source>Can&apos;t find Sansa</source>
-        <translation>Не могу найти плеер Sansa</translation>
+        <translation>Не удалось найти плеер Sansa</translation>
     </message>
     <message>
         <source>Could not open Sansa</source>
-        <translation>Не могу открыть плеер Sansa</translation>
+        <translation>Не удалось открыть плеер Sansa</translation>
     </message>
     <message>
         <source>Could not read partition table</source>
-        <translation>Не могу прочитать таблицу разделов</translation>
+        <translation>Не удалось прочитать таблицу разделов</translation>
     </message>
     <message>
         <source>Disk is not a Sansa (Error %1), aborting.</source>
@@ -584,18 +762,18 @@ See http://www.rockbox.org/wiki/SansaE200Install
     </message>
     <message>
         <source>Error: could not retrieve device name</source>
-        <translation>Ошибка: не могу найти имя устройства</translation>
+        <translation>Ошибка: не удалось найти имя устройства</translation>
     </message>
 </context>
 <context>
     <name>BootloaderInstallTcc</name>
     <message>
         <source>Downloading bootloader file</source>
-        <translation>Скачиваю файл загрузчика</translation>
+        <translation>Скачивается файл загрузчика</translation>
     </message>
     <message>
         <source>Could not load %1</source>
-        <translation>Не могу загрузить %1</translation>
+        <translation>Не удалось загрузить %1</translation>
     </message>
     <message>
         <source>Unknown OF file used: %1</source>
@@ -603,15 +781,15 @@ See http://www.rockbox.org/wiki/SansaE200Install
     </message>
     <message>
         <source>Patching Firmware...</source>
-        <translation>Патчирую микропрограмму...</translation>
+        <translation>Изменяется прошивка...</translation>
     </message>
     <message>
         <source>Could not open %1 for writing</source>
-        <translation>Не могу открыть %1 для записи</translation>
+        <translation>Не удалось открыть %1 для записи</translation>
     </message>
     <message>
         <source>Could not write firmware file</source>
-        <translation>Сбой записи файла микропрограммы</translation>
+        <translation>Сбой записи файла прошиви</translation>
     </message>
     <message>
         <source>Success: modified firmware file created</source>
@@ -619,11 +797,11 @@ See http://www.rockbox.org/wiki/SansaE200Install
     </message>
     <message>
         <source>Bootloader installation requires you to provide a firmware file of the original firmware (bin file). You need to download this file yourself due to legal reasons. Please refer to the &lt;a href=&apos;http://www.rockbox.org/manual.shtml&apos;&gt;manual&lt;/a&gt; and the &lt;a href=&apos;http://www.rockbox.org/wiki/CowonD2Info&apos;&gt;CowonD2Info&lt;/a&gt; wiki page on how to obtain the file.&lt;br/&gt;Press Ok to continue and browse your computer for the firmware file.</source>
-        <translation>Для установки загрузчика вам необходимо предоставить файл прошивки с фирменной микропрограммой (hex-файл). По законодательным причинам, вам необходимо скачать этот файл вручную. Как найти этот файл, смотрите в &lt;a href=&apos;http://www.rockbox.org/manual.shtml&apos;&gt;руководстве по экслуатации&lt;/a&gt; и на вики-странице &lt;a href=&apos;http://www.rockbox.org/wiki/CowonD2Info&apos;&gt;CowonD2Info&lt;/a&gt;.&lt;br/&gt;Чтобы продолжить, нажмите на OK и укажите файл прошивки на компьютере.</translation>
+        <translation>Для установки загрузчика требуется файл прошивки с фирменной микропрограммой (hex-файл). По законодательным причинам, вам необходимо скачать этот файл самостоятельно. Как найти этот файл, смотрите в &lt;a href=&apos;http://www.rockbox.org/manual.shtml&apos;&gt;руководстве по экслуатации&lt;/a&gt; и на вики-странице &lt;a href=&apos;http://www.rockbox.org/wiki/CowonD2Info&apos;&gt;CowonD2Info&lt;/a&gt;.&lt;br/&gt;Чтобы продолжить, нажмите на OK и укажите файл прошивки на компьютере.</translation>
     </message>
     <message>
         <source>Could not patch firmware</source>
-        <translation>Сбой записи файла микропрограммы</translation>
+        <translation>Сбой записи файла прошивки</translation>
     </message>
     <message>
         <source>To uninstall, perform a normal upgrade with an unmodified original firmware</source>
@@ -631,34 +809,22 @@ See http://www.rockbox.org/wiki/SansaE200Install
     </message>
 </context>
 <context>
-    <name>BrowseDirtreeFrm</name>
+    <name>Changelog</name>
     <message>
-        <source>Find Directory</source>
-        <translation>Найти папку</translation>
+        <source>Changelog</source>
+        <translation>История изменений</translation>
     </message>
     <message>
-        <source>Browse to the destination folder</source>
-        <translation>Указать папку направления</translation>
+        <source>Show on startup</source>
+        <translation>Показать при запуске</translation>
     </message>
     <message>
         <source>&amp;Ok</source>
         <translation>&amp;OK</translation>
     </message>
-    <message>
-        <source>&amp;Cancel</source>
-        <translation>&amp;Отмена</translation>
-    </message>
 </context>
 <context>
     <name>Config</name>
-    <message>
-        <source>Language changed</source>
-        <translation>Язык изменён</translation>
-    </message>
-    <message>
-        <source>You need to restart the application for the changed language to take effect.</source>
-        <translation>Вам необходимо перезапустить программу, чтобы использовать её на указанном языке.</translation>
-    </message>
     <message>
         <source>Autodetection</source>
         <translation>Автоопределение</translation>
@@ -666,13 +832,13 @@ See http://www.rockbox.org/wiki/SansaE200Install
     <message>
         <source>Could not detect a Mountpoint.
 Select your Mountpoint manually.</source>
-        <translation>Не могу определить точку монтирования
+        <translation>Не удалось определить точку монтирования
 Укажите её вручную.</translation>
     </message>
     <message>
         <source>Could not detect a device.
 Select your device and Mountpoint manually.</source>
-        <translation>Не могу определить устройство.
+        <translation>Не удалось определить устройство.
 Укажите устройство и точку монтирования вручную.</translation>
     </message>
     <message>
@@ -689,43 +855,23 @@ Select your device and Mountpoint manually.</source>
     </message>
     <message>
         <source>The cache path is invalid. Aborting.</source>
-        <translation>Путь кэша негоден. Отмена.</translation>
-    </message>
-    <message>
-        <source>Select your device</source>
-        <translation>Укажите ваше устройство</translation>
-    </message>
-    <message>
-        <source>Sansa e200 in MTP mode found!
-You need to change your player to MSC mode for installation. </source>
-        <translation>Найден плеер Sansa e200 в режиме MTP!
-Вам необходимо переключить плеер в режим MSC, чтобы продолжить установку. </translation>
-    </message>
-    <message>
-        <source>H10 20GB in MTP mode found!
-You need to change your player to UMS mode for installation. </source>
-        <translation>Найден плеер H10 на 20 ГБ в режиме MTP!
-Вам необходимо переключить плеер в режим UMS, чтобы продолжить установку.</translation>
-    </message>
-    <message>
-        <source>Unless you changed this installation will fail!</source>
-        <translation>Установка не удастся если вы этого не сделали!</translation>
+        <translation>Неверный путь кэша. Отмена.</translation>
     </message>
     <message>
         <source>Fatal error</source>
-        <translation>Фатальная ошибка</translation>
+        <translation type="obsolete">Фатальная ошибка</translation>
     </message>
     <message>
         <source>Current cache size is %L1 kiB.</source>
-        <translation>Текущий размер кэша %L1 КиБ.</translation>
+        <translation>Текущий размер кэша %L1 КБ.</translation>
     </message>
     <message>
         <source>Configuration OK</source>
-        <translation>Настройки годны</translation>
+        <translation>Настройки верны</translation>
     </message>
     <message>
         <source>Configuration INVALID</source>
-        <translation>Настройки НЕГОДНЫ</translation>
+        <translation>Настройки НЕВЕРНЫ</translation>
     </message>
     <message>
         <source>The following errors occurred:</source>
@@ -749,7 +895,7 @@ You need to change your player to UMS mode for installation. </source>
     </message>
     <message>
         <source>No player selected</source>
-        <translation>Плеера не обнаружено</translation>
+        <translation>Плеер не выбран</translation>
     </message>
     <message>
         <source>Cache path not writeable. Leave path empty to default to systems temporary path.</source>
@@ -773,51 +919,45 @@ Sorry, Rockbox doesn&apos;t run on your player.</source>
     </message>
     <message>
         <source>Fatal: player incompatible</source>
-        <translation>Провал: плеер несовместим</translation>
+        <translation type="obsolete">Ошибка: плеер несовместим</translation>
     </message>
     <message>
         <source>TTS configuration invalid</source>
-        <translation>Настройки TTS негодны</translation>
+        <translation>Настройки TTS неверны</translation>
     </message>
     <message>
         <source>TTS configuration invalid. 
  Please configure TTS engine.</source>
-        <translation>Настройки TTS негодны.
- Пожалуйста, настройте мотор TTS.</translation>
+        <translation>Настройки TTS неверны.
+ Пожалуйста, настройте движок TTS.</translation>
     </message>
     <message>
         <source>Could not start TTS engine.</source>
-        <translation>Не могу запустить мотор TTS.</translation>
+        <translation>Не удалось запустить движок TTS.</translation>
     </message>
     <message>
         <source>Could not start TTS engine.
 </source>
-        <translation>Не могу запустить мотор TTS.
+        <translation>Не удалось запустить движок TTS.
 </translation>
     </message>
     <message>
         <source>
 Please configure TTS engine.</source>
         <translation>
-Пожалуйста, настройте мотор TTS.</translation>
+Пожалуйста, настройте движок TTS.</translation>
     </message>
     <message>
         <source>Rockbox Utility Voice Test</source>
-        <translation>Голосовая проверка мастера Rockbox</translation>
+        <translation>Проверка голоса</translation>
     </message>
     <message>
         <source>Could not voice test string.</source>
-        <translation>Сбой голосовой проверки выражения.</translation>
-    </message>
-    <message>
-        <source>Could not voice test string.
-</source>
-        <translation>Сбой голосовой проверки выражения.
-</translation>
+        <translation>Невозможно озвучить введённый текст.</translation>
     </message>
     <message>
         <source>Showing disabled targets</source>
-        <translation>Отключенные устройства показаны</translation>
+        <translation>Отображение отображение неподдерживаемых устройств</translation>
     </message>
     <message>
         <source>You just enabled showing targets that are marked disabled. Disabled targets are not recommended to end users. Please use this option only if you know what you are doing.</source>
@@ -840,8 +980,69 @@ Rockbox needs a FAT formatted Ipod (so-called &quot;WinPod&quot;) to run. </sour
     <message>
         <source>The System Proxy settings are invalid!
 Rockbox Utility can&apos;t work with this proxy settings. Make sure the system proxy is set correctly. Note that &quot;proxy auto-config (PAC)&quot; scripts are not supported by Rockbox Utility. If your system uses this you need to use manual proxy settings.</source>
-        <translation>Системные настройки прокси негодны!
+        <translation>Системные настройки прокси неверны!
 Мастер Rockbox не может работать с этими настройками. Проверьте правильность системных настроек прокси. Учтите, что мастер Rockbox не поддерживает сценарии &quot;proxy auto config&quot; (PAC). Если таковые используются на Вашей системе, вам необходимо использовать ручные настройки.</translation>
+    </message>
+    <message>
+        <source>%1 in MTP mode found!
+You need to change your player to MSC mode for installation. </source>
+        <translation>Найден %1 в режиме MTP!
+Для установки вам нужно сменить режим подключения плеера на MSC.</translation>
+    </message>
+    <message>
+        <source>Until you change this installation will fail!</source>
+        <translation type="obsolete">Пока вы это не измените, установка не пройдёт успешно!</translation>
+    </message>
+    <message>
+        <source>Could not voice test string.
+</source>
+        <translation>Не удалось произнести проверочное предложение.</translation>
+    </message>
+    <message>
+        <source>TTS error</source>
+        <translation>Ошибка TTS</translation>
+    </message>
+    <message>
+        <source>The selected TTS failed to initialize. You can&apos;t use this TTS.</source>
+        <translation>Не удалось инициализироавть выбранный движок. Вы не можете им пользоваться.</translation>
+    </message>
+    <message>
+        <source>Multiple devices have been detected. Please disconnect all players but one and try again.</source>
+        <translation>Было обнаружено несколько устройств. Отключите все, кроме одного и попробуйте снова.</translation>
+    </message>
+    <message>
+        <source>Detected devices:</source>
+        <translation>Обнаруженные устройства:</translation>
+    </message>
+    <message>
+        <source>(unknown)</source>
+        <translation>(неизвестный)</translation>
+    </message>
+    <message>
+        <source>Note: detecting connected devices might be ambiguous. You might have less devices connected than listed. In this case it might not be possible to detect your player unambiguously.</source>
+        <translation>Примечание: обнаружение подключенных устройств может оказаться двусмысленно. Может быть подключено меньше устройств, чем в списке. В таком случае, Ваш плеер может быть невозможно узнать однозначно.</translation>
+    </message>
+    <message>
+        <source>Device Detection</source>
+        <translation>Обнаружение устройств</translation>
+    </message>
+    <message>
+        <source>The player contains an incompatible filesystem.
+Make sure you selected the correct mountpoint and the player is set up to use a filesystem compatible with Rockbox.</source>
+        <translation>Обнаружена несовместимая файловая система на плеере.
+Убедитесь в том, что выбрана верная точка монтирования и плеер настроен на использование совместимой с Rockbox файловой системы.</translation>
+    </message>
+    <message>
+        <source>An unknown error occured during player detection.</source>
+        <translation>Неизвестная ошибка при обнаружении плеера.</translation>
+    </message>
+    <message>
+        <source>%1 (%2 GiB of %3 GiB free)</source>
+        <translation>%1 (свободны %2 ГиБ из %3 ГиБ)</translation>
+    </message>
+    <message>
+        <source>%1 at %2</source>
+        <translation>%1 на %2</translation>
     </message>
 </context>
 <context>
@@ -892,7 +1093,7 @@ Rockbox Utility can&apos;t work with this proxy settings. Make sure the system p
     </message>
     <message>
         <source>Proxy Values</source>
-        <translation>Значения прокси</translation>
+        <translation>Параметры прокси</translation>
     </message>
     <message>
         <source>&amp;Host:</source>
@@ -920,7 +1121,7 @@ Rockbox Utility can&apos;t work with this proxy settings. Make sure the system p
     </message>
     <message>
         <source>Download cache settings</source>
-        <translation>Настройки кэша скачивания</translation>
+        <translation>Настройки кэша загрузок</translation>
     </message>
     <message>
         <source>Rockbox Utility uses a local download cache to save network traffic. You can change the path to the cache and use it as local repository by enabling Offline mode.</source>
@@ -936,19 +1137,19 @@ Rockbox Utility can&apos;t work with this proxy settings. Make sure the system p
     </message>
     <message>
         <source>Entering an invalid folder will reset the path to the systems temporary path.</source>
-        <translation>Введение пути на негодную папку сбросит на путь временных файлов системы.</translation>
+        <translation>Введение неверного пути сбросит путь в значение системной временной папки.</translation>
     </message>
     <message>
         <source>Disable local &amp;download cache</source>
-        <translation>Отключить локальный кэш &amp;скачивания</translation>
+        <translation>Отключить локальный кэш &amp;загрузок</translation>
     </message>
     <message>
         <source>&lt;p&gt;This will try to use all information from the cache, even information about updates. Only use this option if you want to install without network connection. Note: you need to do the same install you want to perform later with network access first to download all required files to the cache.&lt;/p&gt;</source>
-        <translation>&lt;p&gt;Эта функция попытается использовать всю информацию из кэша, даже информацию об обновлениях. Используйте эту возможность только если вы хотите устанавливать без подключения к сети. Примечание: Вам необходимо выполнить такую-же установку, которую вы хотите выполнить потом, пока подключение к сети действует, чтобы загрузить все нужные файлы в кэш.&lt;/p&gt;</translation>
+        <translation type="obsolete">&lt;p&gt;Эта функция попытается использовать всю информацию из кэша, даже информацию об обновлениях. Используйте эту возможность только если вы хотите устанавливать без подключения к сети. Примечание: Вам необходимо выполнить такую-же установку, которую вы хотите выполнить потом, пока подключение к сети действует, чтобы загрузить все нужные файлы в кэш.&lt;/p&gt;</translation>
     </message>
     <message>
         <source>O&amp;ffline mode</source>
-        <translation>Ав&amp;тономный режим</translation>
+        <translation type="obsolete">Ав&amp;тономный режим</translation>
     </message>
     <message>
         <source>Clean cache &amp;now</source>
@@ -960,15 +1161,15 @@ Rockbox Utility can&apos;t work with this proxy settings. Make sure the system p
     </message>
     <message>
         <source>TTS Engine</source>
-        <translation>Мотор TTS</translation>
+        <translation>Движок TTS</translation>
     </message>
     <message>
         <source>&amp;Select TTS Engine</source>
-        <translation>&amp;Выберите мотор TTS</translation>
+        <translation>&amp;Выберите движок TTS</translation>
     </message>
     <message>
         <source>Encoder Engine</source>
-        <translation>Мотор кодирования</translation>
+        <translation>движок кодирования</translation>
     </message>
     <message>
         <source>&amp;Ok</source>
@@ -980,11 +1181,11 @@ Rockbox Utility can&apos;t work with this proxy settings. Make sure the system p
     </message>
     <message>
         <source>Configure TTS Engine</source>
-        <translation>Настроить мотор TTS</translation>
+        <translation>Настроить движок TTS</translation>
     </message>
     <message>
         <source>Configuration invalid!</source>
-        <translation>Настройка негодна!</translation>
+        <translation>Настройка неверна!</translation>
     </message>
     <message>
         <source>Configure &amp;TTS</source>
@@ -992,7 +1193,7 @@ Rockbox Utility can&apos;t work with this proxy settings. Make sure the system p
     </message>
     <message>
         <source>Configure &amp;Enc</source>
-        <translation>Настроить &amp;кодировку</translation>
+        <translation>Настроить &amp;кодировщик</translation>
     </message>
     <message>
         <source>encoder name</source>
@@ -1005,6 +1206,18 @@ Rockbox Utility can&apos;t work with this proxy settings. Make sure the system p
     <message>
         <source>Show disabled targets</source>
         <translation>Показывать отключенные устройства</translation>
+    </message>
+    <message>
+        <source>&amp;Refresh</source>
+        <translation>&amp;Обновить</translation>
+    </message>
+    <message>
+        <source>&amp;Use string corrections for TTS</source>
+        <translation>&amp;Использовать корекции строк для TTS</translation>
+    </message>
+    <message>
+        <source>Show</source>
+        <translation>Показать</translation>
     </message>
 </context>
 <context>
@@ -1023,19 +1236,11 @@ Rockbox Utility can&apos;t work with this proxy settings. Make sure the system p
     </message>
     <message>
         <source>Select the Language you want to generate a voicefile for:</source>
-        <translation>Выберите язык, для которого Вы хотите выработать голосовой файл:</translation>
+        <translation>Выберите язык, для которого Вы хотите создать голосовой файл:</translation>
     </message>
     <message>
         <source>Generation settings</source>
-        <translation>Настройки вырабатывания</translation>
-    </message>
-    <message>
-        <source>Encoder profile:</source>
-        <translation>Профиль кодировщика:</translation>
-    </message>
-    <message>
-        <source>TTS profile:</source>
-        <translation>Профиль TTS:</translation>
+        <translation>Настройки генерирования</translation>
     </message>
     <message>
         <source>Change</source>
@@ -1057,53 +1262,35 @@ Rockbox Utility can&apos;t work with this proxy settings. Make sure the system p
         <source>Language</source>
         <translation>Язык</translation>
     </message>
+    <message>
+        <source>TTS:</source>
+        <translation>TTS:</translation>
+    </message>
+    <message>
+        <source>Silence threshold</source>
+        <translation>Порог тишины</translation>
+    </message>
 </context>
 <context>
     <name>CreateVoiceWindow</name>
     <message>
-        <source>Selected TTS engine: &lt;b&gt;%1&lt;/b&gt;</source>
-        <translation>Выбранный мотор TTS : &lt;b&gt;%1&lt;/b&gt;</translation>
+        <source>Engine: &lt;b&gt;%1&lt;/b&gt;</source>
+        <translation>Движок: &lt;b&gt;%1&lt;/b&gt;</translation>
     </message>
     <message>
-        <source>Selected encoder: &lt;b&gt;%1&lt;/b&gt;</source>
-        <translation>Выбранный кодировщик: &lt;b&gt;%1&lt;/b&gt;</translation>
-    </message>
-</context>
-<context>
-    <name>EncExes</name>
-    <message>
-        <source>Path to Encoder:</source>
-        <translation>Путь к кодировщику:</translation>
+        <source>TTS error</source>
+        <translation>Ошибка TTS</translation>
     </message>
     <message>
-        <source>Encoder options:</source>
-        <translation>Настройки кодировщика:</translation>
-    </message>
-</context>
-<context>
-    <name>EncRbSpeex</name>
-    <message>
-        <source>Volume:</source>
-        <translation>Громкость:</translation>
-    </message>
-    <message>
-        <source>Quality:</source>
-        <translation>Качество:</translation>
-    </message>
-    <message>
-        <source>Complexity:</source>
-        <translation>Сложность:</translation>
-    </message>
-    <message>
-        <source>Use Narrowband:</source>
-        <translation>Узкополосный:</translation>
+        <source>The selected TTS failed to initialize. You can&apos;t use this TTS.</source>
+        <translation>Не удалось инициализироавть выбранный движок. Вы не можете им пользоваться.</translation>
     </message>
 </context>
 <context>
     <name>EncTtsCfgGui</name>
     <message>
         <source>Waiting for engine...</source>
-        <translation>Ожидание мотора...</translation>
+        <translation>Ожидание движка...</translation>
     </message>
     <message>
         <source>Ok</source>
@@ -1122,8 +1309,83 @@ Rockbox Utility can&apos;t work with this proxy settings. Make sure the system p
         <translation>Обновить</translation>
     </message>
     <message>
-        <source>Select excutable</source>
+        <source>Select executable</source>
         <translation>Выбрать исполняемый файл</translation>
+    </message>
+</context>
+<context>
+    <name>EncoderExe</name>
+    <message>
+        <source>Path to Encoder:</source>
+        <translation>Путь к кодировщику:</translation>
+    </message>
+    <message>
+        <source>Encoder options:</source>
+        <translation>Настройки кодировщика:</translation>
+    </message>
+</context>
+<context>
+    <name>EncoderLame</name>
+    <message>
+        <source>LAME</source>
+        <translation>LAME</translation>
+    </message>
+    <message>
+        <source>Volume</source>
+        <translation>Громкость</translation>
+    </message>
+    <message>
+        <source>Quality</source>
+        <translation>Качество</translation>
+    </message>
+    <message>
+        <source>Could not find libmp3lame!</source>
+        <translation>Не удалось найти libmp3lame!</translation>
+    </message>
+</context>
+<context>
+    <name>EncoderRbSpeex</name>
+    <message>
+        <source>Volume:</source>
+        <translation>Громкость:</translation>
+    </message>
+    <message>
+        <source>Quality:</source>
+        <translation>Качество:</translation>
+    </message>
+    <message>
+        <source>Complexity:</source>
+        <translation>Сложность:</translation>
+    </message>
+    <message>
+        <source>Use Narrowband:</source>
+        <translation>Узкополосный:</translation>
+    </message>
+</context>
+<context>
+    <name>InfoWidget</name>
+    <message>
+        <source>File</source>
+        <translation>Файл</translation>
+    </message>
+    <message>
+        <source>Version</source>
+        <translation>Версия</translation>
+    </message>
+</context>
+<context>
+    <name>InfoWidgetFrm</name>
+    <message>
+        <source>Currently installed packages.&lt;br/&gt;&lt;b&gt;Note:&lt;/b&gt; if you manually installed packages this might not be correct!</source>
+        <translation>Установленные пакеты.&lt;br/&gt;&lt;b&gt;Примечание:&lt;/b&gt;Если вы установили некоторые пакеты вручную, могут возникнуть несоответствия!</translation>
+    </message>
+    <message>
+        <source>Info</source>
+        <translation>Сведения</translation>
+    </message>
+    <message>
+        <source>Package</source>
+        <translation>Пакет</translation>
     </message>
 </context>
 <context>
@@ -1133,32 +1395,12 @@ Rockbox Utility can&apos;t work with this proxy settings. Make sure the system p
         <translation>Установить голосовые файлы</translation>
     </message>
     <message>
-        <source>Select the Folder to generate Talkfiles for.</source>
-        <translation>Выберите папку, для которой генерировать голосовые файлы.</translation>
-    </message>
-    <message>
-        <source>&amp;Browse</source>
-        <translation>&amp;Обзор</translation>
-    </message>
-    <message>
-        <source>Generation settings</source>
-        <translation>Настройки вырабатывания</translation>
-    </message>
-    <message>
-        <source>Encoder profile:</source>
-        <translation>Профиль кодировщика:</translation>
-    </message>
-    <message>
         <source>TTS profile:</source>
         <translation>Профиль TTS :</translation>
     </message>
     <message>
         <source>Generation options</source>
-        <translation>Свойства вырабатывания</translation>
-    </message>
-    <message>
-        <source>Run recursive</source>
-        <translation>Рекурсивный пробег</translation>
+        <translation>Свойства сгенерированого</translation>
     </message>
     <message>
         <source>Strip Extensions</source>
@@ -1177,173 +1419,120 @@ Rockbox Utility can&apos;t work with this proxy settings. Make sure the system p
         <translation>Изменить</translation>
     </message>
     <message>
-        <source>Generate .talk files for Folders</source>
-        <translation>Выработать .talk-файлы для папок</translation>
+        <source>Generate for files</source>
+        <translation>Генерировать для файлов</translation>
     </message>
     <message>
-        <source>Generate .talk files for Files</source>
-        <translation>Сгенерировать .talk-файлы для файлов</translation>
+        <source>Generate for folders</source>
+        <translation>Генерировать для папок</translation>
     </message>
     <message>
-        <source>Talkfile Folder</source>
-        <translation>Папка с файлами произношения</translation>
+        <source>Recurse into folders</source>
+        <translation>Рекурсировать в папки</translation>
     </message>
     <message>
-        <source>Ignore files (comma seperated Wildcards):</source>
-        <translation>Не учитывать файлы (через запятую):</translation>
+        <source>Ignore files</source>
+        <translation>Игнорировать файлы</translation>
     </message>
     <message>
-        <source>Create only new Talkfiles</source>
-        <translation>Создавать только новые файлы произношения</translation>
+        <source>Skip existing</source>
+        <translation>Пропускать существующие</translation>
+    </message>
+    <message>
+        <source>Select folders for Talkfile generation (Ctrl for multiselect)</source>
+        <translation>Выбрать папки для создания файлов произношения (Ctrl для выбора нескольких)</translation>
     </message>
 </context>
 <context>
     <name>InstallTalkWindow</name>
     <message>
-        <source>The Folder to Talk is wrong!</source>
-        <translation>Папка на произношение неверная!</translation>
+        <source>Empty selection</source>
+        <translation>Пусто</translation>
     </message>
     <message>
-        <source>Selected TTS engine: &lt;b&gt;%1&lt;/b&gt;</source>
-        <translation>Выбранный мотор TTS: &lt;b&gt;%1&lt;/b&gt;</translation>
+        <source>No files or folders selected. Please select files or folders first.</source>
+        <translation>Не выбрано ни одного файла или папки. Сначала выберите файлы и (или) папки.</translation>
     </message>
     <message>
-        <source>Selected encoder: &lt;b&gt;%1&lt;/b&gt;</source>
-        <translation>Выбранный кодировщик: &lt;b&gt;%1&lt;/b&gt;</translation>
+        <source>TTS error</source>
+        <translation>Ошибка TTS</translation>
     </message>
     <message>
-        <source>Select folder to create talk files</source>
-        <translation>Выберите папку, в которой создавать голосовые файлы</translation>
-    </message>
-</context>
-<context>
-    <name>InstallWindow</name>
-    <message>
-        <source>Backup to %1</source>
-        <translation>Резервная копия в %1</translation>
-    </message>
-    <message>
-        <source>Mount point is wrong!</source>
-        <translation>Точка монтирования неверная!</translation>
-    </message>
-    <message>
-        <source>Really continue?</source>
-        <translation>Продожить?</translation>
-    </message>
-    <message>
-        <source>Aborted!</source>
-        <translation>Отменено!</translation>
-    </message>
-    <message>
-        <source>Beginning Backup...</source>
-        <translation>Начинаю резервную копию...</translation>
-    </message>
-    <message>
-        <source>Backup successful</source>
-        <translation>Резеврная копия успешно создана</translation>
-    </message>
-    <message>
-        <source>Backup failed!</source>
-        <translation>Не удалось создать резервную копию!</translation>
-    </message>
-    <message>
-        <source>Select Backup Filename</source>
-        <translation>Выберите имя файла резервной копии</translation>
-    </message>
-    <message>
-        <source>This is the absolute up to the minute Rockbox built. A current build will get updated every time a change is made. Latest version is r%1 (%2).</source>
-        <translation>Это самая-самая последняя сборка Rockbox, она обновляется после каждого изменения в исходном коде. Текущая версия: r%1 (%2).</translation>
-    </message>
-    <message>
-        <source>&lt;b&gt;This is the recommended version.&lt;/b&gt;</source>
-        <translation>&lt;b&gt;Это рекомендованная версия.&lt;/b&gt;</translation>
-    </message>
-    <message>
-        <source>This is the last released version of Rockbox.</source>
-        <translation>Это последняя официальная версия Rockbox.</translation>
-    </message>
-    <message>
-        <source>&lt;b&gt;Note:&lt;/b&gt; The lastest released version is %1. &lt;b&gt;This is the recommended version.&lt;/b&gt;</source>
-        <translation>&lt;b&gt;Примечание:&lt;/b&gt; Текущая последняя версия: %1. &lt;b&gt;Это рекомендованная версия.&lt;/b&gt;</translation>
-    </message>
-    <message>
-        <source>These are automatically built each day from the current development source code. This generally has more features than the last stable release but may be much less stable. Features may change regularly.</source>
-        <translation>Они автоматически собраны каждый день из текущего исходного кода. В них обычно больше свойств, чем в последней официальной версии, но они могут работать нестабильно. Свойства могут быть регулярно изменены.</translation>
-    </message>
-    <message>
-        <source>&lt;b&gt;Note:&lt;/b&gt; archived version is r%1 (%2).</source>
-        <translation>&lt;b&gt;Примечание :&lt;/b&gt; текущая версия в архиве: r%1 (%2).</translation>
+        <source>The selected TTS failed to initialize. You can&apos;t use this TTS.</source>
+        <translation>Не удалось инициализироавть выбранный движок. Вы не можете им пользоваться.</translation>
     </message>
 </context>
 <context>
-    <name>InstallWindowFrm</name>
+    <name>ManualWidget</name>
     <message>
-        <source>Install Rockbox</source>
-        <translation>Установить Rockbox</translation>
+        <source>&lt;a href=&apos;%1&apos;&gt;PDF Manual&lt;/a&gt;</source>
+        <translation>&lt;a href=&apos;%1&apos;&gt;Руководство по эксплуатации в PDF&lt;/a&gt;</translation>
     </message>
     <message>
-        <source>Please select the Rockbox version you want to install on your player:</source>
-        <translation>Выберите версию Rockbox, котороую хотите установить на Ваш плеер:</translation>
+        <source>&lt;a href=&apos;%1&apos;&gt;HTML Manual (opens in browser)&lt;/a&gt;</source>
+        <translation>&lt;a href=&apos;%1&apos;&gt;Руководство по эксплуатации в HTML (открывается в обозревателе)&lt;/a&gt;</translation>
     </message>
     <message>
-        <source>Version</source>
-        <translation>Версия</translation>
+        <source>Select a device for a link to the correct manual</source>
+        <translation>Выберите устройство, чтобы получить ссылку на соответствующее руководство по эксплуатации</translation>
     </message>
     <message>
-        <source>Rockbox &amp;stable</source>
-        <translation>&amp;Стабильная</translation>
+        <source>&lt;a href=&apos;%1&apos;&gt;Manual Overview&lt;/a&gt;</source>
+        <translation>&lt;a href=&apos;%1&apos;&gt;Обзор руководства по эксплуатации&lt;/a&gt;</translation>
     </message>
     <message>
-        <source>&amp;Archived Build</source>
-        <translation>&amp;Архивированная сборка</translation>
+        <source>Confirm download</source>
+        <translation>Потвердите скачивание</translation>
     </message>
     <message>
-        <source>&amp;Current Build</source>
-        <translation>&amp;Текущая сборка</translation>
+        <source>Do you really want to download the manual? The manual will be saved to the root folder of your player.</source>
+        <translation>Вы действительно хотите скачать руководство по эксплуатации? Оно будет записано в коренную папку Вашего плеера.</translation>
+    </message>
+</context>
+<context>
+    <name>ManualWidgetFrm</name>
+    <message>
+        <source>Read the manual</source>
+        <translation>Читать руководство по эксплуатации</translation>
     </message>
     <message>
-        <source>Details</source>
-        <translation>Подробно</translation>
+        <source>PDF manual</source>
+        <translation>Руководство по эксплуатации в PDF</translation>
     </message>
     <message>
-        <source>Details about the selected version</source>
-        <translation>Подробнее о выбранной версии</translation>
+        <source>HTML manual</source>
+        <translation>Руководство по эксплуатации в HTML</translation>
     </message>
     <message>
-        <source>Note</source>
-        <translation>Примечание</translation>
+        <source>Download the manual</source>
+        <translation>Скачать руководство по эксплуатации</translation>
     </message>
     <message>
-        <source>&amp;Install</source>
-        <translation>&amp;Установить</translation>
+        <source>&amp;PDF version</source>
+        <translation>Версия &amp;PDF</translation>
     </message>
     <message>
-        <source>&amp;Cancel</source>
-        <translation>&amp;Отмена</translation>
+        <source>&amp;HTML version (zip file)</source>
+        <translation>Версия &amp;HTML (.zip-файл)</translation>
     </message>
     <message>
-        <source>Backup</source>
-        <translation>Создать резервную копию</translation>
+        <source>Down&amp;load</source>
+        <translation>С&amp;качать</translation>
     </message>
     <message>
-        <source>Backup before installing</source>
-        <translation>Создать резервную копию перед установкой</translation>
+        <source>Manual</source>
+        <translation>Руководство по эксплуатации</translation>
+    </message>
+</context>
+<context>
+    <name>MsPackUtil</name>
+    <message>
+        <source>Creating output path failed</source>
+        <translation>Ошибка создания выходной папки</translation>
     </message>
     <message>
-        <source>Backup location</source>
-        <translation>Путь к резервной копии</translation>
-    </message>
-    <message>
-        <source>Change</source>
-        <translation>Изменить</translation>
-    </message>
-    <message>
-        <source>Rockbox Utility stores copies of Rockbox it has downloaded on the local hard disk to save network traffic. If your local copy is no longer working, tick this box to download a fresh copy.</source>
-        <translation>Мастер Rockbox сохраняет загруженные копии Rockbox на жёстком диске для экономии сетевой передачи. Если вы не хотите использовать локальную копию или она не работает, поставьте галочку чтобы загрузить свежую копию.</translation>
-    </message>
-    <message>
-        <source>&amp;Don&apos;t use locally cached copy</source>
-        <translation>&amp;Не использовать копию из локального кэша</translation>
+        <source>Error during CAB operation</source>
+        <translation>Ошибка при выполнении операции с CAB-пакетом</translation>
     </message>
 </context>
 <context>
@@ -1391,40 +1580,61 @@ Rockbox Utility can&apos;t work with this proxy settings. Make sure the system p
     <name>QObject</name>
     <message>
         <source>LTR</source>
-        <extracomment>This string is used to indicate the writing direction. Translate it to &quot;RTL&quot; (without quotes) for RTL languages. Anything else will get treated as LTR language.</extracomment>
+        <extracomment>This string is used to indicate the writing direction. Translate it to &quot;RTL&quot; (without quotes) for RTL languages. Anything else will get treated as LTR language.
+----------
+This string is used to indicate the writing direction. Translate it to &quot;RTL&quot; (without quotes) for RTL languages. Anything else will get treated as LTR language.</extracomment>
         <translation>LTR</translation>
+    </message>
+    <message>
+        <source>(unknown vendor name) </source>
+        <translation>(неизвестный поставщик)</translation>
+    </message>
+    <message>
+        <source>(unknown product name)</source>
+        <translation>(неизвестный продукт)</translation>
+    </message>
+    <message>
+        <source>Bootloader installation is almost complete. Installation &lt;b&gt;requires&lt;/b&gt; you to perform the following steps manually:</source>
+        <translation>Установка загрузчика почти завершена. Вам &lt;b&gt;протребуется&lt;/b&gt; выполнить следующие операции вручную:</translation>
+    </message>
+    <message>
+        <source>&lt;li&gt;Safely remove your player.&lt;/li&gt;</source>
+        <translation>&lt;li&gt;Отключить плеер от компьютера с использованием безопасного извлечения.&lt;/li&gt;</translation>
+    </message>
+    <message>
+        <source>&lt;li&gt;Reboot your player into the original firmware.&lt;/li&gt;&lt;li&gt;Perform a firmware upgrade using the update functionality of the original firmware. Please refer to your player&apos;s manual on details.&lt;br/&gt;&lt;b&gt;Important:&lt;/b&gt; updating the firmware is a critical process that must not be interrupted. &lt;b&gt;Make sure the player is charged before starting the firmware update process.&lt;/b&gt;&lt;/li&gt;&lt;li&gt;After the firmware has been updated reboot your player.&lt;/li&gt;</source>
+        <translation>&lt;li&gt;Перезагрузите плеер на фирменную программу.&lt;/li&gt;&lt;li&gt;Обновите программу с помощью функции обновления в фирменной программе. Для подробностей, см. руководство по эксплуатации Вашего плеера.&lt;br/&gt;&lt;b&gt;Важно:&lt;/b&gt; обновление програмного обеспечения является критичной процедурой и не должно быть прервано. &lt;b&gt;Убедитесь в том, что плеер полностью заряжен перед тем, как приступить к обновлению.&lt;/b&gt;&lt;/li&gt;&lt;li&gt;После обновления, перезагрузите плеер.&lt;/li&gt;</translation>
+    </message>
+    <message>
+        <source>&lt;li&gt;Remove any previously inserted microSD card&lt;/li&gt;</source>
+        <translation>&lt;li&gt;Если в плеере стоит SD-карта, извлеките её&lt;/li&gt;</translation>
+    </message>
+    <message>
+        <source>&lt;li&gt;Disconnect your player. The player will reboot and perform an update of the original firmware. Please refer to your players manual on details.&lt;br/&gt;&lt;b&gt;Important:&lt;/b&gt; updating the firmware is a critical process that must not be interrupted. &lt;b&gt;Make sure the player is charged before disconnecting the player.&lt;/b&gt;&lt;/li&gt;&lt;li&gt;After the firmware has been updated reboot your player.&lt;/li&gt;</source>
+        <translation>&lt;li&gt;Отсоедините плеер, после чего произойдёт перезагрузка и обновится фирменная программа. Для подробностей, см. руковолство по эксплуатации Вашего плеера.&lt;br/&gt;&lt;b&gt;Важно:&lt;/b&gt; обновление програмного обеспечения является критичной процедурой и не должно быть прервано. &lt;b&gt;Убедитесь в том, что плеер полностью заряжен перед тем, как приступить к обновлению.&lt;/b&gt;&lt;/li&gt;&lt;li&gt;После обновления, перезагрузите плеер.&lt;/li&gt;</translation>
+    </message>
+    <message>
+        <source>&lt;li&gt;Turn the player off&lt;/li&gt;&lt;li&gt;Insert the charger&lt;/li&gt;</source>
+        <translation>&lt;li&gt;Выключить плеер&lt;/li&gt;&lt;li&gt;Подключить зарядное устройство&lt;/li&gt;</translation>
+    </message>
+    <message>
+        <source>&lt;li&gt;Unplug USB and power adaptors&lt;/li&gt;&lt;li&gt;Hold &lt;i&gt;Power&lt;/i&gt; to turn the player off&lt;/li&gt;&lt;li&gt;Toggle the battery switch on the player&lt;/li&gt;&lt;li&gt;Hold &lt;i&gt;Power&lt;/i&gt; to boot into Rockbox&lt;/li&gt;</source>
+        <translation>&lt;li&gt;Отключить плеер от USB и сетевого питания&lt;/li&gt;&lt;li&gt;Выключить плеер&lt;/li&gt;&lt;li&gt;Переключить плеер в режим питания от батареи&lt;/li&gt;&lt;li&gt;Обратно включить плеер для загрузки Rockbox&lt;/li&gt;</translation>
+    </message>
+    <message>
+        <source>&lt;p&gt;&lt;b&gt;Note:&lt;/b&gt; You can safely install other parts first, but the above steps are &lt;b&gt;required&lt;/b&gt; to finish the installation!&lt;/p&gt;</source>
+        <translation>&lt;p&gt;&lt;b&gt;Примечание:&lt;/b&gt; Вы можете безопасно устанавливать дополнения, но выше указанные операции &lt;b&gt;обязательны&lt;/b&gt; для завершения установки!&lt;/p&gt;</translation>
+    </message>
+</context>
+<context>
+    <name>QuaZipFile</name>
+    <message>
+        <source>ZIP/UNZIP API error %1</source>
+        <translation>ошибка ZIP/UNZIP API %1</translation>
     </message>
 </context>
 <context>
     <name>RbUtilQt</name>
-    <message>
-        <source>File</source>
-        <translation>Файл</translation>
-    </message>
-    <message>
-        <source>Version</source>
-        <translation>Версия</translation>
-    </message>
-    <message>
-        <source>&lt;b&gt;%1 %2&lt;/b&gt; at &lt;b&gt;%3&lt;/b&gt;</source>
-        <translation>&lt;b&gt;%1 %2&lt;/b&gt; на &lt;b&gt;%3&lt;/b&gt;</translation>
-    </message>
-    <message>
-        <source>&lt;a href=&apos;%1&apos;&gt;PDF Manual&lt;/a&gt;</source>
-        <translation>&lt;a href=&apos;%1&apos;&gt;Руководство по эксплуатации в PDF&lt;/a&gt;</translation>
-    </message>
-    <message>
-        <source>&lt;a href=&apos;%1&apos;&gt;HTML Manual (opens in browser)&lt;/a&gt;</source>
-        <translation>&lt;a href=&apos;%1&apos;&gt;Руководство по эксплуатации в HTML (открывается в обозревателе)&lt;/a&gt;</translation>
-    </message>
-    <message>
-        <source>Select a device for a link to the correct manual</source>
-        <translation>Выберите устройство, чтобы получить ссылку на соответствующее руководство по эксплуатации</translation>
-    </message>
-    <message>
-        <source>&lt;a href=&apos;%1&apos;&gt;Manual Overview&lt;/a&gt;</source>
-        <translation>&lt;a href=&apos;%1&apos;&gt;Обзор руководства по эксплуатации&lt;/a&gt;</translation>
-    </message>
     <message>
         <source>Confirm Installation</source>
         <translation>Подтвердите установку</translation>
@@ -1434,20 +1644,8 @@ Rockbox Utility can&apos;t work with this proxy settings. Make sure the system p
         <translation>Точка монтирования неверная!</translation>
     </message>
     <message>
-        <source>Do you really want to install the Bootloader?</source>
-        <translation>Вы действительно хотите установить загрузчик?</translation>
-    </message>
-    <message>
-        <source>Do you really want to install the fonts package?</source>
-        <translation>Вы действительно хотите установить дополнительные шрифты?</translation>
-    </message>
-    <message>
         <source>Do you really want to install the voice file?</source>
         <translation>Вы действительно хотите установить голосовой файл?</translation>
-    </message>
-    <message>
-        <source>Do you really want to install the game addon files?</source>
-        <translation>Вы действительно хотите установить дополнительные игровые файлы?</translation>
     </message>
     <message>
         <source>Confirm Uninstallation</source>
@@ -1456,14 +1654,6 @@ Rockbox Utility can&apos;t work with this proxy settings. Make sure the system p
     <message>
         <source>Do you really want to uninstall the Bootloader?</source>
         <translation>Вы действительно хотите удалить загрузчик?</translation>
-    </message>
-    <message>
-        <source>Confirm download</source>
-        <translation>Потвердите скачивание</translation>
-    </message>
-    <message>
-        <source>Do you really want to download the manual? The manual will be saved to the root folder of your player.</source>
-        <translation>Вы действительно хотите скачать руководство по эксплуатации? Оно будет записано в коренную папку Вашего плеера.</translation>
     </message>
     <message>
         <source>Confirm installation</source>
@@ -1498,32 +1688,8 @@ Rockbox Utility can&apos;t work with this proxy settings. Make sure the system p
         <translation>Ошибка в настройках</translation>
     </message>
     <message>
-        <source>Error</source>
-        <translation>Ошибка</translation>
-    </message>
-    <message>
-        <source>Your device doesn&apos;t have a doom plugin. Aborting.</source>
-        <translation>На вашем устройстве нет плагина Doom. Отмена.</translation>
-    </message>
-    <message>
         <source>Your configuration is invalid. Please go to the configuration dialog and make sure the selected values are correct.</source>
         <translation>Ваши настройки недействительны. Проверьте, что ваши настройки правильные в окне настроек.</translation>
-    </message>
-    <message>
-        <source>Aborted!</source>
-        <translation>Отменено!</translation>
-    </message>
-    <message>
-        <source>Installed Rockbox detected</source>
-        <translation>Обнаружен уже установленный Rockbox</translation>
-    </message>
-    <message>
-        <source>Rockbox installation detected. Do you want to backup first?</source>
-        <translation>Обнаружен уже установленный Rockbox. Желаете прежде всего создать резервную копию?</translation>
-    </message>
-    <message>
-        <source>Backup failed!</source>
-        <translation>Не удалось создать резервную копию!</translation>
     </message>
     <message>
         <source>Warning</source>
@@ -1534,10 +1700,6 @@ Rockbox Utility can&apos;t work with this proxy settings. Make sure the system p
         <translation>Программа ещё загружает информацию о новых версиях. Попробуйте снова через несколько мгновений.</translation>
     </message>
     <message>
-        <source>Starting backup...</source>
-        <translation>Начинаю резервную копию...</translation>
-    </message>
-    <message>
         <source>New installation</source>
         <translation>Новая установка</translation>
     </message>
@@ -1546,90 +1708,8 @@ Rockbox Utility can&apos;t work with this proxy settings. Make sure the system p
         <translation>Ваши настройки негодны. Это скорее всего из-за изменённого пути к устройству. Окно настроек сейчас откроется, чтобы позволить Вам решить проблему.</translation>
     </message>
     <message>
-        <source>Backup successful</source>
-        <translation>Резеврная копия успешно создана</translation>
-    </message>
-    <message>
         <source>Network error</source>
         <translation>Ошибка сети</translation>
-    </message>
-    <message>
-        <source>Really continue?</source>
-        <translation>Продожить?</translation>
-    </message>
-    <message>
-        <source>No install method known.</source>
-        <translation>Нет известного способа установки.</translation>
-    </message>
-    <message>
-        <source>Bootloader detected</source>
-        <translation>Обнаружен загрузчик</translation>
-    </message>
-    <message>
-        <source>Bootloader already installed. Do you want to reinstall the bootloader?</source>
-        <translation>Загрузчик уже установлен. Хотите переустановить?</translation>
-    </message>
-    <message>
-        <source>Create Bootloader backup</source>
-        <translation>Создать резервную копию загрузчика</translation>
-    </message>
-    <message>
-        <source>You can create a backup of the original bootloader file. Press &quot;Yes&quot; to select an output folder on your computer to save the file to. The file will get placed in a new folder &quot;%1&quot; created below the selected folder.
-Press &quot;No&quot; to skip this step.</source>
-        <translation>Вы можете создать резервную копию фирменного файла загрузчика. Нажмите на &quot;Да&quot;, чтобы выбрать выходную папку, в которой будет создана ещё одна папка &quot;%1&quot; содержащая файл.
-Нажмите на &quot;Нет&quot;, чтобы пропустить этот шаг.</translation>
-    </message>
-    <message>
-        <source>Browse backup folder</source>
-        <translation>Обзор папки резервных копий</translation>
-    </message>
-    <message>
-        <source>Prerequisites</source>
-        <translation>Предварительные требования</translation>
-    </message>
-    <message>
-        <source>Select firmware file</source>
-        <translation>Выберите файл прошивки</translation>
-    </message>
-    <message>
-        <source>Error opening firmware file</source>
-        <translation>Ошибка при открытии файла прошивки</translation>
-    </message>
-    <message>
-        <source>Backup error</source>
-        <translation>Ошибка резервной копии</translation>
-    </message>
-    <message>
-        <source>Could not create backup file. Continue?</source>
-        <translation>Не могу создать резеврную копию файла. Продолжить?</translation>
-    </message>
-    <message>
-        <source>Manual steps required</source>
-        <translation>Требуются действия вручную</translation>
-    </message>
-    <message>
-        <source>Do you really want to perform a complete installation?
-
-This will install Rockbox %1. To install the most recent development build available press &quot;Cancel&quot; and use the &quot;Installation&quot; tab.</source>
-        <translation>Вы действительно хотите выполнить полную установку?
-
-Это установит Rockbox %1. Чтобы установить самую новую доступную версию, нажмите на &quot;Отмена&quot; и используйте функции вкладки &quot;Установка&quot;.</translation>
-    </message>
-    <message>
-        <source>Do you really want to perform a minimal installation? A minimal installation will contain only the absolutely necessary parts to run Rockbox.
-
-This will install Rockbox %1. To install the most recent development build available press &quot;Cancel&quot; and use the &quot;Installation&quot; tab.</source>
-        <translation>Вы действительно хотите выполнить минимальную установку? Это установит лишь необходимые для работы Rockbox файлы.
-
-Это установит Rockbox %1. Чтобы установить самую новую доступную версию, нажмите на &quot;Отмена&quot; и используйте функции вкладки &quot;Установка&quot;.</translation>
-    </message>
-    <message>
-        <source>Bootloader installation skipped</source>
-        <translation>Установка загрузчика пропущена</translation>
-    </message>
-    <message>
-        <source>Bootloader installation aborted</source>
-        <translation>Установка загрузчика отменена</translation>
     </message>
     <message>
         <source>Downloading build information, please wait ...</source>
@@ -1637,7 +1717,7 @@ This will install Rockbox %1. To install the most recent development build avail
     </message>
     <message>
         <source>Can&apos;t get version information!</source>
-        <translation>Не могу получить информацию о версии!</translation>
+        <translation>Не удалось получить информацию о версии!</translation>
     </message>
     <message>
         <source>This is a new installation of Rockbox Utility, or a new version. The configuration dialog will now open to allow you to setup the program,  or review your settings.</source>
@@ -1666,7 +1746,7 @@ This will install Rockbox %1. To install the most recent development build avail
     <message>
         <source>Can&apos;t get version information.
 Network error: %1. Please check your network and proxy settings.</source>
-        <translation>Не могу получить информацию о версии.
+        <translation>Не удалось получить информацию о версии.
 Ошибка сети: %1. Проверьте настройки сети и прокси.</translation>
     </message>
     <message>
@@ -1674,19 +1754,15 @@ Network error: %1. Please check your network and proxy settings.</source>
         <translation>Не найдено установки Rockbox</translation>
     </message>
     <message>
-        <source>Could not determine the installed Rockbox version. Please install a Rockbox build before installing fonts.</source>
-        <translation>Не могу определить версию установленного Rockbox. Устанавливайте Rockbox перед установкой шрифтов.</translation>
-    </message>
-    <message>
         <source>Could not determine the installed Rockbox version. Please install a Rockbox build before installing voice files.</source>
-        <translation>Не могу определить версию установленного Rockbox. Устанавливайте Rockbox перед установкой голосовых файлов.</translation>
+        <translation>Не удалось определить версию установленного Rockbox. Устанавливайте Rockbox перед установкой голосовых файлов.</translation>
     </message>
     <message>
         <source>No uninstall method for this target known.</source>
         <translation>Нет известного способа удаления с этого устройства.</translation>
     </message>
     <message>
-        <source>Rockbox Utility can not uninstall the bootloader on this target.Try a normal firmware update to remove the booloader.</source>
+        <source>Rockbox Utility can not uninstall the bootloader on this target. Try a normal firmware update to remove the booloader.</source>
         <translation>Мастер Rockbox не может удалить загрузчик с этого устройства. Попробуйте нормальное обновление прошивки, чтобы удалить загрузчик.</translation>
     </message>
     <message>
@@ -1701,6 +1777,34 @@ Network error: %1. Please check your network and proxy settings.</source>
         <source>Rockbox Utility is up to date.</source>
         <translation>Мастер Rockbox не требует обновления.</translation>
     </message>
+    <message>
+        <source>No voice file available</source>
+        <translation>Нет доступного голосового файла</translation>
+    </message>
+    <message>
+        <source>The installed version of Rockbox is a development version. Pre-built voices are only available for release versions of Rockbox. Please generate a voice yourself using the &quot;Create voice file&quot; functionality.</source>
+        <translation>Установленная версия Rockbox является официально нестабильной. Готовые голоса доступны только для стабильных версий Rockbox. Создайте вручную голосовой файл с помощью кнопки &quot;Создать голосовой файл&quot;.</translation>
+    </message>
+    <message>
+        <source>No Rockbox bootloader found.</source>
+        <translation>Не найдено загрузчика Rockbox.</translation>
+    </message>
+    <message>
+        <source>Device ejected</source>
+        <translation>Устройство извлечено</translation>
+    </message>
+    <message>
+        <source>Device successfully ejected. You may now disconnect the player from the PC.</source>
+        <translation>Устройство успешно извлечено. Теперь можно отсоединить плеер от компьютера.</translation>
+    </message>
+    <message>
+        <source>Ejecting failed</source>
+        <translation>Не удалось извлечь</translation>
+    </message>
+    <message>
+        <source>Ejecting the device failed. Please make sure no programs are accessing files on the device. If ejecting still fails please use your computers eject funtionality.</source>
+        <translation>Извлечение не удалось. Убедитесь в том, что на устройстве нет файлов, занятых другими программами. Если извлечь всё равно не получается, пользуйтесь функцией извлечения Вашего компьютера.</translation>
+    </message>
 </context>
 <context>
     <name>RbUtilQtFrm</name>
@@ -1713,16 +1817,8 @@ Network error: %1. Please check your network and proxy settings.</source>
         <translation>Устройство</translation>
     </message>
     <message>
-        <source>Selected device:</source>
-        <translation>Выбранное устройство:</translation>
-    </message>
-    <message>
         <source>&amp;Change</source>
         <translation>&amp;Изменить</translation>
-    </message>
-    <message>
-        <source>&amp;Quick Start</source>
-        <translation>&amp;Начало</translation>
     </message>
     <message>
         <source>Welcome</source>
@@ -1731,38 +1827,6 @@ Network error: %1. Please check your network and proxy settings.</source>
     <message>
         <source>&amp;Installation</source>
         <translation>&amp;Установка</translation>
-    </message>
-    <message>
-        <source>Basic Rockbox installation</source>
-        <translation>Базовая установка Rockbox</translation>
-    </message>
-    <message>
-        <source>Install Bootloader</source>
-        <translation>Установка загрузчика</translation>
-    </message>
-    <message>
-        <source>Install Rockbox</source>
-        <translation>Установить Rockbox</translation>
-    </message>
-    <message>
-        <source>&amp;Extras</source>
-        <translation>&amp;Дополнения</translation>
-    </message>
-    <message>
-        <source>Install extras for Rockbox</source>
-        <translation>Установить дополнения для Rockbox</translation>
-    </message>
-    <message>
-        <source>Install Fonts package</source>
-        <translation>Установить пакет со шрифтами</translation>
-    </message>
-    <message>
-        <source>Install themes</source>
-        <translation>Установить темы</translation>
-    </message>
-    <message>
-        <source>Install game files</source>
-        <translation>Установить игровые файлы</translation>
     </message>
     <message>
         <source>&amp;Accessibility</source>
@@ -1801,40 +1865,8 @@ Network error: %1. Please check your network and proxy settings.</source>
         <translation>Смотреть и/или загрузить руководство по эксплуатации</translation>
     </message>
     <message>
-        <source>Read the manual</source>
-        <translation>Читать руководство по эксплуатации</translation>
-    </message>
-    <message>
-        <source>PDF manual</source>
-        <translation>Руководство по эксплуатации в PDF</translation>
-    </message>
-    <message>
-        <source>HTML manual</source>
-        <translation>Руководство по эксплуатации в HTML</translation>
-    </message>
-    <message>
-        <source>Download the manual</source>
-        <translation>Скачать руководство по эксплуатации</translation>
-    </message>
-    <message>
-        <source>&amp;PDF version</source>
-        <translation>Версия &amp;PDF</translation>
-    </message>
-    <message>
-        <source>&amp;HTML version (zip file)</source>
-        <translation>Версия &amp;HTML (.zip файл)</translation>
-    </message>
-    <message>
-        <source>Down&amp;load</source>
-        <translation>С&amp;качать</translation>
-    </message>
-    <message>
         <source>Inf&amp;o</source>
         <translation>&amp;Информация</translation>
-    </message>
-    <message>
-        <source>1</source>
-        <translation>1</translation>
     </message>
     <message>
         <source>&amp;File</source>
@@ -1873,10 +1905,6 @@ Network error: %1. Please check your network and proxy settings.</source>
         <translation>&amp;Помощь</translation>
     </message>
     <message>
-        <source>Complete Installation</source>
-        <translation>Полная установка</translation>
-    </message>
-    <message>
         <source>Action&amp;s</source>
         <translation>&amp;Действия</translation>
     </message>
@@ -1909,30 +1937,6 @@ Network error: %1. Please check your network and proxy settings.</source>
         <translation>Создать голосовой файл</translation>
     </message>
     <message>
-        <source>&lt;b&gt;Complete Installation&lt;/b&gt;&lt;br/&gt;This installs the bootloader, a current build and the extras package. This is the recommended method for new installations.</source>
-        <translation>&lt;b&gt;Полная установка&lt;/b&gt;&lt;br/&gt;Устанавливает загрузчик, текущую сборку и дополнительные пакеты. Рекомендуется для новых установок.</translation>
-    </message>
-    <message>
-        <source>&lt;b&gt;Install the bootloader&lt;/b&gt;&lt;br/&gt;Before Rockbox can be run on your audio player, you may have to install a bootloader. This is only necessary the first time Rockbox is installed.</source>
-        <translation>&lt;b&gt;Установить загрузчик&lt;/b&gt;&lt;br/&gt;Перед использованием Rockbox на Вашем плеере, вам необходимо установить загрузчик. Необходимо только для первой установки Rockbox.</translation>
-    </message>
-    <message>
-        <source>&lt;b&gt;Install Rockbox&lt;/b&gt; on your audio player</source>
-        <translation>&lt;b&gt;Установить Rockbox&lt;/b&gt; на Ваш плеер</translation>
-    </message>
-    <message>
-        <source>&lt;b&gt;Fonts Package&lt;/b&gt;&lt;br/&gt;The Fonts Package contains a couple of commonly used fonts. Installation is highly recommended.</source>
-        <translation>&lt;b&gt;Пакет шрифтов&lt;/b&gt;&lt;br/&gt;Содержит несколько часто используемых шрифтов. Установка рекомендуется.</translation>
-    </message>
-    <message>
-        <source>&lt;b&gt;Install Themes&lt;/b&gt;&lt;br/&gt;Rockbox&apos; look can be customized by themes. You can choose and install several officially distributed themes.</source>
-        <translation>&lt;b&gt;Установить темы&lt;/b&gt;&lt;br/&gt;Внешний вид Rockbox может быть настроен с помощью тем. Вы можете выбрать и установить несколько тем среди официально раздаваемых.</translation>
-    </message>
-    <message>
-        <source>&lt;b&gt;Install Game Files&lt;/b&gt;&lt;br/&gt;Doom needs a base wad file to run.</source>
-        <translation>&lt;b&gt;Установить игровые файлы&lt;/b&gt;&lt;br/&gt;Чтобы играть в Doom, необходимо установить базовый wad-файл.</translation>
-    </message>
-    <message>
         <source>&lt;b&gt;Install Voice file&lt;/b&gt;&lt;br/&gt;Voice files are needed to make Rockbox speak the user interface. Speaking is enabled by default, so if you installed the voice file Rockbox will speak.</source>
         <translation>&lt;b&gt;Установить голосовой файл&lt;/b&gt;&lt;br/&gt;Он нужен, чтобы Rockbox произносил пользовательский интерфейс. Произношение включено по умолчанию, поэтому если Вы установили голосовой файл, Rockbox станет разговаривать.</translation>
     </message>
@@ -1947,10 +1951,6 @@ Network error: %1. Please check your network and proxy settings.</source>
     <message>
         <source>&lt;b&gt;Uninstall Rockbox from your audio player.&lt;/b&gt;&lt;br/&gt;This will leave the bootloader in place (you need to remove it manually).</source>
         <translation>&lt;b&gt;Удалить Rockbox с Вашего плеера.&lt;/b&gt;&lt;br/&gt;Это оставит загрузчик установленным (его нужно будет удалить вручную).</translation>
-    </message>
-    <message>
-        <source>Currently installed packages.&lt;br/&gt;&lt;b&gt;Note:&lt;/b&gt; if you manually installed packages this might not be correct!</source>
-        <translation>Установленные пакеты.&lt;br/&gt;&lt;b&gt;Примечание:&lt;/b&gt;Если вы установили некоторые пакеты вручную, могут возниктуть несоответствия!</translation>
     </message>
     <message>
         <source>Install &amp;Bootloader</source>
@@ -2001,18 +2001,6 @@ Network error: %1. Please check your network and proxy settings.</source>
         <translation>&amp;Полная установка</translation>
     </message>
     <message>
-        <source>device / mountpoint unknown or invalid</source>
-        <translation>устройство / точка монтирования неизвестные или негодные</translation>
-    </message>
-    <message>
-        <source>Minimal Installation</source>
-        <translation>Минимальная установка</translation>
-    </message>
-    <message>
-        <source>&lt;b&gt;Minimal installation&lt;/b&gt;&lt;br/&gt;This installs bootloader and the current build of Rockbox. If you don&apos;t want the extras package, choose this option.</source>
-        <translation>&lt;b&gt;Минимальная установка&lt;/b&gt;&lt;br/&gt;Устанавливает загрузчик и текущую сборку Rockbox. Если Вам не нужны дополнительные пакеты, это самый подходящий вариант.</translation>
-    </message>
-    <message>
         <source>&amp;Minimal Installation</source>
         <translation>&amp;Минимальная установка</translation>
     </message>
@@ -2028,6 +2016,232 @@ Network error: %1. Please check your network and proxy settings.</source>
         <source>&lt;b&gt;Create Voice file&lt;/b&gt;&lt;br/&gt;Voice files are needed to make Rockbox speak the  user interface. Speaking is enabled by default, so
  if you installed the voice file Rockbox will speak.</source>
         <translation>&lt;b&gt;Создать голосовой файл&lt;/b&gt;&lt;br/&gt;Он нужен, чтобы Rockbox произносил пользовательский интерфейс. Произношение включено по умолчанию, поэтому если Вы установили голосовой файл, Rockbox станет разговаривать.</translation>
+    </message>
+    <message>
+        <source>mountpoint unknown or invalid</source>
+        <translation>точка монтирования неизвестна или неправильна</translation>
+    </message>
+    <message>
+        <source>Mountpoint:</source>
+        <translation>Точка монтирования:</translation>
+    </message>
+    <message>
+        <source>device unknown or invalid</source>
+        <translation>устройство неизвестно или неправильно</translation>
+    </message>
+    <message>
+        <source>Device:</source>
+        <translation>Устройство:</translation>
+    </message>
+    <message>
+        <source>Backup &amp;&amp; &amp;Uninstallation</source>
+        <translation>Резервная копия и &amp;Удаление</translation>
+    </message>
+    <message>
+        <source>Backup</source>
+        <translation>Создать резервную копию</translation>
+    </message>
+    <message>
+        <source>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;span style=&quot; font-weight:600;&quot;&gt;Backup current installation.&lt;/span&gt;&lt;/p&gt;&lt;p&gt;Create a backup by archiving the contents of the Rockbox installation folder.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</source>
+        <translation>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;span style=&quot; font-weight:600;&quot;&gt;Создать резервную копию текущей установки.&lt;/span&gt;&lt;/p&gt;&lt;p&gt;Создать копию, архивируя содержимое системной папки Rockbox.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</translation>
+    </message>
+    <message>
+        <source>&amp;Eject</source>
+        <translation>&amp;Извлечь</translation>
+    </message>
+    <message>
+        <source>Show &amp;Changelog</source>
+        <translation>Показать &amp;историю изменений</translation>
+    </message>
+</context>
+<context>
+    <name>SelectiveInstallWidget</name>
+    <message>
+        <source>Rockbox version to install</source>
+        <translation>Версия Rockbox для установки</translation>
+    </message>
+    <message>
+        <source>Version information not available yet.</source>
+        <translation>Сведения о версии пока отсутствуют.</translation>
+    </message>
+    <message>
+        <source>Rockbox components to install</source>
+        <translation>Части Rockbox для установки</translation>
+    </message>
+    <message>
+        <source>&amp;Bootloader</source>
+        <translation>&amp;Загрузчик</translation>
+    </message>
+    <message>
+        <source>The main Rockbox firmware.</source>
+        <translation>Основная программа Rockbox.</translation>
+    </message>
+    <message>
+        <source>Fonts</source>
+        <translation>Шрифты</translation>
+    </message>
+    <message>
+        <source>&amp;Rockbox</source>
+        <translation>&amp;Rockbox</translation>
+    </message>
+    <message>
+        <source>Some game plugins require additional files.</source>
+        <translation>Некоторые игры требуют дополнительных файлов.</translation>
+    </message>
+    <message>
+        <source>Additional fonts for the User Interface.</source>
+        <translation>Дополнительные шрифты для пользовательского интерфейса.</translation>
+    </message>
+    <message>
+        <source>The bootloader is required for starting Rockbox. Only necessary for first time install.</source>
+        <translation>Загрузчик требуется для запуска Rockbox. Нужен только для первой установки.</translation>
+    </message>
+    <message>
+        <source>Game Files</source>
+        <translation>Файлы игр</translation>
+    </message>
+    <message>
+        <source>Customize</source>
+        <translation>Выбрать</translation>
+    </message>
+    <message>
+        <source>Themes</source>
+        <translation>Темы</translation>
+    </message>
+    <message>
+        <source>Themes allow adjusting the user interface of Rockbox. Use &quot;Customize&quot; to select themes.</source>
+        <translation>Темы позволяют изменить пользовательский интерфейс Rockbox. Вы можете их выбрать в списке.</translation>
+    </message>
+    <message>
+        <source>&amp;Install</source>
+        <translation>&amp;Установить</translation>
+    </message>
+    <message>
+        <source>This is the latest stable release available.</source>
+        <translation>Это последняя стабильная версия.</translation>
+    </message>
+    <message>
+        <source>The development version is updated on every code change. Last update was on %1</source>
+        <translation>Разрабатываемая версия обновляется с каждым изменением исходного кода. Дата последнего обновления: %1</translation>
+    </message>
+    <message>
+        <source>This will eventually become the next Rockbox version. Install it to help testing.</source>
+        <translation>Это станет следующей стабильной версией Rockbox. Устанавливайте для тестирования.</translation>
+    </message>
+    <message>
+        <source>Stable Release (Version %1)</source>
+        <translation>Стабильная версия (%1)</translation>
+    </message>
+    <message>
+        <source>Development Version (Revison %1)</source>
+        <translation>Разрабатываемая версия (ревизия %1)</translation>
+    </message>
+    <message>
+        <source>Release Candidate (Revison %1)</source>
+        <translation>Пробная версия (ревизия %1)</translation>
+    </message>
+    <message>
+        <source>The selected player doesn&apos;t need a bootloader.</source>
+        <translation>Выбранный плеер не требует загрузчика.</translation>
+    </message>
+    <message>
+        <source>The bootloader is required for starting Rockbox. Installation of the bootloader is only necessary on first time installation.</source>
+        <translation>Загрузчик требуется для запуска Rockbox. Установка загрузчика требуется только при первой установке.</translation>
+    </message>
+    <message>
+        <source>Mountpoint is wrong</source>
+        <translation>Точка монтирования неверна</translation>
+    </message>
+    <message>
+        <source>No install method known.</source>
+        <translation>Нет известного способа установки.</translation>
+    </message>
+    <message>
+        <source>Bootloader detected</source>
+        <translation>Найден загрузчик</translation>
+    </message>
+    <message>
+        <source>Bootloader already installed. Do you want to reinstall the bootloader?</source>
+        <translation>Загрузчик уже установлен. Переустановить?</translation>
+    </message>
+    <message>
+        <source>Bootloader installation skipped</source>
+        <translation>Установка загрузчика пропущена</translation>
+    </message>
+    <message>
+        <source>Create Bootloader backup</source>
+        <translation>Создать резервную копию загрузчика</translation>
+    </message>
+    <message>
+        <source>You can create a backup of the original bootloader file. Press &quot;Yes&quot; to select an output folder on your computer to save the file to. The file will get placed in a new folder &quot;%1&quot; created below the selected folder.
+Press &quot;No&quot; to skip this step.</source>
+        <translation>Вы можете создать резервную копию фирменного файла загрузчика. Нажмите на &quot;Да&quot;, чтобы выбрать выходную папку, в которой будет создана ещё одна папка &quot;%1&quot;, содержащая файл.
+Нажмите на &quot;Нет&quot;, чтобы пропустить этот шаг.</translation>
+    </message>
+    <message>
+        <source>Browse backup folder</source>
+        <translation>Обзор папки резервных копий</translation>
+    </message>
+    <message>
+        <source>Prerequisites</source>
+        <translation>Предварительные требования</translation>
+    </message>
+    <message>
+        <source>Bootloader installation aborted</source>
+        <translation>Установка загрузчика отменена</translation>
+    </message>
+    <message>
+        <source>Bootloader files (%1)</source>
+        <translation>Загрузочные файлы (%1)</translation>
+    </message>
+    <message>
+        <source>All files (*)</source>
+        <translation>Все файлы (*)</translation>
+    </message>
+    <message>
+        <source>Select firmware file</source>
+        <translation>Выберите файл прошивки</translation>
+    </message>
+    <message>
+        <source>Error opening firmware file</source>
+        <translation>Ошибка при открытии файла прошивки</translation>
+    </message>
+    <message>
+        <source>Error reading firmware file</source>
+        <translation>Ошибка при чтении файла прошивки</translation>
+    </message>
+    <message>
+        <source>Backup error</source>
+        <translation>Ошибка резервной копии</translation>
+    </message>
+    <message>
+        <source>Could not create backup file. Continue?</source>
+        <translation>Не удалось создать резеврную копию файла. Продолжить?</translation>
+    </message>
+    <message>
+        <source>Manual steps required</source>
+        <translation>Требуются действия вручную</translation>
+    </message>
+    <message>
+        <source>Continue with installation?</source>
+        <translation>Продолжить и приступить к установке?</translation>
+    </message>
+    <message>
+        <source>Really continue?</source>
+        <translatorcomment>:-)</translatorcomment>
+        <translation>Точно продожить?</translation>
+    </message>
+    <message>
+        <source>Aborted!</source>
+        <translation type="obsolete">Отменено!</translation>
+    </message>
+    <message>
+        <source>Your installation doesn&apos;t require game files, skipping.</source>
+        <translation>Ваша установка не требует игровых файлов, шаг пропущен.</translation>
+    </message>
+    <message>
+        <source>Selective Installation</source>
+        <translation>Выборочная установка</translation>
     </message>
 </context>
 <context>
@@ -2110,8 +2324,28 @@ Network error: %1. Please check your network and proxy settings.</source>
         <translation>Файловая система</translation>
     </message>
     <message>
-        <source>%1, %2 MiB available</source>
-        <translation>%1, %2 МиБ свободно</translation>
+        <source>Mountpoint</source>
+        <translation>Точка монтирования</translation>
+    </message>
+    <message>
+        <source>Label</source>
+        <translation>Метка</translation>
+    </message>
+    <message>
+        <source>Free</source>
+        <translation>Свободно</translation>
+    </message>
+    <message>
+        <source>Total</source>
+        <translation>Всего</translation>
+    </message>
+    <message>
+        <source>Cluster Size</source>
+        <translation>Размер кластера</translation>
+    </message>
+    <message>
+        <source>&lt;tr&gt;&lt;td&gt;%1&lt;/td&gt;&lt;td&gt;%4&lt;/td&gt;&lt;td&gt;%2 GiB&lt;/td&gt;&lt;td&gt;%3 GiB&lt;/td&gt;&lt;td&gt;%5&lt;/td&gt;&lt;/tr&gt;</source>
+        <translation>&lt;tr&gt;&lt;td&gt;%1&lt;/td&gt;&lt;td&gt;%4&lt;/td&gt;&lt;td&gt;%2 ГиБ&lt;/td&gt;&lt;td&gt;%3 ГБ&lt;/td&gt;&lt;td&gt;%5&lt;/td&gt;&lt;/tr&gt;</translation>
     </message>
 </context>
 <context>
@@ -2153,6 +2387,45 @@ Network error: %1. Please check your network and proxy settings.</source>
     </message>
 </context>
 <context>
+    <name>TTSBase</name>
+    <message>
+        <source>Espeak TTS Engine</source>
+        <translation>Espeak TTS движок</translation>
+    </message>
+    <message>
+        <source>Flite TTS Engine</source>
+        <translation>Flite TTS движок</translation>
+    </message>
+    <message>
+        <source>Swift TTS Engine</source>
+        <translation>Swift TTS движок</translation>
+    </message>
+    <message>
+        <source>SAPI TTS Engine</source>
+        <translation type="obsolete">SAPI TTS движок</translation>
+    </message>
+    <message>
+        <source>Festival TTS Engine</source>
+        <translation>Festival TTS движок</translation>
+    </message>
+    <message>
+        <source>OS X System Engine</source>
+        <translation>Системный движок OS X</translation>
+    </message>
+    <message>
+        <source>SAPI4 TTS Engine</source>
+        <translation>Движок TTS SAPI4</translation>
+    </message>
+    <message>
+        <source>SAPI5 TTS Engine</source>
+        <translation>Движок TTS SAPI5</translation>
+    </message>
+    <message>
+        <source>MS Speech Platform</source>
+        <translation>Платформа MS Speech</translation>
+    </message>
+</context>
+<context>
     <name>TTSCarbon</name>
     <message>
         <source>Voice:</source>
@@ -2164,11 +2437,15 @@ Network error: %1. Please check your network and proxy settings.</source>
     </message>
     <message>
         <source>Could not voice string</source>
-        <translation>Сбой голосового произношения</translation>
+        <translation>Не удалось произнести</translation>
     </message>
     <message>
         <source>Could not convert intermediate file</source>
-        <translation>Не могу преобразовать промежуточный файл</translation>
+        <translation>Не удалось преобразовать промежуточный файл</translation>
+    </message>
+    <message>
+        <source>Pitch (0 for default):</source>
+        <translation>Тон (0 по умолчанию) :</translation>
     </message>
 </context>
 <context>
@@ -2212,14 +2489,6 @@ Network error: %1. Please check your network and proxy settings.</source>
 <context>
     <name>TTSSapi</name>
     <message>
-        <source>Could not copy the Sapi-script</source>
-        <translation>Не могу скопировать сценарий Sapi</translation>
-    </message>
-    <message>
-        <source>Could not start the Sapi-script</source>
-        <translation>Не могу запустить сценарий Sapi</translation>
-    </message>
-    <message>
         <source>Language:</source>
         <translation>Язык:</translation>
     </message>
@@ -2235,13 +2504,17 @@ Network error: %1. Please check your network and proxy settings.</source>
         <source>Options:</source>
         <translation>Настройки:</translation>
     </message>
+    <message>
+        <source>Could not copy the SAPI script</source>
+        <translation>Не удалось скопировать SAPI-сценарий</translation>
+    </message>
+    <message>
+        <source>Could not start SAPI process</source>
+        <translation>Не удалось запустить SAPI-задачу</translation>
+    </message>
 </context>
 <context>
     <name>TalkFileCreator</name>
-    <message>
-        <source>Starting Talk file generation</source>
-        <translation>Запуск вырабатывания файла произношения</translation>
-    </message>
     <message>
         <source>Talk file creation aborted</source>
         <translation>Создание файла произношения отменено</translation>
@@ -2273,6 +2546,10 @@ Network error: %1. Please check your network and proxy settings.</source>
     <message>
         <source>Finished</source>
         <translation>Всё</translation>
+    </message>
+    <message>
+        <source>Starting Talk file generation for folder %1</source>
+        <translation>Начинается создание голосового файла для папки %1</translation>
     </message>
 </context>
 <context>
@@ -2433,76 +2710,13 @@ HTTP response code: %1</source>
         <translation>Сбой при получении предпросмотра темы.
 Код ответа HTTP : %1</translation>
     </message>
-</context>
-<context>
-    <name>UnZip</name>
     <message>
-        <source>ZIP operation completed successfully.</source>
-        <translation>Операция ZIP успешно завершена.</translation>
+        <source>Select</source>
+        <translation>Выбрать</translation>
     </message>
     <message>
-        <source>Failed to initialize or load zlib library.</source>
-        <translation>Сбой загрузки или инициализации библиотеки zlib.</translation>
-    </message>
-    <message>
-        <source>zlib library error.</source>
-        <translation>Ошибка библиотеки zlib.</translation>
-    </message>
-    <message>
-        <source>Unable to create or open file.</source>
-        <translation>Не могу создать или открыть файл.</translation>
-    </message>
-    <message>
-        <source>Partially corrupted archive. Some files might be extracted.</source>
-        <translation>Архив частично повреждён. Некоторые файлы могут быть извлечены.</translation>
-    </message>
-    <message>
-        <source>Corrupted archive.</source>
-        <translation>Архив повреждён.</translation>
-    </message>
-    <message>
-        <source>Wrong password.</source>
-        <translation>Неверный пароль.</translation>
-    </message>
-    <message>
-        <source>No archive has been created yet.</source>
-        <translation>Никакого архива пока не было создано.</translation>
-    </message>
-    <message>
-        <source>File or directory does not exist.</source>
-        <translation>Файл или папка не существует.</translation>
-    </message>
-    <message>
-        <source>File read error.</source>
-        <translation>Ошибка чтения файла.</translation>
-    </message>
-    <message>
-        <source>File write error.</source>
-        <translation>Сбой записи файла.</translation>
-    </message>
-    <message>
-        <source>File seek error.</source>
-        <translation>Сбой пробега файла.</translation>
-    </message>
-    <message>
-        <source>Unable to create a directory.</source>
-        <translation>Не могу создать папку.</translation>
-    </message>
-    <message>
-        <source>Invalid device.</source>
-        <translation>Негодное устройство.</translation>
-    </message>
-    <message>
-        <source>Invalid or incompatible zip archive.</source>
-        <translation>Неверный или несовместимый ZIP-архив.</translation>
-    </message>
-    <message>
-        <source>Inconsistent headers. Archive might be corrupted.</source>
-        <translation>Заголовки не соответствуют. Возможно, архив повреждён.</translation>
-    </message>
-    <message>
-        <source>Unknown error.</source>
-        <translation>Неизвестная ошибка.</translation>
+        <source>No themes selected, skipping</source>
+        <translation>Не выбрано ни одной темы, этап пропускается</translation>
     </message>
 </context>
 <context>
@@ -2564,7 +2778,7 @@ HTTP response code: %1</source>
     </message>
     <message>
         <source>Could not delete %1</source>
-        <translation>Не могу удалить %1</translation>
+        <translation>Не удалось удалить %1</translation>
     </message>
 </context>
 <context>
@@ -2576,14 +2790,12 @@ Administrator priviledges are necessary.&lt;/li&gt;</source>
 Нужны полномочия администратора.&lt;/li&gt;</translation>
     </message>
     <message>
-        <source>&lt;li&gt;Target mismatch detected.
-Installed target: %1, selected target: %2.&lt;/li&gt;</source>
-        <translation>&lt;li&gt;Цели не соответствуют.
-Установленная цель: %1, Выбранная цель: %2.&lt;/li&gt;</translation>
-    </message>
-    <message>
         <source>Problem detected:</source>
         <translation>Обнаружена проблема:</translation>
+    </message>
+    <message>
+        <source>&lt;li&gt;Target mismatch detected.&lt;br/&gt;Installed target: %1&lt;br/&gt;Selected target: %2.&lt;/li&gt;</source>
+        <translation>&lt;li&gt;Обнаруженно несовпадение устройств.&lt;br/&gt;Установленное устройство: %1&lt;br/&gt;Выбранное устройство : %2.&lt;/li&gt;</translation>
     </message>
 </context>
 <context>
@@ -2630,7 +2842,7 @@ Installed target: %1, selected target: %2.&lt;/li&gt;</source>
     </message>
     <message>
         <source>could not find rockbox-info.txt</source>
-        <translation>Не могу найти rockbox-info.txt</translation>
+        <translation>Не удалось найти rockbox-info.txt</translation>
     </message>
     <message>
         <source>Downloading voice info...</source>
@@ -2652,48 +2864,17 @@ Installed target: %1, selected target: %2.&lt;/li&gt;</source>
         <source>Finished</source>
         <translation>Всё</translation>
     </message>
-</context>
-<context>
-    <name>Zip</name>
     <message>
-        <source>ZIP operation completed successfully.</source>
-        <translation>Операция ZIP успешно завершена.</translation>
+        <source>Extracted voice strings from installation</source>
+        <translation>Извлечены голосовые произношения</translation>
     </message>
     <message>
-        <source>Failed to initialize or load zlib library.</source>
-        <translation>Сбой загрузки или инициализации библиотеки zlib.</translation>
+        <source>Extracted voice strings incompatible</source>
+        <translation>Извлечённые произношения несовместимы</translation>
     </message>
     <message>
-        <source>zlib library error.</source>
-        <translation>Ошибка библиотеки zlib.</translation>
-    </message>
-    <message>
-        <source>Unable to create or open file.</source>
-        <translation>Не могу создать или открыть файл.</translation>
-    </message>
-    <message>
-        <source>No archive has been created yet.</source>
-        <translation>Никакого архива пока не было создано.</translation>
-    </message>
-    <message>
-        <source>File or directory does not exist.</source>
-        <translation>Файл или папка не существует.</translation>
-    </message>
-    <message>
-        <source>File read error.</source>
-        <translation>Сбой чтения файла.</translation>
-    </message>
-    <message>
-        <source>File write error.</source>
-        <translation>Сбой записи файла.</translation>
-    </message>
-    <message>
-        <source>File seek error.</source>
-        <translation>Сбой пробега файла.</translation>
-    </message>
-    <message>
-        <source>Unknown error.</source>
-        <translation>Неизвестная ошибка.</translation>
+        <source>Could not retrieve strings from installation, downloading</source>
+        <translation>Не удалось найти произношения в установке, скачиваются</translation>
     </message>
 </context>
 <context>
@@ -2703,12 +2884,8 @@ Installed target: %1, selected target: %2.&lt;/li&gt;</source>
         <translation>выполнено.</translation>
     </message>
     <message>
-        <source>Installation finished successfully.</source>
-        <translation>Установка успешно закончена.</translation>
-    </message>
-    <message>
         <source>Downloading file %1.%2</source>
-        <translation>Скачиваю файл %1.%2</translation>
+        <translation>Скачивается файл %1.%2</translation>
     </message>
     <message>
         <source>Download error: received HTTP error %1.</source>
@@ -2731,14 +2908,6 @@ Installed target: %1, selected target: %2.&lt;/li&gt;</source>
         <translation>Извлечение файла.</translation>
     </message>
     <message>
-        <source>Opening archive failed: %1.</source>
-        <translation>Сбой открытия архива: %1.</translation>
-    </message>
-    <message>
-        <source>Extracting failed: %1.</source>
-        <translation>Сбой извлечения: %1.</translation>
-    </message>
-    <message>
         <source>Installing file.</source>
         <translation>Установка файла.</translation>
     </message>
@@ -2753,6 +2922,29 @@ Installed target: %1, selected target: %2.&lt;/li&gt;</source>
     <message>
         <source>Not enough disk space! Aborting.</source>
         <translation>Не достаточно дискового пространства! Отмена.</translation>
+    </message>
+    <message>
+        <source>Extraction failed!</source>
+        <translation>Ошибка распаковки!</translation>
+    </message>
+    <message>
+        <source>Package installation finished successfully.</source>
+        <translation>Установка файла успешно завершена.</translation>
+    </message>
+</context>
+<context>
+    <name>ZipUtil</name>
+    <message>
+        <source>Creating output path failed</source>
+        <translation>Ошибка создания выходной папки</translation>
+    </message>
+    <message>
+        <source>Creating output file failed</source>
+        <translation>Ошибка создания выходного файла</translation>
+    </message>
+    <message>
+        <source>Error during Zip operation</source>
+        <translation>Ошибка при выполнении операции с ZIP-пакетом</translation>
     </message>
 </context>
 <context>
@@ -2778,8 +2970,12 @@ Installed target: %1, selected target: %2.&lt;/li&gt;</source>
         <translation>&amp;OK</translation>
     </message>
     <message utf8="true">
-        <source>Installer and housekeeping utility for the Rockbox open source digital audio player firmware.&lt;br/&gt;© 2005 - 2010 The Rockbox Team.&lt;br/&gt;Released under the GNU General Public License v2.&lt;br/&gt;Uses icons by the &lt;a href=&quot;http://tango.freedesktop.org/&quot;&gt;Tango Project&lt;/a&gt;.&lt;br/&gt;&lt;center&gt;&lt;a href=&quot;http://www.rockbox.org&quot;&gt;http://www.rockbox.org&lt;/a&gt;&lt;/center&gt;</source>
-        <translation>Мастер установки и администратирования Rockbox, микропрограмма с открытым исходным кодом для цифровых аудиоплееров.&lt;br/&gt;© 2005 - 2010 Команда Rockbox.&lt;br/&gt;Раздаётся по лицензии GNU General Public License v2.&lt;br/&gt;Используются иконки из &lt;a href=&quot;http://tango.freedesktop.org/&quot;&gt;проэкта Tango&lt;/a&gt;.&lt;br/&gt;&lt;center&gt;&lt;a href=&quot;http://www.rockbox.org&quot;&gt;http://www.rockbox.org&lt;/a&gt;&lt;/center&gt;</translation>
+        <source>Installer and housekeeping utility for the Rockbox open source digital audio player firmware.&lt;br/&gt;© The Rockbox Team.&lt;br/&gt;Released under the GNU General Public License v2.&lt;br/&gt;Uses icons by the &lt;a href=&quot;http://tango.freedesktop.org/&quot;&gt;Tango Project&lt;/a&gt;.&lt;br/&gt;&lt;center&gt;&lt;a href=&quot;http://www.rockbox.org&quot;&gt;http://www.rockbox.org&lt;/a&gt;&lt;/center&gt;</source>
+        <translation>Мастер установки и управления Rockbox, микропрограммы с открытым исходным кодом для цифровых аудиоплееров.&lt;br/&gt;© Команда Rockbox.&lt;br/&gt;Раздаётся по лицензии GNU General Public License v2.&lt;br/&gt;Используются иконки из &lt;a href=&quot;http://tango.freedesktop.org/&quot;&gt;проекта Tango&lt;/a&gt;.&lt;br/&gt;&lt;center&gt;&lt;a href=&quot;http://www.rockbox.org&quot;&gt;http://www.rockbox.org&lt;/a&gt;&lt;/center&gt;</translation>
+    </message>
+    <message>
+        <source>&amp;Speex License</source>
+        <translation>&amp;Лицензия Speex</translation>
     </message>
 </context>
 </TS>

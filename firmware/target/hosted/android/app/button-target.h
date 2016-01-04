@@ -23,11 +23,7 @@
 #define _BUTTON_TARGET_H_
 
 #include <stdbool.h>
-#include "config.h"
 
-#undef button_init_device
-void button_init_device(void);
-int button_read_device(int *data);
 unsigned multimedia_to_button(int keyboard_key);
 unsigned dpad_to_button(int keyboard_key);
 void android_ignore_back_button(bool yes);
@@ -40,6 +36,8 @@ void android_ignore_back_button(bool yes);
 #define BUTTON_DPAD_UP     0x00000010
 #define BUTTON_DPAD_DOWN   0x00000020
 #define BUTTON_DPAD_CENTER 0x00000040
+#define BUTTON_VOL_UP      0x00000080
+#define BUTTON_VOL_DOWN    0x00000100
 
 /* Compatibility hacks for flipping. Needs a somewhat better fix. */
 #define BUTTON_LEFT  BUTTON_DPAD_LEFT
@@ -58,7 +56,4 @@ void android_ignore_back_button(bool yes);
 #define BUTTON_BOTTOMMIDDLE 0x00080000
 #define BUTTON_BOTTOMRIGHT  0x00100000
 
-/* No remote */
-#define BUTTON_REMOTE 0
-                
 #endif /* _BUTTON_TARGET_H_ */

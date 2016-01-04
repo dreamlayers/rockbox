@@ -52,12 +52,8 @@ extern unsigned shadow_codec_reg0;
 static bool paused; /* playback is paused */
 static bool playing; /* We are playing an MP3 stream */
 
-/* for measuring the play time */
-static long playstart_tick;
-static long cumulative_ticks;
-
 /* the registered callback function to ask for more mp3 data */
-static void (*callback_for_more)(unsigned char**, size_t*);
+static mp3_play_callback_t callback_for_more;
 
 /* list of tracks in memory */
 #define MAX_ID3_TAGS (1<<4) /* Must be power of 2 */
@@ -160,7 +156,7 @@ static void play_tick(void)
 void DEI3(void) __attribute__((interrupt_handler));
 void DEI3(void)
 {
-    unsigned char* start;
+    const void* start;
     size_t size = 0;
 
     if (callback_for_more != NULL)
@@ -461,6 +457,7 @@ void mp3_shutdown(void)
 
 /* new functions, to be exported to plugin API */
 
+#if CONFIG_CODEC == MAS3587F
 void mp3_play_init(void)
 {
 #if (CONFIG_CODEC == MAS3587F) || (CONFIG_CODEC == MAS3539F)
@@ -469,12 +466,11 @@ void mp3_play_init(void)
     playing = false;
     paused = true;
     callback_for_more = NULL;
-    mp3_reset_playtime();
 }
+#endif
 
-void mp3_play_data(const unsigned char* start, int size,
-    void (*get_more)(unsigned char** start, size_t* size) /* callback fn */
-)
+void mp3_play_data(const void* start, size_t size,
+                   mp3_play_callback_t get_more)
 {
     /* init DMA */
     DAR3 = 0x5FFFEC3;
@@ -503,13 +499,11 @@ void mp3_play_pause(bool play)
     {   /* resume playback */
         SCR0 |= 0x80;
         paused = false;
-        playstart_tick = current_tick;
     }
     else if (!paused && !play)
     {   /* stop playback */
         SCR0 &= 0x7f;
         paused = true;
-        cumulative_ticks += current_tick - playstart_tick;
     }
 }     
 
@@ -534,20 +528,6 @@ void mp3_play_stop(void)
 #if (CONFIG_CODEC == MAS3587F) || (CONFIG_CODEC == MAS3539F)
     demand_irq_enable(false);
 #endif
-}
-
-long mp3_get_playtime(void)
-{
-    if (paused)
-        return cumulative_ticks;
-    else
-        return cumulative_ticks + current_tick - playstart_tick;
-}
-
-void mp3_reset_playtime(void)
-{
-    cumulative_ticks = 0;
-    playstart_tick = current_tick;
 }
 
 bool mp3_is_playing(void)

@@ -30,6 +30,7 @@
 #include "sound.h"
 #include "audiohw.h"
 #include "system.h"
+#include "panic.h"
 
 #ifdef HAVE_RECORDING
 #include "audiohw.h"
@@ -39,6 +40,7 @@
 #endif
 
 #include "pcm.h"
+#include "pcm-internal.h"
 #include "pcm_sampr.h"
 
 /*#define LOGF_ENABLE*/
@@ -49,12 +51,10 @@
 extern bool debug_audio;
 #endif
 
-static int sim_volume = 0;
-
 #if CONFIG_CODEC == SWCODEC
 static int cvt_status = -1;
 
-static Uint8* pcm_data;
+static const void *pcm_data;
 static size_t pcm_data_size;
 static size_t pcm_sample_bytes;
 static size_t pcm_channel_bytes;
@@ -71,15 +71,19 @@ static struct pcm_udata
 
 static SDL_AudioSpec obtained;
 static SDL_AudioCVT cvt;
+static int audio_locked = 0;
+static SDL_mutex *audio_lock;
 
 void pcm_play_lock(void)
 {
-    SDL_LockAudio();
+    if (++audio_locked == 1)
+        SDL_LockMutex(audio_lock);
 }
 
 void pcm_play_unlock(void)
 {
-    SDL_UnlockAudio();
+    if (--audio_locked == 0)
+        SDL_UnlockMutex(audio_lock);
 }
 
 static void pcm_dma_apply_settings_nolock(void)
@@ -103,7 +107,7 @@ void pcm_play_dma_start(const void *addr, size_t size)
 {
     pcm_dma_apply_settings_nolock();
 
-    pcm_data = (Uint8 *) addr;
+    pcm_data = addr;
     pcm_data_size = size;
 
     SDL_PauseAudio(0);
@@ -167,10 +171,10 @@ static void write_to_soundcard(struct pcm_udata *udata)
             cvt.len = rd * pcm_sample_bytes;
             cvt.buf = (Uint8 *) malloc(cvt.len * cvt.len_mult);
 
-            memcpy(cvt.buf, pcm_data, cvt.len);
+            pcm_copy_buffer(cvt.buf, pcm_data, cvt.len);
 
             SDL_ConvertAudio(&cvt);
-            SDL_MixAudio(udata->stream, cvt.buf, cvt.len_cvt, sim_volume);
+            memcpy(udata->stream, cvt.buf, cvt.len_cvt);
 
             udata->num_in = cvt.len / pcm_sample_bytes;
             udata->num_out = cvt.len_cvt / pcm_sample_bytes;
@@ -213,8 +217,8 @@ static void write_to_soundcard(struct pcm_udata *udata)
         }
     } else {
         udata->num_in = udata->num_out = MIN(udata->num_in, udata->num_out);
-        SDL_MixAudio(udata->stream, pcm_data, 
-                     udata->num_out * pcm_sample_bytes, sim_volume);
+        pcm_copy_buffer(udata->stream, pcm_data,
+                        udata->num_out * pcm_sample_bytes);
 #ifdef DEBUG
         if (udata->debug != NULL) {
            fwrite(pcm_data, sizeof(Uint8), udata->num_out * pcm_sample_bytes,
@@ -227,7 +231,11 @@ static void write_to_soundcard(struct pcm_udata *udata)
 static void sdl_audio_callback(struct pcm_udata *udata, Uint8 *stream, int len)
 {
     logf("sdl_audio_callback: len %d, pcm %d\n", len, pcm_data_size);
+
+    bool new_buffer = false;
     udata->stream = stream;
+
+    SDL_LockMutex(audio_lock);
 
     /* Write what we have in the PCM buffer */
     if (pcm_data_size > 0)
@@ -235,26 +243,51 @@ static void sdl_audio_callback(struct pcm_udata *udata, Uint8 *stream, int len)
 
     /* Audio card wants more? Get some more then. */
     while (len > 0) {
-        pcm_play_get_more_callback((void **)&pcm_data, &pcm_data_size);
-    start:
-        if (pcm_data_size != 0) {
-            udata->num_in  = pcm_data_size / pcm_sample_bytes;
-            udata->num_out = len / pcm_sample_bytes;
+        new_buffer = pcm_play_dma_complete_callback(PCM_DMAST_OK, &pcm_data,
+                                                    &pcm_data_size);
 
-            write_to_soundcard(udata);
-
-            udata->num_in  *= pcm_sample_bytes;
-            udata->num_out *= pcm_sample_bytes;
-
-            pcm_data      += udata->num_in;
-            pcm_data_size -= udata->num_in;
-            udata->stream += udata->num_out;
-            len           -= udata->num_out;
-        } else {
+        if (!new_buffer) {
             DEBUGF("sdl_audio_callback: No Data.\n");
             break;
         }
+
+    start:
+        udata->num_in  = pcm_data_size / pcm_sample_bytes;
+        udata->num_out = len / pcm_sample_bytes;
+
+        write_to_soundcard(udata);
+
+        udata->num_in  *= pcm_sample_bytes;
+        udata->num_out *= pcm_sample_bytes;
+
+        if (new_buffer)
+        {
+            new_buffer = false;
+            pcm_play_dma_status_callback(PCM_DMAST_STARTED);
+
+            if ((size_t)len > udata->num_out)
+            {
+                int delay = pcm_data_size*250 / pcm_sampr - 1;
+
+                if (delay > 0)
+                {
+                    SDL_UnlockMutex(audio_lock);
+                    SDL_Delay(delay);
+                    SDL_LockMutex(audio_lock);
+
+                    if (!pcm_is_playing())
+                        break;
+                }
+            }
+        }
+
+        pcm_data      += udata->num_in;
+        pcm_data_size -= udata->num_in;
+        udata->stream += udata->num_out;
+        len           -= udata->num_out;
     }
+
+    SDL_UnlockMutex(audio_lock);
 }
 
 const void * pcm_play_dma_get_peak_buffer(int *count)
@@ -320,6 +353,14 @@ void pcm_play_dma_init(void)
         return;
     }
 
+    audio_lock = SDL_CreateMutex();
+
+    if (!audio_lock)
+    {
+        panicf("Could not create audio_lock\n");
+        return;
+    }
+
     SDL_AudioSpec wanted_spec;
 #ifdef DEBUG
     udata.debug = NULL;
@@ -367,13 +408,8 @@ void pcm_play_dma_init(void)
     pcm_dma_apply_settings_nolock();
 }
 
-void pcm_postinit(void)
+void pcm_play_dma_postinit(void)
 {
-}
-
-void pcm_set_mixer_volume(int volume)
-{
-    sim_volume = volume;
 }
 
 #endif /* CONFIG_CODEC == SWCODEC */

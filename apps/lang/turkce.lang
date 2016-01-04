@@ -236,7 +236,7 @@
     *: "PLAY = Yes"
     cowond2*: "MENU, or top-right = Yes"
     iriverh100,iriverh120,iriverh300: "NAVI = Yes"
-    samsungyh*,ipod*,iaudiox5,iaudiom5,gigabeat*,sansae200*,sansac200*,iriverh10,iriverh10_5gb,mrobe100,sansaclip*,sansafuze*: "SELECT = Yes"
+    ipod*,iaudiox5,iaudiom5,gigabeat*,sansae200*,sansac200*,iriverh10,iriverh10_5gb,mrobe100,sansaclip*,sansafuze*,sansaconnect: "SELECT = Yes"
     mrobe500: "PLAY, POWER, or top-right = Yes"
     archosplayer: "(PLAY/STOP)"
     vibe500: "OK = Yes"
@@ -245,7 +245,7 @@
     *: "PLAY = Devam et"
     cowond2*: "MENU, veya üst-sağ = Evet"
     iriverh100,iriverh120,iriverh300: "NAVI = Devam et"
-    samsungyh*,ipod*,iaudiox5,iaudiom5,gigabeat*,sansae200*,sansac200*,iriverh10,iriverh10_5gb,mrobe100,sansaclip*,sansafuze*: "SELECT = Evet"
+    ipod*,iaudiox5,iaudiom5,gigabeat*,sansae200*,sansac200*,iriverh10,iriverh10_5gb,mrobe100,sansaclip*,sansafuze*,sansaconnect: "SELECT = Evet"
     mrobe500: "PLAY, POWER, veya üst-sağ = Evet"
     archosplayer: "(PLAY/STOP)"
     vibe500: "OK = Devam et"
@@ -1406,7 +1406,7 @@
     *: "Building database... %d found (OFF to return)"
     iriverh100,iriverh120,iriverh300: "Building database... %d found (STOP to return)"
     ipod*: "Building database... %d found (PREV to return)"
-    iaudiox5,iaudiom5,gigabeat*,mrobe100: "Building database... %d found (LEFT to return)"
+    iaudiox5,iaudiom5,gigabeat*,mrobe100,samsungyh*: "Building database... %d found (LEFT to return)"
     iriverh10,iriverh10_5gb,sansae200*,sansac200*,sansafuze*,vibe500: "Building database... %d found (PREV to return)"
     gogearsa9200: "Building database... %d found (REW to return)"
   </source>
@@ -1414,7 +1414,7 @@
     *: "Veritabanı oluşturuluyor... %d bulundu (giriş için OFF)"
     iriverh100,iriverh120,iriverh300: "Veritabanı oluşturuluyor... %d bulundu (giriş için STOP)"
     ipod*: "Veritabanı oluşturuluyor... %d bulundu (giriş için PREV)"
-    iaudiox5,iaudiom5,gigabeat*,mrobe100: "Veritabanı oluşturuluyor... %d bulundu (giriş için LEFT)"
+    iaudiox5,iaudiom5,gigabeat*,mrobe100,samsungyh*: "Veritabanı oluşturuluyor... %d bulundu (giriş için LEFT)"
     iriverh10,iriverh10_5gb,sansae200*,sansac200*,sansafuze*,vibe500: "Veritabanı oluşturuluyor... %d bulundu (giriş için PREV)"
     gogearsa9200: "Veritabanı oluşturuluyor... %d bulundu (giriş için REW)"
   </dest>
@@ -1963,8 +1963,8 @@
     rtc: "ON = Set"
     mrobe500: "HEART = Set"
     iriverh100,iriverh120,iriverh300: "NAVI = Set"
-    ipod*,iaudiox5,iaudiom5,iriverh10,iriverh10_5gb,sansae200*,sansac200*,gigabeat*,mrobe100,sansaclip*,sansafuze*: "SELECT = Set"
-    gogearsa9200: "PLAY = Set"
+    ipod*,iaudiox5,iaudiom5,iriverh10,iriverh10_5gb,sansae200*,sansac200*,gigabeat*,mrobe100,sansaclip*,sansafuze*,sansaconnect: "SELECT = Set"
+    gogearsa9200,samsungyh*: "PLAY = Set"
     vibe500: "OK = Set"
     mpiohd300: "ENTER = Set"
   </source>
@@ -1973,8 +1973,8 @@
     rtc: "ON = Set"
     mrobe500: "HEART = Ayarlandı"
     iriverh100,iriverh120,iriverh300: "NAVI = Ayarlandı"
-    ipod*,iaudiox5,iaudiom5,iriverh10,iriverh10_5gb,sansae200*,sansac200*,gigabeat*,mrobe100,sansaclip*,sansafuze*: "SELECT = Ayarlandı"
-    gogearsa9200: "PLAY = Ayarlandı"
+    ipod*,iaudiox5,iaudiom5,iriverh10,iriverh10_5gb,sansae200*,sansac200*,gigabeat*,mrobe100,sansaclip*,sansafuze*,sansaconnect: "SELECT = Ayarlandı"
+    gogearsa9200,samsungyh*: "PLAY = Ayarlandı"
     vibe500: "OK = Ayarlandı"
     mpiohd300: "ENTER = Ayarlandı"
   </dest>
@@ -1995,10 +1995,12 @@
     iaudiox5,iaudiom5: "RECORD = Revert"
     iriverh10,iriverh10_5gb,sansae200*,sansafuze*: "PREV = Revert"
     gigabeatfx: "POWER = Revert"
+    sansafuzeplus: "BACK = Revert"
     mrobe100: "DISPLAY = Revert"
     gigabeats: "BACK = Revert"
     gogearsa9200: "LEFT = Revert"
     vibe500: "CANCEL = Revert"
+    samsungyh*: "REW = Revert"
   </source>
   <dest>
     *: none
@@ -2009,10 +2011,12 @@
     iaudiox5,iaudiom5: "RECORD = Geri Döndür"
     iriverh10,iriverh10_5gb,sansae200*,sansafuze*: "PREV = Geri Döndür"
     gigabeatfx: "POWER = Geri Döndür"
+    sansafuzeplus: "BACK = Geri Döndür"
     mrobe100: "DISPLAY = Geri Döndür"
     gigabeats: "LEFT =  Revert"
     gogearsa9200: "LEFT = Geri Döndür"
     vibe500: "C = Geri Döndür"
+    samsungyh*: "REW = Geri Döndür"
   </dest>
   <voice>
     *: none
@@ -2434,19 +2438,19 @@
   <source>
     *: none
     multivolume: "HD1"
-    sansae200*,sansac200*,sansafuze*: "mSD:"
+    sansae200*,sansac200*,sansafuze*,sansaclipplus: "mSD:"
     archosondio*: "MMC:"
   </source>
   <dest>
     *: none
     multivolume: "HD1"
-    sansae200*,sansac200*,sansafuze*: "mSD:"
+    sansae200*,sansac200*,sansafuze*,sansaclipplus: "mSD:"
     archosondio*: "MMC:"
   </dest>
   <voice>
     *: none
     multivolume: ""
-    sansae200*,sansac200*,sansafuze*: ""
+    sansae200*,sansac200*,sansafuze*,sansaclipplus: ""
     archosondio*: "M M C"
   </voice>
 </phrase>
@@ -2646,6 +2650,7 @@
     iriverh100,iriverh120,iriverh300: "The disk is full. Press STOP to continue."
     iaudiom5,iaudiox5: "The disk is full. Press POWER to continue."
     sansae200*,sansac200*,vibe500: "The disk is full. Press PREV to continue."
+    samsungyh*: "Disk full. Press LEFT to continue."
   </source>
   <dest>
     *: none
@@ -2653,10 +2658,10 @@
     iriverh100,iriverh120,iriverh300: "The disk is full. Press STOP to continue."
     iaudiom5,iaudiox5: "The disk is full. Press POWER to continue."
     sansae200,sansac200*,vibe500: "The disk is full. Press UP to continue."
+    samsungyh*: "Disk full. Press LEFT to continue."
   </dest>
   <voice>
     *: none
-    recording,iriverh100,iriverh120,iriverh300,iaudiom5,iaudiox5,sansae200,sansac200*: ""
     recording,iriverh100,iriverh120,iriverh300,iaudiom5,iaudiox5,sansae200*,sansac200*: ""
   </voice>
 </phrase>
@@ -2672,6 +2677,7 @@
     iriverh10,iriverh10_5gb,sansae200*,sansac200*,vibe500: "PREV to abort"
     gigabeats: "BACK to abort"
     gigabeatfx: "POWER to abort"
+    sansafuzeplus: "BACK to abort"
   </source>
   <dest>
     *: "OFF to abort"
@@ -3457,15 +3463,15 @@
   user: core
   <source>
     *: none
-    gigabeatfx: "Touchpad Sensitivity"
+    gigabeatfx,sansafuzeplus: "Touchpad Sensitivity"
   </source>
   <dest>
     *: none
-    gigabeatfx: "Touchpad Duyarlık"
+    gigabeatfx,sansafuzeplus: "Touchpad Duyarlık"
   </dest>
   <voice>
     *: none
-    gigabeatfx: "Touchpad Duyarlık"
+    gigabeatfx,sansafuzeplus: "Touchpad Duyarlık"
   </voice>
 </phrase>
 <phrase>

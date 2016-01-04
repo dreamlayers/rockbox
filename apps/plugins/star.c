@@ -310,6 +310,23 @@
 #define STAR_LEVEL_DOWN_NAME "CUSTOM+DOWN"
 #define STAR_LEVEL_REPEAT_NAME "CUSTOM+RIGHT"
 
+#elif CONFIG_KEYPAD == CREATIVE_ZENXFI3_PAD
+
+#define STAR_QUIT           BUTTON_POWER
+#define STAR_LEFT           BUTTON_BACK
+#define STAR_RIGHT          BUTTON_MENU
+#define STAR_UP             BUTTON_UP
+#define STAR_DOWN           BUTTON_DOWN
+#define STAR_TOGGLE_CONTROL BUTTON_PLAY
+#define STAR_LEVEL_UP       BUTTON_VOL_UP
+#define STAR_LEVEL_DOWN     BUTTON_VOL_DOWN
+#define STAR_LEVEL_REPEAT  (BUTTON_PLAY | BUTTON_REPEAT)
+#define STAR_TOGGLE_CONTROL_NAME "PLAY"
+#define STAR_QUIT_NAME      "POWER"
+#define STAR_LEVEL_UP_NAME  "VOL+"
+#define STAR_LEVEL_DOWN_NAME "VOL-"
+#define STAR_LEVEL_REPEAT_NAME "Hold PLAY button"
+
 #elif CONFIG_KEYPAD == PHILIPS_HDD1630_PAD
 
 #define STAR_QUIT           BUTTON_POWER
@@ -374,24 +391,41 @@
 #define STAR_QUIT           BUTTON_POWER
 #define STAR_QUIT_NAME      "POWER"
 
-#elif (CONFIG_KEYPAD == SAMSUNG_YH_PAD)
+#elif CONFIG_KEYPAD == SAMSUNG_YH820_PAD
 
-#define STAR_QUIT           BUTTON_REC
+#define STAR_QUIT           (BUTTON_REW|BUTTON_REPEAT)
 #define STAR_LEFT           BUTTON_LEFT
 #define STAR_RIGHT          BUTTON_RIGHT
 #define STAR_UP             BUTTON_UP
 #define STAR_DOWN           BUTTON_DOWN
-#define STAR_LEVEL_UP_PRE   (BUTTON_FFWD|BUTTON_UP)
-#define STAR_LEVEL_UP       (BUTTON_REW|BUTTON_UP)
-#define STAR_LEVEL_DOWN_PRE (BUTTON_FFWD|BUTTON_DOWN)
-#define STAR_LEVEL_DOWN     (BUTTON_REW|BUTTON_DOWN)
-#define STAR_TOGGLE_CONTROL (BUTTON_PLAY|BUTTON_UP)
-#define STAR_LEVEL_REPEAT   (BUTTON_PLAY|BUTTON_DOWN)
+#define STAR_LEVEL_UP       (BUTTON_REC|BUTTON_UP)
+#define STAR_LEVEL_DOWN     (BUTTON_REC|BUTTON_DOWN)
+#define STAR_TOGGLE_CONTROL BUTTON_PLAY
+#define STAR_LEVEL_REPEAT_PRE BUTTON_FFWD
+#define STAR_LEVEL_REPEAT   (BUTTON_FFWD|BUTTON_REPEAT)
 #define STAR_TOGGLE_CONTROL_NAME "PLAY"
-#define STAR_QUIT_NAME      "REC"
-#define STAR_LEVEL_UP_NAME  "UP"
-#define STAR_LEVEL_DOWN_NAME "DOWN"
-#define STAR_LEVEL_REPEAT_NAME "PLAY"
+#define STAR_QUIT_NAME          "LONG REW"
+#define STAR_LEVEL_UP_NAME      "REC+UP"
+#define STAR_LEVEL_DOWN_NAME    "REC+DOWN"
+#define STAR_LEVEL_REPEAT_NAME  "LONG FFWD"
+
+#elif CONFIG_KEYPAD == SAMSUNG_YH920_PAD
+
+#define STAR_QUIT           (BUTTON_REW|BUTTON_REPEAT)
+#define STAR_LEFT           BUTTON_LEFT
+#define STAR_RIGHT          BUTTON_RIGHT
+#define STAR_UP             BUTTON_UP
+#define STAR_DOWN           BUTTON_DOWN
+#define STAR_LEVEL_UP       (BUTTON_FFWD|BUTTON_UP)
+#define STAR_LEVEL_DOWN     (BUTTON_FFWD|BUTTON_DOWN)
+#define STAR_TOGGLE_CONTROL (BUTTON_PLAY|BUTTON_REL)
+#define STAR_LEVEL_REPEAT_PRE (BUTTON_FFWD|BUTTON_REPEAT)
+#define STAR_LEVEL_REPEAT   (BUTTON_FFWD|BUTTON_REL)
+#define STAR_TOGGLE_CONTROL_NAME "PLAY"
+#define STAR_QUIT_NAME          "LONG REW"
+#define STAR_LEVEL_UP_NAME      "FFWD+UP"
+#define STAR_LEVEL_DOWN_NAME    "FFWD+DOWN"
+#define STAR_LEVEL_REPEAT_NAME  "LONG FFWD"
 
 #elif CONFIG_KEYPAD == PBELL_VIBE500_PAD
 
@@ -430,21 +464,142 @@
 
 #elif CONFIG_KEYPAD == MPIO_HD300_PAD
 
-#define STAR_QUIT           (BUTTON_REC | BUTTON_REPEAT)
+#define STAR_QUIT           (BUTTON_MENU | BUTTON_REPEAT)
 #define STAR_LEFT           BUTTON_REW
 #define STAR_RIGHT          BUTTON_FF
 #define STAR_UP             BUTTON_UP
 #define STAR_DOWN           BUTTON_DOWN
-#define STAR_TOGGLE_CONTROL_PRE BUTTON_MENU
-#define STAR_TOGGLE_CONTROL (BUTTON_MENU | BUTTON_REL)
-#define STAR_LEVEL_UP       BUTTON_PLAY
-#define STAR_LEVEL_DOWN     BUTTON_REC
-#define STAR_LEVEL_REPEAT   (BUTTON_MENU | BUTTON_REPEAT)
-#define STAR_TOGGLE_CONTROL_NAME "MENU"
-#define STAR_QUIT_NAME      "REC LONG"
-#define STAR_LEVEL_UP_NAME  "PLAY"
-#define STAR_LEVEL_DOWN_NAME "REC"
-#define STAR_LEVEL_REPEAT_NAME "MENU LONG"
+#define STAR_TOGGLE_CONTROL_PRE BUTTON_ENTER
+#define STAR_TOGGLE_CONTROL (BUTTON_ENTER | BUTTON_REL)
+#define STAR_LEVEL_UP       (BUTTON_PLAY | BUTTON_FF)
+#define STAR_LEVEL_DOWN     (BUTTON_PLAY | BUTTON_REW)
+#define STAR_LEVEL_REPEAT   (BUTTON_PLAY | BUTTON_REPEAT)
+#define STAR_TOGGLE_CONTROL_NAME "ENTER"
+#define STAR_QUIT_NAME      "LONG MENU"
+#define STAR_LEVEL_UP_NAME  "PLAY + FF"
+#define STAR_LEVEL_DOWN_NAME "PLAY + REW"
+#define STAR_LEVEL_REPEAT_NAME "LONG PLAY"
+
+#elif CONFIG_KEYPAD == SANSA_FUZEPLUS_PAD
+
+#define STAR_QUIT           BUTTON_POWER
+#define STAR_LEFT           BUTTON_LEFT
+#define STAR_RIGHT          BUTTON_RIGHT
+#define STAR_UP             BUTTON_UP
+#define STAR_DOWN           BUTTON_DOWN
+#define STAR_TOGGLE_CONTROL BUTTON_PLAYPAUSE
+#define STAR_LEVEL_UP       BUTTON_VOL_UP
+#define STAR_LEVEL_DOWN     BUTTON_VOL_DOWN
+#define STAR_LEVEL_REPEAT   (BUTTON_BACK | BUTTON_REPEAT)
+#define STAR_TOGGLE_CONTROL_NAME "SELECT"
+#define STAR_QUIT_NAME      "POWER"
+#define STAR_LEVEL_UP_NAME  "Vol+"
+#define STAR_LEVEL_DOWN_NAME "Vol-"
+#define STAR_LEVEL_REPEAT_NAME "BACK LONG"
+
+#elif CONFIG_KEYPAD == SANSA_CONNECT_PAD
+
+#define STAR_QUIT           BUTTON_POWER
+#define STAR_LEFT           BUTTON_LEFT
+#define STAR_RIGHT          BUTTON_RIGHT
+#define STAR_UP             BUTTON_UP
+#define STAR_DOWN           BUTTON_DOWN
+#define STAR_TOGGLE_CONTROL BUTTON_SELECT
+#define STAR_LEVEL_UP       BUTTON_VOL_UP
+#define STAR_LEVEL_DOWN     BUTTON_VOL_DOWN
+#define STAR_LEVEL_REPEAT   (BUTTON_PREV | BUTTON_REPEAT)
+#define STAR_TOGGLE_CONTROL_NAME "SELECT"
+#define STAR_QUIT_NAME      "POWER"
+#define STAR_LEVEL_UP_NAME  "Vol+"
+#define STAR_LEVEL_DOWN_NAME "Vol-"
+#define STAR_LEVEL_REPEAT_NAME "PREV LONG"
+
+#elif (CONFIG_KEYPAD == SAMSUNG_YPR0_PAD)
+
+#define STAR_QUIT           BUTTON_BACK
+#define STAR_LEFT           BUTTON_LEFT
+#define STAR_RIGHT          BUTTON_RIGHT
+#define STAR_UP             BUTTON_UP
+#define STAR_DOWN           BUTTON_DOWN
+#define STAR_TOGGLE_CONTROL BUTTON_SELECT
+#define STAR_LEVEL_UP       BUTTON_MENU
+#define STAR_LEVEL_DOWN     BUTTON_POWER
+#define STAR_LEVEL_REPEAT   BUTTON_USER
+#define STAR_TOGGLE_CONTROL_NAME "Select"
+#define STAR_QUIT_NAME      "Back"
+#define STAR_LEVEL_UP_NAME  "Menu"
+#define STAR_LEVEL_DOWN_NAME "Power"
+#define STAR_LEVEL_REPEAT_NAME "User"
+
+#elif (CONFIG_KEYPAD == HM60X_PAD)
+
+#define STAR_QUIT           BUTTON_POWER
+#define STAR_LEFT           BUTTON_LEFT
+#define STAR_RIGHT          BUTTON_RIGHT
+#define STAR_UP             BUTTON_UP
+#define STAR_DOWN           BUTTON_DOWN
+#define STAR_TOGGLE_CONTROL BUTTON_SELECT
+#define STAR_LEVEL_UP       (BUTTON_POWER | BUTTON_UP)
+#define STAR_LEVEL_DOWN     (BUTTON_POWER | BUTTON_DOWN)
+#define STAR_LEVEL_REPEAT   (BUTTON_POWER | BUTTON_SELECT)
+#define STAR_TOGGLE_CONTROL_NAME "SELECT"
+#define STAR_QUIT_NAME      "POWER"
+#define STAR_LEVEL_UP_NAME  "POWER + UP"
+#define STAR_LEVEL_DOWN_NAME "POWER + DOWN"
+#define STAR_LEVEL_REPEAT_NAME "POWER + SELECT"
+
+#elif (CONFIG_KEYPAD == HM801_PAD)
+
+#define STAR_QUIT           BUTTON_POWER
+#define STAR_LEFT           BUTTON_LEFT
+#define STAR_RIGHT          BUTTON_RIGHT
+#define STAR_UP             BUTTON_UP
+#define STAR_DOWN           BUTTON_DOWN
+#define STAR_TOGGLE_CONTROL BUTTON_SELECT
+#define STAR_LEVEL_UP       BUTTON_NEXT
+#define STAR_LEVEL_DOWN     BUTTON_PREV
+#define STAR_LEVEL_REPEAT   BUTTON_PLAY
+#define STAR_TOGGLE_CONTROL_NAME "SELECT"
+#define STAR_QUIT_NAME           "POWER"
+#define STAR_LEVEL_UP_NAME       "NEXT"
+#define STAR_LEVEL_DOWN_NAME     "PREV"
+#define STAR_LEVEL_REPEAT_NAME   "PLAY"
+
+#elif CONFIG_KEYPAD == SONY_NWZ_PAD
+#define STAR_QUIT                BUTTON_BACK
+#define STAR_LEFT                BUTTON_LEFT
+#define STAR_RIGHT               BUTTON_RIGHT
+#define STAR_UP                  BUTTON_UP
+#define STAR_DOWN                BUTTON_DOWN
+#define STAR_TOGGLE_CONTROL      BUTTON_PLAY
+#define STAR_LEVEL_UP            (BUTTON_POWER|BUTTON_UP)
+#define STAR_LEVEL_DOWN          (BUTTON_POWER|BUTTON_DOWN)
+#define STAR_LEVEL_REPEAT        (BUTTON_POWER|BUTTON_PLAY)
+#define STAR_LEVEL_UP_NAME       "Option+Up"
+#define STAR_LEVEL_DOWN_NAME     "Option+Down"
+#define STAR_LEVEL_REPEAT_NAME   "Option+Play"
+#define STAR_TOGGLE_CONTROL_NAME "Play"
+#define STAR_QUIT_NAME           "Back"
+
+#elif CONFIG_KEYPAD == CREATIVE_ZEN_PAD
+#define STAR_QUIT                BUTTON_BACK
+#define STAR_LEFT                BUTTON_LEFT
+#define STAR_RIGHT               BUTTON_RIGHT
+#define STAR_UP                  BUTTON_UP
+#define STAR_DOWN                BUTTON_DOWN
+#define STAR_TOGGLE_CONTROL      BUTTON_SELECT
+#define STAR_LEVEL_UP            BUTTON_MENU
+#define STAR_LEVEL_DOWN          BUTTON_PLAYPAUSE
+#define STAR_LEVEL_REPEAT        BUTTON_SHORTCUT
+#define STAR_LEVEL_UP_NAME       "Menu"
+#define STAR_LEVEL_DOWN_NAME     "Play/pause"
+#define STAR_LEVEL_REPEAT_NAME   "Shortcut"
+#define STAR_TOGGLE_CONTROL_NAME "Select"
+#define STAR_QUIT_NAME           "Back"
+
+#elif (CONFIG_KEYPAD == DX50_PAD)
+#define STAR_QUIT           BUTTON_POWER
+#define STAR_QUIT_NAME      "Power"
 
 #else
 #error No keymap defined!
@@ -945,11 +1100,11 @@ static int star_run_game(int current_level)
     int move_x = 0;
     int move_y = 0;
     int key;
+#if defined(STAR_LEVEL_DOWN_PRE) || \
+    defined(STAR_LEVEL_UP_PRE) || \
+    defined(STAR_TOGGLE_CONTROL_PRE) 
     int lastkey = BUTTON_NONE;
-
-    int label_offset_y;
-
-    label_offset_y = LCD_HEIGHT - char_height;
+#endif
 
     if (!star_load_level(current_level))
         return 0;
@@ -1037,8 +1192,12 @@ static int star_run_game(int current_level)
                     }
                     break;
             }
+#if defined(STAR_LEVEL_DOWN_PRE) || \
+    defined(STAR_LEVEL_UP_PRE) || \
+    defined(STAR_TOGGLE_CONTROL_PRE) 
             if (key != BUTTON_NONE)
                 lastkey = key;
+#endif
         }
 
         if (control == STAR_CONTROL_BALL)

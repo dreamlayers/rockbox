@@ -21,7 +21,7 @@
 
 #include "config.h"
 #include "system.h"
-#include "file.h"
+#include "kernel.h"
 #include "lcd-remote.h"
 #include "scroll_engine.h"
 #include "uart-target.h"
@@ -45,8 +45,6 @@ static enum remote_draw_states
     DRAW_PAUSE,
 } remote_state_draw = DRAW_TOP, remote_state_draw_next;
 
-static bool remote_hold_button=false;
-
 bool remote_initialized=true;
 
 static unsigned char remote_contrast=DEFAULT_REMOTE_CONTRAST_SETTING;
@@ -64,6 +62,7 @@ void lcd_remote_sleep(void)
     remote_state_control_next=REMOTE_CONTROL_SLEEP;
 }
 
+#if 0 // FIXME
 void lcd_remote_powersave(bool on)
 {
     if(on)
@@ -77,6 +76,7 @@ void lcd_remote_powersave(bool on)
         remote_state_control_next=REMOTE_CONTROL_POWER;
     }
 }
+#endif
 
 void lcd_remote_set_contrast(int val)
 {
@@ -246,7 +246,7 @@ static void remote_tick(void)
         for(i=7; i<remote_payload_size; i++)
         {
             remote_payload[i]=
-                lcd_remote_framebuffer[remote_payload[4]>>3][i+remote_draw_x-7];
+                *FBREMOTEADDR(i+remote_draw_x-7, remote_payload[4]>>3);
         }
     }
     
@@ -292,61 +292,13 @@ void lcd_remote_update_rect(int x, int y, int width, int height)
     remote_state_control=REMOTE_CONTROL_DRAW;
 }
 
-bool remote_button_hold(void)
-{
-    return remote_hold_button;
-}
-
-int remote_read_device(void)
-{
-    static char read_buffer[5];
-    int read_button = BUTTON_NONE;
-    
-    static int oldbutton=BUTTON_NONE;
-    
-    /* Handle remote buttons */
-    if(uart1_gets_queue(read_buffer, 5)>=0)
-    {
-        int button_location;
-        
-        for(button_location=0;button_location<4;button_location++)
-        {
-            if((read_buffer[button_location]&0xF0)==0xF0 
-                && (read_buffer[button_location+1]&0xF0)!=0xF0)
-                break;
-        }
-        
-        if(button_location==4)
-            button_location=0;
-        
-        button_location++;
-            
-        read_button |= read_buffer[button_location];
-        
-        /* Find the hold status location */
-        if(button_location==4)
-            button_location=0;
-        else
-            button_location++;
-            
-        remote_hold_button=((read_buffer[button_location]&0x80)?true:false);
-        
-        uart1_clear_queue();
-        oldbutton=read_button;
-    }
-    else
-        read_button=oldbutton;
-        
-    return read_button;
-}
-
-void _remote_backlight_on(void)
+void remote_backlight_hw_on(void)
 {
     remote_power|=0x40;
     remote_state_control_next=REMOTE_CONTROL_POWER;
 }
 
-void _remote_backlight_off(void)
+void remote_backlight_hw_off(void)
 {
     remote_power&=~(0x40);
     remote_state_control_next=REMOTE_CONTROL_POWER;

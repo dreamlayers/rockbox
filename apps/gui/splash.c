@@ -133,7 +133,7 @@ static void splash_internal(struct screen * screen, const char *fmt, va_list ap)
      * First boundaries, then the grey filling, then the black border and finally
      * the text*/
 
-    screen->stop_scroll();
+    screen->scroll_stop();
 
 #ifdef HAVE_LCD_BITMAP
 
@@ -200,7 +200,6 @@ end:
 void splashf(int ticks, const char *fmt, ...)
 {
     va_list ap;
-    int i;
 
     /* If fmt is a lang ID then get the corresponding string (which
        still might contain % place holders). */

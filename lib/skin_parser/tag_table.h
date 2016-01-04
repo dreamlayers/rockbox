@@ -27,6 +27,7 @@ extern "C"
 {
 #endif
 
+#define MAX_TAG_LENGTH 4 /* includes the \0 */
 #define MAX_TAG_PARAMS 12
 
 #define NOBREAK 0x1 /* Flag to tell the renderer not to insert a line break */
@@ -73,6 +74,8 @@ enum skin_token_type {
     
     /* Conditional */
     SKIN_TOKEN_LOGICAL_IF,
+    SKIN_TOKEN_LOGICAL_AND,
+    SKIN_TOKEN_LOGICAL_OR,
     SKIN_TOKEN_CONDITIONAL,
     SKIN_TOKEN_CONDITIONAL_START,
     SKIN_TOKEN_CONDITIONAL_OPTION,
@@ -87,7 +90,10 @@ enum skin_token_type {
     SKIN_TOKEN_UIVIEWPORT_LOAD,
     SKIN_TOKEN_VIEWPORT_FGCOLOUR,
     SKIN_TOKEN_VIEWPORT_BGCOLOUR,
-    
+    SKIN_TOKEN_VIEWPORT_TEXTSTYLE,
+    SKIN_TOKEN_VIEWPORT_GRADIENT_SETUP,
+    SKIN_TOKEN_VIEWPORT_DRAWONBG,
+
     /* Battery */
     SKIN_TOKEN_BATTERY_PERCENT,
     SKIN_TOKEN_BATTERY_PERCENTBAR,
@@ -96,7 +102,7 @@ enum skin_token_type {
     SKIN_TOKEN_BATTERY_CHARGER_CONNECTED,
     SKIN_TOKEN_BATTERY_CHARGING,
     SKIN_TOKEN_BATTERY_SLEEPTIME,
-    SKIN_TOKEN_USB_POWERED,
+    SKIN_TOKEN_USB_INSERTED,
 
     /* Sound */
     SKIN_TOKEN_SOUND_PITCH,
@@ -157,6 +163,7 @@ enum skin_token_type {
     SKIN_TOKEN_IMAGE_PRELOAD_DISPLAY,
     SKIN_TOKEN_IMAGE_DISPLAY,
     SKIN_TOKEN_IMAGE_DISPLAY_LISTICON,
+    SKIN_TOKEN_IMAGE_DISPLAY_9SEGMENT,
     
     /* Albumart */
     SKIN_TOKEN_ALBUMART_LOAD,
@@ -185,6 +192,10 @@ enum skin_token_type {
     SKIN_TOKEN_PLAYER_PROGRESSBAR,
     /* Peakmeter */
     SKIN_TOKEN_PEAKMETER,
+    SKIN_TOKEN_PEAKMETER_LEFT,
+    SKIN_TOKEN_PEAKMETER_LEFTBAR,
+    SKIN_TOKEN_PEAKMETER_RIGHT,
+    SKIN_TOKEN_PEAKMETER_RIGHTBAR,
 
     /* Current track */
     SKIN_TOKEN_TRACK_ELAPSED_PERCENT,
@@ -206,6 +217,16 @@ enum skin_token_type {
     SKIN_TOKEN_DRAW_INBUILTBAR,
     SKIN_TOKEN_LIST_TITLE_TEXT,
     SKIN_TOKEN_LIST_TITLE_ICON,
+    SKIN_TOKEN_LIST_ITEM_CFG,
+    SKIN_TOKEN_LIST_SELECTED_ITEM_CFG,
+    SKIN_TOKEN_LIST_ITEM_IS_SELECTED,
+    SKIN_TOKEN_LIST_ITEM_TEXT,
+    SKIN_TOKEN_LIST_ITEM_ROW,
+    SKIN_TOKEN_LIST_ITEM_COLUMN,
+    SKIN_TOKEN_LIST_ITEM_NUMBER,
+    SKIN_TOKEN_LIST_ITEM_ICON,
+    SKIN_TOKEN_LIST_NEEDS_SCROLLBAR,
+    SKIN_TOKEN_LIST_SCROLLBAR,
     
     SKIN_TOKEN_LOAD_FONT,
     
@@ -226,6 +247,7 @@ enum skin_token_type {
 
     /* Setting option */
     SKIN_TOKEN_SETTING,
+    SKIN_TOKEN_SETTINGBAR,
     SKIN_TOKEN_CURRENT_SCREEN,
     SKIN_TOKEN_LANG_IS_RTL,
     
@@ -261,7 +283,15 @@ enum skin_token_type {
     SKIN_TOKEN_HAVE_RDS,
     SKIN_TOKEN_RDS_NAME,
     SKIN_TOKEN_RDS_TEXT,
-    
+
+    /* Skin variables */
+    SKIN_TOKEN_VAR_SET,
+    SKIN_TOKEN_VAR_GETVAL,
+    SKIN_TOKEN_VAR_TIMEOUT,
+
+    SKIN_TOKEN_SUBSTRING,
+
+    SKIN_TOKEN_DRAWRECTANGLE,
 };
 
 /*
@@ -275,13 +305,16 @@ enum skin_token_type {
  *             D - Required decimal 
  *             d - Nullable decimal
  *                  Decimals are stored as (whole*10)+part
+ *             P - Required percentage
+ *             p - Nullable percentage
+ *                  Percentages pestored as permilles (percent*10 + part)
  *             S - Required string
  *             s - Nullable string
  *             F - Required file name
  *             f - Nullable file name
  *             C - Required skin code
  *             T - Required single skin tag
- *             N - any amount of strings.. must be the last param in the list
+ *             * - Any amonut of the previous tag (or group if after a []
  *             \n - causes the parser to eat everything up to and including the \n
  *                  MUST be the last character of the prams string
  *          Any nullable parameter may be replaced in the WPS file
@@ -295,7 +328,7 @@ enum skin_token_type {
  *          To specify multiple instances of the same type, put a 
  *          number before the character.  For instance, the string...
  *             2s
- *          will specify two strings.  An asterisk (*) at the beginning of the
+ *          will specify two strings.  A ? at the beginning of the
  *          string will specify that you may choose to omit all arguments
  * 
  *          You may also group param types in [] which will tell the parser to 

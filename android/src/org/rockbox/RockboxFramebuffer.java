@@ -23,61 +23,70 @@ package org.rockbox;
 
 import java.nio.ByteBuffer;
 
-import org.rockbox.Helper.MediaButtonReceiver;
-
 import android.content.Context;
 import android.graphics.Bitmap;
 import android.graphics.Canvas;
 import android.graphics.Rect;
 import android.util.DisplayMetrics;
-import android.util.Log;
 import android.view.KeyEvent;
 import android.view.MotionEvent;
-import android.view.View;
+import android.view.SurfaceHolder;
+import android.view.SurfaceView;
 import android.view.ViewConfiguration;
 
-public class RockboxFramebuffer extends View
+public class RockboxFramebuffer extends SurfaceView 
+                                 implements SurfaceHolder.Callback
 {
-    private Bitmap btm;
-    private Rect rect;
-    private ByteBuffer native_buf;
-    private MediaButtonReceiver media_monitor;
     private final DisplayMetrics metrics;
     private final ViewConfiguration view_config;
+    private Bitmap btm;
 
-    public RockboxFramebuffer(Context c, int lcd_width, 
-                              int lcd_height, ByteBuffer native_fb)
+    /* first stage init; needs to run from a thread that has a Looper 
+     * setup stuff that needs a Context */
+    public RockboxFramebuffer(Context c)
     {
         super(c);
+        metrics = c.getResources().getDisplayMetrics();
+        view_config = ViewConfiguration.get(c);
+        getHolder().addCallback(this);
         /* Needed so we can catch KeyEvents */
         setFocusable(true);
         setFocusableInTouchMode(true);
         setClickable(true);
-        btm = Bitmap.createBitmap(lcd_width, lcd_height, Bitmap.Config.RGB_565);
-        rect = new Rect();
-        native_buf = native_fb;
-        media_monitor = new MediaButtonReceiver(c);
-        media_monitor.register();
-        /* the service needs to know the about us */
-        ((RockboxService)c).set_fb(this);
+        /* don't draw until native is ready (2nd stage) */
+        setEnabled(false);
+    }
+
+    private void update(ByteBuffer framebuffer)
+    {
+        SurfaceHolder holder = getHolder();                            
+        Canvas c = holder.lockCanvas();
+        if (c == null)
+			return;
+
+        btm.copyPixelsFromBuffer(framebuffer);
+        synchronized (holder)
+        { /* draw */
+            c.drawBitmap(btm, 0.0f, 0.0f, null);
+        }
+        holder.unlockCanvasAndPost(c);
+    }
+    
+    private void update(ByteBuffer framebuffer, Rect dirty)
+    {
+        SurfaceHolder holder = getHolder();         
+        Canvas c = holder.lockCanvas(dirty);
         
-        metrics = c.getResources().getDisplayMetrics();
-        view_config = ViewConfiguration.get(c);
-    }
+        if (c == null)
+			return;
 
-    public void onDraw(Canvas c) 
-    {
-        /* can't copy a partial buffer :( */
-        btm.copyPixelsFromBuffer(native_buf);
-        c.getClipBounds(rect);
-        c.drawBitmap(btm, rect, rect, null);
-        post_update_done();
-    }
-
-    @SuppressWarnings("unused")
-    private void LOG(CharSequence text)
-    {
-        Log.d("Rockbox", (String) text);
+        /* can't copy a partial buffer, but it doesn't make a noticeable difference anyway */
+        btm.copyPixelsFromBuffer(framebuffer);
+        synchronized (holder)
+        {   /* draw */
+            c.drawBitmap(btm, dirty, dirty, null);   
+        }
+        holder.unlockCanvasAndPost(c);
     }
 
     public boolean onTouchEvent(MotionEvent me)
@@ -109,43 +118,26 @@ public class RockboxFramebuffer extends View
     {
         return buttonHandler(keyCode, false);
     }
-
-    public void destroy()
-    {
-        set_lcd_active(0);
-        media_monitor.unregister();
-    }
-
-    @Override
-    protected void onWindowVisibilityChanged(int visibility)
-    {
-        super.onWindowVisibilityChanged(visibility);
-
-        switch (visibility) {
-            case VISIBLE:
-                set_lcd_active(1);
-                break;
-            case GONE:
-            case INVISIBLE:
-                set_lcd_active(0);
-                break;
-        }
-    }
  
-    @SuppressWarnings("unused")
     private int getDpi()
     {
         return metrics.densityDpi;
     }
     
-    @SuppressWarnings("unused")
+
     private int getScrollThreshold()
     {
         return view_config.getScaledTouchSlop();
     }
 
-    private native void post_update_done();
-    private native void set_lcd_active(int active);
     private native void touchHandler(boolean down, int x, int y);
-    private native boolean buttonHandler(int keycode, boolean state);
+    public native static boolean buttonHandler(int keycode, boolean state);
+
+    public native void surfaceCreated(SurfaceHolder holder);
+    public native void surfaceDestroyed(SurfaceHolder holder);
+    public void surfaceChanged(SurfaceHolder holder, int format, int width, int height)
+    {
+        btm = Bitmap.createBitmap(width, height, Bitmap.Config.RGB_565);
+        setEnabled(true);
+    }
 }

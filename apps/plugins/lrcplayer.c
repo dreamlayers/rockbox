@@ -124,6 +124,7 @@ static struct lrc_info {
 } current;
 static char temp_buf[MAX(MAX_LINE_LEN,MAX_PATH)];
 #ifdef HAVE_LCD_BITMAP
+static int uifont = -1;
 static int font_ui_height = 1;
 static struct viewport vp_info[NB_SCREENS];
 #endif
@@ -148,7 +149,7 @@ static struct viewport vp_lyrics[NB_SCREENS];
 #else /* HAVE_LCD_BITMAP */
 #define LST_OFF_Y 1
 #endif
-int lrc_set_time(const char *title, const char *unit, long *pval,
+static int lrc_set_time(const char *title, const char *unit, long *pval,
                  int step, int min, int max, int flags)
 {
     const struct button_mapping *lst_contexts[] = {
@@ -441,7 +442,8 @@ static struct lrc_brpos *calc_brpos(struct lrc_line *lrc_line, int i)
     struct lrc_word *lrc_word;
     int nlrcbrpos = 0, max_lrcbrpos;
 #ifdef HAVE_LCD_BITMAP
-    struct font* pf = rb->font_get(FONT_UI);
+    uifont = rb->screens[0]->getuifont();
+    struct font* pf = rb->font_get(uifont);
     unsigned short ch;
 #endif
     struct snap {
@@ -449,7 +451,11 @@ static struct lrc_brpos *calc_brpos(struct lrc_line *lrc_line, int i)
         int nword;
         int word_count, word_width;
         const unsigned char *str;
-    } sp, cr;
+    } 
+#ifndef HAVE_LCD_CHARCELLS 
+        sp, 
+#endif
+        cr;
 
     lrc_buffer_used = (lrc_buffer_used+3)&~3; /* 4 bytes aligned */
     lrc_brpos = (struct lrc_brpos *) &lrc_buffer[lrc_buffer_used];
@@ -508,15 +514,19 @@ static struct lrc_brpos *calc_brpos(struct lrc_line *lrc_line, int i)
     cr.nword = lrc_line->nword;
     lrc_word = lrc_line->words+cr.nword;
     cr.str = (lrc_word-1)->word;
+#ifndef HAVE_LCD_CHARCELLS
     sp.word_count = 0;
     sp.word_width = 0;
     sp.nword = 0;
     sp.count = 0;
     sp.width = 0;
+#endif
     do {
         cr.count = 0;
         cr.width = 0;
+#ifndef HAVE_LCD_CHARCELLS
         sp.str = NULL;
+#endif
 
         while (1)
         {
@@ -1103,7 +1113,6 @@ static void load_lrc_file(void)
 /*******************************
  * read lyrics from id3
  *******************************/
-/* taken from apps/metadata/mp3.c */
 static unsigned long unsync(unsigned long b0, unsigned long b1,
                             unsigned long b2, unsigned long b3)
 {
@@ -1193,7 +1202,6 @@ static void parse_id3v2(int fd)
     int bytesread = 0;
     unsigned char global_flags;
     int flags;
-    int skip;
     bool global_unsynch = false;
     bool global_ff_found = false;
     bool unsynch = false;
@@ -1235,7 +1243,6 @@ static void parse_id3v2(int fd)
 
     /* Skip the extended header if it is present */
     if(global_flags & 0x40) {
-        skip = 0;
 
         if(version == ID3_VER_2_3) {
             if(10 != rb->read(fd, header, 10))
@@ -1594,7 +1601,7 @@ static void display_state(void)
             info = "(no info)";
     }
 
-    int i, w, h;
+    int w, h;
     struct screen* display;
     FOR_NB_SCREENS(i)
     {
@@ -1634,7 +1641,7 @@ static void display_time(void)
                             current.elapsed/60000, (current.elapsed/1000)%60,
                             current.length/60000, (current.length)/1000%60);
 #ifdef HAVE_LCD_BITMAP
-    int y = (prefs.display_title? font_ui_height:0), i;
+    int y = (prefs.display_title? font_ui_height:0);
     FOR_NB_SCREENS(i)
     {
         struct screen* display = rb->screens[i];
@@ -1645,7 +1652,7 @@ static void display_time(void)
                                vp_info[i].width, SYSFONT_HEIGHT-2,
                                current.length, 0, current.elapsed, HORIZONTAL);
         display->update_viewport_rect(0, y, vp_info[i].width, SYSFONT_HEIGHT*2);
-        display->setfont(FONT_UI);
+        display->setfont(uifont);
         display->set_viewport(NULL);
     }
 #else
@@ -1836,7 +1843,7 @@ static int display_lrc_line(struct lrc_line *lrc_line, int ypos, int i)
 static void display_lrcs(void)
 {
     long time_start, time_end, rin, len;
-    int i, nline[NB_SCREENS] = {0};
+    int nline[NB_SCREENS] = {0};
     struct lrc_line *lrc_center = current.ll_head;
 
     if (!lrc_center) return;
@@ -2193,7 +2200,7 @@ static int timetag_editor(void)
     }
 
     FOR_NB_SCREENS(idx)
-        rb->screens[idx]->stop_scroll();
+        rb->screens[idx]->scroll_stop();
 
     if (current.changed_lrc)
     {
@@ -2320,7 +2327,7 @@ static bool lrc_theme_menu(void)
 #ifdef HAVE_LCD_COLOR
                         "Inactive Colour",
 #endif
-                        "Backlight Force On");
+                        "Backlight Always On");
 
     while (!exit && !usb)
     {
@@ -2344,7 +2351,7 @@ static bool lrc_theme_menu(void)
                 break;
 #endif
             case LRC_MENU_BACKLIGHT:
-                usb = rb->set_bool("Backlight Force On", &prefs.backlight_on);
+                usb = rb->set_bool("Backlight Always On", &prefs.backlight_on);
                 break;
             case MENU_ATTACHED_USB:
                 usb = true;
@@ -2675,7 +2682,9 @@ static int handle_button(void)
             {
                 if (rb->playlist_resume() != -1)
                 {
-                    rb->playlist_start(rb->global_status->resume_index,
+                    rb->playlist_resume_track(rb->global_status->resume_index,
+                        rb->global_status->resume_crc32,
+                        rb->global_status->resume_elapsed,
                         rb->global_status->resume_offset);
                 }
             }
@@ -2767,7 +2776,6 @@ static int handle_button(void)
 static int lrc_main(void)
 {
     int ret = LRC_GOTO_MAIN;
-    int i;
     long id3_timeout = 0;
     bool update_display_state = true;
 
@@ -2797,7 +2805,7 @@ static int lrc_main(void)
     }
 
     if (prefs.backlight_on)
-        backlight_force_on();
+        backlight_ignore_timeout();
 
 #ifdef HAVE_LCD_BITMAP
     /* in case settings that may affect break position 
@@ -2909,7 +2917,8 @@ enum plugin_status plugin_start(const void* parameter)
     load_or_save_settings(false);
 
 #ifdef HAVE_LCD_BITMAP
-    rb->lcd_getstringsize("O", NULL, &font_ui_height);
+    uifont = rb->screens[0]->getuifont();
+    font_ui_height = rb->font_get(uifont)->height;
 #endif
 
     lrc_buffer = rb->plugin_get_buffer(&lrc_buffer_size);

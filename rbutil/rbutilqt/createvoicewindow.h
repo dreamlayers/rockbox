@@ -7,7 +7,6 @@
  *                     \/            \/     \/    \/            \/
  *
  *   Copyright (C) 2007 by Dominik Wenger
- *   $Id$
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -22,7 +21,8 @@
 #ifndef CREATEVOICEWINDOW_H
 #define CREATEVOICEWINDOW_H
 
-#include <QtGui>
+#include <QDialog>
+#include <QUrl>
 
 #include "ui_createvoicefrm.h"
 #include "progressloggergui.h"
@@ -46,6 +46,7 @@ class CreateVoiceWindow : public QDialog
         void settingsUpdated(void);
 
     private:
+        void changeEvent(QEvent *event);
         VoiceFileCreator* voicecreator;
         Ui::CreateVoiceFrm ui;
         ProgressLoggerGui* logger;

@@ -7,7 +7,6 @@
  *                     \/            \/     \/    \/            \/
  *
  *   Copyright (C) 2007 by Dominik Wenger
- *   $Id$
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -31,12 +30,32 @@
 class Utils : public QObject
 {
 public:
+    enum Size {
+        FilesystemTotal,
+        FilesystemFree,
+        FilesystemClusterSize,
+    };
+    enum MountpointsFilter {
+        MountpointsAll,
+        MountpointsSupported,
+    };
+
     static bool recursiveRmdir(const QString &dirName);
     static QString resolvePathCase(QString path);
     static qulonglong filesystemFree(QString path);
+    static qulonglong filesystemTotal(QString path);
+    static qulonglong filesystemClusterSize(QString path);
+    static qulonglong filesystemSize(QString path, enum Size type);
     static QString findExecutable(QString name);
     static QString checkEnvironment(bool permission);
     static int compareVersionStrings(QString s1, QString s2);
+    static QString trimVersionString(QString s);
+    static QString filesystemName(QString path);
+    static QStringList mountpoints(enum MountpointsFilter type = MountpointsAll);
+    static QString resolveDevicename(QString path);
+    static QString resolveMountPoint(QString device);
+    static QStringList findRunningProcess(QStringList names);
+    static bool ejectDevice(QString device);
 };
 
 #endif

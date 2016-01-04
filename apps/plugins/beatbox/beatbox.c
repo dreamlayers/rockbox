@@ -99,7 +99,8 @@
 #define BTN_UP           BUTTON_UP
 #define BTN_DOWN         BUTTON_DOWN
 
-#elif CONFIG_KEYPAD == SAMSUNG_YH_PAD
+#elif (CONFIG_KEYPAD == SAMSUNG_YH820_PAD) || \
+      (CONFIG_KEYPAD == SAMSUNG_YH920_PAD)
 #define BTN_QUIT         BUTTON_PLAY
 #define BTN_RIGHT        BUTTON_RIGHT
 #define BTN_UP           BUTTON_UP
@@ -108,6 +109,12 @@
 #elif CONFIG_KEYPAD == PBELL_VIBE500_PAD
 #define BTN_QUIT         BUTTON_REC
 #define BTN_RIGHT        BUTTON_NEXT
+#define BTN_UP           BUTTON_UP
+#define BTN_DOWN         BUTTON_DOWN
+
+#elif CONFIG_KEYPAD == CREATIVE_ZENXFI3_PAD
+#define BTN_QUIT         BUTTON_PLAY
+#define BTN_RIGHT        BUTTON_MENU
 #define BTN_UP           BUTTON_UP
 #define BTN_DOWN         BUTTON_DOWN
 
@@ -265,7 +272,7 @@ enum plugin_status plugin_start(const void* parameter)
 {
     int retval = 0;
 
-    rb->lcd_setfont(0);
+    rb->lcd_setfont(FONT_SYSFIXED);
 
 #if defined(HAVE_ADJUSTABLE_CPU_FREQ)
     rb->cpu_boost(true);
@@ -509,7 +516,7 @@ void redrawScreen(unsigned char force)
     rb->lcd_update();
 }
 
-void get_more(unsigned char** start, size_t* size)
+void get_more(const void** start, size_t* size)
 {
 #ifndef SYNC
     if(lastswap!=swap)
@@ -523,10 +530,10 @@ void get_more(unsigned char** start, size_t* size)
 
     *size = BUF_SIZE*sizeof(short);
 #ifndef SYNC
-    *start = (unsigned char*)((swap ? gmbuf : gmbuf + BUF_SIZE));
+    *start = swap ? gmbuf : gmbuf + BUF_SIZE;
     swap=!swap;
 #else
-    *start = (unsigned char*)(gmbuf);
+    *start = gmbuf;
 #endif
 }
 
@@ -537,7 +544,7 @@ int beatboxmain()
 
     numberOfSamples=44100/10;
     synthbuf();
-    rb->pcm_play_data(&get_more, NULL, 0);
+    rb->pcm_play_data(&get_more, NULL, NULL, 0);
 
     rb->lcd_set_background(0x000000);
     rb->lcd_clear_display();

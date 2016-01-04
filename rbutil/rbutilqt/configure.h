@@ -7,7 +7,6 @@
  *                     \/            \/     \/    \/            \/
  *
  *   Copyright (C) 2007 by Dominik Riebeling
- *   $Id$
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -23,8 +22,9 @@
 #define CONFIGURE_H
 
 #include "ui_configurefrm.h"
-#include "browsedirtree.h"
-#include <QtGui>
+#include <QDialog>
+#include <QWidget>
+#include <QUrl>
 
 class Config : public QDialog
 {
@@ -51,19 +51,22 @@ class Config : public QDialog
         QString language;
         QString programPath;
         QUrl proxy;
+        QString mountpoint;
         void updateCacheInfo(QString);
-
-        BrowseDirtree *browser;
-        BrowseDirtree *cbrowser;
+        void changeEvent(QEvent *event);
+        void selectDevice(QString device, QString mountpoint);
 
     private slots:
+        void showProxyPassword(bool show);
         void setNoProxy(bool);
         void setSystemProxy(bool);
         void updateLanguage(void);
-        void browseFolder(void);
+        void refreshMountpoint(void);
         void browseCache(void);
         void autodetect(void);
         void setMountpoint(QString);
+        void updateMountpoint(QString);
+        void updateMountpoint(int);
         void cacheClear(void);
         void configTts(void);
         void configEnc(void);

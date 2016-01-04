@@ -25,6 +25,7 @@
 ****************************************************************************/
 
 #include "plugin.h"
+#include "fixedpoint.h"
 #include "lib/helper.h"
 #include "lib/pluginlib_actions.h"
 #include "lib/pluginlib_exit.h"
@@ -32,7 +33,6 @@
 #ifndef HAVE_LCD_COLOR
 #include "lib/grey.h"
 #endif
-#include "lib/fixedpoint.h"
 
 
 /******************************* Globals ***********************************/
@@ -83,7 +83,7 @@ static void wave_table_generate(void)
 
 #ifdef HAVE_LCD_COLOR
 /* Make a smooth colour cycle. */
-void shades_generate(int time)
+static void shades_generate(int time)
 {
     int i;
     unsigned red, green, blue;
@@ -105,7 +105,7 @@ void shades_generate(int time)
         if (blue > 255)
             blue= 510 - blue;
 
-        colours[i] = LCD_RGBPACK(red, green, blue);
+        colours[i] = FB_RGBPACK(red, green, blue);
 
         r++; g++; b++;
     }
@@ -129,7 +129,7 @@ static void shades_generate(void)
 }
 #endif
 
-void cleanup(void)
+static void cleanup(void)
 {
 #ifdef HAVE_ADJUSTABLE_CPU_FREQ
     if (boosted)
@@ -139,7 +139,7 @@ void cleanup(void)
     grey_release();
 #endif
     /* Turn on backlight timeout (revert to settings) */
-    backlight_use_settings(); /* backlight control in lib/helper.c */
+    backlight_use_settings();
 #if defined(HAVE_LCD_MODES) && (HAVE_LCD_MODES & LCD_MODE_PAL256)
     rb->lcd_set_mode(LCD_MODE_RGB565);
 #endif
@@ -153,10 +153,11 @@ void cleanup(void)
 int main(void)
 {
     plasma_frequency = 1;
-    int action, delay, x, y;
+    int action, x, y;
     unsigned char p1,p2,p3,p4,t1,t2,t3,t4, z,z0;
-    long last_tick = *rb->current_tick;
 #ifdef HAVE_ADJUSTABLE_CPU_FREQ
+    long last_tick = *rb->current_tick;
+    int delay;
     int cumulated_lag = 0;
 #endif
 #ifdef HAVE_LCD_COLOR
@@ -243,8 +244,8 @@ int main(void)
         grey_ub_gray_bitmap(greybuffer, 0, 0, LCD_WIDTH, LCD_HEIGHT);
 #endif
 
-        delay = last_tick - *rb->current_tick + HZ/33;
 #ifdef HAVE_ADJUSTABLE_CPU_FREQ
+        delay = last_tick - *rb->current_tick + HZ/33;
         if (!boosted && delay < 0)
         {
             cumulated_lag -= delay;     /* proportional increase */
@@ -256,10 +257,10 @@ int main(void)
             if (--cumulated_lag <= 0)   /* slow decrease */
                 rb->cpu_boost(boosted = false);
         }
+        last_tick = *rb->current_tick;
 #endif
         action = pluginlib_getaction(0, plugin_contexts,
                         ARRAYLEN(plugin_contexts));
-        last_tick = *rb->current_tick;
 
         switch(action)
         {
@@ -317,7 +318,7 @@ enum plugin_status plugin_start(const void* parameter)
     rb->lcd_set_backdrop(NULL);
 #endif
     /* Turn off backlight timeout */
-    backlight_force_on(); /* backlight control in lib/helper.c */
+    backlight_ignore_timeout();
 
 #if defined(HAVE_LCD_MODES) && (HAVE_LCD_MODES & LCD_MODE_PAL256)
     rb->lcd_set_mode(LCD_MODE_PAL256);

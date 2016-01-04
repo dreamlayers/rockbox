@@ -18,7 +18,7 @@ SIMOBJ = $(call c2obj,$(SIMSRC))
 OTHER_SRC += $(SIMSRC)
 
 SIMLIB = $(BUILDDIR)/uisimulator/libuisimulator.a
-ifeq ($(MODELNAME), application)
+ifeq (yes,$(APPLICATION))
 UIBMP=
 else
 UIBMP=$(BUILDDIR)/UI256.bmp
@@ -30,8 +30,10 @@ $(SIMLIB): $$(SIMOBJ) $(UIBMP)
 	$(SILENT)$(shell rm -f $@)
 	$(call PRINTS,AR $(@F))$(AR) rcs $@ $^ >/dev/null
 
-$(BUILDDIR)/$(BINARY): $$(OBJ) $(SIMLIB) $(VOICESPEEXLIB) $(FIRMLIB) $(SKINLIB)
-	$(call PRINTS,LD $(BINARY))$(CC) -o $@ $^ $(SIMLIB) $(LDOPTS) $(GLOBAL_LDOPTS)
+$(BUILDDIR)/$(BINARY): $$(OBJ) $(FIRMLIB) $(VOICESPEEXLIB) $(CORE_LIBS) $(SIMLIB)
+	$(call PRINTS,LD $(BINARY))$(CC) -o $@ -Wl,--start-group $^ -Wl,--end-group $(LDOPTS) $(GLOBAL_LDOPTS) \
+	-Wl,-Map,$(BUILDDIR)/rockbox.map
+	$(SILENT)$(call objcopy,$@,$@)
 
 $(BUILDDIR)/uisimulator/%.o: $(ROOTDIR)/uisimulator/%.c
 	$(SILENT)mkdir -p $(dir $@)

@@ -98,7 +98,7 @@ static CHAR* STM_Version[STM_NTRACKERS] = {
 
 /*========== Loader code */
 
-int STM_Test(void)
+static int STM_Test(void)
 {
 	UBYTE str[44];
 	int t;
@@ -118,7 +118,7 @@ int STM_Test(void)
 	return 0;
 }
 
-int STM_Init(void)
+static int STM_Init(void)
 {
 	if(!(mh=(STMHEADER*)MikMod_malloc(sizeof(STMHEADER)))) return 0;
 	if(!(stmbuf=(STMNOTE*)MikMod_calloc(64U*4,sizeof(STMNOTE)))) return 0;
@@ -224,7 +224,8 @@ static UBYTE *STM_ConvertTrack(STMNOTE *n)
 
 static int STM_LoadPatterns(void)
 {
-	int t,s,tracks=0;
+	int t,tracks=0;
+    unsigned int s;
 
 	if(!AllocPatterns()) return 0;
 	if(!AllocTracks()) return 0;
@@ -249,11 +250,12 @@ static int STM_LoadPatterns(void)
 	return 1;
 }
 
-int STM_Load(int curious)
+static int STM_Load(int curious)
 {
 	int t; 
 	ULONG MikMod_ISA; /* We must generate our own ISA, it's not stored in stm */
 	SAMPLE *q;
+    (void)curious;
 
 	/* try to read stm header */
 	_mm_read_string(mh->songname,20,modreader);
@@ -297,6 +299,8 @@ int STM_Load(int curious)
 	/* set module variables */
 	for(t=0;t<STM_NTRACKERS;t++)
 		if(!memcmp(mh->trackername,STM_Signatures[t],8)) break;
+	if(t == STM_NTRACKERS)
+		return 0;
 	of.modtype   = StrDup(STM_Version[t]);
 	of.songname  = DupStr(mh->songname,20,1); /* make a cstr of songname */
 	of.numpat    = mh->numpat;
@@ -347,7 +351,7 @@ int STM_Load(int curious)
 	return 1;
 }
 
-CHAR *STM_LoadTitle(void)
+static CHAR *STM_LoadTitle(void)
 {
 	CHAR s[20];
 

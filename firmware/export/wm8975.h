@@ -22,17 +22,19 @@
 #ifndef _WM8975_H
 #define _WM8975_H
 
-/* volume/balance/treble/bass interdependency */
-#define VOLUME_MIN -730
-#define VOLUME_MAX  60
+#define AUDIOHW_CAPS (BASS_CAP | TREBLE_CAP | LINEOUT_CAP | \
+                      LIN_GAIN_CAP | MIC_GAIN_CAP)
 
-#define AUDIOHW_CAPS (BASS_CAP | TREBLE_CAP)
+AUDIOHW_SETTING(VOLUME,     "dB", 0, 1, -74,  6, -25)
+AUDIOHW_SETTING(BASS,       "dB", 0, 1,  -6,  9,   0)
+AUDIOHW_SETTING(TREBLE,     "dB", 0, 1,  -6,  9,   0)
+#ifdef HAVE_RECORDING
+AUDIOHW_SETTING(LEFT_GAIN,  "dB", 1, 1,   0, 63,  23, ((val - 23) * 15) / 2)
+AUDIOHW_SETTING(RIGHT_GAIN, "dB", 1, 1,   0, 63,  23, ((val - 23) * 15) / 2)
+AUDIOHW_SETTING(MIC_GAIN,   "dB", 1, 1,   0, 63,   0, ((val - 23) * 15) / 2 + 200)
+#endif /* HAVE_RECORDING */
 
-extern int tenthdb2master(int db);
-
-extern void audiohw_set_master_vol(int vol_l, int vol_r);
-extern void audiohw_set_lineout_vol(int vol_l, int vol_r);
-extern void audiohw_enable_lineout(bool enable);
+void audiohw_enable_lineout(bool enable);
 
 /* Register addresses and bits */
 
@@ -236,6 +238,7 @@ extern void audiohw_enable_lineout(bool enable);
 #define LOUTMIX1_LMIXSEL_LIN3   (2 << 0)
 #define LOUTMIX1_LMIXSEL_LADCIN (3 << 0)
 #define LOUTMIX1_LMIXSEL_DIFF   (4 << 0)
+#define LOUTMIX1_LMIXSEL_MASK   (7 << 0)
 #define LOUTMIX1_LI2LOVOL(x)    ((x & 7) << 4)
 #define LOUTMIX1_LI2LOVOL_MASK  (7 << 4)
 #define LOUTMIX1_LI2LO          (1 << 7)
@@ -253,6 +256,7 @@ extern void audiohw_enable_lineout(bool enable);
 #define ROUTMIX1_RMIXSEL_RIN3   (2 << 0)
 #define ROUTMIX1_RMIXSEL_RADCIN (3 << 0)
 #define ROUTMIX1_RMIXSEL_DIFF   (4 << 0)
+#define ROUTMIX1_RMIXSEL_MASK   (7 << 0)
 #define ROUTMIX1_LI2ROVOL(x)    ((x & 7) << 4)
 #define ROUTMIX1_LI2ROVOL_MASK  (7 << 4)
 #define ROUTMIX1_LI2RO          (1 << 7)
@@ -289,6 +293,8 @@ extern void audiohw_enable_lineout(bool enable);
 #define MOUTVOL                 0x2a
 #define MOUTVOL_MASK            0x7f
 #define MOUTVOL_MOZC            (1 << 7)
+
+#define WM8975_NUM_REGISTERS    0x2b
 
 
 /* SAMPCTRL values for the supported samplerates: */

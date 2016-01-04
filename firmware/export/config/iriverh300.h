@@ -1,4 +1,3 @@
-#define TARGET_TREE /* this target is using the target tree system */
 /*
  * This config file is for iriver H320, H340
  */
@@ -35,8 +34,6 @@
 
 /* define this if you have access to the quickscreen */
 #define HAVE_QUICKSCREEN
-/* define this if you have access to the pitchscreen */
-#define HAVE_PITCHSCREEN
 
 /* define this if you would like tagcache to build on this target */
 #define HAVE_TAGCACHE
@@ -44,6 +41,8 @@
 /* LCD dimensions */
 #define LCD_WIDTH  220
 #define LCD_HEIGHT 176
+/* sqrt(220^2 + 176^2) / 2.0 = 140.9 */
+#define LCD_DPI 141
 #define LCD_DEPTH  16   /* 65k colours */
 #define LCD_PIXELFORMAT RGB565 /* rgb565 */
 
@@ -110,7 +109,7 @@
 /* define this if you have recording possibility */
 #define HAVE_RECORDING
 
-#define HAVE_RECORDING_HISTOGRAM
+#define HAVE_HISTOGRAM
 
 /* Define bitmask of input sources - recordable bitmask can be defined
    explicitly if different */
@@ -129,6 +128,8 @@
 #define BATTERY_CAPACITY_MAX 3200 /* max. capacity selectable */
 #define BATTERY_CAPACITY_INC 50   /* capacity increment */
 #define BATTERY_TYPES_COUNT  1    /* only one type */
+
+#define CONFIG_BATTERY_MEASURE VOLTAGE_MEASURE
 
 /* Hardware controlled charging with monitoring */
 #define CONFIG_CHARGING CHARGING_MONITOR

@@ -22,68 +22,77 @@
 #include "backlight-target.h"
 #include "system.h"
 #include "backlight.h"
+#include "lcd.h"
 #include "synaptics-mep.h"
 
 #ifdef HAVE_BACKLIGHT_BRIGHTNESS
 static const int brightness_vals[16] =
                 {255,237,219,201,183,165,147,130,112,94,76,58,40,22,5,0};
 
-void _backlight_set_brightness(int brightness)
+void backlight_hw_brightness(int brightness)
 {
     outl(0x80000000 | (brightness_vals[brightness-1] << 16), 0x7000a000);
 }
 #endif
 
-void _backlight_on(void)
+void backlight_hw_on(void)
 {
+#ifdef HAVE_LCD_ENABLE
+    lcd_enable(true);
+#endif
+
     GPO32_ENABLE |= 0x400;
     GPO32_VAL    |= 0x400;
 }
 
-void _backlight_off(void)
+void backlight_hw_off(void)
 {
     GPO32_ENABLE |= 0x400;
     GPO32_VAL    &= ~0x400;
+
+#ifdef HAVE_LCD_ENABLE
+    lcd_enable(false);
+#endif
 }
 
 #ifdef HAVE_BUTTON_LIGHT
-#define BUTTONLIGHT_MASK 0x7f
+#define BUTTONLIGHT_MASK 0x64
 static unsigned short buttonight_brightness = DEFAULT_BRIGHTNESS_SETTING - 1;
 static unsigned short buttonlight_status = 0;
 
-void _buttonlight_on(void)
+void buttonlight_hw_on(void)
 {
     if (!buttonlight_status)
     {
+        /* enable 1 led (from 2) for MENU - GPO, module 1 */
+        /* no need to enable led for the hidden button */
+        touchpad_set_parameter(0x01,0x21,0x01);
         /* enable 3 leds (from 5) for PREV, PLAY and NEXT, */
         /* skip 2 leds because their light does not pass */
         /* through the panel anyway - on GPOs, module 0 */
         touchpad_set_parameter(0x00,0x22,0x15);
-        /* enable 1 led (from 2) for MENU - GPO, module 1 */
-        /* no need to enable led for the hidden button */
-        touchpad_set_parameter(0x01,0x21,0x01);
-        /* left, right and the scrollstrip */
+        /* left, right and the scrollstrip (1 led from 5) */
         touchpad_set_buttonlights(BUTTONLIGHT_MASK, buttonight_brightness);
         buttonlight_status = 1;
     }
 }
- 
-void _buttonlight_off(void)
+
+void buttonlight_hw_off(void)
 {
     if (buttonlight_status)
     {
         /* disable all leds on GPOs for module 0 and 1 */
-        touchpad_set_parameter(0x00,0x22,0x00);
         touchpad_set_parameter(0x01,0x21,0x00);
+        touchpad_set_parameter(0x00,0x22,0x00);
         touchpad_set_buttonlights(BUTTONLIGHT_MASK, 0);
         buttonlight_status = 0;
     }
 }
 
-void _buttonlight_set_brightness(int brightness)
+void buttonlight_hw_brightness(int brightness)
 {
-    touchpad_set_parameter(0x00,0x22,0x15);
     touchpad_set_parameter(0x01,0x21,0x01);
+    touchpad_set_parameter(0x00,0x22,0x15);
     buttonight_brightness = brightness - 1;
     touchpad_set_buttonlights(BUTTONLIGHT_MASK, buttonight_brightness);
     buttonlight_status = 1;

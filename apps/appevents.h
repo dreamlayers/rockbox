@@ -31,11 +31,30 @@
 
 /** Playback events **/
 enum {
+    /* Playback is starting from a stopped state
+       data = NULL */
     PLAYBACK_EVENT_START_PLAYBACK = (EVENT_CLASS_PLAYBACK|1),
+    /* Audio has begun buffering for decoding track (or is already completed)
+       data = &(struct track_event){} */
     PLAYBACK_EVENT_TRACK_BUFFER,
+    /* Handles for current user track are ready (other than audio or codec)
+       data = &(struct track_event){}  */
+    PLAYBACK_EVENT_CUR_TRACK_READY,
+    /* Current user track finished
+       data = &(struct track_event){}  */
     PLAYBACK_EVENT_TRACK_FINISH,
+    /* A new current user track has begun
+       data = &(struct track_event){} */
     PLAYBACK_EVENT_TRACK_CHANGE,
+    /* A manual skip is about to be processed
+       data = NULL */
+    PLAYBACK_EVENT_TRACK_SKIP,
+    /* Next track medadata was just loaded
+       data = &(struct track_event){} */
     PLAYBACK_EVENT_NEXTTRACKID3_AVAILABLE,
+    /* Voice is playing
+       data = &(bool){true|false} */
+    PLAYBACK_EVENT_VOICE_PLAYING,
 };
 
 /** Buffering events **/
@@ -45,6 +64,7 @@ enum {
     BUFFER_EVENT_CLOSED,
     BUFFER_EVENT_MOVED,
     BUFFER_EVENT_FINISHED,
+    BUFFER_EVENT_BUFFER_RESET
 };
 
 /** Generic GUI class events **/
@@ -52,6 +72,9 @@ enum {
     GUI_EVENT_STATUSBAR_TOGGLE = (EVENT_CLASS_GUI|1),
     GUI_EVENT_ACTIONUPDATE,
     GUI_EVENT_THEME_CHANGED,
+    /* Called when the UI viewport is cleared in the skin engine to
+     * notify the current screen that it needs to do an update */
+    GUI_EVENT_NEED_UI_UPDATE,
 };
 
 /** Recording events **/

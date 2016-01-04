@@ -24,7 +24,11 @@
 #include <stdlib.h>
 #include <string.h>
 #include <inttypes.h>
+#ifdef __unix__
+#include <unistd.h>
+#endif
 #include "system.h"
+#include "kernel.h"
 #include "thread-sdl.h"
 #include "system-sdl.h"
 #include "sim-ui-defines.h"
@@ -40,6 +44,15 @@
 #include "panic.h"
 #include "debug.h"
 
+#if (CONFIG_PLATFORM & PLATFORM_MAEMO)
+#include <glib.h>
+#include <glib-object.h>
+#include "maemo-thread.h"
+
+#endif
+
+#define SIMULATOR_DEFAULT_ROOT "simdisk"
+
 SDL_Surface    *gui_surface;
 
 bool            background = true;          /* use backgrounds by default */
@@ -52,8 +65,7 @@ bool            debug_buttons = false;
 bool            lcd_display_redraw = true;  /* Used for player simulator */
 char            having_new_lcd = true;      /* Used for player simulator */
 bool            sim_alarm_wakeup = false;
-const char     *sim_root_dir = NULL;
-extern int      display_zoom;
+const char     *sim_root_dir = SIMULATOR_DEFAULT_ROOT;
 
 static SDL_Thread *evt_thread = NULL;
 
@@ -63,11 +75,6 @@ bool debug_audio = false;
 
 bool debug_wps = false;
 int wps_verbose_level = 3;
-
-
-void sys_poweroff(void)
-{
-}
 
 /*
  * This thread will read the buttons in an interrupt like fashion, and
@@ -82,9 +89,13 @@ static int sdl_event_thread(void * param)
 {
     SDL_InitSubSystem(SDL_INIT_VIDEO);
 
+#if (CONFIG_PLATFORM & PLATFORM_MAEMO)
+    SDL_sem *wait_for_maemo_startup;
+#endif
     SDL_Surface *picture_surface = NULL;
     int width, height;
     int depth;
+    Uint32 flags;
 
     /* Try and load the background image. If it fails go without */
     if (background) {
@@ -121,14 +132,41 @@ static int sdl_event_thread(void * param)
     if (depth < 8)
         depth = 16;
 
-    if ((gui_surface = SDL_SetVideoMode(width * display_zoom, height * display_zoom, depth, SDL_HWSURFACE|SDL_DOUBLEBUF)) == NULL) {
-        panicf("%s", SDL_GetError());
-    }
+    flags = SDL_HWSURFACE|SDL_DOUBLEBUF;
+#if (CONFIG_PLATFORM & (PLATFORM_MAEMO|PLATFORM_PANDORA))
+    /* Fullscreen mode for maemo app */
+    flags |= SDL_FULLSCREEN;
+#endif
 
     SDL_WM_SetCaption(UI_TITLE, NULL);
 
+    if ((gui_surface = SDL_SetVideoMode(width * display_zoom, height * display_zoom, depth, flags)) == NULL) {
+        panicf("%s", SDL_GetError());
+    }
+
+#if (CONFIG_PLATFORM & (PLATFORM_MAEMO|PLATFORM_PANDORA))
+    /* SDL touch screen fix: Work around a SDL assumption that returns
+       relative mouse coordinates when you get to the screen edges
+       using the touchscreen and a disabled mouse cursor.
+     */
+    uint8_t hiddenCursorData = 0;
+    SDL_Cursor *hiddenCursor = SDL_CreateCursor(&hiddenCursorData, &hiddenCursorData, 8, 1, 0, 0);
+
+    SDL_ShowCursor(SDL_ENABLE);
+    SDL_SetCursor(hiddenCursor);
+#endif
+
     if (background && picture_surface != NULL)
         SDL_BlitSurface(picture_surface, NULL, gui_surface, NULL);
+
+#if (CONFIG_PLATFORM & PLATFORM_MAEMO)
+    /* start maemo thread: Listen to display on/off events and battery monitoring */
+    wait_for_maemo_startup = SDL_CreateSemaphore(0); /* 0-count so it blocks */
+    SDL_Thread *maemo_thread = SDL_CreateThread(maemo_thread_func, wait_for_maemo_startup);
+
+    SDL_SemWait(wait_for_maemo_startup);
+    SDL_DestroySemaphore(wait_for_maemo_startup);
+#endif
 
     /* let system_init proceed */
     SDL_SemPost((SDL_sem *)param);
@@ -137,29 +175,85 @@ static int sdl_event_thread(void * param)
      * finally enter the button loop */
     gui_message_loop();
 
+#if (CONFIG_PLATFORM & PLATFORM_MAEMO5)
+    pcm_shutdown_gstreamer();
+#endif
+#if (CONFIG_PLATFORM & PLATFORM_MAEMO)
+    g_main_loop_quit (maemo_main_loop);
+    g_main_loop_unref(maemo_main_loop);
+    SDL_WaitThread(maemo_thread, NULL);
+#endif
+
+#if (CONFIG_PLATFORM & (PLATFORM_MAEMO|PLATFORM_PANDORA))
+    SDL_FreeCursor(hiddenCursor);
+#endif
+
     if(picture_surface)
         SDL_FreeSurface(picture_surface);
 
     /* Order here is relevent to prevent deadlocks and use of destroyed
        sync primitives by kernel threads */
-    sim_thread_shutdown();
-    sim_kernel_shutdown();
-
+#ifdef HAVE_SDL_THREADS
+    sim_thread_shutdown(); /* not needed for native threads */
+#endif
     return 0;
 }
 
-void sim_do_exit(void)
+static bool quitting;
+
+void sdl_sys_quit(void)
 {
+    quitting = true;
+    sys_poweroff();
+}
+
+void power_off(void)
+{
+    /* Shut down SDL event loop */
+    SDL_Event event;
+    memset(&event, 0, sizeof(SDL_Event));
+    event.type = SDL_USEREVENT;
+    SDL_PushEvent(&event);
+#ifdef HAVE_SDL_THREADS
+    /* since sim_thread_shutdown() grabs the mutex we need to let it free,
+     * otherwise SDL_WaitThread will deadlock */
+    struct thread_entry* t = sim_thread_unlock();
+#endif
     /* wait for event thread to finish */
     SDL_WaitThread(evt_thread, NULL);
+
+#ifdef HAVE_SDL_THREADS
+    /* lock again before entering the scheduler */
+    sim_thread_lock(t);
+    /* sim_thread_shutdown() will cause sim_do_exit() to be called via longjmp,
+     * but only if we let the sdl thread scheduler exit the other threads */
+    while(1) yield();
+#else
+    sim_do_exit();
+#endif
+}
+
+void sim_do_exit()
+{
+    sim_kernel_shutdown();
 
     SDL_Quit();
     exit(EXIT_SUCCESS);
 }
 
+uintptr_t *stackbegin;
+uintptr_t *stackend;
 void system_init(void)
 {
     SDL_sem *s;
+    /* fake stack, OS manages size (and growth) */
+    stackbegin = stackend = (uintptr_t*)&s;
+
+#if (CONFIG_PLATFORM & PLATFORM_MAEMO)
+    /* Make glib thread safe */
+    g_thread_init(NULL);
+    g_type_init();
+#endif
 
     if (SDL_Init(SDL_INIT_TIMER))
         panicf("%s", SDL_GetError());
@@ -171,21 +265,45 @@ void system_init(void)
     /* wait for sdl_event_thread to run so that it can initialize the surfaces
      * and video subsystem needed for SDL events */
     SDL_SemWait(s);
-
     /* cleanup */
     SDL_DestroySemaphore(s);
 }
 
-void system_exception_wait(void)
-{
-    sim_thread_exception_wait();
-}
 
 void system_reboot(void)
 {
+#ifdef HAVE_SDL_THREADS
     sim_thread_exception_wait();
+#else
+    sim_do_exit();
+#endif
 }
 
+void system_exception_wait(void)
+{
+    if (evt_thread)
+    {
+        while (!quitting)
+            SDL_Delay(10);
+    }
+    system_reboot();
+}
+
+int hostfs_init(void)
+{
+    /* stub */
+    return 0;
+}
+
+#ifdef HAVE_STORAGE_FLUSH
+int hostfs_flush(void)
+{
+#ifdef __unix__
+    sync();
+#endif
+    return 0;
+}
+#endif /* HAVE_STORAGE_FLUSH */
 
 void sys_handle_argv(int argc, char *argv[])
 {
@@ -229,7 +347,7 @@ void sys_handle_argv(int argc, char *argv[])
             {
                 x++;
                 if(x < argc)
-                    display_zoom=atoi(argv[x]);
+                    display_zoom=atof(argv[x]);
                 else
                     display_zoom = 2;
                 printf("Window zoom is %d\n", display_zoom);
@@ -279,7 +397,7 @@ void sys_handle_argv(int argc, char *argv[])
             }
         }
     }
-    if (display_zoom > 1) {
+    if (display_zoom != 1) {
         background = false;
     }
 }

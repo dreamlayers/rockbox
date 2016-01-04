@@ -7,7 +7,6 @@
  *                     \/            \/     \/    \/            \/
  *
  *   Copyright (C) 2010 by Dominik Riebeling
- *   $Id$
  *
  * All files in this archive are subject to the GNU General Public License.
  * See the file COPYING in the source tree root for full license agreement.
@@ -33,24 +32,26 @@ class TTSCarbon : public TTSBase
     enum ConfigValuesCarbon
     {
         ConfigVoice,
-        ConfigSpeed
+        ConfigSpeed,
+        ConfigPitch
     };
     public:
         TTSCarbon(QObject *parent = NULL);
 
         //! Child class should generate a clip
-        TTSStatus voice(QString text,QString wavfile, QString* errStr);
+        TTSStatus voice(QString text, QString wavfile, QString* errStr);
         //! Child class should do startup
         bool start(QString *errStr);
         //! child class should stop
         bool stop() ;
+        QString voiceVendor(void) { return QString(); }
 
         // configuration
         //! Child class should return true, when configuration is good
         bool configOk();
          //! Child class should generate and insertSetting(..) its settings
         void generateSettings();
-        //! Chlid class should commit the Settings to permanent storage
+        //! Child class should commit the Settings to permanent storage
         void saveSettings();
 
         Capabilities capabilities();
@@ -66,9 +67,6 @@ class TTSCarbon : public TTSBase
         unsigned int extended2int(unsigned char* buf);
         int convertAiffToWav(const char* aiff, const char* wav);
 
-
-    protected:
-       // static QMap<QString,QString> ttsList;
 };
 
 #endif // TTSCARBON_H

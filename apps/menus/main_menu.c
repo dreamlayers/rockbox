@@ -42,13 +42,13 @@
 #include "screens.h"
 #include "plugin.h"
 #include "talk.h"
-#include "buffer.h"
 #include "splash.h"
 #include "debug_menu.h"
 #include "version.h"
 #include "time.h"
 #include "wps.h"
 #include "skin_buffer.h"
+#include "disk.h"
 
 static const struct browse_folder_info config = {ROCKBOX_DIR, SHOW_CFG};
 
@@ -147,9 +147,6 @@ enum infoscreenorder
     INFO_DISK1, /* capacity or internal capacity/free on hotswap */
     INFO_DISK2, /* free space or external capacity/free on hotswap */
     INFO_BUFFER,
-#ifndef APPLICATION
-    INFO_SKIN_USAGE, /* ram usage of the skins */
-#endif
     INFO_VERSION,
     INFO_COUNT
 };
@@ -159,17 +156,19 @@ static const char* info_getname(int selected_item, void *data,
 {
     struct info_data *info = (struct info_data*)data;
     char s1[32];
-#if defined(HAVE_MULTIVOLUME) || !defined(APPLICATION)
+#if defined(HAVE_MULTIVOLUME)
     char s2[32];
 #endif
     if (info->new_data)
     {
-        fat_size(IF_MV2(0,) &info->size, &info->free);
+        volume_size(IF_MV(0,) &info->size, &info->free);
 #ifdef HAVE_MULTIVOLUME
-        if (fat_ismounted(1))
-            fat_size(1, &info->size2, &info->free2);
-        else
-            info->size2 = 0;
+#ifndef APPLICATION
+        volume_size(1, &info->size2, &info->free2);
+#else
+        info->size2 = 0;
+#endif
+
 #endif
         info->new_data = false;
     }
@@ -182,7 +181,7 @@ static const char* info_getname(int selected_item, void *data,
 
         case INFO_BUFFER: /* buffer */
         {
-            long kib = (audiobufend - audiobuf) / 1024; /* to KiB */
+            long kib = audio_buffer_size() / 1024; /* to KiB */
             output_dyn_value(s1, sizeof(s1), kib, kbyte_units, true);
             snprintf(buffer, buffer_len, "%s %s", str(LANG_BUFFER_STAT), s1);
         }
@@ -214,7 +213,7 @@ static const char* info_getname(int selected_item, void *data,
                 snprintf(buffer, buffer_len, str(LANG_BATTERY_TIME),
                          battery_level(), battery_time() / 60, battery_time() % 60);
             else
-                return "(n/a)";
+                return "Battery n/a"; /* translating worth it? */
             break;
         case INFO_DISK1: /* disk usage 1 */
 #ifdef HAVE_MULTIVOLUME
@@ -246,14 +245,6 @@ static const char* info_getname(int selected_item, void *data,
             snprintf(buffer, buffer_len, SIZE_FMT, str(LANG_DISK_SIZE_INFO), s1);
 #endif
             break;
-#ifndef APPLICATION
-        case INFO_SKIN_USAGE:
-            output_dyn_value(s1, sizeof s1, skin_buffer_usage(), byte_units, true);
-            output_dyn_value(s2, sizeof s2, skin_buffer_usage()
-                                            +skin_buffer_freespace(), byte_units, true);
-            snprintf(buffer, buffer_len, "%s %s / %s", str(LANG_SKIN_RAM_USAGE), s1, s2);
-            break;
-#endif
     }
     return buffer;
 }
@@ -272,7 +263,7 @@ static int info_speak_item(int selected_item, void * data)
         case INFO_BUFFER: /* buffer */
         {
             talk_id(LANG_BUFFER_STAT, false);
-            long kib = (audiobufend - audiobuf) / 1024; /* to KiB */
+            long kib = audio_buffer_size() / 1024; /* to KiB */
             output_dyn_value(NULL, 0, kib, kbyte_units, true);
             break;
         }
@@ -301,9 +292,11 @@ static int info_speak_item(int selected_item, void * data)
 #endif /* CONFIG_CHARGING = */
             if (battery_level() >= 0)
             {
+                int time_left = battery_time();
                 talk_id(LANG_BATTERY_TIME, false);
                 talk_value(battery_level(), UNIT_PERCENT, true);
-                talk_value(battery_time() *60, UNIT_TIME, true);
+                if (time_left >= 0)
+                    talk_value(time_left * 60, UNIT_TIME, true);
             }
             else talk_id(VOICE_BLANK, false);
             break;
@@ -334,12 +327,6 @@ static int info_speak_item(int selected_item, void * data)
             output_dyn_value(NULL, 0, info->size, kbyte_units, true);
 #endif
             break;
-#ifndef APPLICATION
-        case INFO_SKIN_USAGE:
-            talk_id(LANG_SKIN_RAM_USAGE, false);
-            output_dyn_value(NULL, 0, skin_buffer_usage(), byte_units, true);
-            break;
-#endif
             
     }
     return 0;
@@ -349,7 +336,7 @@ static int info_action_callback(int action, struct gui_synclist *lists)
 {
     if (action == ACTION_STD_CANCEL)
         return action;
-    else if ((action == ACTION_STD_OK)
+    else if (action == ACTION_STD_OK
 #ifdef HAVE_HOTSWAP
         || action == SYS_FS_CHANGED
 #endif
@@ -361,12 +348,7 @@ static int info_action_callback(int action, struct gui_synclist *lists)
         info->new_data = true;
         splash(0, ID2P(LANG_SCANNING_DISK));
         for (i = 0; i < NUM_VOLUMES; i++)
-        {
-#ifdef HAVE_HOTSWAP
-            if (fat_ismounted(i))
-#endif
-                fat_recalc_free(IF_MV(i));
-        }
+            volume_recalc_free(IF_MV(i));
 #else
         (void) lists;
 #endif
@@ -392,46 +374,11 @@ static bool show_info(void)
 MENUITEM_FUNCTION(show_info_item, 0, ID2P(LANG_ROCKBOX_INFO),
                    (menu_function)show_info, NULL, NULL, Icon_NOICON);
 
-
-/* sleep Menu */
-static const char* sleep_timer_formatter(char* buffer, size_t buffer_size,
-                                         int value, const char* unit)
-{
-    (void) unit;
-    int minutes, hours;
-
-    if (value) {
-        hours = value / 60;
-        minutes = value - (hours * 60);
-        snprintf(buffer, buffer_size, "%d:%02d", hours, minutes);
-        return buffer;
-    } else {
-        return str(LANG_OFF);
-    }
-}
-
-static void sleep_timer_set(int minutes)
-{
-    set_sleep_timer(minutes * 60);
-}
-
-static int sleep_timer(void)
-{
-    int minutes = (get_sleep_timer() + 59) / 60; /* round up */
-    return (int)set_int(str(LANG_SLEEP_TIMER), "", UNIT_MIN, &minutes,
-                   &sleep_timer_set, -5, 300, 0, sleep_timer_formatter);
-}
-
-
 #if CONFIG_RTC
 int time_screen(void* ignored);
 MENUITEM_FUNCTION(timedate_item, MENU_FUNC_CHECK_RETVAL, ID2P(LANG_TIME_MENU),
                     time_screen, NULL,  NULL, Icon_Menu_setting );
 #endif
-/* This item is in the time/date screen if there is a RTC */
-MENUITEM_FUNCTION(sleep_timer_call, 0, ID2P(LANG_SLEEP_TIMER), sleep_timer,
-                    NULL, NULL, Icon_Menu_setting); /* make it look like a 
-                                                       setting to the user */
 
 MENUITEM_FUNCTION(show_credits_item, 0, ID2P(LANG_CREDITS),
                    (menu_function)show_credits, NULL, NULL, Icon_NOICON);
@@ -441,14 +388,8 @@ MENUITEM_FUNCTION(debug_menu_item, 0, ID2P(LANG_DEBUG),
                    (menu_function)debug_menu, NULL, NULL, Icon_NOICON);
 
 MAKE_MENU(info_menu, ID2P(LANG_SYSTEM), 0, Icon_System_menu,
-#if CONFIG_RTC
-          &timedate_item,
-#endif
-          &show_info_item, &show_credits_item, &show_runtime_item, 
-#if CONFIG_RTC == 0
-          &sleep_timer_call, 
-#endif
-          &debug_menu_item);
+          &show_info_item, &show_credits_item,
+          &show_runtime_item, &debug_menu_item);
 /*      INFO MENU                  */
 /***********************************/
 
@@ -482,8 +423,10 @@ MAKE_MENU(main_menu_, ID2P(LANG_SETTINGS), mainmenu_callback,
 #ifdef HAVE_RECORDING
         &recording_settings,
 #endif
+#if CONFIG_RTC
+        &timedate_item,
+#endif
         &manage_settings,
         );
 /*    MAIN MENU                    */
 /***********************************/
-

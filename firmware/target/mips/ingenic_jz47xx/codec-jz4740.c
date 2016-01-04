@@ -24,30 +24,7 @@
 #include "sound.h"
 #include "jz4740.h"
 #include "system.h"
-
-/* TODO */
-const struct sound_settings_info audiohw_settings[] = {
-#ifdef HAVE_SW_VOLUME_CONTROL
-    [SOUND_VOLUME]        = {"dB", 0,  1, SW_VOLUME_MIN, 6,   0},
-#else
-    [SOUND_VOLUME]        = {"dB", 0,  1,   0,   6,   0},
-#endif
-    /* HAVE_SW_TONE_CONTROLS */
-#ifdef AUDIOHW_HAVE_BASS
-    [SOUND_BASS]          = {"dB", 0,  1, -24,  24,   0},
-#endif
-#ifdef AUDIOHW_HAVE_TREBLE
-    [SOUND_TREBLE]        = {"dB", 0,  1, -24,  24,   0},
-#endif
-    [SOUND_BALANCE]       = {"%",  0,  1,-100, 100,   0},
-    [SOUND_CHANNELS]      = {"",   0,  1,   0,   5,   0},
-    [SOUND_STEREO_WIDTH]  = {"%",  0,  5,   0, 250, 100},
-#ifdef HAVE_RECORDING
-    [SOUND_LEFT_GAIN]     = {"dB", 1,  1,   0,  31,  23},
-    [SOUND_RIGHT_GAIN]    = {"dB", 1,  1,   0,  31,  23},
-    [SOUND_MIC_GAIN]      = {"dB", 1,  1,   0,   1,   1},
-#endif
-};
+#include "pcm_sw_volume.h"
 
 #if 0
 static unsigned short codec_volume;
@@ -293,16 +270,24 @@ void audiohw_init(void)
     i2s_codec_init();
 }
 
-void audiohw_set_volume(int v)
+void audiohw_set_volume(int vol_l, int vol_r)
 {
-    if(v >= 0)
-    {
-        /* 0 <= v <= 60 */
-        unsigned int codec_volume = ICDC_CDCCR2_HPVOL(v / 20);
+#ifdef HAVE_SW_VOLUME_CONTROL
+    /* SW volume for <= 1.0 gain, HW at unity, < -740 == MUTE */
+    int sw_volume_l = vol_l <= -740 ? PCM_MUTE_LEVEL : MIN(vol_l, 0);
+    int sw_volume_r = vol_r <= -740 ? PCM_MUTE_LEVEL : MIN(vol_r, 0);
+    pcm_set_master_volume(sw_volume_l, sw_volume_r);
+#endif /* HAVE_SW_VOLUME_CONTROL */
 
-        if((REG_ICDC_CDCCR2 & ICDC_CDCCR2_HPVOL(0x3)) != codec_volume)
-            REG_ICDC_CDCCR2 = (REG_ICDC_CDCCR2 & ~ICDC_CDCCR2_HPVOL(0x3)) | codec_volume;
-    }
+    /* NOTE: the channel being cut if balance is not equal will need
+       adjusting downward so maintain proportion if using volume boost */
+
+    /* HW volume for > 1.0 gain */
+    int v = MAX(vol_l, vol_r);
+    unsigned int hw_volume = v > 0 ? ICDC_CDCCR2_HPVOL(v / 20) : 0;
+
+    if((REG_ICDC_CDCCR2 & ICDC_CDCCR2_HPVOL(0x3)) != hw_volume)
+        REG_ICDC_CDCCR2 = (REG_ICDC_CDCCR2 & ~ICDC_CDCCR2_HPVOL(0x3)) | hw_volume;
 }
 
 void audiohw_set_frequency(int freq)

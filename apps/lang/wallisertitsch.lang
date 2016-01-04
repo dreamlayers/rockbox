@@ -1417,8 +1417,8 @@
   </voice>
 </phrase>
 <phrase>
-  id: LANG_RECORDING_FREQUENCY
-  desc: in the recording settings
+  id: LANG_FREQUENCY
+  desc: in recording and playback settings
   user: core
   <source>
     *: "Frequency"
@@ -2557,10 +2557,12 @@
   <source>
     *: "OFF To Revert"
     vibe500: "CANCEL To Revert"
+    samsungyh*: "REW = Revert"
   </source>
   <dest>
     *: "OFF = abbrächu"
     vibe500: "C = abbrächu"
+    samsungyh*: "REW = abbrächu"
   </dest>
   <voice>
     *: ""
@@ -2615,10 +2617,12 @@
   <source>
     *: "The disk is full. Press OFF to continue."
     vibe500: "The disk is full. Press PREV to continue."
+    samsungyh*: "Disk full. Press LEFT to continue."
   </source>
   <dest>
     *: "Feschtplatta isch voll. Drick OFF."
     vibe500: "Feschtplatta isch voll. Drick PREV."
+    samsungyh*: "Feschtplatta isch voll. Drick LEFT."
   </dest>
   <voice>
     *: ""
@@ -2688,11 +2692,13 @@
     *: "PLAY=Set OFF=Cancel"
     vibe500: "OK=Set C=Cancel"
     mpiohd300: "ENTER=Set MENU=Cancel"
+    sansafuzeplus: "SELECT=Set  BACK=Cancel"
   </source>
   <dest>
     *: "PLAY=Ok OFF=Abbrächu"
     vibe500: "OK=Ok C=Abbrächu"
     mpiohd300: "ENTER=Ok MENU=Abbrächu"
+    sansafuzeplus: "SELECT=Ok  BACK=Abbrächu"
   </dest>
   <voice>
     *: ""

@@ -39,6 +39,10 @@
 #include "font.h"
 #include "icon.h"
 #include "option_select.h"
+#ifdef HAVE_TOUCHSCREEN
+#include "sound.h"
+#include "misc.h"
+#endif
 
 /* initial setup of wps_data  */
 static int update_delay = DEFAULT_UPDATE_DELAY;
@@ -46,6 +50,7 @@ static int update_delay = DEFAULT_UPDATE_DELAY;
 static bool sbs_has_title[NB_SCREENS];
 static char* sbs_title[NB_SCREENS];
 static enum themable_icons sbs_icon[NB_SCREENS];
+static bool sbs_loaded[NB_SCREENS] = { false };
 
 bool sb_set_title_text(char* title, enum themable_icons icon, enum screen_type screen)
 {
@@ -72,9 +77,8 @@ enum themable_icons sb_get_icon(enum screen_type screen)
 int sb_preproccess(enum screen_type screen, struct wps_data *data)
 {
     (void)data;
-    int i;
-    FOR_NB_SCREENS(i)
-        sbs_has_title[i] = false;
+    sbs_loaded[screen] = false;
+    sbs_has_title[screen] = false;
     viewportmanager_theme_enable(screen, false, NULL);
     return 1;
 }
@@ -85,8 +89,9 @@ int sb_postproccess(enum screen_type screen, struct wps_data *data)
         /* hide the sb's default viewport because it has nasty effect with stuff
         * not part of the statusbar,
         * hence .sbs's without any other vps are unsupported*/
-        struct skin_viewport *vp = find_viewport(VP_DEFAULT_LABEL, false, data);
-        struct skin_element *next_vp = data->tree->next;
+        struct skin_viewport *vp = skin_find_item(VP_DEFAULT_LABEL_STRING, SKIN_FIND_VP, data);
+        struct skin_element *tree = SKINOFFSETTOPTR(get_skin_buffer(data), data->tree);
+        struct skin_element *next_vp = SKINOFFSETTOPTR(get_skin_buffer(data), tree->next);
         
         if (vp)
         {
@@ -98,30 +103,43 @@ int sb_postproccess(enum screen_type screen, struct wps_data *data)
             vp->hidden_flags = VP_NEVER_VISIBLE;
         }
         sb_set_info_vp(screen, VP_DEFAULT_LABEL);
+        sbs_loaded[screen] = true;
     }
     viewportmanager_theme_undo(screen, false);
     return 1;
 }
 
-static char *infovp_label[NB_SCREENS];
-static char *oldinfovp_label[NB_SCREENS];
-void sb_set_info_vp(enum screen_type screen, char *label)
+static OFFSETTYPE(char*) infovp_label[NB_SCREENS];
+static OFFSETTYPE(char*) oldinfovp_label[NB_SCREENS];
+void sb_set_info_vp(enum screen_type screen, OFFSETTYPE(char*) label)
 {
     infovp_label[screen] = label;
 }
     
 struct viewport *sb_skin_get_info_vp(enum screen_type screen)
 {
+    if (sbs_loaded[screen] == false)
+        return NULL;
     struct wps_data *data = skin_get_gwps(CUSTOM_STATUSBAR, screen)->data;
+    struct skin_viewport *vp = NULL;
+    char *label;
     if (oldinfovp_label[screen] &&
-        strcmp(oldinfovp_label[screen], infovp_label[screen]))
+        (oldinfovp_label[screen] != infovp_label[screen]))
     {
         /* UI viewport changed, so force a redraw */
         oldinfovp_label[screen] = infovp_label[screen];
         viewportmanager_theme_enable(screen, false, NULL);
         viewportmanager_theme_undo(screen, true);
-    }        
-    return &find_viewport(infovp_label[screen], true, data)->vp;
+    }
+    label = SKINOFFSETTOPTR(get_skin_buffer(data), infovp_label[screen]);
+    if (infovp_label[screen] == VP_DEFAULT_LABEL)
+        label = VP_DEFAULT_LABEL_STRING;
+    vp = skin_find_item(label, SKIN_FIND_UIVP, data);
+    if (!vp)
+        return NULL;
+    if (vp->parsed_fontid == 1)
+        vp->vp.font = screens[screen].getuifont();
+    return &vp->vp;
 }
 
 #if (LCD_DEPTH > 1) || (defined(HAVE_REMOTE_LCD) && LCD_REMOTE_DEPTH > 1)
@@ -135,6 +153,7 @@ int sb_get_backdrop(enum screen_type screen)
 }
         
 #endif
+static bool force_waiting = false;
 void sb_skin_update(enum screen_type screen, bool force)
 {
     struct wps_data *data = skin_get_gwps(CUSTOM_STATUSBAR, screen)->data;
@@ -142,28 +161,31 @@ void sb_skin_update(enum screen_type screen, bool force)
     int i = screen;
     if (!data->wps_loaded)
         return;
-    if (TIME_AFTER(current_tick, next_update[i]) || force)
+    if (TIME_AFTER(current_tick, next_update[i]) || force || force_waiting)
     {
+        force_waiting = false;
 #if defined(HAVE_LCD_ENABLE) || defined(HAVE_LCD_SLEEP)
         /* currently, all remotes are readable without backlight
          * so still update those */
         if (lcd_active() || (i != SCREEN_MAIN))
 #endif
         {
-            bool full_update = skin_do_full_update(CUSTOM_STATUSBAR, screen);
-            skin_update(CUSTOM_STATUSBAR, screen, force || 
-                        full_update ? SKIN_REFRESH_ALL : SKIN_REFRESH_NON_STATIC);
+            if (force)
+                skin_request_full_update(CUSTOM_STATUSBAR);
+            skin_update(CUSTOM_STATUSBAR, screen, SKIN_REFRESH_NON_STATIC);
         }
         next_update[i] = current_tick + update_delay; /* don't update too often */
     }
 }
 
-void do_sbs_update_callback(void *param)
+void do_sbs_update_callback(unsigned short id, void *param)
 {
+    (void)id;
     (void)param;
     /* the WPS handles changing the actual id3 data in the id3 pointers
      * we imported, we just want a full update */
     skin_request_full_update(CUSTOM_STATUSBAR);
+    force_waiting = true;
     /* force timeout in wps main loop, so that the update is instantly */
     queue_post(&button_queue, BUTTON_NONE, 0);
 }
@@ -257,10 +279,9 @@ char* sb_create_from_settings(enum screen_type screen)
 
 void sb_skin_init(void)
 {
-    int i;
     FOR_NB_SCREENS(i)
     {
-        oldinfovp_label[i] = NULL;
+        oldinfovp_label[i] = VP_DEFAULT_LABEL;
     }
 }
 
@@ -293,13 +314,6 @@ int sb_touch_to_button(int context)
         case ACTION_WPS_VOLDOWN:
             return ACTION_LIST_VOLDOWN;
 #endif
-        case ACTION_SETTINGS_INC:
-        case ACTION_SETTINGS_DEC:
-        {
-            const struct settings_list *setting = region->extradata;
-            option_select_next_val(setting, button == ACTION_SETTINGS_DEC, true);
-        }
-        return ACTION_REDRAW;
         /* TODO */
     }
     return button;

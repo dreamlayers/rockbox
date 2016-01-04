@@ -25,6 +25,8 @@
  *
  ****************************************************************************/
 
+#if defined(_WIN32)
+
 #include <stdio.h>
 #include <unistd.h>
 #include <fcntl.h>
@@ -156,15 +158,28 @@ int ipod_close(struct ipod_t* ipod)
     return 0;
 }
 
-int ipod_alloc_buffer(unsigned char** sectorbuf, int bufsize)
+int ipod_alloc_buffer(struct ipod_t* ipod, int bufsize)
 {
     /* The ReadFile function requires a memory buffer aligned to a multiple of
        the disk sector size. */
-    *sectorbuf = (unsigned char*)VirtualAlloc(NULL, bufsize, MEM_COMMIT, PAGE_READWRITE);
-    if (*sectorbuf == NULL) {
+    ipod->sectorbuf = (unsigned char*)VirtualAlloc(NULL, bufsize, MEM_COMMIT, PAGE_READWRITE);
+    if (ipod->sectorbuf== NULL) {
         ipod_print_error(" Error allocating a buffer: ");
         return -1;
     }
+    return 0;
+}
+
+int ipod_dealloc_buffer(struct ipod_t* ipod)
+{
+    if (ipod->sectorbuf == NULL) {
+        return -1;
+    }
+    if(!VirtualFree(ipod->sectorbuf, 0, MEM_RELEASE)) {
+        ipod_print_error(" Error releasing buffer ");
+        return -1;
+    }
+    ipod->sectorbuf = NULL;
     return 0;
 }
 
@@ -177,11 +192,14 @@ int ipod_seek(struct ipod_t* ipod, unsigned long pos)
     return 0;
 }
 
-ssize_t ipod_read(struct ipod_t* ipod, unsigned char* buf, int nbytes)
+ssize_t ipod_read(struct ipod_t* ipod, int nbytes)
 {
     unsigned long count;
 
-    if (!ReadFile(ipod->dh, buf, nbytes, &count, NULL)) {
+    if(ipod->sectorbuf == NULL) {
+        return -1;
+    }
+    if (!ReadFile(ipod->dh, ipod->sectorbuf, nbytes, &count, NULL)) {
         ipod_print_error(" Error reading from disk: ");
         return -1;
     }
@@ -189,15 +207,20 @@ ssize_t ipod_read(struct ipod_t* ipod, unsigned char* buf, int nbytes)
     return count;
 }
 
-ssize_t ipod_write(struct ipod_t* ipod, unsigned char* buf, int nbytes)
+ssize_t ipod_write(struct ipod_t* ipod, int nbytes)
 {
     unsigned long count;
 
-    if (!WriteFile(ipod->dh, buf, nbytes, &count, NULL)) {
+    if(ipod->sectorbuf == NULL) {
+        return -1;
+    }
+    if (!WriteFile(ipod->dh, ipod->sectorbuf, nbytes, &count, NULL)) {
         ipod_print_error(" Error writing to disk: ");
         return -1;
     }
 
     return count;
 }
+
+#endif
 

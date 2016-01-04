@@ -36,7 +36,7 @@ void sb_skin_data_load(enum screen_type screen, const char *buf, bool isfile);
 
 char* sb_create_from_settings(enum screen_type screen);
 void sb_skin_init(void) INIT_ATTR;
-void sb_set_info_vp(enum screen_type screen, char *label);
+void sb_set_info_vp(enum screen_type screen, OFFSETTYPE(char*) label);
 struct viewport *sb_skin_get_info_vp(enum screen_type screen);
 void sb_skin_update(enum screen_type screen, bool force);
 
@@ -66,5 +66,5 @@ int sb_postproccess(enum screen_type screen, struct wps_data *data);
 #define sb_preproccess NULL
 #define sb_postproccess NULL
 #endif
-void do_sbs_update_callback(void *param);
+void do_sbs_update_callback(unsigned short id, void *param);
 #endif /* __STATUSBAR_SKINNED_H__ */

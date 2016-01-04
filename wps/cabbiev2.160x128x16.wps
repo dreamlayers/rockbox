@@ -1,5 +1,5 @@
-# Cabbie 2.0 default
-# (C) 2007, Johannes Voggenthaler (Zinc Alloy)
+# Cabbie v2.0
+# (C) 2007-2012 The Authors (see /rockbox/wps/AUTHORS)
 # Derived from "cabbie" (C) Yohann Misquitta
 #
 # Disable Status Bar
@@ -71,5 +71,5 @@
 %s%ac%?ia<%ia|%?d(2)<%d(2)|%(root%)>>
 %s%ac%?id<%id|%?d(1)<%d(1)|%(root%)>>
 
-%Sx(Next Track:)
-%s%?It<%It|%Fn>
+%ac%Sx(Next Track:)
+%s%ac%?It<%It|%Fn>

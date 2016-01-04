@@ -51,25 +51,14 @@ SECTIONS
 
     .rodata :
     {
-        *(.rodata)  /* problems without this, dunno why */
         *(.rodata*)
-        *(.rodata.str1.1)
-        *(.rodata.str1.4)
         . = ALIGN(0x4);
-
-        /* Pseudo-allocate the copies of the data sections */
-        _datacopy = .;
     } > DRAM
 
-    /* TRICK ALERT! For RAM execution, we put the .data section at the
-       same load address as the copy. Thus, we don't waste extra RAM
-       when we don't actually need the copy.  */
-    .data : AT ( _datacopy )
+    .data :
     {
-        _datastart = .;
         *(.data*)
         . = ALIGN(0x4);
-        _dataend  = .;
     } > DRAM
 
     /DISCARD/ :
@@ -80,7 +69,7 @@ SECTIONS
     .vectors ITCMORIG :
     {
         _vectorsstart = .;
-        *(.vectors);
+        KEEP(*(.vectors));
         _vectorsend = .;
     } > ITCM AT> DRAM
 
@@ -105,9 +94,9 @@ SECTIONS
     .iram :
     {
         _iramstart = .;
-        *(.irodata)
-        *(.idata)
-        *(.icode)
+        *(.irodata*)
+        *(.idata*)
+        *(.icode*)
         . = ALIGN(0x4);
         _iramend = .;
     } > SRAM AT> DRAM
@@ -117,7 +106,7 @@ SECTIONS
     .ibss (NOLOAD) :
     {
         _iedata = .;
-        *(.ibss)
+        *(.ibss*)
         . = ALIGN(0x4);
         _iend = .;
     } > SRAM

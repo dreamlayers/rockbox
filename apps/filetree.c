@@ -29,6 +29,7 @@
 #include <limits.h>
 #include "bookmark.h"
 #include "tree.h"
+#include "core_alloc.h"
 #include "settings.h"
 #include "filetypes.h"
 #include "talk.h"
@@ -59,13 +60,14 @@ int ft_build_playlist(struct tree_context* c, int start_index)
     int i;
     int start=start_index;
 
-    struct entry *dircache = c->dircache;
+    tree_lock_cache(c);
+    struct entry *entries = tree_get_entries(c);
 
     for(i = 0;i < c->filesindir;i++)
     {
-        if((dircache[i].attr & FILE_ATTR_MASK) == FILE_ATTR_AUDIO)
+        if((entries[i].attr & FILE_ATTR_MASK) == FILE_ATTR_AUDIO)
         {
-            if (playlist_add(dircache[i].name) < 0)
+            if (playlist_add(entries[i].name) < 0)
                 break;
         }
         else
@@ -75,6 +77,8 @@ int ft_build_playlist(struct tree_context* c, int start_index)
                 start_index--;
         }
     }
+
+    tree_unlock_cache(c);
 
     return start_index;
 }
@@ -114,39 +118,41 @@ bool ft_play_playlist(char* pathname, char* dirname, char* filename)
             playlist_shuffle(current_tick, -1);
         }
         
-        playlist_start(0, 0);
+        playlist_start(0, 0, 0);
         return true;
     }
     
     return false;
 }
 
-/* walk a directory and check all dircache entries if a .talk file exists */
+/* walk a directory and check all entries if a .talk file exists */
 static void check_file_thumbnails(struct tree_context* c)
 {
     int i;
     struct dirent *entry;
-    struct entry* dircache = c->dircache;
+    struct entry* entries;
     DIR *dir;
 
     dir = opendir(c->currdir);
     if(!dir)
         return;
     /* mark all files as non talking, except the .talk ones */
+    entries = tree_get_entries(c);
+    tree_lock_cache(c);
     for (i=0; i < c->filesindir; i++)
     {
-        if (dircache[i].attr & ATTR_DIRECTORY)
+        if (entries[i].attr & ATTR_DIRECTORY)
             continue; /* we're not touching directories */
 
         if (strcasecmp(file_thumbnail_ext,
-            &dircache[i].name[strlen(dircache[i].name)
+            &entries[i].name[strlen(entries[i].name)
                               - strlen(file_thumbnail_ext)]))
         {   /* no .talk file */
-            dircache[i].attr &= ~FILE_ATTR_THUMBNAIL; /* clear */
+            entries[i].attr &= ~FILE_ATTR_THUMBNAIL; /* clear */
         }
         else
         {   /* .talk file, we later let them speak themselves */
-            dircache[i].attr |= FILE_ATTR_THUMBNAIL; /* set */
+            entries[i].attr |= FILE_ATTR_THUMBNAIL; /* set */
         }
     }
 
@@ -169,13 +175,14 @@ static void check_file_thumbnails(struct tree_context* c)
         /* search corresponding file in dir cache */
         for (i=0; i < c->filesindir; i++)
         {
-            if (!strcasecmp(dircache[i].name, (char *)entry->d_name))
+            if (!strcasecmp(entries[i].name, (char *)entry->d_name))
             {   /* match */
-                dircache[i].attr |= FILE_ATTR_THUMBNAIL; /* set the flag */
+                entries[i].attr |= FILE_ATTR_THUMBNAIL; /* set the flag */
                 break; /* exit search loop, because we found it */
             }
         }
     }
+    tree_unlock_cache(c);
     closedir(dir);
 }
 
@@ -264,11 +271,12 @@ static int compare(const void* p1, const void* p2)
     return 0; /* never reached */
 }
 
-/* load and sort directory into dircache. returns NULL on failure. */
+/* load and sort directory into the tree's cache. returns NULL on failure. */
 int ft_load(struct tree_context* c, const char* tempdir)
 {
-    int i;
+    int files_in_dir = 0;
     int name_buffer_used = 0;
+    struct dirent *entry;
     bool (*callback_show_item)(char *, int, struct tree_context *) = NULL;
     DIR *dir;
 
@@ -285,12 +293,11 @@ int ft_load(struct tree_context* c, const char* tempdir)
     c->dirsindir = 0;
     c->dirfull = false;
 
-    for ( i=0; i < global_settings.max_files_in_dir; i++ ) {
+    tree_lock_cache(c);
+    while ((entry = readdir(dir))) {
         int len;
-        struct dirent *entry = readdir(dir);
         struct dirinfo info;
-        struct entry* dptr =
-            (struct entry*)(c->dircache + i * sizeof(struct entry));
+        struct entry* dptr = tree_get_entry_at(c, files_in_dir);
         if (!entry)
             break;
 
@@ -301,13 +308,11 @@ int ft_load(struct tree_context* c, const char* tempdir)
         if ((info.attribute & ATTR_DIRECTORY) &&
             (((len == 1) && (!strncmp((char *)entry->d_name, ".", 1))) ||
              ((len == 2) && (!strncmp((char *)entry->d_name, "..", 2))))) {
-            i--;
             continue;
         }
 
         /* Skip FAT volume ID */
         if (info.attribute & ATTR_VOLUME_ID) {
-            i--;
             continue;
         }
 
@@ -315,7 +320,6 @@ int ft_load(struct tree_context* c, const char* tempdir)
         if (*c->dirfilter != SHOW_ALL &&
             ((entry->d_name[0]=='.') ||
             (info.attribute & ATTR_HIDDEN))) {
-            i--;
             continue;
         }
 
@@ -359,63 +363,70 @@ int ft_load(struct tree_context* c, const char* tempdir)
                                               (dptr->attr & FILE_ATTR_MASK) != FILE_ATTR_LUA) ||
             (callback_show_item && !callback_show_item(entry->d_name, dptr->attr, c)))
         {
-            i--;
             continue;
         }
 
-        if (len > c->name_buffer_size - name_buffer_used - 1) {
+        if ((len > c->cache.name_buffer_size - name_buffer_used - 1) ||
+            (files_in_dir >= c->cache.max_entries)) {
             /* Tell the world that we ran out of buffer space */
             c->dirfull = true;
             break;
         }
-        dptr->name = &c->name_buffer[name_buffer_used];
-        dptr->time_write =
-            (long)info.wrtdate<<16 |
-            (long)info.wrttime; /* in one # */
+
+        ++files_in_dir;
+
+        dptr->name = core_get_data(c->cache.name_buffer_handle)+name_buffer_used;
+        dptr->time_write = info.mtime;
         strcpy(dptr->name, (char *)entry->d_name);
         name_buffer_used += len + 1;
 
         if (dptr->attr & ATTR_DIRECTORY) /* count the remaining dirs */
             c->dirsindir++;
     }
-    c->filesindir = i;
-    c->dirlength = i;
+    c->filesindir = files_in_dir;
+    c->dirlength = files_in_dir;
     closedir(dir);
 
     compare_sort_dir = c->sort_dir;
-    qsort(c->dircache,i,sizeof(struct entry),compare);
+    qsort(tree_get_entries(c), files_in_dir, sizeof(struct entry), compare);
 
     /* If thumbnail talking is enabled, make an extra run to mark files with
        associated thumbnails, so we don't do unsuccessful spinups later. */
     if (global_settings.talk_file_clip)
         check_file_thumbnails(c); /* map .talk to ours */
 
+    tree_unlock_cache(c);
     return 0;
 }
 #ifdef HAVE_LCD_BITMAP
 static void ft_load_font(char *file)
 {
+    int current_font_id;
+    enum screen_type screen = SCREEN_MAIN;
 #if NB_SCREENS > 1
     MENUITEM_STRINGLIST(menu, ID2P(LANG_CUSTOM_FONT), NULL, 
                         ID2P(LANG_MAIN_SCREEN), ID2P(LANG_REMOTE_SCREEN))
     switch (do_menu(&menu, NULL, NULL, false))
     {
-        case 0: /* main lcd */        
-            splash(0, ID2P(LANG_WAIT));
-            font_load(NULL, file);
+        case 0: /* main lcd */
+            screen = SCREEN_MAIN;
             set_file(file, (char *)global_settings.font_file, MAX_FILENAME);
             break;
         case 1: /* remote */
-            splash(0, ID2P(LANG_WAIT));
-            font_load_remoteui(file);
+            screen = SCREEN_REMOTE;
             set_file(file, (char *)global_settings.remote_font_file, MAX_FILENAME);
             break;
     }
 #else
-    splash(0, ID2P(LANG_WAIT));
-    font_load(NULL, file);
     set_file(file, (char *)global_settings.font_file, MAX_FILENAME);
 #endif
+    splash(0, ID2P(LANG_WAIT));
+    current_font_id = screens[screen].getuifont();
+    if (current_font_id >= 0)
+        font_unload(current_font_id);
+    screens[screen].setuifont(
+        font_load_ex(file,0,global_settings.glyphs_to_cache));
+    viewportmanager_theme_changed(THEME_UI_VIEWPORT);
 }    
 #endif
 
@@ -423,15 +434,15 @@ int ft_enter(struct tree_context* c)
 {
     int rc = GO_TO_PREVIOUS;
     char buf[MAX_PATH];
-    struct entry *dircache = c->dircache;
-    struct entry* file = &dircache[c->selected_item];
+    struct entry* file = tree_get_entry_at(c, c->selected_item);
+    int file_attr = file->attr;
 
     if (c->currdir[1])
         snprintf(buf,sizeof(buf),"%s/%s",c->currdir, file->name);
     else
         snprintf(buf,sizeof(buf),"/%s",file->name);
 
-    if (file->attr & ATTR_DIRECTORY) {
+    if (file_attr & ATTR_DIRECTORY) {
         memcpy(c->currdir, buf, sizeof(c->currdir));
         if ( c->dirlevel < MAX_DIR_LEVELS )
             c->selected_item_history[c->dirlevel] = c->selected_item;
@@ -443,10 +454,10 @@ int ft_enter(struct tree_context* c)
         bool play = false;
         int start_index=0;
 
-        switch ( file->attr & FILE_ATTR_MASK ) {
+        switch ( file_attr & FILE_ATTR_MASK ) {
             case FILE_ATTR_M3U:
                 play = ft_play_playlist(buf, c->currdir, file->name);
-                
+
                 if (play)
                 {
                     start_index = 0;
@@ -485,7 +496,7 @@ int ft_enter(struct tree_context* c)
                             start_index = 0;
                     }
 
-                    playlist_start(start_index, 0);
+                    playlist_start(start_index, 0, 0);
                     play = true;
                 }
                 break;
@@ -604,6 +615,7 @@ int ft_enter(struct tree_context* c)
                 /* firmware file */
             case FILE_ATTR_MOD:
                 splash(0, ID2P(LANG_WAIT));
+                audio_hard_stop();
                 rolo_load(buf);
                 break;
 #endif
@@ -615,7 +627,7 @@ int ft_enter(struct tree_context* c)
                 char *plugin = buf, *argument = NULL, lua_path[MAX_PATH];
                 int ret;
 
-                if ((file->attr & FILE_ATTR_MASK) == FILE_ATTR_LUA) {
+                if ((file_attr & FILE_ATTR_MASK) == FILE_ATTR_LUA) {
                     snprintf(lua_path, sizeof(lua_path)-1, "%s/lua.rock", VIEWERS_DIR); /* Use a #define here ? */
                     plugin = lua_path;
                     argument = buf;
@@ -661,6 +673,7 @@ int ft_enter(struct tree_context* c)
                     break;
                 }
 
+                struct entry* file = tree_get_entry_at(c, c->selected_item);
                 plugin = filetype_get_plugin(file);
                 if (plugin)
                 {
@@ -688,6 +701,9 @@ int ft_enter(struct tree_context* c)
             /* the resume_index must always be the index in the
                shuffled list in case shuffle is enabled */
             global_status.resume_index = start_index;
+            global_status.resume_crc32 =
+                playlist_get_filename_crc32(NULL, start_index);
+            global_status.resume_elapsed = 0;
             global_status.resume_offset = 0;
             status_save();
             rc = GO_TO_WPS;

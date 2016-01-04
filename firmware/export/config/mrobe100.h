@@ -2,8 +2,6 @@
  * This config file is for the Olympus m:robe MR-100
  */
  
-#define TARGET_TREE
-
 /* For Rolo and boot loader */
 #define MODEL_NUMBER 23
 #define MODEL_NAME   "Olympus m:robe MR-100"
@@ -20,15 +18,14 @@
 /* define this if you have access to the quickscreen */
 #define HAVE_QUICKSCREEN
 
-/* define this if you have access to the pitchscreen */
-#define HAVE_PITCHSCREEN
-
 /* define this if you would like tagcache to build on this target */
 #define HAVE_TAGCACHE
 
 /* LCD dimensions */
 #define LCD_WIDTH  160
 #define LCD_HEIGHT 128
+/* sqrt(160^2 + 128^2) / 1.7 = 120.5 */
+#define LCD_DPI 121
 #define LCD_DEPTH  1
 
 #define LCD_PIXELFORMAT VERTICAL_PACKING
@@ -142,6 +139,8 @@
 #define BATTERY_CAPACITY_INC 0          /* capacity increment */
 #define BATTERY_TYPES_COUNT  1          /* only one type */
 
+#define CONFIG_BATTERY_MEASURE VOLTAGE_MEASURE
+
 /* Hardware controlled charging */
 #define CONFIG_CHARGING CHARGING_SIMPLE
 
@@ -179,7 +178,6 @@
 
 /* enable these for the experimental usb stack */
 #define HAVE_USBSTACK
-#define USE_ROCKBOX_USB
 #define USB_VENDOR_ID 0x07B4
 #define USB_PRODUCT_ID 0x0280
 #define HAVE_USB_HID_MOUSE
@@ -207,7 +205,9 @@
 /* DMA is used only for reading on PP502x because although reads are ~8x faster
  * writes appear to be ~25% slower.
  */
+#ifndef BOOTLOADER
 #define HAVE_ATA_DMA
+#endif
 
 /* Define this if a programmable hotkey is mapped */
 #define HAVE_HOTKEY

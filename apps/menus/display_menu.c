@@ -35,12 +35,15 @@
 #endif
 #include "talk.h"
 #include "lcd.h"
+#ifdef HAVE_REMOTE_LCD
 #include "lcd-remote.h"
+#endif
 #ifdef HAVE_TOUCHSCREEN
 #include "screens.h"
 #endif
 #include "viewport.h"
 #include "statusbar.h" /* statusbar_vals enum*/
+#include "rbunicode.h"
 
 #ifdef HAVE_BACKLIGHT
 static int filterfirstkeypress_callback(int action,const struct menu_item_ex *this_item)
@@ -443,6 +446,30 @@ static int peak_meter_max(void) {
     settings_apply_pm_range();
     return retval;
 }
+
+#if defined(HAVE_HISTOGRAM)
+static bool history_interval(void)
+{
+    static const struct opt_items names[] = {
+        { "0s", TALK_ID(0, UNIT_SEC) },
+        { "1s", TALK_ID(1, UNIT_SEC) },
+        { "2s", TALK_ID(2, UNIT_SEC) },
+        { "4s", TALK_ID(4, UNIT_SEC) }
+    };
+
+    /* reconfigure histogram settings here */
+
+    return set_option(str(LANG_HISTOGRAM_INTERVAL),
+                          &global_settings.histogram_interval,
+                          INT, names, 4, NULL );
+}
+
+MENUITEM_FUNCTION(histogram, 0,
+                  ID2P(LANG_HISTOGRAM_INTERVAL),
+                  history_interval, NULL, NULL, Icon_Menu_setting);
+
+#endif
+
 MENUITEM_FUNCTION(peak_meter_scale_item, 0, ID2P(LANG_PM_SCALE),
                     peak_meter_scale, NULL, NULL, Icon_NOICON);
 MENUITEM_FUNCTION(peak_meter_min_item, 0, ID2P(LANG_PM_MIN), 
@@ -454,6 +481,9 @@ MAKE_MENU(peak_meter_menu, ID2P(LANG_PM_MENU), NULL, Icon_NOICON,
           &peak_meter_clip_hold,
 #ifdef HAVE_RECORDING
           &peak_meter_clipcounter,
+#endif
+#ifdef HAVE_HISTOGRAM
+          &histogram,
 #endif
           &peak_meter_scale_item, &peak_meter_min_item, &peak_meter_max_item);
 #endif /*  HAVE_LCD_BITMAP */
@@ -473,19 +503,47 @@ static int touch_mode_callback(int action,const struct menu_item_ex *this_item)
     }
     return action;
 }
+
+static int line_padding_callback(int action,const struct menu_item_ex *this_item)
+{
+    (void)this_item;
+
+    if (action == ACTION_EXIT_MENUITEM)
+        viewportmanager_theme_changed(THEME_LISTS);
+    return action;
+}
+
 MENUITEM_SETTING(touch_mode, &global_settings.touch_mode, touch_mode_callback);
 
 MENUITEM_FUNCTION(touchscreen_menu_calibrate, 0, ID2P(LANG_TOUCHSCREEN_CALIBRATE), calibrate,
                     NULL, NULL, Icon_NOICON);
 MENUITEM_FUNCTION(touchscreen_menu_reset_calibration, 0, ID2P(LANG_TOUCHSCREEN_RESET_CALIBRATION), reset_mapping,
                     NULL, NULL, Icon_NOICON);
+MENUITEM_SETTING(list_line_padding, &global_settings.list_line_padding, line_padding_callback);
 
-MAKE_MENU(touchscreen_menu, ID2P(LANG_TOUCHSCREEN_SETTINGS), NULL, Icon_NOICON, &touch_mode,
+MAKE_MENU(touchscreen_menu, ID2P(LANG_TOUCHSCREEN_SETTINGS), NULL, Icon_NOICON, &list_line_padding, &touch_mode,
             &touchscreen_menu_calibrate, &touchscreen_menu_reset_calibration);
 #endif
 
+static int codepage_callback(int action, const struct menu_item_ex *this_item)
+{
+    static int old_codepage;
+    int new_codepage = global_settings.default_codepage;
+    (void)this_item;
+    switch (action)
+    {
+        case ACTION_ENTER_MENUITEM:
+            old_codepage = new_codepage;
+            break;
+        case ACTION_EXIT_MENUITEM:
+            if (new_codepage != old_codepage)
+                set_codepage(new_codepage);
+            break;
+    }
+    return action;
+}
 
-MENUITEM_SETTING(codepage_setting, &global_settings.default_codepage, NULL);
+MENUITEM_SETTING(codepage_setting, &global_settings.default_codepage, codepage_callback);
 
 
 MAKE_MENU(display_menu, ID2P(LANG_DISPLAY),

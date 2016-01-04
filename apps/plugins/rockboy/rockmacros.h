@@ -23,8 +23,6 @@
 
 #include "plugin.h"
 
-#include "autoconf.h"
-
 #define malloc(a) my_malloc(a)
 void *my_malloc(size_t size);
 
@@ -54,11 +52,6 @@ void dynamic_recompile (struct dynarec_block *newblock);
 #define IBSS_ATTR
 #endif
 
-/* libc functions */
-#define isdigit(c) ((c) >= '0' && (c) <= '9')
-#define isalpha(c) (((c) >= 'a' && (c) <= 'z') || ((c) >= 'A' && ((c) <= 'Z')))
-#define isalnum(c) (isdigit(c) || (isalpha(c)))
-
 /* only 1 fixed argument for open, since variadic macros don't except empty
  * variable parameters */
 #define open(a, ...)       rb->open((a), __VA_ARGS__)
@@ -81,7 +74,6 @@ void dynamic_recompile (struct dynarec_block *newblock);
 #define strcat(a,b)     rb->strcat((a),(b))
 #define snprintf(...)   rb->snprintf(__VA_ARGS__)
 #define fdprintf(...)    rb->fdprintf(__VA_ARGS__)
-#define tolower(_A_)    (isupper(_A_) ? (_A_ - 'A' + 'a') : _A_)
 
 /* Using #define isn't enough with GCC 4.0.1 */
 void* memcpy(void* dst, const void* src, size_t size) ICODE_ATTR;
@@ -97,7 +89,7 @@ struct options {
    int dirty;
 };
 
-bool plugbuf;
+extern bool plugbuf;
 
 extern struct options options;
 #define savedir ROCKBOX_DIR "/rockboy"

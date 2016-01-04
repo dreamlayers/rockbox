@@ -1,7 +1,6 @@
 /*
  * This config file is for MPIO HD200
  */
-#define TARGET_TREE /* this target is using the target tree system */
 
 /* For Rolo and boot loader */
 #define MODEL_NUMBER 70
@@ -19,7 +18,7 @@
 /* Define bitmask of input sources - recordable bitmask can be defined
  *  explicitly if different
  */
-#define INPUT_SRC_CAPS (SRC_CAP_MIC | SRC_CAP_FMRADIO)
+#define INPUT_SRC_CAPS (SRC_CAP_MIC | SRC_CAP_LINEIN | SRC_CAP_FMRADIO)
 
 /* define the bitmask of hardware sample rates */
 #define HW_SAMPR_CAPS   (SAMPR_CAP_88 | SAMPR_CAP_44 | SAMPR_CAP_22 | SAMPR_CAP_11)
@@ -48,15 +47,14 @@
 /* define this if you have access to the quickscreen */
 /* #define HAVE_QUICKSCREEN */
 
-/* define this if you have access to the pitchscreen */
-#define HAVE_PITCHSCREEN
-
 /* define this if you would like tagcache to build on this target */
 #define HAVE_TAGCACHE
 
 /* LCD dimensions */
 #define LCD_WIDTH  160
 #define LCD_HEIGHT 128
+/* sqrt(160^2 + 128^2) / 2.0 = 102.4 */
+#define LCD_DPI 102
 #define LCD_DEPTH  2
 
 #define LCD_PIXELFORMAT VERTICAL_PACKING
@@ -118,9 +116,10 @@
 #define CODEC_SRCTRL_44100HZ (0x10 << 1)
 #define CODEC_SRCTRL_88200HZ (0x1E << 1)
 
-/* copied from HD200 for now needs calibration */
 #define BATTERY_TYPES_COUNT 1
-#define BATTERY_CAPACITY_DEFAULT  850  /* this is wild guess */
+
+#define CONFIG_BATTERY_MEASURE VOLTAGE_MEASURE
+#define BATTERY_CAPACITY_DEFAULT  1200  /* this is wild guess */
 #define BATTERY_CAPACITY_MIN      800  /* min. capacity selectable */
 #define BATTERY_CAPACITY_MAX     2500  /* max. capacity selectable */
 #define BATTERY_CAPACITY_INC       50  /* capacity increment */

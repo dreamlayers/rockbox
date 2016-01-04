@@ -248,7 +248,7 @@
     *: "PLAY = Yes"
     cowond2*: "MENU, or top-right = Yes"
     iriverh100,iriverh120,iriverh300: "NAVI = Yes"
-    samsungyh*,ipod*,iaudiox5,iaudiom5,gigabeat*,sansae200*,sansac200*,iriverh10,iriverh10_5gb,mrobe100,sansaclip*,sansafuze*: "SELECT = Yes"
+    ipod*,iaudiox5,iaudiom5,gigabeat*,sansae200*,sansac200*,iriverh10,iriverh10_5gb,mrobe100,sansaclip*,sansafuze*,sansaconnect: "SELECT = Yes"
     mrobe500: "PLAY, POWER, or top-right = Yes"
     archosplayer: "(PLAY/STOP)"
     vibe500: "OK = Yes"
@@ -257,7 +257,7 @@
     *: "PLAY = Да"
     cowond2*: "MENU, или горе-десно = Да"
     iriverh100,iriverh120,iriverh300: "NAVI = Да"
-    samsungyh*,ipod*,iaudiox5,iaudiom5,gigabeat*,sansae200*,sansac200*,iriverh10,iriverh10_5gb,mrobe100,sansaclip*,sansafuze*: "SELECT = Да"
+    ipod*,iaudiox5,iaudiom5,gigabeat*,sansae200*,sansac200*,iriverh10,iriverh10_5gb,mrobe100,sansaclip*,sansafuze*,sansaconnect: "SELECT = Да"
     mrobe500: "PLAY, POWER, или горе-десно = Да"
     archosplayer: "(PLAY/STOP)"
     vibe500: "OK = Да"
@@ -417,7 +417,7 @@
 </phrase>
 <phrase>
   id: LANG_PLAYLISTS
-  desc: in the main menu and file view setting
+  desc: in the file view setting
   user: core
   <source>
     *: "Playlists"
@@ -1967,19 +1967,16 @@
 </phrase>
 <phrase>
   id: LANG_HEADPHONE_UNPLUG_RW
-  desc: in pause_phones_menu.
+  desc: deprecated
   user: core
   <source>
-    *: none
-    headphone_detection: "Duration to Rewind"
+    *: ""
   </source>
   <dest>
-    *: none
-    headphone_detection: "За колико да се врати"
+    *: ""
   </dest>
   <voice>
-    *: none
-    headphone_detection: "За колико да се врати"
+    *: ""
   </voice>
 </phrase>
 <phrase>
@@ -2217,20 +2214,22 @@
     *: "Building database... %d found (OFF to return)"
     iriverh100,iriverh120,iriverh300: "Building database... %d found (STOP to return)"
     ipod*: "Building database... %d found (PREV to return)"
-    iaudiox5,iaudiom5,gigabeat*,mrobe100: "Building database... %d found (LEFT to return)"
+    iaudiox5,iaudiom5,gigabeat*,mrobe100,samsungyh*: "Building database... %d found (LEFT to return)"
     iriverh10,iriverh10_5gb,sansae200*,sansac200*,sansafuze*,vibe500: "Building database... %d found (PREV to return)"
     gogearsa9200: "Building database... %d found (REW to return)"
+    archosplayer: "Building DB %d found"
   </source>
   <dest>
     *: "Креирам базу података... %d пронађено (OFF за повратак)"
     iriverh100,iriverh120,iriverh300: "Креирам базу података... %d пронађено (STOP за повратак)"
     ipod*: "Креирам базу података... %d пронађено (PREV за повратак)"
-    iaudiox5,iaudiom5,gigabeat*,mrobe100: "Креирам базу података... %d пронађено (LEFT за повратак)"
+    iaudiox5,iaudiom5,gigabeat*,mrobe100,samsungyh*: "Креирам базу података... %d пронађено (LEFT за повратак)"
     iriverh10,iriverh10_5gb,sansae200*,sansac200*,sansafuze*,vibe500: "Креирам базу података... %d пронађено (PREV за повратак)"
     gogearsa9200: "Креирам базу података... %d пронађено (REW за повратак)"
+    archosplayer: "Креирам БП %d пронађено"
   </dest>
   <voice>
-    *: ""
+    *: "пронађене ставке за базу"
   </voice>
 </phrase>
 <phrase>
@@ -2889,11 +2888,11 @@
   </source>
   <dest>
     *: none
-    remote_ticking: "Reduce Ticking"
+    remote_ticking: "Умањи треперење"
   </dest>
   <voice>
     *: none
-    remote_ticking: "Reduce Ticking"
+    remote_ticking: "Умањи треперење"
   </voice>
 </phrase>
 <phrase>
@@ -3930,8 +3929,8 @@
     rtc: "ON = Set"
     mrobe500: "HEART = Set"
     iriverh100,iriverh120,iriverh300: "NAVI = Set"
-    ipod*,iaudiox5,iaudiom5,iriverh10,iriverh10_5gb,sansae200*,sansac200*,gigabeat*,mrobe100,sansaclip*,sansafuze*: "SELECT = Set"
-    gogearsa9200: "PLAY = Set"
+    ipod*,iaudiox5,iaudiom5,iriverh10,iriverh10_5gb,sansae200*,sansac200*,gigabeat*,mrobe100,sansaclip*,sansafuze*,sansaconnect: "SELECT = Set"
+    gogearsa9200,samsungyh*: "PLAY = Set"
     vibe500: "OK = Set"
     mpiohd300: "ENTER = Set"
   </source>
@@ -3940,14 +3939,14 @@
     rtc: "ON = Постави"
     mrobe500: "HEART = Постави"
     iriverh100,iriverh120,iriverh300: "NAVI = Постави"
-    ipod*,iaudiox5,iaudiom5,iriverh10,iriverh10_5gb,sansae200*,sansac200*,gigabeat*,mrobe100,sansaclip*,sansafuze*: "SELECT = Постави"
-    gogearsa9200: "PLAY = Постави"
+    ipod*,iaudiox5,iaudiom5,iriverh10,iriverh10_5gb,sansae200*,sansac200*,gigabeat*,mrobe100,sansaclip*,sansafuze*,sansaconnect: "SELECT = Постави"
+    gogearsa9200,samsungyh*: "PLAY = Постави"
     vibe500: "OK = Постави"
     mpiohd300: "ENTER = Постави"
   </dest>
   <voice>
     *: none
-    rtc,iriverh100,iriverh120,iriverh300,iriverh10,iriverh10_5gb,iaudiox5,iaudiom5,ipod*,sansae200*,sansac200*,gigabeat*,mrobe100,gogearsa9200: ""
+    rtc,iriverh100,iriverh120,iriverh300,iriverh10,iriverh10_5gb,iaudiox5,iaudiom5,ipod*,sansae200*,sansac200*,gigabeat*,mrobe100,gogearsa9200,samsungyh*: ""
   </voice>
 </phrase>
 <phrase>
@@ -3963,10 +3962,12 @@
     iaudiox5,iaudiom5: "RECORD = Revert"
     iriverh10,iriverh10_5gb,sansae200*,sansafuze*: "PREV = Revert"
     gigabeatfx: "POWER = Revert"
+    sansafuzeplus: "BACK = Revert"
     mrobe100: "DISPLAY = Revert"
     gigabeats: "BACK = Revert"
     gogearsa9200: "LEFT = Revert"
     vibe500: "CANCEL = Revert"
+    samsungyh*: "REW = Revert"
   </source>
   <dest>
     *: none
@@ -3977,10 +3978,12 @@
     iaudiox5,iaudiom5: "RECORD = Врати на старо"
     iriverh10,iriverh10_5gb,sansae200*,sansafuze*: "PREV = Врати на старо"
     gigabeatfx: "POWER = Врати на старо"
+    sansafuzeplus: "BACK = Врати на старо"
     mrobe100: "DISPLAY = Врати на старо"
     gigabeats: "BACK = Врати на старо"
     gogearsa9200: "LEFT = Врати на старо"
     vibe500: "CANCEL = Врати на старо"
+    samsungyh*: "REW = Врати на старо"
   </dest>
   <voice>
     *: none
@@ -4511,6 +4514,7 @@
     gigabeats: "SELECT=Set POWER=Cancel"
     vibe500: "OK=Set C=Cancel"
     mpiohd300: "ENTER=Set MENU=Cancel"
+    sansafuzeplus: "SELECT=Set  BACK=Cancel"
   </source>
   <dest>
     *: none
@@ -4520,6 +4524,7 @@
     gigabeats: "SELECT=Постави POWER=Одустани"
     vibe500: "OK=Постави C=Одустани"
     mpiohd300: "ENTER=Постави MENU=Одустани"
+    sansafuzeplus: "SELECT=Постави  BACK=Одустани"
   </dest>
   <voice>
     *: none
@@ -5365,19 +5370,19 @@
 </phrase>
 <phrase>
   id: LANG_FM_SAVE_CHANGES
-  desc: When you try to exit radio to confirm save
+  desc: deprecated
   user: core
   <source>
     *: none
-    radio: "Save Changes?"
+    radio: ""
   </source>
   <dest>
     *: none
-    radio: "Да снимим промене?"
+    radio: ""
   </dest>
   <voice>
     *: none
-    radio: "Да снимим промене?"
+    radio: ""
   </voice>
 </phrase>
 <phrase>
@@ -5619,20 +5624,20 @@
   </voice>
 </phrase>
 <phrase>
-  id: LANG_RECORDING_FREQUENCY
-  desc: in the recording settings
+  id: LANG_FREQUENCY
+  desc: in recording and playback settings
   user: core
   <source>
     *: none
-    recording: "Frequency"
+    recording,play_frequency: "Frequency"
   </source>
   <dest>
     *: none
-    recording: "Фреквенција"
+    recording,play_frequency: "Фреквенција"
   </dest>
   <voice>
     *: none
-    recording: "Фреквенција"
+    recording,play_frequency: "Фреквенција"
   </voice>
 </phrase>
 <phrase>
@@ -5857,20 +5862,6 @@
   <voice>
     *: none
     recording: "Величина појединачног фајла"
-  </voice>
-</phrase>
-<phrase>
-  id: LANG_REC_SIZE
-  desc: deprecated
-  user:
-  <source>
-    *: none
-  </source>
-  <dest>
-    *: none
-  </dest>
-  <voice>
-    *: none
   </voice>
 </phrase>
 <phrase>
@@ -6457,10 +6448,10 @@
 </phrase>
 <phrase>
   id: LANG_CATALOG
-  desc: in onplay menu
+  desc: in main menu and onplay menu
   user: core
   <source>
-    *: "Playlist Catalog"
+    *: "Playlist Catalogue"
   </source>
   <dest>
     *: "Каталог плејлисти"
@@ -6642,19 +6633,19 @@
   <source>
     *: none
     multivolume: "HD1"
-    sansae200*,sansac200*,sansafuze*: "mSD:"
+    sansae200*,sansac200*,sansafuze*,sansaclipplus: "mSD:"
     archosondio*: "MMC:"
   </source>
   <dest>
     *: none
     multivolume: "HD1"
-    sansae200*,sansac200*,sansafuze*: "mSD:"
+    sansae200*,sansac200*,sansafuze*,sansaclipplus: "mSD:"
     archosondio*: "MMC:"
   </dest>
   <voice>
     *: none
     multivolume: "H D 1"
-    sansae200*,sansac200*,sansafuze*: "мајкро Ес Де"
+    sansae200*,sansac200*,sansafuze*,sansaclipplus: "мајкро Ес Де"
     archosondio*: "M M C"
   </voice>
 </phrase>
@@ -6954,10 +6945,10 @@
 </phrase>
 <phrase>
   id: LANG_CATALOG_VIEW
-  desc: in onplay playlist catalog submenu
+  desc: in onplay playlist catalogue submenu
   user: core
   <source>
-    *: "View Catalog"
+    *: "View Catalogue"
   </source>
   <dest>
     *: "Прикажи каталог"
@@ -6968,7 +6959,7 @@
 </phrase>
 <phrase>
   id: LANG_CATALOG_ADD_TO
-  desc: in onplay playlist catalog submenu
+  desc: in onplay playlist catalogue submenu
   user: core
   <source>
     *: "Add to Playlist"
@@ -6982,7 +6973,7 @@
 </phrase>
 <phrase>
   id: LANG_CATALOG_ADD_TO_NEW
-  desc: in onplay playlist catalog submenu
+  desc: in onplay playlist catalogue submenu
   user: core
   <source>
     *: "Add to New Playlist"
@@ -6996,7 +6987,7 @@
 </phrase>
 <phrase>
   id: LANG_CATALOG_NO_DIRECTORY
-  desc: error message when playlist catalog directory doesn't exist
+  desc: error message when playlist catalogue directory doesn't exist
   user: core
   <source>
     *: "%s doesn't exist"
@@ -7005,12 +6996,12 @@
     *: "%s не постоји"
   </dest>
   <voice>
-    *: ""
+    *: "директоријум плејлисти не постоји"
   </voice>
 </phrase>
 <phrase>
   id: LANG_CATALOG_NO_PLAYLISTS
-  desc: error message when no playlists for playlist catalog
+  desc: error message when no playlists for playlist catalogue
   user: core
   <source>
     *: "No Playlists"
@@ -7559,15 +7550,15 @@
 </phrase>
 <phrase>
   id: LANG_BACKDROP_LOADED
-  desc: text for splash to indicate a new backdrop has been loaded successfully
+  desc: deprecated
   user: core
   <source>
     *: none
-    lcd_non-mono: "Backdrop Loaded"
+    lcd_non-mono: ""
   </source>
   <dest>
     *: none
-    lcd_non-mono: "Позадина учитана"
+    lcd_non-mono: ""
   </dest>
   <voice>
     *: none
@@ -7576,15 +7567,15 @@
 </phrase>
 <phrase>
   id: LANG_BACKDROP_FAILED
-  desc: text for splash to indicate a failure to load a bitmap as backdrop
+  desc: deprecated
   user: core
   <source>
     *: none
-    lcd_non-mono: "Backdrop Failed"
+    lcd_non-mono: ""
   </source>
   <dest>
     *: none
-    lcd_non-mono: "Учитавање позадине није успело"
+    lcd_non-mono: ""
   </dest>
   <voice>
     *: none
@@ -7760,7 +7751,6 @@
   </dest>
   <voice>
     *: "Крај листе песама"
-    archosplayer: "Крај листе"
   </voice>
 </phrase>
 <phrase>
@@ -7886,7 +7876,7 @@
     *: "Мод:"
   </dest>
   <voice>
-    *: ""
+    *: "Мод:"
   </voice>
 </phrase>
 <phrase>
@@ -7975,6 +7965,7 @@
     iriverh100,iriverh120,iriverh300: "The disk is full. Press STOP to continue."
     iaudiom5,iaudiox5: "The disk is full. Press POWER to continue."
     sansae200*,sansac200*,vibe500: "The disk is full. Press PREV to continue."
+    samsungyh*: "Disk full. Press LEFT to continue."
   </source>
   <dest>
     *: none
@@ -7982,6 +7973,7 @@
     iriverh100,iriverh120,iriverh300: "Диск је пун. Притисните STOP за наставак."
     iaudiom5,iaudiox5: "Диск је пун. Притисните POWER за наставак."
     sansae200*,sansac200*,vibe500: "Диск је пун. Притисните PREV за наставак."
+    samsungyh*: "Диск је пун. Притисните LEFT за наставак."
   </dest>
   <voice>
     *: none
@@ -8079,15 +8071,17 @@
     iriverh10,iriverh10_5gb,sansae200*,sansac200*,vibe500: "PREV to abort"
     gigabeats: "BACK to abort"
     gigabeatfx: "POWER to abort"
+    sansafuzeplus: "BACK to abort"
   </source>
   <dest>
-    *: "OFF to abort"
+    *: "OFF за прекид"
     archosplayer,iriverh100,iriverh120,iriverh300: "STOP за прекид"
     ipod*: "PLAY/PAUSE за прекид"
     iaudiox5,iaudiom5: "Long PLAY за прекид"
     iriverh10,iriverh10_5gb,sansae200*,sansac200*,vibe500: "PREV за прекид"
     gigabeats: "BACK за прекид"
     gigabeatfx: "POWER за прекид"
+    sansafuzeplus: "BACK за прекид"
   </dest>
   <voice>
     *: ""
@@ -10416,15 +10410,15 @@
   user: core
   <source>
     *: none
-    ipodvideo: "Bass Cutoff"
+    ipodvideo,ipod6g,mpiohd200,mpiohd300,gigabeatfx,mrobe100: "Bass Cutoff"
   </source>
   <dest>
     *: none
-    ipodvideo: "Гранична фрекв. за ниске"
+    ipodvideo,ipod6g,mpiohd200,mpiohd300,gigabeatfx,mrobe100: "Гранична фрекв. за ниске"
   </dest>
   <voice>
     *: none
-    ipodvideo: "Гранична фреквенција за ниске"
+    ipodvideo,ipod6g,mpiohd200,mpiohd300,gigabeatfx,mrobe100: "Гранична фреквенција за ниске"
   </voice>
 </phrase>
 <phrase>
@@ -10433,15 +10427,15 @@
   user: core
   <source>
     *: none
-    ipodvideo: "Treble Cutoff"
+    ipodvideo,ipod6g,mpiohd200,mpiohd300,gigabeatfx,mrobe100: "Treble Cutoff"
   </source>
   <dest>
     *: none
-    ipodvideo: "Гранична фрекв. за високе"
+    ipodvideo,ipod6g,mpiohd200,mpiohd300,gigabeatfx,mrobe100: "Гранична фрекв. за високе"
   </dest>
   <voice>
     *: none
-    ipodvideo: "Гранична фреквенција за високе"
+    ipodvideo,ipod6g,mpiohd200,mpiohd300,gigabeatfx,mrobe100: "Гранична фреквенција за високе"
   </voice>
 </phrase>
 <phrase>
@@ -10622,15 +10616,15 @@
   user: core
   <source>
     *: none
-    gigabeatfx: "Touchpad Sensitivity"
+    gigabeatfx,sansafuzeplus: "Touchpad Sensitivity"
   </source>
   <dest>
     *: none
-    gigabeatfx: "Осетљивост Touchpad-а"
+    gigabeatfx,sansafuzeplus: "Осетљивост Touchpad-а"
   </dest>
   <voice>
     *: none
-    gigabeatfx: "Осетљивост Touchpad-а"
+    gigabeatfx,sansafuzeplus: "Осетљивост Touchpad-а"
   </voice>
 </phrase>
 <phrase>
@@ -11799,16 +11793,16 @@
 </phrase>
 <phrase>
   id: LANG_SKIN_RAM_USAGE
-  desc: how much RAM the skins are using
+  desc: deprecated
   user: core
   <source>
-    *: "Skin RAM usage:"
+    *: ""
   </source>
   <dest>
-    *: "Потрошња RAM за скинове:"
+    *: ""
   </dest>
   <voice>
-    *: "Потрошња RAM за скинове"
+    *: ""
   </voice>
 </phrase>
 <phrase>
@@ -12088,15 +12082,15 @@
   user: core
   <source>
     *: none
-    gigabeats: "Band %d Gain"
+    gigabeats,samsungypr1: "Band %d Gain"
   </source>
   <dest>
     *: none
-    gigabeats: "Појачање опсега %d"
+    gigabeats,samsungypr1: "Појачање опсега %d"
   </dest>
   <voice>
     *: none
-    gigabeats: "Појачање опсега %d"
+    gigabeats,samsungypr1: "Појачање опсега"
   </voice>
 </phrase>
 <phrase>
@@ -12156,15 +12150,15 @@
   user: core
   <source>
     *: none
-    gigabeats: "Wide"
+    gigabeats,samsungypr1: "Wide"
   </source>
   <dest>
     *: none
-    gigabeats: "Широк"
+    gigabeats,samsungypr1: "Широк"
   </dest>
   <voice>
     *: none
-    gigabeats: "Широк"
+    gigabeats,samsungypr1: "Широк"
   </voice>
 </phrase>
 <phrase>
@@ -12241,15 +12235,15 @@
   user: core
   <source>
     *: none
-    gigabeats: "Narrow"
+    gigabeats,samsungypr1: "Narrow"
   </source>
   <dest>
     *: none
-    gigabeats: "Уски"
+    gigabeats,samsungypr1: "Уски"
   </dest>
   <voice>
     *: none
-    gigabeats: "Уски"
+    gigabeats,samsungypr1: "Уски"
   </voice>
 </phrase>
 <phrase>
@@ -12306,15 +12300,15 @@
   user: core
   <source>
     *: none
-    gigabeats: "Advanced Tone Control Settings"
+    gigabeats,samsungypr1: "Advanced Tone Control Settings"
   </source>
   <dest>
     *: none
-    gigabeats: "Напредна подешавања конпроле тона"
+    gigabeats,samsungypr1: "Напредна подешавања контроле тона"
   </dest>
   <voice>
     *: none
-    gigabeats: "Напредна подешавања конпроле тона"
+    gigabeats,samsungypr1: "Напредна подешавања контроле тона"
   </voice>
 </phrase>
 <phrase>
@@ -12323,15 +12317,15 @@
   user: core
   <source>
     *: none
-    gigabeats: "3-D Enhancement"
+    depth_3d: "3-D Enhancement"
   </source>
   <dest>
     *: none
-    gigabeats: "3-D побољшање"
+    depth_3d: "3-D побољшање"
   </dest>
   <voice>
     *: none
-    gigabeats: "3-D побољшање"
+    depth_3d: "3-D побољшање"
   </voice>
 </phrase>
 <phrase>
@@ -12371,15 +12365,15 @@
   user: core
   <source>
     *: none
-    gigabeats: "Band %d Frequency"
+    gigabeats,samsungypr1: "Band %d Frequency"
   </source>
   <dest>
     *: none
-    gigabeats: "Фреквенција опсега %d"
+    gigabeats,samsungypr1: "Фреквенција опсега %d"
   </dest>
   <voice>
     *: none
-    gigabeats: "Фреквенција опсега"
+    gigabeats,samsungypr1: "Фреквенција опсега"
   </voice>
 </phrase>
 <phrase>
@@ -12388,15 +12382,15 @@
   user: core
   <source>
     *: none
-    gigabeats: "Band %d Width"
+    gigabeats,samsungypr1: "Band %d Width"
   </source>
   <dest>
     *: none
-    gigabeats: "Ширина опсега %d"
+    gigabeats,samsungypr1: "Ширина опсега %d"
   </dest>
   <voice>
     *: none
-    gigabeats: "Ширина опсега"
+    gigabeats,samsungypr1: "Ширина опсега"
   </voice>
 </phrase>
 <phrase>
@@ -12484,15 +12478,15 @@
   user: core
   <source>
     *: none
-    gigabeats: "Tone Controls"
+    gigabeats,samsungypr1: "Tone Controls"
   </source>
   <dest>
     *: none
-    gigabeats: "Тонске контроле"
+    gigabeats,samsungypr1: "Тонске контроле"
   </dest>
   <voice>
     *: none
-    gigabeats: "Тонске контроле"
+    gigabeats,samsungypr1: "Тонске контроле"
   </voice>
 </phrase>
 <phrase>
@@ -12513,20 +12507,20 @@
   </voice>
 </phrase>
 <phrase>
-  id: LANG_RECORDING_HISTOGRAM_INTERVAL
+  id: LANG_HISTOGRAM_INTERVAL
   desc: in record settings menu
   user: core
   <source>
     *: none
-    recording_histogram: "Histogram interval"
+    histogram: "Histogram interval"
   </source>
   <dest>
     *: none
-    recording_histogram: "Интервал хистограма"
+    histogram: "Интервал хистограма"
   </dest>
   <voice>
     *: none
-    recording_histogram: "Интервал хистограма"
+    histogram: "Интервал хистограма"
   </voice>
 </phrase>
 <phrase>
@@ -12583,5 +12577,598 @@
   </dest>
   <voice>
     *: "Величина фајла"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_AUTORESUME
+  desc: resume settings menu
+  user: core
+  <source>
+    *: "Automatic resume"
+  </source>
+  <dest>
+    *: "Аутоматско настављање репродукције"
+  </dest>
+  <voice>
+    *: "Аутоматско настављање репродукције"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_AUTORESUME_AUTOMATIC
+  desc: resume on automatic track change
+  user: core
+  <source>
+    *: "Resume on automatic track change"
+  </source>
+  <dest>
+    *: "Настављање и приликом аутоматске промене нумере"
+  </dest>
+  <voice>
+    *: "Настављање и приликом аутоматске промене нумере"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_FM_RSSI
+  desc: Signal strength of a received FM station
+  user: core
+  <source>
+    *: none
+    radio: "Signal strength:"
+  </source>
+  <dest>
+    *: none
+    radio: "Јачина сигнала:"
+  </dest>
+  <voice>
+    *: none
+    radio: "Јачина сигнала:"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_AUTORESUME_CUSTOM
+  desc: enable customization of resume on automatic track change
+  user: core
+  <source>
+    *: "In custom directories only"
+  </source>
+  <dest>
+    *: "Само у одређеним фолдерима"
+  </dest>
+  <voice>
+    *: "Само у одређеним фолдерима"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_AUTORESUME_ENABLE_YES
+  desc: deprecated
+  user: core
+  <source>
+    *: ""
+  </source>
+  <dest>
+    *: ""
+  </dest>
+  <voice>
+    *: ""
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_AUTORESUME_ENABLE
+  desc: deprecated
+  user: core
+  <source>
+    *: ""
+  </source>
+  <dest>
+    *: ""
+  </dest>
+  <voice>
+    *: ""
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_PAUSE_REWIND
+  desc: Seconds to rewind when rewind on pause is enabled.
+  user: core
+  <source>
+    *: "Rewind on Pause"
+  </source>
+  <dest>
+    *: "Премотај код паузирања"
+  </dest>
+  <voice>
+    *: "Премотај код паузирања"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_CURRENT_PLAYLIST
+  desc: Used when you need to say playlist, also voiced
+  user: core
+  <source>
+    *: "Current Playlist"
+  </source>
+  <dest>
+    *: "Текућа плејлиста"
+  </dest>
+  <voice>
+    *: "Текућа плејлиста"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_GLYPHS
+  desc: in settings_menu
+  user: core
+  <source>
+    *: "Glyphs To Cache"
+  </source>
+  <dest>
+    *: "Кеширање словних симбола"
+  </dest>
+  <voice>
+    *: "Кеширање словних симбола"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_USB_SKIP_FIRST_DRIVE
+  desc: in settings_menu
+  user: core
+  <source>
+    *: none
+    multidrive_usb: "USB Hide Internal Drive"
+  </source>
+  <dest>
+    *: none
+    multidrive_usb: "USB не приказује интерни драјв"
+  </dest>
+  <voice>
+    *: none
+    multidrive_usb: "USB не приказује интерни драјв"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_KEYCLICK_HARDWARE
+  desc: in keyclick settings menu
+  user: core
+  <source>
+    *: none
+    hardware_click: "Speaker Keyclick"
+  </source>
+  <dest>
+    *: none
+    hardware_click: "Клик тастера из звучника"
+  </dest>
+  <voice>
+    *: none
+    hardware_click: "Клик тастера из звучника"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_KEYCLICK_SOFTWARE
+  desc: in keyclick settings menu
+  user: core
+  <source>
+    *: none
+    hardware_click: "Headphone Keyclick"
+  </source>
+  <dest>
+    *: none
+    hardware_click: "Клик тастера у слушалицама"
+  </dest>
+  <voice>
+    *: none
+    hardware_click: "Клик тастера у слушалицама"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_SET_AS_PLAYLISTCAT_DIR
+  desc: used in the onplay menu to set a playlist catalogue dir
+  user: core
+  <source>
+    *: "Set As Playlist Catalogue Directory"
+  </source>
+  <dest>
+    *: "Постави као директоријум каталога плејлисти"
+  </dest>
+  <voice>
+    *: "Постави као директоријум каталога плејлисти"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_LIST_LINE_PADDING
+  desc: list padding, in display settings
+  user: core
+  <source>
+    *: none
+    touchscreen: "Line Padding in Lists"
+  </source>
+  <dest>
+    *: none
+    touchscreen: "Додатни простор за линију у листама"
+  </dest>
+  <voice>
+    *: none
+    touchscreen: "Додатни простор за линију у листама"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_SAVE_CHANGES
+  desc: When you try to exit screens to confirm save
+  user: core
+  <source>
+    *: "Save Changes?"
+  </source>
+  <dest>
+    *: "Да сачувам промене?"
+  </dest>
+  <voice>
+    *: "Да сачувам промене?"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_AUTOMATIC
+  desc: generic automatic
+  user: core
+  <source>
+    *: "Automatic"
+  </source>
+  <dest>
+    *: "Аутоматски"
+  </dest>
+  <voice>
+    *: "Аутоматски"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_SHORTCUTS
+  desc: Title in the shortcuts menu
+  user: core
+  <source>
+    *: "Shortcuts"
+  </source>
+  <dest>
+    *: "Пречице"
+  </dest>
+  <voice>
+    *: "Пречице"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_SLEEP_TIMER_CANCEL_CURRENT
+  desc: shown instead of sleep timer when it's running
+  user: core
+  <source>
+    *: "Cancel Sleep Timer"
+  </source>
+  <dest>
+    *: "Откажи тајмер за спавање"
+  </dest>
+  <voice>
+    *: "Откажи тајмер за спавање"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_SLEEP_TIMER_DURATION
+  desc: default sleep timer duration in minutes
+  user: core
+  <source>
+    *: "Default Sleep Timer Duration"
+  </source>
+  <dest>
+    *: "Подразумевана дужина тајмера за спавање"
+  </dest>
+  <voice>
+    *: "Подразумевана дужина тајмера за спавање"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_RESET_PLAYLISTCAT_DIR
+  desc:
+  user: core
+  <source>
+    *: "Reset Playlist Catalogue Directory"
+  </source>
+  <dest>
+    *: "Ресетуј директоријум каталога плејлисти"
+  </dest>
+  <voice>
+    *: "Ресетуј директоријум каталога плејлисти"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_SLEEP_TIMER_ON_POWER_UP
+  desc: whether sleep timer starts on power up
+  user: core
+  <source>
+    *: "Start Sleep Timer On Boot"
+  </source>
+  <dest>
+    *: "Покрени тајмер за спавање након укључења"
+  </dest>
+  <voice>
+    *: "Покрени тајмер за спавање након укључења"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_CROSSFEED_MEIER
+  desc: in sound settings
+  user: core
+  <source>
+    *: none
+    swcodec: "Simple (Meier)"
+  </source>
+  <dest>
+    *: none
+    swcodec: "Једноставан (Meier)"
+  </dest>
+  <voice>
+    *: none
+    swcodec: "Једноставан Мејеров"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_SLEEP_TIMER_START_CURRENT
+  desc: shown when a sleep timer isn't running
+  user: core
+  <source>
+    *: "Start Sleep Timer"
+  </source>
+  <dest>
+    *: "Покрени тајмер за спавање"
+  </dest>
+  <voice>
+    *: "Покрени тајмер за спавање"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_CODEPAGE_WESTERN_EUROPEAN
+  desc: in codepage setting menu
+  user: core
+  <source>
+    *: "Western European (CP1252)"
+  </source>
+  <dest>
+    *: "западноевропска (CP1252)"
+  </dest>
+  <voice>
+    *: "западноевропска"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_CROSSFEED_CUSTOM
+  desc: in sound settings
+  user: core
+  <source>
+    *: none
+    swcodec: "Custom"
+  </source>
+  <dest>
+    *: none
+    swcodec: "Подесиви"
+  </dest>
+  <voice>
+    *: none
+    swcodec: "Подесиви"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_STARTUP_SHUTDOWN
+  desc: in the general settings menu
+  user: core
+  <source>
+    *: "Startup/Shutdown"
+  </source>
+  <dest>
+    *: "Покретање/Искључивање"
+  </dest>
+  <voice>
+    *: "Покретање/Искључивање"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_KEYPRESS_RESTARTS_SLEEP_TIMER
+  desc: whether to restart running sleep timer on keypress
+  user: core
+  <source>
+    *: "Restart Sleep Timer On Keypress"
+  </source>
+  <dest>
+    *: "Рестартуј тајмер за спавање приликом притиска на тастер"
+  </dest>
+  <voice>
+    *: "Рестартуј тајмер за спавање приликом притиска на тастер"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_USE_SHORTCUTS_INSTEAD_OF_QS
+  desc: in settings_menu.
+  user: core
+  <source>
+    *: none
+    quickscreen: "Use Shortcuts Menu Instead of Quick Screen"
+  </source>
+  <dest>
+    *: none
+    quickscreen: "Користи мени Пречице уместо Брзог екрана"
+  </dest>
+  <voice>
+    *: none
+    quickscreen: "Користи мени Пречице уместо Брзог екрана"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_CONSTRAIN_NEXT_FOLDER
+  desc: in settings_menu. Whether LANG_NEXT_FOLDER should be constrained to directories within LANG_SET_AS_START_DIR
+  user: core
+  <source>
+    *: "Constrain Auto-Change"
+  </source>
+  <dest>
+    *: "Ограничи ауто-промену"
+  </dest>
+  <voice>
+    *: "Ограничи ауто-промену"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_SELECT_FOLDER
+  desc: in settings_menu
+  user: core
+  <source>
+    *: "Select one or more directories"
+  </source>
+  <dest>
+    *: "Изаберите један или више директоријума"
+  </dest>
+  <voice>
+    *: "Изаберите један или више директоријума"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_SELECT_DATABASE_DIRS
+  desc: in settings_menu
+  user: core
+  <source>
+    *: "Select directories to scan"
+  </source>
+  <dest>
+    *: "Изаберите директоријуме за скенирање"
+  </dest>
+  <voice>
+    *: "Изаберите директоријуме за скенирање"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_FILTER_SHARP
+  desc: in sound settings
+  user: core
+  <source>
+    *: "Sharp"
+  </source>
+  <dest>
+    *: "Оштра"
+  </dest>
+  <voice>
+    *: "Оштра"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_FILTER_SLOW
+  desc: in sound settings
+  user: core
+  <source>
+    *: "Slow"
+  </source>
+  <dest>
+    *: "Блага"
+  </dest>
+  <voice>
+    *: "Блага"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_SYSFONT_EQUALIZER_BAND_Q
+  desc: in the equalizer settings menu
+  user: core
+  <source>
+    *: none
+    swcodec: "Q"
+  </source>
+  <dest>
+    *: none
+    swcodec: "Q"
+  </dest>
+  <voice>
+    *: none
+    swcodec: "Q"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_DEADZONE
+  desc: touchpad deadzone setting
+  user: core
+  <source>
+    *: none
+    sansafuzeplus: "Touchpad Dead Zone"
+  </source>
+  <dest>
+    *: none
+    sansafuzeplus: "Мртва зона тачпеда"
+  </dest>
+  <voice>
+    *: none
+    sansafuzeplus: "Мртва зона тачпеда"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_COMPRESSOR_ATTACK
+  desc: in sound settings
+  user: core
+  <source>
+    *: none
+    swcodec: "Attack Time"
+  </source>
+  <dest>
+    *: none
+    swcodec: "Attack време"
+  </dest>
+  <voice>
+    *: none
+    swcodec: "Attack време"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_FILTER_ROLL_OFF
+  desc: in sound settings
+  user: core
+  <source>
+    *: "DAC's filter roll-off"
+  </source>
+  <dest>
+    *: "Стрмина DAC филтра"
+  </dest>
+  <voice>
+    *: "Стрмина DAC филтра"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_LIST_SEPARATOR
+  desc: line between lines in lists
+  user: core
+  <source>
+    *: "Line Separator"
+  </source>
+  <dest>
+    *: "Сепаратор линија"
+  </dest>
+  <voice>
+    *: "Сепаратор линија"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_VOLUME_LIMIT
+  desc: in sound_settings
+  user: core
+  <source>
+    *: "Maximum Volume Limit"
+  </source>
+  <dest>
+    *: "Ограничење максималне јачине"
+  </dest>
+  <voice>
+    *: "Ограничење максималне јачине"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_LIST_SEPARATOR_COLOR
+  desc: line between lines in lists
+  user: core
+  <source>
+    *: "Line Separator Colour"
+  </source>
+  <dest>
+    *: "Боја сепаратора линија"
+  </dest>
+  <voice>
+    *: "Боја сепаратора линија"
   </voice>
 </phrase>

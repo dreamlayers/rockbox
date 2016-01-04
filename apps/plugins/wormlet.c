@@ -180,7 +180,8 @@ static long max_cycle;
 #define BTN_QUIT BUTTON_POWER
 #define BTN_STOPRESET BUTTON_REW
 
-#elif (CONFIG_KEYPAD == GIGABEAT_S_PAD)
+#elif (CONFIG_KEYPAD == GIGABEAT_S_PAD) || \
+      (CONFIG_KEYPAD == SAMSUNG_YPR0_PAD)
 
 #define BTN_DIR_UP BUTTON_UP
 #define BTN_DIR_DOWN BUTTON_DOWN
@@ -224,6 +225,16 @@ static long max_cycle;
 #define BTN_QUIT BUTTON_BACK
 #define BTN_STOPRESET BUTTON_MENU
 
+#elif CONFIG_KEYPAD == CREATIVE_ZENXFI3_PAD
+
+#define BTN_DIR_UP BUTTON_UP
+#define BTN_DIR_DOWN BUTTON_DOWN
+#define BTN_DIR_LEFT BUTTON_BACK
+#define BTN_DIR_RIGHT BUTTON_MENU
+#define BTN_STARTPAUSE (BUTTON_PLAY|BUTTON_REL)
+#define BTN_QUIT BUTTON_POWER
+#define BTN_STOPRESET (BUTTON_PLAY|BUTTON_REPEAT)
+
 #elif CONFIG_KEYPAD == PHILIPS_HDD1630_PAD
 
 #define BTN_DIR_UP BUTTON_UP
@@ -260,15 +271,16 @@ CONFIG_KEYPAD == MROBE500_PAD
 
 #define BTN_QUIT BUTTON_POWER
 
-#elif CONFIG_KEYPAD == SAMSUNG_YH_PAD
+#elif (CONFIG_KEYPAD == SAMSUNG_YH820_PAD) || \
+      (CONFIG_KEYPAD == SAMSUNG_YH920_PAD)
 
 #define BTN_DIR_UP     BUTTON_UP
 #define BTN_DIR_DOWN   BUTTON_DOWN
 #define BTN_DIR_LEFT   BUTTON_LEFT
 #define BTN_DIR_RIGHT  BUTTON_RIGHT
 #define BTN_STARTPAUSE BUTTON_PLAY
-#define BTN_QUIT       BUTTON_FFWD
-#define BTN_STOPRESET  BUTTON_REW
+#define BTN_QUIT       BUTTON_REW
+#define BTN_STOPRESET  BUTTON_FFWD
 
 #elif CONFIG_KEYPAD == PBELL_VIBE500_PAD
 
@@ -282,10 +294,10 @@ CONFIG_KEYPAD == MROBE500_PAD
 
 #elif CONFIG_KEYPAD == MPIO_HD200_PAD
 
-#define BTN_DIR_UP BUTTON_REC
-#define BTN_DIR_DOWN BUTTON_PLAY
-#define BTN_DIR_LEFT BUTTON_REW
-#define BTN_DIR_RIGHT BUTTON_FF
+#define BTN_DIR_UP BUTTON_REW
+#define BTN_DIR_DOWN BUTTON_FF
+#define BTN_DIR_LEFT BUTTON_VOL_DOWN
+#define BTN_DIR_RIGHT BUTTON_VOL_UP
 #define BTN_STARTPAUSE BUTTON_FUNC
 #define BTN_QUIT (BUTTON_REC|BUTTON_PLAY)
 #define BTN_STOPRESET (BUTTON_FUNC|BUTTON_REPEAT)
@@ -294,11 +306,78 @@ CONFIG_KEYPAD == MROBE500_PAD
 
 #define BTN_DIR_UP BUTTON_UP
 #define BTN_DIR_DOWN BUTTON_DOWN
-#define BTN_DIR_LEFT BUTTON_MENU
-#define BTN_DIR_RIGHT BUTTON_ENTER
+#define BTN_DIR_LEFT BUTTON_REW
+#define BTN_DIR_RIGHT BUTTON_FF
 #define BTN_STARTPAUSE BUTTON_PLAY
-#define BTN_QUIT BUTTON_REC
-#define BTN_STOPRESET (BUTTON_MENU | BUTTON_REPEAT)
+#define BTN_QUIT (BUTTON_MENU | BUTTON_REPEAT)
+#define BTN_STOPRESET (BUTTON_PLAY | BUTTON_REPEAT)
+
+#elif CONFIG_KEYPAD == SANSA_FUZEPLUS_PAD
+
+#define BTN_DIR_UP BUTTON_UP
+#define BTN_DIR_DOWN BUTTON_DOWN
+#define BTN_DIR_LEFT BUTTON_LEFT
+#define BTN_DIR_RIGHT BUTTON_RIGHT
+#define BTN_STARTPAUSE BUTTON_PLAYPAUSE
+#define BTN_QUIT BUTTON_POWER
+#define BTN_STOPRESET BUTTON_BACK
+
+#elif CONFIG_KEYPAD == SANSA_CONNECT_PAD
+
+#define BTN_DIR_UP BUTTON_UP
+#define BTN_DIR_DOWN BUTTON_DOWN
+#define BTN_DIR_LEFT BUTTON_LEFT
+#define BTN_DIR_RIGHT BUTTON_RIGHT
+#define BTN_STARTPAUSE BUTTON_SELECT
+#define BTN_QUIT BUTTON_POWER
+#define BTN_STOPRESET BUTTON_VOL_DOWN
+
+#elif CONFIG_KEYPAD == HM60X_PAD
+
+#define BTN_DIR_UP     BUTTON_UP
+#define BTN_DIR_DOWN   BUTTON_DOWN
+#define BTN_DIR_LEFT   BUTTON_LEFT
+#define BTN_DIR_RIGHT  BUTTON_RIGHT
+#define BTN_STARTPAUSE BUTTON_SELECT
+#define BTN_QUIT       BUTTON_POWER
+#define BTN_STOPRESET  (BUTTON_POWER|BUTTON_SELECT)
+
+#elif CONFIG_KEYPAD == HM801_PAD
+
+#define BTN_DIR_UP     BUTTON_UP
+#define BTN_DIR_DOWN   BUTTON_DOWN
+#define BTN_DIR_LEFT   BUTTON_LEFT
+#define BTN_DIR_RIGHT  BUTTON_RIGHT
+#define BTN_STARTPAUSE BUTTON_SELECT
+#define BTN_QUIT       BUTTON_POWER
+#define BTN_STOPRESET  BUTTON_PLAY
+
+#elif CONFIG_KEYPAD == SONY_NWZ_PAD
+#define BTN_DIR_UP        BUTTON_UP
+#define BTN_DIR_DOWN      BUTTON_DOWN
+#define BTN_DIR_LEFT      BUTTON_LEFT
+#define BTN_DIR_RIGHT     BUTTON_RIGHT
+#define BTN_STARTPAUSE    BUTTON_PLAY
+#define BTN_QUIT          BUTTON_BACK
+#define BTN_STOPRESET     BUTTON_POWER
+
+#elif CONFIG_KEYPAD == CREATIVE_ZEN_PAD
+#define BTN_DIR_UP        BUTTON_UP
+#define BTN_DIR_DOWN      BUTTON_DOWN
+#define BTN_DIR_LEFT      BUTTON_LEFT
+#define BTN_DIR_RIGHT     BUTTON_RIGHT
+#define BTN_STARTPAUSE    BUTTON_PLAYPAUSE
+#define BTN_QUIT          BUTTON_BACK
+#define BTN_STOPRESET     BUTTON_SHORTCUT
+
+#elif CONFIG_KEYPAD == DX50_PAD
+#define BTN_DIR_UP        BUTTON_VOL_UP
+#define BTN_DIR_DOWN      BUTTON_VOL_DOWN
+#define BTN_DIR_LEFT      BUTTON_LEFT
+#define BTN_DIR_RIGHT     BUTTON_RIGHT
+#define BTN_STARTPAUSE    BUTTON_PLAY
+#define BTN_QUIT          BUTTON_POWER
+#define BTN_STOPRESET     (BUTTON_PLAY|BUTTON_REPEAT)
 
 #else
 #error No keymap defined!
@@ -328,7 +407,12 @@ CONFIG_KEYPAD == MROBE500_PAD
 #endif
 #endif
 
-#if (LCD_WIDTH == 112) && (LCD_HEIGHT == 64)
+#if (LCD_WIDTH == 96) && (LCD_HEIGHT == 96)
+#define FOOD_SIZE 3
+#define ARGH_SIZE 4
+#define SPEED 14
+#define MAX_WORM_SEGMENTS 128
+#elif (LCD_WIDTH == 112) && (LCD_HEIGHT == 64)
 #define FOOD_SIZE 3
 #define ARGH_SIZE 4
 #define SPEED 14
@@ -358,7 +442,8 @@ CONFIG_KEYPAD == MROBE500_PAD
 #define ARGH_SIZE 5
 #define SPEED 9
 #define MAX_WORM_SEGMENTS 128
-#elif (LCD_WIDTH == 160) && (LCD_HEIGHT == 128)
+#elif ((LCD_WIDTH == 160) && (LCD_HEIGHT == 128)) || \
+      ((LCD_WIDTH == 128) && (LCD_HEIGHT == 160))
 #define FOOD_SIZE 4
 #define ARGH_SIZE 5
 #define SPEED 8
@@ -2312,7 +2397,7 @@ static bool launch_wormlet(void)
     rb->lcd_clear_display();
 
     /* Turn off backlight timeout */
-    backlight_force_on(); /* backlight control in lib/helper.c */
+    backlight_ignore_timeout();
 
     /* start the game */
     while (game_result == 1)
@@ -2322,7 +2407,7 @@ static bool launch_wormlet(void)
     {
         case 2:
             /* Turn on backlight timeout (revert to settings) */
-            backlight_use_settings(); /* backlight control in lib/helper.c */
+            backlight_use_settings();
             return false;
             break;
     }

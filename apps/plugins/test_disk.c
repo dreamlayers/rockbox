@@ -24,7 +24,7 @@
 
 
 
-#define TESTBASEDIR "/__TEST__"
+#define TESTBASEDIR HOME_DIR "/__TEST__"
 #define TEST_FILE   TESTBASEDIR "/test_disk.tmp"
 #define FRND_SEED   0x78C3     /* arbirary */
 
@@ -83,7 +83,7 @@ static bool log_init(void)
     rb->lcd_clear_display();
     rb->lcd_update();
     
-    rb->create_numbered_filename(logfilename, "/", "test_disk_log_", ".txt",
+    rb->create_numbered_filename(logfilename, HOME_DIR, "test_disk_log_", ".txt",
                                  2 IF_CNFN_NUM_(, NULL));
     log_fd = rb->open(logfilename, O_RDWR|O_CREAT|O_TRUNC, 0666);
     return log_fd >= 0;
@@ -369,6 +369,31 @@ static bool test_speed(void)
     rb->snprintf(text_buf, sizeof(text_buf), "Dirscan: %d files/s", n / TEST_TIME);
     log_text(text_buf, true);
 
+    dir = NULL;
+    entry = NULL;
+    /* Directory scan speed 2 */
+    time = *rb->current_tick + TEST_TIME*HZ;
+    for (n = 0; TIME_BEFORE(*rb->current_tick, time); n++)
+    {
+        if (entry == NULL)
+        {
+            if (dir != NULL)
+                rb->closedir(dir);
+            dir = rb->opendir(testbasedir);
+            if (dir == NULL)
+            {
+                rb->splash(HZ, "opendir() failed.");
+                goto error;
+            }
+        }
+        else
+            (void) rb->dir_get_info(dir, entry);
+        entry = rb->readdir(dir);
+    }
+    rb->closedir(dir);
+    rb->snprintf(text_buf, sizeof(text_buf), "Dirscan w info: %d files/s", n / TEST_TIME);
+    log_text(text_buf, true);
+
     /* File delete speed */
     time = *rb->current_tick;
     for (i = 0; i < last_file; i++)
@@ -441,7 +466,7 @@ enum plugin_status plugin_start(const void* parameter)
     rb->srand(*rb->current_tick);
 
     /* Turn off backlight timeout */
-    backlight_force_on(); /* backlight control in lib/helper.c */
+    backlight_ignore_timeout();
 
     while(!quit)
     {
@@ -460,7 +485,7 @@ enum plugin_status plugin_start(const void* parameter)
     }
 
     /* Turn on backlight timeout (revert to settings) */
-    backlight_use_settings(); /* backlight control in lib/helper.c */
+    backlight_use_settings();
     
     rb->rmdir(testbasedir);
 

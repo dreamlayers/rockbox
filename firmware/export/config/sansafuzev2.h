@@ -1,7 +1,6 @@
 /*
  * This config file is for the Sandisk Sansa Fuze v2
  */
-#define TARGET_TREE /* this target is using the target tree system */
 
 /* For Rolo and boot loader */
 #define MODEL_NUMBER 68
@@ -12,7 +11,14 @@
 /* define this if you have recording possibility */
 #define HAVE_RECORDING
 
-#define REC_SAMPR_CAPS      SAMPR_CAP_ALL
+#define REC_SAMPR_CAPS      (SAMPR_CAP_48 | SAMPR_CAP_44 | SAMPR_CAP_32 | \
+                             SAMPR_CAP_24 | SAMPR_CAP_22 | SAMPR_CAP_16 | \
+                             SAMPR_CAP_12 | SAMPR_CAP_11 | SAMPR_CAP_8)
+
+/* because the samplerates don't match at each point, we must be able to
+ * tell PCM which set of rates to use. not needed if recording rates are
+ * a simple subset of playback rates and are equal values. */
+#define CONFIG_SAMPR_TYPES
 
 /* Default recording levels */
 #define DEFAULT_REC_MIC_GAIN    23
@@ -39,9 +45,6 @@
 
 /* define this if you have access to the quickscreen */
 #define HAVE_QUICKSCREEN
-
-/* define this if you have access to the pitchscreen */
-#define HAVE_PITCHSCREEN
 
 /* define this if you would like tagcache to build on this target */
 #define HAVE_TAGCACHE
@@ -88,6 +91,9 @@
 
 #define CONFIG_KEYPAD SANSA_FUZE_PAD
 
+/* Define this to have CPU boosted while scrolling in the UI */
+#define HAVE_GUI_BOOST
+
 /* Define this to enable morse code input */
 #define HAVE_MORSE_INPUT
 
@@ -98,6 +104,8 @@
 /* LCD dimensions */
 #define LCD_WIDTH  220
 #define LCD_HEIGHT 176
+/* sqrt(220^2 + 176^2) / 2.2 = 128.1 */
+#define LCD_DPI 128
 #define LCD_DEPTH  16   /* 65536 colours */
 #define LCD_PIXELFORMAT RGB565SWAPPED /* rgb565 swapped */
 
@@ -130,7 +138,7 @@
 
 /* Main LCD backlight brightness range and defaults */
 #define MIN_BRIGHTNESS_SETTING      1
-#define MAX_BRIGHTNESS_SETTING     25
+#define MAX_BRIGHTNESS_SETTING     12
 #define DEFAULT_BRIGHTNESS_SETTING  6
 
 /* define this if you have a light associated with the buttons */
@@ -150,6 +158,8 @@
 #define BATTERY_CAPACITY_MAX 550        /* max. capacity selectable */
 #define BATTERY_CAPACITY_INC 0          /* capacity increment */
 #define BATTERY_TYPES_COUNT  1          /* only one type */
+
+#define CONFIG_BATTERY_MEASURE VOLTAGE_MEASURE
 
 /* Charging implemented in a target-specific algorithm */
 #define CONFIG_CHARGING CHARGING_TARGET
@@ -189,14 +199,13 @@
 #endif
 
 /* USB On-the-go */
-#define CONFIG_USBOTG USBOTG_AS3525v2
+#define CONFIG_USBOTG USBOTG_S3C6400X
 
 /* enable these for the experimental usb stack */
 #define HAVE_USBSTACK
-//#define USB_HANDLED_BY_OF
-#define USE_ROCKBOX_USB
 #define USB_VENDOR_ID 0x0781
 #define USB_PRODUCT_ID 0x74c3   /* MSC = 0x74c3, MTP = 0x74c2 */
+#define HAVE_BOOTLOADER_USB_MODE
 
 /* Define this if you have adjustable CPU frequency */
 //#define HAVE_ADJUSTABLE_CPU_FREQ

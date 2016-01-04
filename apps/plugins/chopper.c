@@ -70,7 +70,8 @@ Still To do:
 #elif (CONFIG_KEYPAD == SANSA_E200_PAD) || \
       (CONFIG_KEYPAD == SANSA_C200_PAD) || \
       (CONFIG_KEYPAD == SANSA_CLIP_PAD) || \
-      (CONFIG_KEYPAD == SANSA_M200_PAD)
+      (CONFIG_KEYPAD == SANSA_M200_PAD) || \
+      (CONFIG_KEYPAD == SANSA_CONNECT_PAD)
 #define QUIT BUTTON_POWER
 #define ACTION BUTTON_SELECT
 #define ACTIONTEXT "SELECT"
@@ -96,7 +97,8 @@ Still To do:
 #define ACTION2 BUTTON_MENU
 #define ACTIONTEXT "UP"
 
-#elif CONFIG_KEYPAD == GIGABEAT_S_PAD
+#elif CONFIG_KEYPAD == GIGABEAT_S_PAD \
+   || CONFIG_KEYPAD == SAMSUNG_YPR0_PAD
 #define QUIT BUTTON_BACK
 #define ACTION BUTTON_SELECT
 #define ACTION2 BUTTON_MENU
@@ -129,6 +131,12 @@ Still To do:
 #define ACTION2 BUTTON_MENU
 #define ACTIONTEXT "UP"
 
+#elif CONFIG_KEYPAD == CREATIVE_ZENXFI3_PAD
+#define QUIT BUTTON_POWER
+#define ACTION BUTTON_UP
+#define ACTION2 BUTTON_MENU
+#define ACTIONTEXT "UP"
+
 #elif CONFIG_KEYPAD == PHILIPS_HDD1630_PAD
 #define QUIT BUTTON_POWER
 #define ACTION BUTTON_MENU
@@ -152,10 +160,12 @@ CONFIG_KEYPAD == ONDAVX777_PAD || \
 CONFIG_KEYPAD == MROBE500_PAD
 #define QUIT BUTTON_POWER
 
-#elif CONFIG_KEYPAD == SAMSUNG_YH_PAD
+#elif (CONFIG_KEYPAD == SAMSUNG_YH820_PAD) || \
+      (CONFIG_KEYPAD == SAMSUNG_YH920_PAD)
 #define QUIT        BUTTON_LEFT
 #define ACTION      BUTTON_RIGHT
-#define ACTIONTEXT "RIGHT"
+#define ACTION2     BUTTON_UP
+#define ACTIONTEXT "RIGHT or UP"
 
 #elif CONFIG_KEYPAD == PBELL_VIBE500_PAD
 #define QUIT BUTTON_REC
@@ -169,11 +179,33 @@ CONFIG_KEYPAD == MROBE500_PAD
 #define ACTIONTEXT "FUNC"
 
 #elif CONFIG_KEYPAD == MPIO_HD300_PAD
-#define QUIT BUTTON_REC
+#define QUIT (BUTTON_MENU|BUTTON_REPEAT)
 #define ACTION BUTTON_ENTER
 #define ACTIONTEXT "ENTER"
 
-#else
+#elif CONFIG_KEYPAD == SANSA_FUZEPLUS_PAD
+#define QUIT BUTTON_POWER
+#define ACTION BUTTON_SELECT
+#define ACTIONTEXT "SELECT"
+
+#elif (CONFIG_KEYPAD == HM60X_PAD) || \
+    (CONFIG_KEYPAD == HM801_PAD)
+#define QUIT BUTTON_POWER
+#define ACTION BUTTON_SELECT
+#define ACTIONTEXT "SELECT"
+
+#elif CONFIG_KEYPAD == SONY_NWZ_PAD
+#define QUIT       BUTTON_BACK
+#define ACTION     BUTTON_PLAY
+#define ACTIONTEXT "PLAY"
+
+#elif CONFIG_KEYPAD == CREATIVE_ZEN_PAD
+#define QUIT       BUTTON_BACK
+#define ACTION     BUTTON_SELECT
+#define ACTIONTEXT "Select"
+
+
+#elif !defined(HAVE_TOUCHSCREEN)
 #error No keymap defined!
 #endif
 
@@ -285,8 +317,7 @@ struct CTerrain mRoof;
 static void chopDrawParticle(struct CParticle *mParticle);
 static void chopDrawBlock(struct CBlock *mBlock);
 static void chopRenderTerrain(struct CTerrain *ter, bool isground);
-void chopper_load(bool newgame);
-void cleanup_chopper(void);
+static void chopper_load(bool newgame);
 
 static void chopDrawPlayer(int x,int y) /* These are SCREEN coords, not world!*/
 {
@@ -330,7 +361,7 @@ static void chopClearTerrain(struct CTerrain *ter)
 }
 
 
-int iR(int low,int high)
+static int iR(int low,int high)
 {
     return low+rb->rand()%(high-low+1);
 }
@@ -389,10 +420,9 @@ static void chopTerrainNodeDeleteAndShift(struct CTerrain *ter,int nodeIndex)
 
 }
 
-int chopUpdateTerrainRecycling(struct CTerrain *ter)
+static int chopUpdateTerrainRecycling(struct CTerrain *ter)
 {
     int i=1;
-    int ret = 0;
     int iNewNodePos,g,v;
     while(i < ter->iNodesCount)
     {
@@ -412,8 +442,6 @@ int chopUpdateTerrainRecycling(struct CTerrain *ter)
                 v*=5;
 
             chopAddTerrainNode(ter,iNewNodePos,g - iR(-v,v));
-            ret=1;
-
         }
 
         i++;
@@ -423,10 +451,10 @@ int chopUpdateTerrainRecycling(struct CTerrain *ter)
     return 1;
 }
 
-int chopTerrainHeightAtPoint(struct CTerrain *ter, int pX)
+static int chopTerrainHeightAtPoint(struct CTerrain *ter, int pX)
 {
 
-    int iNodeIndexOne=0,iNodeIndexTwo=0, h, terY1, terY2, terX1, terX2, a, b;
+    int iNodeIndexOne=0,iNodeIndexTwo=0, h, terY1, terY2, terX2, a, b;
     float c,d;
 
     int i=0;
@@ -444,7 +472,7 @@ int chopTerrainHeightAtPoint(struct CTerrain *ter, int pX)
     terY1 = ter->mNodes[iNodeIndexOne].y;
     terY2 = ter->mNodes[iNodeIndexTwo].y;
 
-    terX1 = 0;
+    /* terX1 = 0; */
     terX2 = ter->mNodes[iNodeIndexTwo].x - ter->mNodes[iNodeIndexOne].x;
 
     pX-= ter->mNodes[iNodeIndexOne].x;
@@ -460,7 +488,7 @@ int chopTerrainHeightAtPoint(struct CTerrain *ter, int pX)
 
 }
 
-int chopPointInTerrain(struct CTerrain *ter, int pX, int pY, int iTestType)
+static int chopPointInTerrain(struct CTerrain *ter, int pX, int pY, int iTestType)
 {
     int h = chopTerrainHeightAtPoint(ter, pX);
 
@@ -780,6 +808,7 @@ static int chopGameLoop(void)
 {
     int move_button, ret;
     bool exit=false;
+    bool showsplash=true;
     int end, i=0, bdelay=0, last_button=BUTTON_NONE;
 
     if (chopUpdateTerrainRecycling(&mGround) == 1)
@@ -789,8 +818,6 @@ static int chopGameLoop(void)
     ret = chopMenu(0);
     if (ret != -1)
         return PLUGIN_OK;
-
-    chopDrawScene();
 
     while (!exit) {
 
@@ -826,12 +853,18 @@ static int chopGameLoop(void)
         if(iCurrLevelMode == LEVEL_MODE_NORMAL)
             chopGenerateBlockIfNeeded();
 
+        if (showsplash) {
+            chopDrawScene();
+            rb->splash(HZ, "Get Ready!");
+            showsplash = false;
+        }
 
         move_button=rb->button_status();
         if (rb->button_get(false) == QUIT) {
             ret = chopMenu(1);
             if (ret != -1)
                 return PLUGIN_OK;
+            showsplash = true;
             bdelay = 0;
             last_button = BUTTON_NONE;
             move_button = BUTTON_NONE;
@@ -896,6 +929,7 @@ static int chopGameLoop(void)
            ret = chopMenu(0);
            if (ret != -1)
                return ret;
+           showsplash = true;
         }
 
         for (i=0; i < NUMBER_OF_BLOCKS; i++)
@@ -906,6 +940,7 @@ static int chopGameLoop(void)
                     ret = chopMenu(0);
                     if (ret != -1)
                         return ret;
+                    showsplash = true;
                 }
 
         if (TIME_BEFORE(*rb->current_tick, end))
@@ -988,7 +1023,7 @@ static void chopRenderTerrain(struct CTerrain *ter, bool isground)
     }
 }
 
-void chopper_load(bool newgame)
+static void chopper_load(bool newgame)
 {
 
     int i;
@@ -1050,7 +1085,7 @@ enum plugin_status plugin_start(const void* parameter)
 #endif
 
     /* Turn off backlight timeout */
-    backlight_force_on(); /* backlight control in lib/helper.c */
+    backlight_ignore_timeout();
 
     rb->srand( *rb->current_tick );
 
@@ -1063,7 +1098,7 @@ enum plugin_status plugin_start(const void* parameter)
 
     rb->lcd_setfont(FONT_UI);
     /* Turn on backlight timeout (revert to settings) */
-    backlight_use_settings(); /* backlight control in lib/helper.c */
+    backlight_use_settings();
 
     return ret;
 }

@@ -1,7 +1,6 @@
 /*
  * This config file is for iPod Nano 2nd Generation
  */
-#define TARGET_TREE /* this target is using the target tree system */
 
 #define IPOD_ARCH 1
 
@@ -54,9 +53,6 @@
 /* define this if you have access to the quickscreen */
 #define HAVE_QUICKSCREEN
 
-/* define this if you have access to the pitchscreen */
-#define HAVE_PITCHSCREEN
-
 /* define this if you would like tagcache to build on this target */
 #define HAVE_TAGCACHE
 
@@ -86,6 +82,8 @@
 /* LCD dimensions */
 #define LCD_WIDTH  176
 #define LCD_HEIGHT 132
+/* sqrt(176^2 + 132^2) / 1.5 = 146.7 */
+#define LCD_DPI 147
 #define LCD_DEPTH  16   /* pseudo 262.144 colors */
 #define LCD_PIXELFORMAT RGB565 /* rgb565 */
 
@@ -104,8 +102,11 @@
 
 #define CONFIG_KEYPAD IPOD_4G_PAD
 
-//#define AB_REPEAT_ENABLE
-//#define ACTION_WPSAB_SINGLE ACTION_WPS_BROWSE
+/* Define this to have CPU boosted while scrolling in the UI */
+#define HAVE_GUI_BOOST
+
+#define AB_REPEAT_ENABLE
+#define ACTION_WPSAB_SINGLE ACTION_WPS_BROWSE
 
 /* Define this to enable morse code input */
 #define HAVE_MORSE_INPUT
@@ -144,6 +145,8 @@
 #define BATTERY_CAPACITY_MAX     500 /* max. capacity selectable */
 #define BATTERY_CAPACITY_INC      10 /* capacity increment */
 #define BATTERY_TYPES_COUNT        1 /* only one type */
+
+#define CONFIG_BATTERY_MEASURE VOLTAGE_MEASURE
 
 /* Hardware controlled charging with monitoring */
 #define CONFIG_CHARGING CHARGING_MONITOR
@@ -188,6 +191,8 @@
 /* Define this if you can read an absolute wheel position */
 #define HAVE_WHEEL_POSITION
 
+#define HAVE_HARDWARE_CLICK
+
 /* Define this if you have adjustable CPU frequency */
 #define HAVE_ADJUSTABLE_CPU_FREQ
 
@@ -217,12 +222,11 @@
 
 /* USB defines */
 #define HAVE_USBSTACK
-//#define HAVE_USB_HID_MOUSE - broken?
+#define HAVE_USB_HID_MOUSE
 #define CONFIG_USBOTG USBOTG_S3C6400X
 #define USB_VENDOR_ID 0x05AC
 #define USB_PRODUCT_ID 0x1260
-#define USB_NUM_ENDPOINTS 5
-#define USE_ROCKBOX_USB
+#define USB_NUM_ENDPOINTS 6
 #define USB_DEVBSS_ATTR __attribute__((aligned(16)))
 
 /* Define this if you can switch on/off the accessory power supply */

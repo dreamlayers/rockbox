@@ -20,220 +20,27 @@
 #include "plugin.h"
 #include "lib/helper.h"
 #include "lib/pluginlib_exit.h"
-
+#include "lib/pluginlib_actions.h"
 /******************************* Globals ***********************************/
+/* this set the context to use with PLA */
+static const struct button_mapping *plugin_contexts[] = { pla_main_ctx };
 
 /* Key assignement */
-#if (CONFIG_KEYPAD == IPOD_4G_PAD) || \
-    (CONFIG_KEYPAD == IPOD_3G_PAD) || \
-    (CONFIG_KEYPAD == IPOD_1G2G_PAD)
-#define STARFIELD_QUIT BUTTON_MENU
-#define STARFIELD_INCREASE_ZMOVE BUTTON_SCROLL_FWD
-#define STARFIELD_DECREASE_ZMOVE BUTTON_SCROLL_BACK
-#define STARFIELD_INCREASE_NB_STARS BUTTON_RIGHT
-#define STARFIELD_DECREASE_NB_STARS BUTTON_LEFT
-#define STARFIELD_TOGGLE_COLOR BUTTON_PLAY
-
-#elif (CONFIG_KEYPAD == IAUDIO_X5M5_PAD)
-#define STARFIELD_QUIT BUTTON_POWER
-#define STARFIELD_INCREASE_ZMOVE BUTTON_UP
-#define STARFIELD_DECREASE_ZMOVE BUTTON_DOWN
-#define STARFIELD_INCREASE_NB_STARS BUTTON_RIGHT
-#define STARFIELD_DECREASE_NB_STARS BUTTON_LEFT
-#define STARFIELD_TOGGLE_COLOR BUTTON_PLAY
-
-#elif (CONFIG_KEYPAD == IRIVER_H10_PAD)
-#define STARFIELD_QUIT BUTTON_POWER
-#define STARFIELD_INCREASE_ZMOVE BUTTON_SCROLL_UP
-#define STARFIELD_DECREASE_ZMOVE BUTTON_SCROLL_DOWN
-#define STARFIELD_INCREASE_NB_STARS BUTTON_RIGHT
-#define STARFIELD_DECREASE_NB_STARS BUTTON_LEFT
-#define STARFIELD_TOGGLE_COLOR BUTTON_PLAY
-
-#elif (CONFIG_KEYPAD == GIGABEAT_PAD)
-#define STARFIELD_QUIT BUTTON_POWER
-#define STARFIELD_INCREASE_ZMOVE BUTTON_UP
-#define STARFIELD_DECREASE_ZMOVE BUTTON_DOWN
-#define STARFIELD_INCREASE_NB_STARS BUTTON_RIGHT
-#define STARFIELD_DECREASE_NB_STARS BUTTON_LEFT
-#define STARFIELD_TOGGLE_COLOR BUTTON_SELECT
-
-#elif (CONFIG_KEYPAD == SANSA_E200_PAD) || \
-      (CONFIG_KEYPAD == SANSA_C200_PAD) || \
-      (CONFIG_KEYPAD == SANSA_CLIP_PAD) || \
-      (CONFIG_KEYPAD == SANSA_M200_PAD)
-#define STARFIELD_QUIT BUTTON_POWER
-#define STARFIELD_INCREASE_ZMOVE BUTTON_UP
-#define STARFIELD_DECREASE_ZMOVE BUTTON_DOWN
-#define STARFIELD_INCREASE_NB_STARS BUTTON_RIGHT
-#define STARFIELD_DECREASE_NB_STARS BUTTON_LEFT
-#define STARFIELD_TOGGLE_COLOR BUTTON_SELECT
-
-#elif (CONFIG_KEYPAD == SANSA_FUZE_PAD)
-#define STARFIELD_QUIT (BUTTON_HOME|BUTTON_REPEAT)
-#define STARFIELD_INCREASE_ZMOVE BUTTON_UP
-#define STARFIELD_DECREASE_ZMOVE BUTTON_DOWN
-#define STARFIELD_INCREASE_NB_STARS BUTTON_RIGHT
-#define STARFIELD_DECREASE_NB_STARS BUTTON_LEFT
-#define STARFIELD_TOGGLE_COLOR BUTTON_SELECT
-
-#elif (CONFIG_KEYPAD == GIGABEAT_S_PAD)
-#define STARFIELD_QUIT BUTTON_BACK
-#define STARFIELD_INCREASE_ZMOVE BUTTON_UP
-#define STARFIELD_DECREASE_ZMOVE BUTTON_DOWN
-#define STARFIELD_INCREASE_NB_STARS BUTTON_RIGHT
-#define STARFIELD_DECREASE_NB_STARS BUTTON_LEFT
-#define STARFIELD_TOGGLE_COLOR BUTTON_SELECT
-
-#elif (CONFIG_KEYPAD == MROBE100_PAD)
-#define STARFIELD_QUIT BUTTON_POWER
-#define STARFIELD_INCREASE_ZMOVE BUTTON_UP
-#define STARFIELD_DECREASE_ZMOVE BUTTON_DOWN
-#define STARFIELD_INCREASE_NB_STARS BUTTON_RIGHT
-#define STARFIELD_DECREASE_NB_STARS BUTTON_LEFT
-#define STARFIELD_TOGGLE_COLOR BUTTON_SELECT
-
-#elif CONFIG_KEYPAD == IAUDIO_M3_PAD
-#define STARFIELD_QUIT BUTTON_RC_REC
-#define STARFIELD_INCREASE_ZMOVE BUTTON_RC_VOL_UP
-#define STARFIELD_DECREASE_ZMOVE BUTTON_RC_VOL_DOWN
-#define STARFIELD_INCREASE_NB_STARS BUTTON_RC_FF
-#define STARFIELD_DECREASE_NB_STARS BUTTON_RC_REW
-#define STARFIELD_TOGGLE_COLOR BUTTON_RC_MODE
-
-#elif CONFIG_KEYPAD == IAUDIO67_PAD
-#define STARFIELD_QUIT BUTTON_POWER
-#define STARFIELD_INCREASE_ZMOVE BUTTON_STOP
-#define STARFIELD_DECREASE_ZMOVE BUTTON_PLAY
-#define STARFIELD_INCREASE_NB_STARS BUTTON_LEFT
-#define STARFIELD_DECREASE_NB_STARS BUTTON_RIGHT
-#define STARFIELD_TOGGLE_COLOR BUTTON_MENU
-
-#elif (CONFIG_KEYPAD == COWON_D2_PAD)
-#define STARFIELD_QUIT BUTTON_POWER
-
-#elif CONFIG_KEYPAD == CREATIVEZVM_PAD
-#define STARFIELD_QUIT BUTTON_BACK
-#define STARFIELD_INCREASE_ZMOVE BUTTON_UP
-#define STARFIELD_DECREASE_ZMOVE BUTTON_DOWN
-#define STARFIELD_INCREASE_NB_STARS BUTTON_RIGHT
-#define STARFIELD_DECREASE_NB_STARS BUTTON_LEFT
-#define STARFIELD_TOGGLE_COLOR BUTTON_SELECT
-
-#elif CONFIG_KEYPAD == PHILIPS_HDD1630_PAD
-#define STARFIELD_QUIT BUTTON_POWER
-#define STARFIELD_INCREASE_ZMOVE BUTTON_UP
-#define STARFIELD_DECREASE_ZMOVE BUTTON_DOWN
-#define STARFIELD_INCREASE_NB_STARS BUTTON_RIGHT
-#define STARFIELD_DECREASE_NB_STARS BUTTON_LEFT
-#define STARFIELD_TOGGLE_COLOR BUTTON_SELECT
-
-#elif CONFIG_KEYPAD == PHILIPS_HDD6330_PAD
-#define STARFIELD_QUIT BUTTON_POWER
-#define STARFIELD_INCREASE_ZMOVE BUTTON_UP
-#define STARFIELD_DECREASE_ZMOVE BUTTON_DOWN
-#define STARFIELD_INCREASE_NB_STARS BUTTON_RIGHT
-#define STARFIELD_DECREASE_NB_STARS BUTTON_LEFT
-#define STARFIELD_TOGGLE_COLOR BUTTON_PLAY
-
-#elif CONFIG_KEYPAD == PHILIPS_SA9200_PAD
-#define STARFIELD_QUIT BUTTON_POWER
-#define STARFIELD_INCREASE_ZMOVE BUTTON_UP
-#define STARFIELD_DECREASE_ZMOVE BUTTON_DOWN
-#define STARFIELD_INCREASE_NB_STARS BUTTON_NEXT
-#define STARFIELD_DECREASE_NB_STARS BUTTON_PREV
-#define STARFIELD_TOGGLE_COLOR BUTTON_PLAY
-
-#elif (CONFIG_KEYPAD == ONDAVX747_PAD) || (CONFIG_KEYPAD == ONDAVX777_PAD) || (CONFIG_KEYPAD == MROBE500_PAD)
-#define STARFIELD_QUIT BUTTON_POWER
-
-#elif CONFIG_KEYPAD == SAMSUNG_YH_PAD
-#define STARFIELD_QUIT               BUTTON_FFWD
-#define STARFIELD_INCREASE_ZMOVE     BUTTON_UP
-#define STARFIELD_DECREASE_ZMOVE     BUTTON_DOWN
-#define STARFIELD_INCREASE_NB_STARS  BUTTON_RIGHT
-#define STARFIELD_DECREASE_NB_STARS  BUTTON_LEFT
-#define STARFIELD_TOGGLE_COLOR       BUTTON_PLAY
-
-#elif CONFIG_KEYPAD == PBELL_VIBE500_PAD
-#define STARFIELD_QUIT               BUTTON_REC
-#define STARFIELD_INCREASE_ZMOVE     BUTTON_UP
-#define STARFIELD_DECREASE_ZMOVE     BUTTON_DOWN
-#define STARFIELD_INCREASE_NB_STARS  BUTTON_NEXT
-#define STARFIELD_DECREASE_NB_STARS  BUTTON_PREV
-#define STARFIELD_TOGGLE_COLOR       BUTTON_PLAY
-
-#elif CONFIG_KEYPAD == MPIO_HD200_PAD
-#define STARFIELD_QUIT               (BUTTON_REC|BUTTON_PLAY)
-#define STARFIELD_INCREASE_ZMOVE     BUTTON_VOL_UP
-#define STARFIELD_DECREASE_ZMOVE     BUTTON_VOL_DOWN
-#define STARFIELD_INCREASE_NB_STARS  BUTTON_FF
-#define STARFIELD_DECREASE_NB_STARS  BUTTON_REW
-#define STARFIELD_TOGGLE_COLOR       BUTTON_PLAY
-
-#elif CONFIG_KEYPAD == MPIO_HD300_PAD
-#define STARFIELD_QUIT               (BUTTON_REC|BUTTON_REPEAT)
-#define STARFIELD_INCREASE_ZMOVE     BUTTON_UP
-#define STARFIELD_DECREASE_ZMOVE     BUTTON_DOWN
-#define STARFIELD_INCREASE_NB_STARS  BUTTON_FF
-#define STARFIELD_DECREASE_NB_STARS  BUTTON_REW
-#define STARFIELD_TOGGLE_COLOR       BUTTON_PLAY
-
-#endif
-
-#ifdef HAVE_TOUCHSCREEN
-#ifndef STARFIELD_QUIT
-#define STARFIELD_QUIT              BUTTON_TOPLEFT
-#endif
-#ifndef STARFIELD_INCREASE_ZMOVE
-#define STARFIELD_INCREASE_ZMOVE    BUTTON_TOPMIDDLE
-#endif
-#ifndef STARFIELD_DECREASE_ZMOVE
-#define STARFIELD_DECREASE_ZMOVE    BUTTON_BOTTOMMIDDLE
-#endif
-#ifndef STARFIELD_INCREASE_NB_STARS
-#define STARFIELD_INCREASE_NB_STARS BUTTON_MIDRIGHT
-#endif
-#ifndef STARFIELD_DECREASE_NB_STARS
-#define STARFIELD_DECREASE_NB_STARS BUTTON_MIDLEFT
-#endif
-#ifndef STARFIELD_TOGGLE_COLOR
-#define STARFIELD_TOGGLE_COLOR      BUTTON_CENTER
-#endif
-#endif
-
-#ifndef STARFIELD_QUIT
-#define STARFIELD_QUIT BUTTON_OFF
-#endif
-#ifndef STARFIELD_INCREASE_ZMOVE
-#define STARFIELD_INCREASE_ZMOVE BUTTON_UP
-#endif
-#ifndef STARFIELD_DECREASE_ZMOVE
-#define STARFIELD_DECREASE_ZMOVE BUTTON_DOWN
-#endif
-#ifndef STARFIELD_INCREASE_NB_STARS
-#define STARFIELD_INCREASE_NB_STARS BUTTON_RIGHT
-#endif
-#ifndef STARFIELD_DECREASE_NB_STARS
-#define STARFIELD_DECREASE_NB_STARS BUTTON_LEFT
-#endif
-
-#ifndef STARFIELD_TOGGLE_COLOR
-#ifdef BUTTON_SELECT
-#define STARFIELD_TOGGLE_COLOR BUTTON_SELECT
-#else
-#define STARFIELD_TOGGLE_COLOR BUTTON_PLAY
-#endif
-#endif
-#if (CONFIG_KEYPAD == IRIVER_H100_PAD) || (CONFIG_KEYPAD == IRIVER_H300_PAD)
-#define STARFIELD_RC_QUIT BUTTON_RC_STOP
-#endif
-
+#define STARFIELD_QUIT                        PLA_EXIT
+#define STARFIELD_QUIT2                       PLA_CANCEL
+#define STARFIELD_INCREASE_ZMOVE              PLA_UP
+#define STARFIELD_INCREASE_ZMOVE_REPEAT       PLA_UP_REPEAT
+#define STARFIELD_DECREASE_ZMOVE              PLA_DOWN
+#define STARFIELD_DECREASE_ZMOVE_REPEAT       PLA_DOWN_REPEAT
+#define STARFIELD_INCREASE_NB_STARS           PLA_RIGHT
+#define STARFIELD_INCREASE_NB_STARS_REPEAT    PLA_RIGHT_REPEAT
+#define STARFIELD_DECREASE_NB_STARS           PLA_LEFT
+#define STARFIELD_DECREASE_NB_STARS_REPEAT    PLA_LEFT_REPEAT
+#define STARFIELD_TOGGLE_COLOR                PLA_SELECT
 
 #define LCD_CENTER_X (LCD_WIDTH/2)
 #define LCD_CENTER_Y (LCD_HEIGHT/2)
 #define Z_MAX_DIST 100
-
 
 #define MAX_STARS (LCD_WIDTH*LCD_HEIGHT*20)/100
 #define INIT_STARS 200
@@ -391,11 +198,11 @@ static inline void starfield_move_and_draw(struct starfield * starfield)
 
 static struct starfield starfield;
 
-int plugin_main(void)
+static int plugin_main(void)
 {
     int button, avg_peak, t_disp=0;
     int font_h, font_w;
-    bool pulse=true;
+    bool pulse __attribute__ ((unused)) = true; /* 'unused' resolves warnings */
     rb->lcd_getstringsize("A", &font_w, &font_h);
     starfield_init(&starfield);
     starfield_add_stars(&starfield, INIT_STARS);
@@ -421,8 +228,11 @@ int plugin_main(void)
 
             /* Get the peaks. ( Borrowed from vu_meter ) */
 #if (CONFIG_CODEC == SWCODEC)
-            int left_peak, right_peak;
-            rb->pcm_calculate_peaks(&left_peak, &right_peak);
+            static struct pcm_peaks peaks;
+            rb->mixer_channel_calculate_peaks(PCM_MIXER_CHAN_PLAYBACK,
+                                              &peaks);
+            #define left_peak peaks.left
+            #define right_peak peaks.right
 #else
             int left_peak = rb->mas_codec_readreg(0xC);
             int right_peak = rb->mas_codec_readreg(0xD);
@@ -472,28 +282,31 @@ int plugin_main(void)
         }
         rb->lcd_update();
 
-        button = rb->button_get(false);
+        /*We get button from PLA this way */
+        button = pluginlib_getaction(TIMEOUT_NOBLOCK, plugin_contexts,
+                               ARRAYLEN(plugin_contexts));
+
         switch(button)
         {
             case (STARFIELD_INCREASE_ZMOVE):
-            case (STARFIELD_INCREASE_ZMOVE | BUTTON_REPEAT):
+            case (STARFIELD_INCREASE_ZMOVE_REPEAT):
                 ++(starfield.z_move);
                 pulse=false;
                 t_disp=MSG_DISP_TIME;
                 break;
             case (STARFIELD_DECREASE_ZMOVE):
-            case (STARFIELD_DECREASE_ZMOVE | BUTTON_REPEAT):
+            case (STARFIELD_DECREASE_ZMOVE_REPEAT):
                 --(starfield.z_move);
                 pulse=false;
                 t_disp=MSG_DISP_TIME;
                 break;
             case(STARFIELD_INCREASE_NB_STARS):
-            case(STARFIELD_INCREASE_NB_STARS | BUTTON_REPEAT):
+            case(STARFIELD_INCREASE_NB_STARS_REPEAT):
                 starfield_add_stars(&starfield, STARFIELD_INCREASE_STEP);
                 t_disp=MSG_DISP_TIME;
                 break;
             case(STARFIELD_DECREASE_NB_STARS):
-            case(STARFIELD_DECREASE_NB_STARS | BUTTON_REPEAT):
+            case(STARFIELD_DECREASE_NB_STARS_REPEAT):
                 starfield_del_stars(&starfield, STARFIELD_INCREASE_STEP);
                 t_disp=MSG_DISP_TIME;
                 break;
@@ -502,10 +315,8 @@ int plugin_main(void)
                 starfield.color=!starfield.color;
                 break;
 #endif
-#ifdef STARFIELD_RC_QUIT
-            case STARFIELD_RC_QUIT:
-#endif
             case(STARFIELD_QUIT):
+            case(STARFIELD_QUIT2):
                 return PLUGIN_OK;
                 break;
             default:
@@ -523,12 +334,12 @@ enum plugin_status plugin_start(const void* parameter)
 
     (void)parameter;
     /* Turn off backlight timeout */
-    backlight_force_on(); /* backlight control in lib/helper.c */
+    backlight_ignore_timeout();
 
     ret = plugin_main();
 
     /* Turn on backlight timeout (revert to settings) */
-    backlight_use_settings(); /* backlight control in lib/helper.c*/
+    backlight_use_settings();
 
     return ret;
 }

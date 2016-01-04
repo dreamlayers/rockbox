@@ -25,6 +25,7 @@
 #include "config.h"
 #include "icon.h"
 #include "screen_access.h"
+#include "skin_engine/skin_engine.h"
 
 #define SCROLLBAR_WIDTH global_settings.scrollbar_width
 
@@ -99,10 +100,12 @@ struct gui_synclist
     int start_item[NB_SCREENS]; /* the item that is displayed at the top of the screen */
     /* the number of lines that are selected at the same time */
     int selected_size;
+    /* the number of pixels each line occupies (including optional padding on touchscreen */
+    int line_height[NB_SCREENS];
 #ifdef HAVE_LCD_BITMAP
     int offset_position[NB_SCREENS]; /* the list's screen scroll placement in pixels */
 #endif
-    long scheduled_talk_tick, last_talked_tick;
+    long scheduled_talk_tick, last_talked_tick, dirty_tick;
 
     list_get_icon *callback_get_item_icon;
     list_get_name *callback_get_item_name;
@@ -144,6 +147,7 @@ extern void gui_synclist_init(
 extern void gui_synclist_set_nb_items(struct gui_synclist * lists, int nb_items);
 extern void gui_synclist_set_icon_callback(struct gui_synclist * lists, list_get_icon icon_callback);
 extern void gui_synclist_set_voice_callback(struct gui_synclist * lists, list_speak_item voice_callback);
+extern void gui_synclist_set_viewport_defaults(struct viewport *vp, enum screen_type screen);
 #ifdef HAVE_LCD_COLOR
 extern void gui_synclist_set_color_callback(struct gui_synclist * lists, list_get_color color_callback);
 #endif
@@ -163,8 +167,10 @@ extern void gui_synclist_set_title(struct gui_synclist * lists, char * title,
                                    enum themable_icons icon);
 extern void gui_synclist_hide_selection_marker(struct gui_synclist *lists,
                                                 bool hide);
-extern bool gui_synclist_item_is_onscreen(struct gui_synclist *lists,
-                                          enum screen_type screen, int item);
+
+#if CONFIG_CODEC == SWCODEC
+extern bool gui_synclist_keyclick_callback(int action, void* data);
+#endif
 /*
  * Do the action implied by the given button,
  * returns true if the action was handled.
@@ -173,6 +179,32 @@ extern bool gui_synclist_item_is_onscreen(struct gui_synclist *lists,
 extern bool gui_synclist_do_button(struct gui_synclist * lists,
                                        int *action,
                                        enum list_wrap);
+#if defined(HAVE_LCD_BITMAP) && !defined(PLUGIN)
+struct listitem_viewport_cfg {
+    struct wps_data *data;
+    OFFSETTYPE(char *)   label;
+    int     width;
+    int     height;
+    int     xmargin;
+    int     ymargin;
+    bool    tile;
+    struct skin_viewport selected_item_vp;
+};
+
+bool skinlist_get_item(struct screen *display, struct gui_synclist *list, int x, int y, int *item);
+bool skinlist_draw(struct screen *display, struct gui_synclist *list);
+bool skinlist_is_selected_item(void);
+void skinlist_set_cfg(enum screen_type screen,
+                      struct listitem_viewport_cfg *cfg);
+const char* skinlist_get_item_text(int offset, bool wrap, char* buf, size_t buf_size);
+int skinlist_get_item_number(void);
+int skinlist_get_item_row(void);
+int skinlist_get_item_column(void);
+enum themable_icons skinlist_get_item_icon(int offset, bool wrap);
+bool skinlist_needs_scrollbar(enum screen_type screen);
+void skinlist_get_scrollbar(int* nb_item, int* first_shown, int* last_shown);
+int skinlist_get_line_count(enum screen_type screen, struct gui_synclist *list);
+#endif
 
 #if  defined(HAVE_TOUCHSCREEN)
 /* this needs to be fixed if we ever get more than 1 touchscreen on a target */
@@ -213,15 +245,23 @@ struct simplelist_info {
         /* action_callback notes:
             action == the action pressed by the user 
                 _after_ gui_synclist_do_button returns.
-            lists == the lists sturct so the callack can get selection and count etc. */
+            lists == the lists struct so the callback can get selection and count etc. */
+    enum themable_icons title_icon;
     list_get_icon *get_icon; /* can be NULL */
     list_get_name *get_name; /* NULL if you're using simplelist_addline() */
     list_speak_item *get_talk; /* can be NULL to not speak */
+#ifdef HAVE_LCD_COLOR
+    list_get_color *get_color;
+#endif
     void *callback_data; /* data for callbacks */
 };
 
 #define SIMPLELIST_MAX_LINES 32
+#ifdef HAVE_ATA_SMART
+#define SIMPLELIST_MAX_LINELENGTH 48
+#else
 #define SIMPLELIST_MAX_LINELENGTH 32
+#endif
 
 /** The next three functions are used if the text is mostly static.
     These should be called in the action callback for the list.
@@ -231,10 +271,8 @@ struct simplelist_info {
 void simplelist_set_line_count(int lines);
 /* get the current amount of lines shown */
 int simplelist_get_line_count(void);
-/* add/edit a line in the list.
-   if line_number > number of lines shown it adds the line, else it edits the line */
-#define SIMPLELIST_ADD_LINE (SIMPLELIST_MAX_LINES+1)
-void simplelist_addline(int line_number, const char *fmt, ...);
+/* add a line in the list. */
+void simplelist_addline(const char *fmt, ...);
 
 /* setup the info struct. members not setup in this function need to be assigned manually
    members set in this function:
@@ -242,9 +280,11 @@ void simplelist_addline(int line_number, const char *fmt, ...);
     info.hide_selection = false;
     info.scroll_all = false;
     info.action_callback = NULL;
+    info.title_icon = Icon_NOICON;
     info.get_icon = NULL;
     info.get_name = NULL;
     info.get_voice = NULL;
+    info.get_color = NULL;
     info.timeout = HZ/10;
     info.selection = 0;
 */

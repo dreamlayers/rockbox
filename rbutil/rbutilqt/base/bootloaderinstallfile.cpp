@@ -7,7 +7,6 @@
  *                     \/            \/     \/    \/            \/
  *
  *   Copyright (C) 2008 by Dominik Riebeling
- *   $Id$
  *
  * All files in this archive are subject to the GNU General Public License.
  * See the file COPYING in the source tree root for full license agreement.
@@ -19,9 +18,9 @@
 
 #include <QtCore>
 #include <QtDebug>
-#include <QtDebug>
 #include "bootloaderinstallfile.h"
 #include "utils.h"
+#include "Logger.h"
 
 
 BootloaderInstallFile::BootloaderInstallFile(QObject *parent)
@@ -33,7 +32,7 @@ BootloaderInstallFile::BootloaderInstallFile(QObject *parent)
 bool BootloaderInstallFile::install(void)
 {
     emit logItem(tr("Downloading bootloader"), LOGINFO);
-    qDebug() << "[BootloaderInstallFile] installing bootloader";
+    LOG_INFO() << "installing bootloader";
     downloadBlStart(m_blurl);
     connect(this, SIGNAL(downloadDone()), this, SLOT(installStage2()));
     return true;
@@ -48,7 +47,7 @@ void BootloaderInstallFile::installStage2(void)
     QString fwfile(Utils::resolvePathCase(m_blfile));
     if(!fwfile.isEmpty()) {
         QString moved = Utils::resolvePathCase(m_blfile) + ".ORIG";
-        qDebug() << "[BootloaderInstallFile] renaming" << fwfile << "to" << moved;
+        LOG_INFO() << "renaming" << fwfile << "to" << moved;
         QFile::rename(fwfile, moved);
     }
 
@@ -82,11 +81,24 @@ void BootloaderInstallFile::installStage2(void)
 
     // place (new) bootloader
     m_tempfile.open();
-    qDebug() << "[BootloaderInstallFile] renaming" << m_tempfile.fileName() << "to" << fwfile;
+    LOG_INFO() << "renaming" << m_tempfile.fileName()
+               << "to" << fwfile;
     m_tempfile.close();
-    m_tempfile.copy(fwfile);
 
-    emit logItem(tr("Bootloader successful installed"), LOGOK);
+    if(!Utils::resolvePathCase(fwfile).isEmpty()) {
+        emit logItem(tr("A firmware file is already present on player"), LOGERROR);
+        emit done(true);
+        return;
+    }
+    if(m_tempfile.copy(fwfile)) {
+        emit logItem(tr("Bootloader successful installed"), LOGOK);
+    }
+    else {
+        emit logItem(tr("Copying modified firmware file failed"), LOGERROR);
+        emit done(true);
+        return;
+    }
+
     logInstall(LogAdd);
 
     emit done(false);
@@ -95,7 +107,7 @@ void BootloaderInstallFile::installStage2(void)
 
 bool BootloaderInstallFile::uninstall(void)
 {
-    qDebug() << "[BootloaderInstallFile] Uninstalling bootloader";
+    LOG_INFO() << "Uninstalling bootloader";
     emit logItem(tr("Removing Rockbox bootloader"), LOGINFO);
     // check if a .ORIG file is present, and allow moving it back.
     QString origbl = Utils::resolvePathCase(m_blfile + ".ORIG");
@@ -127,7 +139,7 @@ bool BootloaderInstallFile::uninstall(void)
 //! @return BootloaderRockbox, BootloaderOther or BootloaderUnknown.
 BootloaderInstallBase::BootloaderType BootloaderInstallFile::installed(void)
 {
-    qDebug() << "[BootloaderInstallFile] checking installed bootloader";
+    LOG_INFO() << "checking installed bootloader";
     if(!Utils::resolvePathCase(m_blfile).isEmpty()
         && !Utils::resolvePathCase(m_blfile + ".ORIG").isEmpty())
         return BootloaderRockbox;
@@ -140,7 +152,7 @@ BootloaderInstallBase::BootloaderType BootloaderInstallFile::installed(void)
 
 BootloaderInstallBase::Capabilities BootloaderInstallFile::capabilities(void)
 {
-    qDebug() << "[BootloaderInstallFile] getting capabilities";
-    return Install | IsFile | CanCheckInstalled | Backup;
+    LOG_INFO() << "getting capabilities";
+    return Install | Uninstall | IsFile | CanCheckInstalled | Backup;
 }
 

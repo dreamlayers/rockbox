@@ -7,6 +7,7 @@
  *                     \/            \/     \/    \/            \/
  * $Id$
  *
+ * Copyright (C) 2011 by Tomasz Moń
  * Copyright (C) 2007, 2009 by Karl Kurbjun
  *
  * This program is free software; you can redistribute it and/or
@@ -22,12 +23,12 @@
 #include "config.h"
 #include "cpu.h"
 #include "system.h"
+#include "kernel.h"
 #include "string.h"
 #include <stdbool.h>
 #include "button.h"
 #include "lcd.h"
 #include "debug.h"
-#include "debug-target.h"
 #include "font.h"
 #include "lcd-target.h"
 
@@ -36,25 +37,134 @@
 #include "m66591.h"
 #endif
 
+/* define only if you know what you are doing */
+#undef DEBUG_GIO
+
+#ifdef DEBUG_GIO
+#ifdef SANSA_CONNECT
+   #define DEBUG_GIO_SET        BUTTON_UP
+   #define DEBUG_GIO_SET_TXT    "UP"
+
+   #define DEBUG_GIO_CLR        BUTTON_DOWN
+   #define DEBUG_GIO_CLR_TXT    "DOWN"
+
+   #define DEBUG_GIO_TOGGLE     BUTTON_SELECT
+   #define DEBUG_GIO_TOGGLE_TXT "SELECT"
+
+   #define DEBUG_GIO_NEXT       BUTTON_SCROLL_FWD
+   #define DEBUG_GIO_PREV       BUTTON_SCROLL_BACK
+#else
+   #warning "No keymap defined for target"
+#endif
+
+static void gio_set(int gio)
+{
+    if (gio < 0)
+        return;
+
+    if (gio <= 15)
+        IO_GIO_BITSET0 = (1 << gio);
+    else if (gio <= 31)
+        IO_GIO_BITSET1 = (1 << (gio-16));
+    else if (gio <= 40)
+        IO_GIO_BITSET2 = (1 << (gio-32));
+}
+
+static void gio_clear(int gio)
+{
+    if (gio < 0)
+        return;
+
+    if (gio <= 15)
+        IO_GIO_BITCLR0 = (1 << gio);
+    else if (gio <= 31)
+        IO_GIO_BITCLR1 = (1 << (gio-16));
+    else if (gio <= 40)
+        IO_GIO_BITCLR2 = (1 << (gio-32));
+}
+
+static void gio_toggle_direction(int gio)
+{
+    if (gio < 0)
+        return;
+
+    if (gio <= 15)
+        IO_GIO_DIR0 ^= (1 << gio);
+    else if (gio <= 31)
+        IO_GIO_DIR1 ^= (1 << (gio-16));
+    else if (gio <= 40)
+        IO_GIO_DIR2 ^= (1 << (gio-32));
+}
+
+static bool gio_is_inverted(int gio)
+{
+    unsigned short reg;
+    int bit;
+
+    if (gio <= 15)
+        reg = IO_GIO_INV0, bit = (1 << gio);
+    else if (gio <= 31)
+        reg = IO_GIO_INV1, bit = (1 << (gio-16));
+    else if (gio <= 40)
+        reg = IO_GIO_INV2, bit = (1 << (gio-32));
+
+    return reg & bit;
+}   
+
+static bool gio_is_output(int gio)
+{
+    unsigned short reg;
+    int bit;
+
+    if (gio <= 15)
+        reg = IO_GIO_DIR0, bit = (1 << gio);
+    else if (gio <= 31)
+        reg = IO_GIO_DIR1, bit = (1 << (gio-16));
+    else if (gio <= 40)
+        reg = IO_GIO_DIR2, bit = (1 << (gio-32));
+
+    return !(reg & bit);
+}
+
+static bool gio_get_state(int gio)
+{
+    unsigned short reg;
+    int bit;
+
+    if (gio <= 15)
+        reg = IO_GIO_BITSET0, bit = (1 << gio);
+    else if (gio <= 31)
+        reg = IO_GIO_BITSET1, bit = (1 << (gio-16));
+    else if (gio <= 40)
+        reg = IO_GIO_BITSET2, bit = (1 << (gio-32));
+
+    return reg & bit;
+}
+#endif
+
 bool dbg_ports(void)
 {
-#if defined(MROBE_500)
     int line = 0;
     int i;
     int button;
     bool done=false;
-    
+#ifdef DEBUG_GIO
+    int gio = 0;
+#endif
+    (void)i;
+
     lcd_setfont(FONT_SYSFIXED);
     lcd_clear_display();
     
     while(!done)
     {
         line = 0;
-        button = button_get(false);
-        button&=~BUTTON_REPEAT;
+        button = button_get_w_tmo(1);
+
         if (button == BUTTON_POWER)
             done=true;
 
+#if defined(MROBE_500)
         lcd_puts(0, line++, "[USB Information]");
         
         lcd_putsf(0, line++, "TRN_CTRL:     0x%04x TRN_LNSTAT:   0x%04x",
@@ -114,14 +224,62 @@ bool dbg_ports(void)
             
         lcd_putsf(0, line++, "EMIF_CS4CTRL1:0x%04x EMIF_CS4CTRL2:0x%04x",
             IO_EMIF_CS4CTRL1, IO_EMIF_CS4CTRL2);  
+#elif !defined(DEBUG_GIO)
+        lcd_putsf(0, line++, "/* GIO0 - GIO15 */");
+        lcd_putsf(0, line++, "GIO_DIR0: 0x%04X", IO_GIO_DIR0);
+        lcd_putsf(0, line++, "GIO_INV0: 0x%04X", IO_GIO_INV0);
+        lcd_putsf(0, line++, "GIO_BITSET0: 0x%04X", IO_GIO_BITSET0);
+
+        lcd_putsf(0, line++, "/* GIO16 - GIO31 */");
+        lcd_putsf(0, line++, "GIO_DIR1: 0x%04X", IO_GIO_DIR1);
+        lcd_putsf(0, line++, "GIO_INV1: 0x%04X", IO_GIO_INV1);
+        lcd_putsf(0, line++, "GIO_BITSET1: 0x%04X", IO_GIO_BITSET1);
+
+        lcd_putsf(0, line++, "/* GIO32 - GIO40 */");
+        lcd_putsf(0, line++, "GIO_DIR2: 0x%04X", IO_GIO_DIR2);
+        lcd_putsf(0, line++, "GIO_INV2: 0x%04X", IO_GIO_INV2);
+        lcd_putsf(0, line++, "GIO_BITSET2: 0x%04X", IO_GIO_BITSET2);
+#endif
+
+#ifdef DEBUG_GIO
+        if ((button == DEBUG_GIO_NEXT) && (gio < 40))
+            gio++;
+        else if ((button == DEBUG_GIO_PREV) && (gio > 0))
+            gio--;
+        else if (button == DEBUG_GIO_SET)
+            gio_set(gio);
+        else if (button == DEBUG_GIO_CLR)
+            gio_clear(gio);
+        else if (button == DEBUG_GIO_TOGGL
+#if 0
+        /*
+         * this makes current consumption pretty constant
+         * at cost of screen updates
+         */
+        else
+            continue;
+#endif
+
+        line++;
+        lcd_putsf(0, line++, "< GIO%d >", gio);
+        lcd_putsf(0, line++, "GIO%d is %d (%s, %s)",
+                  gio,
+                  gio_get_state(gio) ? 1 : 0,
+                  gio_is_inverted(gio) ? "inverted" : "normal",
+                  gio_is_output(gio) ? "output" : "input");
+        lcd_putsf(0, line++, "%s - Set bit (using INV)", DEBUG_GIO_SET_TXT);
+        lcd_putsf(0, line++, "%s - Clear bit (using INV)",
+                             DEBUG_GIO_CLR_TXT);
+        lcd_putsf(0, line++, "%s - toggle direction",DEBUG_GIO_TOGGLE_TXT);
+#endif
 
         lcd_update();
     }
-#endif
+
     return false;
 }
 
-bool __dbg_hw_info(void)
+bool dbg_hw_info(void)
 {
     int line = 0, oldline;
     int button;
@@ -209,9 +367,10 @@ bool __dbg_hw_info(void)
         else if (button==BUTTON_RC_REW)
             address-=0x800;
 #else
-        button = button_get(false);
+        button = button_get_w_tmo(1);
         if(button & BUTTON_POWER)
             done = true;
+#if defined(CREATIVE_ZVx)
         else if(button & BUTTON_LEFT)
             lcd_set_direct_fb(false);
         else if(button & BUTTON_RIGHT)
@@ -221,6 +380,7 @@ bool __dbg_hw_info(void)
         lcd_putsf(0, line++, " LCD direct FB access? %s", 
             (lcd_get_direct_fb() ? "yes" : "no"));
         line++;
+#endif
 #endif
         lcd_puts(0, line++, "[Rockbox info]");
         lcd_putsf(0, line++, "current tick: %08x Seconds running: %08d",

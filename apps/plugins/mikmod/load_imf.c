@@ -125,7 +125,7 @@ static	IMFHEADER *mh=NULL;
 
 /*========== Loader code */
 
-int IMF_Test(void)
+static int IMF_Test(void)
 {
 	UBYTE id[4];
 
@@ -135,7 +135,7 @@ int IMF_Test(void)
 	return 0;
 }
 
-int IMF_Init(void)
+static int IMF_Init(void)
 {
 	if(!(imfpat=(IMFNOTE*)MikMod_malloc(32*256*sizeof(IMFNOTE)))) return 0;
 	if(!(mh=(IMFHEADER*)MikMod_malloc(sizeof(IMFHEADER)))) return 0;
@@ -143,7 +143,7 @@ int IMF_Init(void)
 	return 1;
 }
 
-void IMF_Cleanup(void)
+static void IMF_Cleanup(void)
 {
 	FreeLinear();
 
@@ -377,7 +377,7 @@ static UBYTE* IMF_ConvertTrack(IMFNOTE* tr,UWORD rows)
 	return UniDup();
 }
 
-int IMF_Load(int curious)
+static int IMF_Load(int curious)
 {
 #define IMF_SMPINCR 64
 	int t,u,track=0,oldnumsmp;
@@ -388,6 +388,7 @@ int IMF_Load(int curious)
 	ULONG *nextwav=NULL;
 	UWORD wavcnt=0;
 	UBYTE id[4];
+    (void)curious;
 
 	/* try to read the module header */
 	_mm_read_string(mh->songname,32,modreader);
@@ -515,9 +516,9 @@ int IMF_Load(int curious)
 		ih. name##beg=_mm_read_UBYTE(modreader);		\
 		ih. name##end=_mm_read_UBYTE(modreader);		\
 		ih. name##flg=_mm_read_UBYTE(modreader);		\
-		_mm_read_UBYTE(modreader);						\
-		_mm_read_UBYTE(modreader);						\
-		_mm_read_UBYTE(modreader)
+		(void)_mm_read_UBYTE(modreader);						\
+		(void)_mm_read_UBYTE(modreader);						\
+		(void)_mm_read_UBYTE(modreader)
 #else
 #define IMF_FinishLoadingEnvelope(name)				\
 		ih. name/**/pts=_mm_read_UBYTE(modreader);	\
@@ -525,9 +526,9 @@ int IMF_Load(int curious)
 		ih. name/**/beg=_mm_read_UBYTE(modreader);	\
 		ih. name/**/end=_mm_read_UBYTE(modreader);	\
 		ih. name/**/flg=_mm_read_UBYTE(modreader);	\
-		_mm_read_UBYTE(modreader);					\
-		_mm_read_UBYTE(modreader);					\
-		_mm_read_UBYTE(modreader)
+		(void)_mm_read_UBYTE(modreader);					\
+		(void)_mm_read_UBYTE(modreader);					\
+		(void)_mm_read_UBYTE(modreader)
 #endif
 
 		IMF_FinishLoadingEnvelope(vol);
@@ -626,7 +627,7 @@ int IMF_Load(int curious)
 			}
 
 			_mm_read_string(s->samplename,13,modreader);
-			_mm_read_UBYTE(modreader);_mm_read_UBYTE(modreader);_mm_read_UBYTE(modreader);
+			(void)_mm_read_UBYTE(modreader);(void)_mm_read_UBYTE(modreader);(void)_mm_read_UBYTE(modreader);
 			s->length    =_mm_read_I_ULONG(modreader);
 			s->loopstart =_mm_read_I_ULONG(modreader);
 			s->loopend   =_mm_read_I_ULONG(modreader);
@@ -712,7 +713,7 @@ int IMF_Load(int curious)
 	return 1;
 }
 
-CHAR *IMF_LoadTitle(void)
+static CHAR *IMF_LoadTitle(void)
 {
 	CHAR s[31];
 

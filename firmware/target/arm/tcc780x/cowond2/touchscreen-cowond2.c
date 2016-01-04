@@ -20,12 +20,14 @@
  ****************************************************************************/
 
 #include "config.h"
+#include "system.h"
+#include "kernel.h"
 #include "button.h"
 #include "pcf50606.h"
 #include "touchscreen.h"
 #include "touchscreen-target.h"
 #include "stdlib.h"
-#include "power-target.h"
+#include "pmu-target.h"
 #include "tsc200x.h"
 
 #define NO_OF_TOUCH_DATA 5

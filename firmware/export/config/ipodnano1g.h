@@ -1,7 +1,6 @@
 /*
  * This config file is for the Apple iPod Nano
  */
-#define TARGET_TREE /* this target is using the target tree system */
 
 #define IPOD_ARCH 1
 
@@ -46,8 +45,6 @@
 
 /* define this if you have access to the quickscreen */
 #define HAVE_QUICKSCREEN
-/* define this if you have access to the pitchscreen */
-#define HAVE_PITCHSCREEN
 
 /* define this if you would like tagcache to build on this target */
 #define HAVE_TAGCACHE
@@ -55,13 +52,24 @@
 /* LCD dimensions */
 #define LCD_WIDTH  176
 #define LCD_HEIGHT 132
+/* sqrt(176^2 + 132^2) / 1.5 = 146.7 */
+#define LCD_DPI 147
 #define LCD_DEPTH  16   /* 65536 colours */
 #define LCD_PIXELFORMAT RGB565SWAPPED /* rgb565 byte-swapped */
+
+/* define this if you can invert the colours on your LCD */
+#define HAVE_LCD_INVERT
+
+/* Define this if the LCD can shut down */
+#define HAVE_LCD_SHUTDOWN
 
 /* LCD stays visible without backlight - simulator hint */
 #define HAVE_TRANSFLECTIVE_LCD
 
 #define CONFIG_KEYPAD IPOD_4G_PAD
+
+/* Define this to have CPU boosted while scrolling in the UI */
+#define HAVE_GUI_BOOST
 
 /* Define this to enable morse code input */
 #define HAVE_MORSE_INPUT
@@ -125,6 +133,8 @@
 #define BATTERY_CAPACITY_INC      20   /* capacity increment */
 #define BATTERY_TYPES_COUNT        1   /* only one type */
 
+#define CONFIG_BATTERY_MEASURE VOLTAGE_MEASURE
+
 /* Hardware controlled charging with monitoring */
 #define CONFIG_CHARGING CHARGING_MONITOR
 
@@ -179,7 +189,6 @@
 
 /* enable these for the experimental usb stack */
 #define HAVE_USBSTACK
-#define USE_ROCKBOX_USB
 #define USB_VENDOR_ID 0x05ac
 #define USB_PRODUCT_ID 0x120a
 #define HAVE_USB_HID_MOUSE
@@ -189,6 +198,8 @@
 
 /* Define this if you can read an absolute wheel position */
 #define HAVE_WHEEL_POSITION
+
+#define HAVE_HARDWARE_CLICK
 
 #define BOOTFILE_EXT "ipod"
 #define BOOTFILE "rockbox." BOOTFILE_EXT
@@ -203,7 +214,7 @@
 /* DMA is used only for reading on PP502x because although reads are ~8x faster
  * writes appear to be ~25% slower.
  */
-#define HAVE_ATA_DMA
+/* Switched off due to reported instabilities. #define HAVE_ATA_DMA */
 
 /* Define this, if you can switch on/off the lineout */
 #define HAVE_LINEOUT_POWEROFF

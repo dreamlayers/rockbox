@@ -21,8 +21,10 @@
 #include "plugin.h"
 #include "lib/helper.h"
 #include "lib/playback_control.h"
+#include "lib/pluginlib_actions.h"
 
-
+/* this set the context to use with PLA */
+static const struct button_mapping *plugin_contexts[] = { pla_main_ctx };
 
 /***
  * FIREWORKS.C by ZAKK ROBERTS
@@ -31,115 +33,11 @@
  * Currently disabled for Archos Recorder - runs too slow.
  ***/
 
-/* All sorts of keymappings.. */
-#if (CONFIG_KEYPAD == IRIVER_H300_PAD) || (CONFIG_KEYPAD == IRIVER_H100_PAD)
-#define BTN_MENU BUTTON_OFF
-#define BTN_FIRE BUTTON_SELECT
-
-#elif (CONFIG_KEYPAD == IPOD_4G_PAD) || (CONFIG_KEYPAD == IPOD_3G_PAD) || \
-      (CONFIG_KEYPAD == IPOD_1G2G_PAD)
-#define BTN_MENU BUTTON_MENU
-#define BTN_FIRE BUTTON_SELECT
-
-#elif (CONFIG_KEYPAD == RECORDER_PAD)
-#define BTN_MENU BUTTON_OFF
-#define BTN_FIRE BUTTON_PLAY
-
-#elif (CONFIG_KEYPAD == ARCHOS_AV300_PAD)
-#define BTN_MENU BUTTON_OFF
-#define BTN_FIRE BUTTON_SELECT
-
-#elif (CONFIG_KEYPAD == ONDIO_PAD)
-#define BTN_MENU BUTTON_MENU
-#define BTN_FIRE BUTTON_UP
-
-#elif (CONFIG_KEYPAD == IAUDIO_X5M5_PAD)
-#define BTN_MENU BUTTON_POWER
-#define BTN_FIRE BUTTON_SELECT
-
-#elif (CONFIG_KEYPAD == IRIVER_IFP7XX_PAD)
-#define BTN_MENU BUTTON_MODE
-#define BTN_FIRE BUTTON_SELECT
-
-#elif (CONFIG_KEYPAD == GIGABEAT_PAD) || \
-      (CONFIG_KEYPAD == GIGABEAT_S_PAD) || \
-      (CONFIG_KEYPAD == MROBE100_PAD)
-#define BTN_MENU BUTTON_MENU
-#define BTN_FIRE BUTTON_SELECT
-
-#elif (CONFIG_KEYPAD == SANSA_E200_PAD) || \
-      (CONFIG_KEYPAD == SANSA_C200_PAD)
-#define BTN_MENU BUTTON_POWER
-#define BTN_FIRE BUTTON_SELECT
-
-#elif (CONFIG_KEYPAD == SANSA_FUZE_PAD)
-#define BTN_MENU (BUTTON_HOME|BUTTON_REPEAT)
-#define BTN_FIRE BUTTON_SELECT
-
-#elif (CONFIG_KEYPAD == IRIVER_H10_PAD)
-#define BTN_MENU BUTTON_POWER
-#define BTN_FIRE BUTTON_PLAY
-
-#elif CONFIG_KEYPAD == IAUDIO_M3_PAD
-#define BTN_MENU BUTTON_RC_REC
-#define BTN_FIRE BUTTON_RC_PLAY
-
-#elif (CONFIG_KEYPAD == COWON_D2_PAD)
-#define BTN_MENU (BUTTON_MENU|BUTTON_REL)
-
-#elif CONFIG_KEYPAD == IAUDIO67_PAD
-#define BTN_MENU BUTTON_MENU
-#define BTN_FIRE BUTTON_PLAY
-
-#elif CONFIG_KEYPAD == CREATIVEZVM_PAD
-#define BTN_MENU BUTTON_MENU
-#define BTN_FIRE BUTTON_SELECT
-
-#elif CONFIG_KEYPAD == PHILIPS_HDD1630_PAD
-#define BTN_MENU BUTTON_MENU
-#define BTN_FIRE BUTTON_SELECT
-
-#elif CONFIG_KEYPAD == PHILIPS_HDD6330_PAD
-#define BTN_MENU BUTTON_MENU
-#define BTN_FIRE BUTTON_PLAY
-
-#elif CONFIG_KEYPAD == PHILIPS_SA9200_PAD
-#define BTN_MENU BUTTON_MENU
-#define BTN_FIRE BUTTON_PLAY
-
-#elif (CONFIG_KEYPAD == ONDAVX747_PAD)
-#define BTN_MENU (BUTTON_MENU|BUTTON_REL)
-
-#elif (CONFIG_KEYPAD == SAMSUNG_YH_PAD)
-#define BTN_MENU BUTTON_LEFT
-#define BTN_FIRE BUTTON_PLAY
-
-#elif (CONFIG_KEYPAD == PBELL_VIBE500_PAD)
-#define BTN_MENU BUTTON_MENU
-#define BTN_FIRE BUTTON_OK
-
-#elif (CONFIG_KEYPAD == MPIO_HD200_PAD)
-#define BTN_MENU BUTTON_REC
-#define BTN_FIRE BUTTON_PLAY
-
-#elif (CONFIG_KEYPAD == MPIO_HD300_PAD)
-#define BTN_MENU BUTTON_MENU
-#define BTN_FIRE BUTTON_PLAY
-
-#elif defined(HAVE_TOUCHSCREEN)
-    /* This is a touchscreen target */
-#else
-#error No keymap defined!
-#endif
-
-#ifdef HAVE_TOUCHSCREEN
-#ifndef BTN_MENU
-#define BTN_MENU (BUTTON_TOPLEFT|BUTTON_REL)
-#endif
-#ifndef BTN_FIRE
-#define BTN_FIRE BUTTON_CENTER
-#endif
-#endif
+/* We use PLA */
+#define BTN_EXIT           PLA_EXIT
+#define BTN_MENU           PLA_CANCEL
+#define BTN_FIRE           PLA_SELECT
+#define BTN_FIRE_REPEAT    PLA_SELECT_REPEAT
 
 /* The lowdown on source terminology:
  * a ROCKET is launched from the LCD bottom.
@@ -316,7 +214,7 @@ MENUITEM_STRINGLIST(menu, "Fireworks Menu", NULL,
                     "FPS (Speed)", "Playback Control", "Quit");
 
 /* called on startup. initializes all variables, etc */
-void init_all(void)
+static void init_all(void)
 {
     int j;
 
@@ -329,7 +227,7 @@ void init_all(void)
 
 /* called when a rocket hits its destination height.
  * prepares all associated fireworks to be expelled. */
-void init_explode(int x, int y, int firework, int points)
+static void init_explode(int x, int y, int firework, int points)
 {
     int i;
 
@@ -353,7 +251,7 @@ void init_explode(int x, int y, int firework, int points)
 
 /* called when a rocket is launched.
  * prepares said rocket to start moving towards its destination. */
-void init_rocket(int rocket)
+static void init_rocket(int rocket)
 {
     rb->srand(*rb->current_tick);
 
@@ -370,7 +268,7 @@ void init_rocket(int rocket)
 }
 
 /* startup/configuration menu. */
-void fireworks_menu(void)
+static void fireworks_menu(void)
 {
     int selected = 0, result;
     bool menu_quit = false;
@@ -460,7 +358,7 @@ enum plugin_status plugin_start(const void* parameter)
 
     /* set everything up.. no BL timeout, no backdrop,
        white-text-on-black-background. */
-    backlight_force_on(); /* backlight control in lib/helper.c */
+    backlight_ignore_timeout();
 #if LCD_DEPTH > 1
     rb->lcd_set_backdrop(NULL);
     rb->lcd_set_background(LCD_BLACK);
@@ -603,15 +501,21 @@ enum plugin_status plugin_start(const void* parameter)
 
         rb->lcd_update();
 
-        button = rb->button_get_w_tmo(HZ/fps_values[frames_per_second]);
+        button = pluginlib_getaction(HZ/fps_values[frames_per_second], plugin_contexts,
+                               ARRAYLEN(plugin_contexts));
+
         switch(button)
         {
+            case BTN_EXIT: /* exit directly */
+                quit_plugin = true;
+                break;
+
             case BTN_MENU: /* back to config menu */
                 fireworks_menu();
                 break;
 
             case BTN_FIRE: /* fire off rockets manually */
-            case BTN_FIRE|BUTTON_REPEAT:
+            case BTN_FIRE_REPEAT:
                 init_rocket(thisrocket);
                 if(++thisrocket == MAX_ROCKETS)
                     thisrocket=0;
@@ -619,7 +523,7 @@ enum plugin_status plugin_start(const void* parameter)
         }
     }
     /* Turn on backlight timeout (revert to settings) */
-    backlight_use_settings(); /* backlight control in lib/helper.c */
+    backlight_use_settings();
 
 #ifdef HAVE_ADJUSTABLE_CPU_FREQ
     rb->cpu_boost(false);

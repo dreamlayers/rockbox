@@ -21,6 +21,7 @@
 *
 ***************************************************************************/
 #include "plugin.h"
+#include "fixedpoint.h"
 #include "lib/playergfx.h"
 #include "lib/pluginlib_exit.h"
 #if LCD_DEPTH > 1
@@ -31,7 +32,6 @@
 #include "lib/mylcd.h" /* MYLCD_CFG_GREYLIB or MYLCD_CFG_PGFX */
 #endif
 #include "lib/xlcd.h"
-#include "lib/fixedpoint.h"
 
 /* Loops that the values are displayed */
 #define DISP_TIME 30
@@ -234,6 +234,16 @@
 #define CUBE_PAUSE         BUTTON_PLAY
 #define CUBE_HIGHSPEED     BUTTON_SELECT
 
+#elif CONFIG_KEYPAD == CREATIVE_ZENXFI3_PAD
+#define CUBE_QUIT          BUTTON_POWER
+#define CUBE_NEXT          BUTTON_UP
+#define CUBE_PREV          BUTTON_DOWN
+#define CUBE_INC           BUTTON_VOL_UP
+#define CUBE_DEC           BUTTON_VOL_DOWN
+#define CUBE_MODE          BUTTON_MENU
+#define CUBE_PAUSE         (BUTTON_PLAY|BUTTON_REL)
+#define CUBE_HIGHSPEED     BUTTON_BACK
+
 #elif CONFIG_KEYPAD == PHILIPS_HDD1630_PAD
 #define CUBE_QUIT          BUTTON_POWER
 #define CUBE_NEXT          BUTTON_RIGHT
@@ -269,15 +279,18 @@
 #elif CONFIG_KEYPAD == ONDAVX777_PAD
 #define CUBE_QUIT          BUTTON_POWER
 
-#elif CONFIG_KEYPAD == SAMSUNG_YH_PAD
-#define CUBE_QUIT          BUTTON_REC
+#elif (CONFIG_KEYPAD == SAMSUNG_YH820_PAD) || \
+      (CONFIG_KEYPAD == SAMSUNG_YH920_PAD)
+#define CUBE_QUIT          BUTTON_REW
 #define CUBE_NEXT          BUTTON_RIGHT
 #define CUBE_PREV          BUTTON_LEFT
 #define CUBE_INC           BUTTON_UP
 #define CUBE_DEC           BUTTON_DOWN
-#define CUBE_MODE          BUTTON_REW
+#define CUBE_MODE          (BUTTON_FFWD|BUTTON_REL)
+#define CUBE_MODE_PRE      BUTTON_FFWD
 #define CUBE_PAUSE         BUTTON_PLAY
-#define CUBE_HIGHSPEED     BUTTON_FFWD
+#define CUBE_HIGHSPEED     (BUTTON_FFWD|BUTTON_REPEAT)
+#define CUBE_HIGHSPEED_PRE BUTTON_FFWD
 
 #elif CONFIG_KEYPAD == PBELL_VIBE500_PAD
 #define CUBE_QUIT          BUTTON_REC
@@ -300,7 +313,7 @@
 #define CUBE_HIGHSPEED     BUTTON_FUNC
 
 #elif CONFIG_KEYPAD == MPIO_HD300_PAD
-#define CUBE_QUIT          BUTTON_REC
+#define CUBE_QUIT          (BUTTON_MENU | BUTTON_REPEAT)
 #define CUBE_NEXT          BUTTON_FF
 #define CUBE_PREV          BUTTON_REW
 #define CUBE_INC           BUTTON_UP
@@ -308,6 +321,84 @@
 #define CUBE_MODE          BUTTON_MENU
 #define CUBE_PAUSE         BUTTON_PLAY
 #define CUBE_HIGHSPEED     BUTTON_ENTER
+
+#elif CONFIG_KEYPAD == SANSA_FUZEPLUS_PAD
+#define CUBE_QUIT          BUTTON_POWER
+#define CUBE_NEXT          BUTTON_RIGHT
+#define CUBE_PREV          BUTTON_LEFT
+#define CUBE_INC           BUTTON_UP
+#define CUBE_DEC           BUTTON_DOWN
+#define CUBE_MODE          BUTTON_SELECT
+#define CUBE_PAUSE         BUTTON_PLAYPAUSE
+#define CUBE_HIGHSPEED     BUTTON_BACK
+
+#elif CONFIG_KEYPAD == SANSA_CONNECT_PAD
+#define CUBE_QUIT          BUTTON_POWER
+#define CUBE_NEXT          BUTTON_NEXT
+#define CUBE_PREV          BUTTON_PREV
+#define CUBE_INC           BUTTON_VOL_UP
+#define CUBE_DEC           BUTTON_VOL_DOWN
+#define CUBE_MODE          BUTTON_SELECT
+#define CUBE_PAUSE         BUTTON_DOWN
+#define CUBE_HIGHSPEED     BUTTON_LEFT
+
+#elif (CONFIG_KEYPAD == SAMSUNG_YPR0_PAD)
+#define CUBE_QUIT          BUTTON_BACK
+#define CUBE_NEXT          BUTTON_RIGHT
+#define CUBE_PREV          BUTTON_LEFT
+#define CUBE_INC           BUTTON_UP
+#define CUBE_DEC           BUTTON_DOWN
+#define CUBE_MODE          BUTTON_MENU
+#define CUBE_PAUSE         BUTTON_USER
+#define CUBE_HIGHSPEED     BUTTON_SELECT
+
+#elif (CONFIG_KEYPAD == HM60X_PAD)
+#define CUBE_QUIT          BUTTON_POWER
+#define CUBE_NEXT          BUTTON_RIGHT
+#define CUBE_PREV          BUTTON_LEFT
+#define CUBE_INC           BUTTON_UP
+#define CUBE_DEC           BUTTON_DOWN
+#define CUBE_MODE          (BUTTON_SELECT|BUTTON_POWER)
+#define CUBE_PAUSE         BUTTON_SELECT
+#define CUBE_HIGHSPEED     (BUTTON_UP|BUTTON_POWER)
+
+#elif (CONFIG_KEYPAD == HM801_PAD)
+#define CUBE_QUIT          BUTTON_POWER
+#define CUBE_NEXT          BUTTON_RIGHT
+#define CUBE_PREV          BUTTON_LEFT
+#define CUBE_INC           BUTTON_UP
+#define CUBE_DEC           BUTTON_DOWN
+#define CUBE_MODE          BUTTON_PREV
+#define CUBE_PAUSE         BUTTON_SELECT
+#define CUBE_HIGHSPEED     BUTTON_NEXT
+
+#elif (CONFIG_KEYPAD == SONY_NWZ_PAD)
+#define CUBE_QUIT        BUTTON_BACK
+#define CUBE_NEXT        BUTTON_RIGHT
+#define CUBE_PREV        BUTTON_LEFT
+#define CUBE_INC         BUTTON_UP
+#define CUBE_DEC         BUTTON_DOWN
+#define CUBE_MODE        (BUTTON_POWER|BUTTON_UP)
+#define CUBE_PAUSE       BUTTON_PLAY
+#define CUBE_HIGHSPEED   (BUTTON_POWER|BUTTON_DOWN)
+
+#elif (CONFIG_KEYPAD == CREATIVE_ZEN_PAD)
+#define CUBE_QUIT        BUTTON_BACK
+#define CUBE_NEXT        BUTTON_RIGHT
+#define CUBE_PREV        BUTTON_LEFT
+#define CUBE_INC         BUTTON_UP
+#define CUBE_DEC         BUTTON_DOWN
+#define CUBE_MODE        BUTTON_MENU
+#define CUBE_PAUSE       BUTTON_PLAYPAUSE
+#define CUBE_HIGHSPEED   BUTTON_SHORTCUT
+
+#elif (CONFIG_KEYPAD == DX50_PAD)
+#define CUBE_QUIT          (BUTTON_POWER|BUTTON_REL)
+#define CUBE_NEXT          BUTTON_RIGHT
+#define CUBE_PREV          BUTTON_LEFT
+#define CUBE_INC           BUTTON_VOL_UP
+#define CUBE_DEC           BUTTON_VOL_DOWN
+#define CUBE_MODE          BUTTON_PLAY
 
 #else
 #error No keymap defined!
@@ -630,7 +721,7 @@ static void cube_draw(void)
     }
 }
 
-void cleanup(void)
+static void cleanup(void)
 {
 #ifdef USEGSLIB
     grey_release();
@@ -649,7 +740,11 @@ enum plugin_status plugin_start(const void* parameter)
 #endif
 
     int button;
+#if defined(CUBE_MODE_PRE) || \
+    defined(CUBE_PAUSE_PRE) || \
+    defined(CUBE_HIGHSPEED_PRE)
     int lastbutton = BUTTON_NONE;
+#endif
     int curr = 0;
     bool highspeed = false;
     bool paused = false;
@@ -848,15 +943,19 @@ enum plugin_status plugin_start(const void* parameter)
             case CUBE_RC_QUIT:
 #endif
             case CUBE_QUIT:
-                exit(EXIT_SUCCESS);
+                quit = true;
                 break;
 
             default:
                 exit_on_usb(button);
                 break;
         }
+#if defined(CUBE_MODE_PRE) || \
+    defined(CUBE_PAUSE_PRE) || \
+    defined(CUBE_HIGHSPEED_PRE)
         if (button != BUTTON_NONE)
             lastbutton = button;
+#endif
     }
 
     return PLUGIN_OK;

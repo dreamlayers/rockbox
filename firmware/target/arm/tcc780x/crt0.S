@@ -120,17 +120,16 @@ copied_start:
     ldr    r11, =dma_play_data
 #endif
 
-    /* Let abort and undefined modes use IRQ stack */
-    mov    r0,#0xd7
-    msr    cpsr, r0
+    /* Let svc, abort and undefined modes use irq stack */
+    msr    cpsr, #0xd3
     ldr    sp, =irq_stack
-    mov    r0,#0xdb
-    msr    cpsr, r0
+    msr    cpsr, #0xd7
+    ldr    sp, =irq_stack
+    msr    cpsr, #0xdb
     ldr    sp, =irq_stack
 
-    /* Switch to supervisor mode */
-    mov    r0,#0xd3
-    msr    cpsr, r0
+    /* Switch to sys mode */
+    msr    cpsr, #0xdf
     ldr    sp, =stackend
 
     /* Enable MMU & caches. At present this is just doing what the OF does.
@@ -282,33 +281,6 @@ vectors:
 vectors_end:
 
     .text
-
-/* All illegal exceptions call into UIE with exception address as first
-   parameter. This is calculated differently depending on which exception
-   we're in. Second parameter is exception number, used for a string lookup
-   in UIE.
- */
-undef_instr_handler:
-    sub    r0, lr, #4
-    mov    r1, #0
-    b      UIE
-
-/* We run supervisor mode most of the time, and should never see a software
-   exception being thrown. Perhaps make it illegal and call UIE?
- */
-software_int_handler:
-reserved_handler:
-    movs   pc, lr
-
-prefetch_abort_handler:
-    sub    r0, lr, #4
-    mov    r1, #1
-    b      UIE
-
-data_abort_handler:
-    sub    r0, lr, #8
-    mov    r1, #2
-    b      UIE
 
 #ifdef BOOTLOADER
 fiq_handler:

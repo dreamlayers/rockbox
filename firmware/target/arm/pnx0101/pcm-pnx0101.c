@@ -21,13 +21,14 @@
 #include "system.h"
 #include "audio.h"
 #include "string.h"
+#include "pcm-internal.h"
 
 #define DMA_BUF_SAMPLES 0x100
 
 short __attribute__((section(".dmabuf"))) dma_buf_left[DMA_BUF_SAMPLES];
 short __attribute__((section(".dmabuf"))) dma_buf_right[DMA_BUF_SAMPLES];
 
-unsigned short* p IBSS_ATTR;
+const int16_t* p IBSS_ATTR;
 size_t p_size IBSS_ATTR;
 
 void pcm_play_lock(void)
@@ -40,7 +41,7 @@ void pcm_play_unlock(void)
 
 void pcm_play_dma_start(const void *addr, size_t size)
 {
-    p = (unsigned short*)addr;
+    p = addr;
     p_size = size;
 }
 
@@ -63,10 +64,12 @@ static inline void fill_dma_buf(int offset)
 
     if (pcm_playing && !pcm_paused)
     {
+        bool new_buffer =false;
+
         do
         {
             int count;
-            unsigned short *tmp_p;
+            const int16_t *tmp_p;
             count = MIN(p_size / 4, (size_t)(lend - l));
             tmp_p = p;
             p_size -= count * 4;
@@ -102,10 +105,18 @@ static inline void fill_dma_buf(int offset)
                 count--;
             }
             p = tmp_p;
+
+            if (new_buffer)
+            {
+                new_buffer = false;
+                pcm_play_dma_status_callback(PCM_DMAST_STARTED);
+            }
+
             if (l >= lend)
                 return;
 
-            pcm_play_get_more_callback((void**)&p, &p_size);
+            new_buffer = pcm_play_dma_complete_callback(PCM_DMAST_OK,
+                                                        &p, &p_size);
         }
         while (p_size);
     }
@@ -177,7 +188,7 @@ void pcm_init(void)
     DMAR10(1) |= 1;
 }
 
-void pcm_postinit(void)
+void pcm_play_dma_postinit(void)
 {
     audiohw_postinit();
 }
@@ -197,4 +208,10 @@ const void * pcm_play_dma_get_peak_buffer(int *count)
     size_t cnt = p_size;
     *count = cnt >> 2;
     return (void *)((addr + 2) & ~3);
+}
+
+void audiohw_set_volume(int value)
+{
+    int tmp = (60 - value * 4) & 0xff;
+    CODECVOL = tmp | (tmp << 8);
 }

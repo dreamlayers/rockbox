@@ -20,8 +20,8 @@
  ****************************************************************************/
 
 #include "config.h"
+#include "system.h"
 #include "jz4740.h"
-#include "debug-target.h"
 #include <stdarg.h>
 #include <stdio.h>
 #include "lcd.h"
@@ -134,7 +134,7 @@ bool dbg_ports(void)
     return false;
 }
 
-bool __dbg_hw_info(void)
+bool dbg_hw_info(void)
 {
     int btn = 0;
 #ifdef HAVE_TOUCHSCREEN

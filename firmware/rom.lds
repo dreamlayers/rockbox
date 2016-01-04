@@ -7,7 +7,7 @@ OUTPUT_FORMAT(elf32-m68k)
 STARTUP(target/coldfire/crt0.o)
 #elif defined(CPU_PP)
 OUTPUT_FORMAT(elf32-littlearm)
-STARTUP(target/arm/crt0-pp.o)
+STARTUP(target/arm/pp/crt0-pp.o)
 #elif defined(CPU_ARM)
 OUTPUT_FORMAT(elf32-littlearm)
 STARTUP(target/arm/crt0.o)
@@ -54,6 +54,7 @@ STARTUP(crt0.o)
 
 /* End of the audio buffer, where the codec/plugin buffer starts */
 #define ENDAUDIOADDR  (DRAMORIG + DRAMSIZE)
+#define CODECORIG ENDAUDIOADDR
 
 MEMORY
 {
@@ -61,6 +62,7 @@ MEMORY
    IRAM : ORIGIN = IRAMORIG, LENGTH = IRAMSIZE
    FLASH : ORIGIN = FLASHORIG, LENGTH = FLASHSIZE
 }
+
 SECTIONS
 {
     .flashheader : 
@@ -81,10 +83,13 @@ SECTIONS
         loadaddress = .;
         _loadaddress = .;
         _datastart = .;
-        *(.resetvectors);
-        *(.vectors);
+        KEEP(*(.resetvectors));
+        KEEP(*(.vectors));
         . = ALIGN(0x200);
-        *(.data)
+#ifdef HAVE_INIT_ATTR
+        *(.initdata*)
+#endif
+        *(.data*)
         . = ALIGN(0x4);
         _dataend = .;        
         . = ALIGN(0x10);  /* Maintain proper alignment for .text section */
@@ -101,13 +106,22 @@ SECTIONS
     .text LOADADDR(.data) + SIZEOF(.data) :
     {
         *(.init.text)
-        *(.text)
+        KEEP(*(.startup*));
+#ifdef HAVE_INIT_ATTR
+        /* all this symbols are set to the same address so .init copy loop
+           will be skiped in crt0.S */
+        _initstart = .;
+        _initend = .;
+        _initcopy = .;
+        *(.init*)
+#endif
+        *(.text*)
         . = ALIGN(0x4);
     } > FLASH
 
     .rodata :
     {
-        *(.rodata)
+        *(.rodata*)
         *(.rodata.str1.1)
         *(.rodata.str1.4)
         . = ALIGN(0x4);

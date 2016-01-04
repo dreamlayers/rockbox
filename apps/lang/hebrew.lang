@@ -20,7 +20,6 @@
 # - Rani Hod
 # - Tomer Shalev
 # - Sasha Khamkov
-
 <options>
   rtl: 1
 </options>
@@ -256,7 +255,7 @@
     *: "PLAY = Yes"
     cowond2*: "MENU, or top-right = Yes"
     iriverh100,iriverh120,iriverh300: "NAVI = Yes"
-    samsungyh*,ipod*,iaudiox5,iaudiom5,gigabeat*,sansae200*,sansac200*,iriverh10,iriverh10_5gb,mrobe100,sansaclip*,sansafuze*: "SELECT = Yes"
+    ipod*,iaudiox5,iaudiom5,gigabeat*,sansae200*,sansac200*,iriverh10,iriverh10_5gb,mrobe100,sansaclip*,sansafuze*,sansaconnect: "SELECT = Yes"
     mrobe500: "PLAY, POWER, or top-right = Yes"
     archosplayer: "(PLAY/STOP)"
     vibe500: "OK = Yes"
@@ -265,7 +264,7 @@
     *: "כן = PLAY"
     cowond2*: "או פינה ימנית-עליונה = כן MENU"
     iriverh100,iriverh120,iriverh300: "כן = NAVI"
-    samsungyh*,ipod*,iaudiox5,iaudiom5,gigabeat*,sansae200*,sansac200*,iriverh10,iriverh10_5gb,mrobe100,sansaclip*,sansafuze*: "כן = SELECT"
+    ipod*,iaudiox5,iaudiom5,gigabeat*,sansae200*,sansac200*,iriverh10,iriverh10_5gb,mrobe100,sansaclip*,sansafuze*: "כן = SELECT"
     mrobe500: "או פינה ימנית-עליונה = כן Power, Play"
     archosplayer: "(PLAY/STOP)"
     vibe500: "כן = OK"
@@ -2242,7 +2241,7 @@
     *: "Building database... %d found (OFF to return)"
     iriverh100,iriverh120,iriverh300: "Building database... %d found (STOP to return)"
     ipod*: "Building database... %d found (PREV to return)"
-    iaudiox5,iaudiom5,gigabeat*,mrobe100: "Building database... %d found (LEFT to return)"
+    iaudiox5,iaudiom5,gigabeat*,mrobe100,samsungyh*: "Building database... %d found (LEFT to return)"
     iriverh10,iriverh10_5gb,sansae200*,sansac200*,sansafuze*,vibe500: "Building database... %d found (PREV to return)"
     gogearsa9200: "Building database... %d found (REW to return)"
   </source>
@@ -2250,7 +2249,7 @@
     *: "בונה מסד נתונים... %d נמצאו (OFF כדי לחזור)"
     iriverh100,iriverh120,iriverh300: "בונה מסד נתונים... %d נמצאו (STOP כדי לחזור)"
     ipod*: "בונה מסד נתונים... %d נמצאו (PREV כדי לחזור)"
-    iaudiox5,iaudiom5,gigabeat*,mrobe100: "בונה מסד נתונים... %d נמצאו (LEFT כדי לחזור)"
+    iaudiox5,iaudiom5,gigabeat*,mrobe100,samsungyh*: "בונה מסד נתונים... %d נמצאו (LEFT כדי לחזור)"
     iriverh10,iriverh10_5gb,sansae200*,sansac200*,sansafuze*,vibe500: "בונה מסד נתונים... %d נמצאו (PREV כדי לחזור)"
     gogearsa9200: "בונה מסד נתונים... %d נמצאו (REW כדי לחזור)"
   </dest>
@@ -3955,8 +3954,8 @@
     rtc: "ON = Set"
     mrobe500: "HEART = Set"
     iriverh100,iriverh120,iriverh300: "NAVI = Set"
-    ipod*,iaudiox5,iaudiom5,iriverh10,iriverh10_5gb,sansae200*,sansac200*,gigabeat*,mrobe100,sansaclip*,sansafuze*: "SELECT = Set"
-    gogearsa9200: "PLAY = Set"
+    ipod*,iaudiox5,iaudiom5,iriverh10,iriverh10_5gb,sansae200*,sansac200*,gigabeat*,mrobe100,sansaclip*,sansafuze*,sansaconnect: "SELECT = Set"
+    gogearsa9200,samsungyh*: "PLAY = Set"
     vibe500: "OK = Set"
     mpiohd300: "ENTER = Set"
   </source>
@@ -3966,13 +3965,13 @@
     mrobe500: "קבע = HEART"
     iriverh100,iriverh120,iriverh300: "קבע = NAVI"
     ipod*,iaudiox5,iaudiom5,iriverh10,iriverh10_5gb,sansae200*,sansac200*,gigabeat*,mrobe100,sansaclip*,sansafuze*: "קבע = SELECT"
-    gogearsa9200: "קבע = PLAY"
+    gogearsa9200,samsungyh*: "קבע = PLAY"
     vibe500: "קבע = OK"
     mpiohd300: "קבע = ENTER"
   </dest>
   <voice>
     *: none
-    rtc,iriverh100,iriverh120,iriverh300,iriverh10,iriverh10_5gb,iaudiox5,iaudiom5,ipod*,sansae200*,sansac200*,gigabeat*,mrobe100,gogearsa9200: ""
+    rtc,iriverh100,iriverh120,iriverh300,iriverh10,iriverh10_5gb,iaudiox5,iaudiom5,ipod*,sansae200*,sansac200*,gigabeat*,mrobe100,gogearsa9200,samsungyh*: ""
   </voice>
 </phrase>
 <phrase>
@@ -3988,10 +3987,12 @@
     iaudiox5,iaudiom5: "RECORD = Revert"
     iriverh10,iriverh10_5gb,sansae200*,sansafuze*: "PREV = Revert"
     gigabeatfx: "POWER = Revert"
+    sansafuzeplus: "BACK = Revert"
     mrobe100: "DISPLAY = Revert"
     gigabeats: "BACK = Revert"
     gogearsa9200: "LEFT = Revert"
     vibe500: "CANCEL = Revert"
+    samsungyh*: "REW = Revert"
   </source>
   <dest>
     *: none
@@ -4006,6 +4007,7 @@
     gigabeats: "החזר = BACK"
     gogearsa9200: "החזר = LEFT"
     vibe500: "החזר = C"
+    samsungyh*: "החזר = Revert"
   </dest>
   <voice>
     *: none
@@ -4536,6 +4538,7 @@
     gigabeats: "SELECT=Set POWER=Cancel"
     vibe500: "OK=Set C=Cancel"
     mpiohd300: "ENTER=Set MENU=Cancel"
+    sansafuzeplus: "SELECT=Set  BACK=Cancel"
   </source>
   <dest>
     *: none
@@ -5390,19 +5393,19 @@
 </phrase>
 <phrase>
   id: LANG_FM_SAVE_CHANGES
-  desc: When you try to exit radio to confirm save
+  desc: deprecated
   user: core
   <source>
     *: none
-    radio: "Save Changes?"
+    radio: ""
   </source>
   <dest>
     *: none
-    radio: "?לשמור שינויים"
+    radio: ""
   </dest>
   <voice>
     *: none
-    radio: "לשמור שינויים?"
+    radio: ""
   </voice>
 </phrase>
 <phrase>
@@ -5644,20 +5647,20 @@
   </voice>
 </phrase>
 <phrase>
-  id: LANG_RECORDING_FREQUENCY
-  desc: in the recording settings
+  id: LANG_FREQUENCY
+  desc: in recording and playback settings
   user: core
   <source>
     *: none
-    recording: "Frequency"
+    recording,play_frequency: "Frequency"
   </source>
   <dest>
     *: none
-    recording: "תדירות"
+    recording,play_frequency: "תדירות"
   </dest>
   <voice>
     *: none
-    recording: "תדירות"
+    recording,play_frequency: "תדירות"
   </voice>
 </phrase>
 <phrase>
@@ -5882,20 +5885,6 @@
   <voice>
     *: none
     recording: "גודל קובץ מפוצל"
-  </voice>
-</phrase>
-<phrase>
-  id: LANG_REC_SIZE
-  desc: deprecated
-  user:
-  <source>
-    *: none
-  </source>
-  <dest>
-    *: none
-  </dest>
-  <voice>
-    *: none
   </voice>
 </phrase>
 <phrase>
@@ -6485,7 +6474,7 @@
   desc: in onplay menu
   user: core
   <source>
-    *: "Playlist Catalog"
+    *: "Playlist Catalogue"
   </source>
   <dest>
     *: "קטלוג רשימות שירים"
@@ -6667,19 +6656,19 @@
   <source>
     *: none
     multivolume: "HD1"
-    sansae200*,sansac200*,sansafuze*: "mSD:"
+    sansae200*,sansac200*,sansafuze*,sansaclipplus: "mSD:"
     archosondio*: "MMC:"
   </source>
   <dest>
     *: none
     multivolume: "HD1"
-    sansae200*,sansac200*,sansafuze*: "MSD:"
+    sansae200*,sansac200*,sansafuze*,sansaclipplus: "MSD:"
     archosondio*: "MMC:"
   </dest>
   <voice>
     *: none
     multivolume: "H D 1"
-    sansae200*,sansac200*,sansafuze*: "micro S D"
+    sansae200*,sansac200*,sansafuze*,sansaclipplus: "micro S D"
     archosondio*: "M M C"
   </voice>
 </phrase>
@@ -6979,10 +6968,10 @@
 </phrase>
 <phrase>
   id: LANG_CATALOG_VIEW
-  desc: in onplay playlist catalog submenu
+  desc: in onplay playlist catalogue submenu
   user: core
   <source>
-    *: "View Catalog"
+    *: "View Catalogue"
   </source>
   <dest>
     *: "הצג קטלוג"
@@ -6993,7 +6982,7 @@
 </phrase>
 <phrase>
   id: LANG_CATALOG_ADD_TO
-  desc: in onplay playlist catalog submenu
+  desc: in onplay playlist catalogue submenu
   user: core
   <source>
     *: "Add to Playlist"
@@ -7007,7 +6996,7 @@
 </phrase>
 <phrase>
   id: LANG_CATALOG_ADD_TO_NEW
-  desc: in onplay playlist catalog submenu
+  desc: in onplay playlist catalogue submenu
   user: core
   <source>
     *: "Add to New Playlist"
@@ -7021,7 +7010,7 @@
 </phrase>
 <phrase>
   id: LANG_CATALOG_NO_DIRECTORY
-  desc: error message when playlist catalog directory doesn't exist
+  desc: error message when playlist catalogue directory doesn't exist
   user: core
   <source>
     *: "%s doesn't exist"
@@ -7035,7 +7024,7 @@
 </phrase>
 <phrase>
   id: LANG_CATALOG_NO_PLAYLISTS
-  desc: error message when no playlists for playlist catalog
+  desc: error message when no playlists for playlist catalogue
   user: core
   <source>
     *: "No Playlists"
@@ -7584,15 +7573,15 @@
 </phrase>
 <phrase>
   id: LANG_BACKDROP_LOADED
-  desc: text for splash to indicate a new backdrop has been loaded successfully
+  desc: deprecated
   user: core
   <source>
     *: none
-    lcd_non-mono: "Backdrop Loaded"
+    lcd_non-mono: ""
   </source>
   <dest>
     *: none
-    lcd_non-mono: "תמונת רקע נטענה"
+    lcd_non-mono: ""
   </dest>
   <voice>
     *: none
@@ -7601,15 +7590,15 @@
 </phrase>
 <phrase>
   id: LANG_BACKDROP_FAILED
-  desc: text for splash to indicate a failure to load a bitmap as backdrop
+  desc: deprecated
   user: core
   <source>
     *: none
-    lcd_non-mono: "Backdrop Failed"
+    lcd_non-mono: ""
   </source>
   <dest>
     *: none
-    lcd_non-mono: "תמונת רקע נכשלה"
+    lcd_non-mono: ""
   </dest>
   <voice>
     *: none
@@ -7910,7 +7899,7 @@
     *: "מצב:"
   </dest>
   <voice>
-    *: ""
+    *: "מצב:"
   </voice>
 </phrase>
 <phrase>
@@ -7999,6 +7988,7 @@
     iriverh100,iriverh120,iriverh300: "The disk is full. Press STOP to continue."
     iaudiom5,iaudiox5: "The disk is full. Press POWER to continue."
     sansae200*,sansac200*,vibe500: "The disk is full. Press PREV to continue."
+    samsungyh*: "Disk full. Press LEFT to continue."
   </source>
   <dest>
     *: none
@@ -8006,6 +7996,7 @@
     iriverh100,iriverh120,iriverh300: "הכונן מלא. לחץ על STOP כדי להמשיך"
     iaudiom5,iaudiox5: "הכונן מלא. לחץ על POWER כדי להמשיך"
     sansae200*,sansac200*,vibe500: "הכונן מלא. לחץ על PREV כדי להמשיך"
+    samsungyh*: "הכונן מלא. לחץ על LEFT כדי להמשיך"
   </dest>
   <voice>
     *: none
@@ -8103,6 +8094,7 @@
     iriverh10,iriverh10_5gb,sansae200*,sansac200*,vibe500: "PREV to abort"
     gigabeats: "BACK to abort"
     gigabeatfx: "POWER to abort"
+    sansafuzeplus: "BACK to abort"
   </source>
   <dest>
     *: "כדי לבטל OFF"
@@ -10440,15 +10432,15 @@
   user: core
   <source>
     *: none
-    ipodvideo: "Bass Cutoff"
+    ipodvideo,ipod6g,mpiohd200,mpiohd300,gigabeatfx,mrobe100: "Bass Cutoff"
   </source>
   <dest>
     *: none
-    ipodvideo: "חיתוך בס"
+    ipodvideo,ipod6g,mpiohd200,mpiohd300,gigabeatfx,mrobe100: "חיתוך בס"
   </dest>
   <voice>
     *: none
-    ipodvideo: "חיתוך בס"
+    ipodvideo,ipod6g,mpiohd200,mpiohd300,gigabeatfx,mrobe100: "חיתוך בס"
   </voice>
 </phrase>
 <phrase>
@@ -10457,15 +10449,15 @@
   user: core
   <source>
     *: none
-    ipodvideo: "Treble Cutoff"
+    ipodvideo,ipod6g,mpiohd200,mpiohd300,gigabeatfx,mrobe100: "Treble Cutoff"
   </source>
   <dest>
     *: none
-    ipodvideo: "חיתוך טרבל"
+    ipodvideo,ipod6g,mpiohd200,mpiohd300,gigabeatfx,mrobe100: "חיתוך טרבל"
   </dest>
   <voice>
     *: none
-    ipodvideo: "חיתוך טרבל"
+    ipodvideo,ipod6g,mpiohd200,mpiohd300,gigabeatfx,mrobe100: "חיתוך טרבל"
   </voice>
 </phrase>
 <phrase>
@@ -10612,15 +10604,15 @@
   user: core
   <source>
     *: none
-    gigabeatfx: "Touchpad Sensitivity"
+    gigabeatfx,sansafuzeplus: "Touchpad Sensitivity"
   </source>
   <dest>
     *: none
-    gigabeatfx: "רגישות משטח מגע"
+    gigabeatfx,sansafuzeplus: "רגישות משטח מגע"
   </dest>
   <voice>
     *: none
-    gigabeatfx: "רגישות משטח מגע"
+    gigabeatfx,sansafuzeplus: "רגישות משטח מגע"
   </voice>
 </phrase>
 <phrase>
@@ -11523,16 +11515,16 @@
 </phrase>
 <phrase>
   id: LANG_SKIN_RAM_USAGE
-  desc: how much RAM the skins are using
+  desc: deprecated
   user: core
   <source>
-    *: "Skin RAM usage:"
+    *: ""
   </source>
   <dest>
-    *: "Skin RAM usage:"
+    *: ""
   </dest>
   <voice>
-    *: "Skin RAM usage"
+    *: ""
   </voice>
 </phrase>
 <phrase>
@@ -12344,15 +12336,15 @@
   user: core
   <source>
     *: none
-    gigabeats: "3-D Enhancement"
+    gigabeats,mpiohd200,mpiohd300: "3-D Enhancement"
   </source>
   <dest>
     *: none
-    gigabeats: "3-D Enhancement"
+    gigabeats,mpiohd200,mpiohd300: "3-D Enhancement"
   </dest>
   <voice>
     *: none
-    gigabeats: "3-D Enhancement"
+    gigabeats,mpiohd200,mpiohd300: "3-D Enhancement"
   </voice>
 </phrase>
 <phrase>
@@ -12562,20 +12554,20 @@
   </voice>
 </phrase>
 <phrase>
-  id: LANG_RECORDING_HISTOGRAM_INTERVAL
+  id: LANG_HISTOGRAM_INTERVAL
   desc: in record settings menu
   user: core
   <source>
     *: none
-    recording_histogram: "Histogram interval"
+    histogram: "Histogram interval"
   </source>
   <dest>
     *: none
-    recording_histogram: "Histogram interval"
+    histogram: "Histogram interval"
   </dest>
   <voice>
     *: none
-    recording_histogram: "Histogram interval"
+    histogram: "Histogram interval"
   </voice>
 </phrase>
 <phrase>

@@ -23,9 +23,14 @@
 #define __IPODIO_H
 
 #include <stdint.h>
+#if !defined(_WIN32)
 #include <unistd.h>
+#elif defined(_MSC_VER)
+/* MSVC uses a different name for ssize_t */
+#define ssize_t SSIZE_T
+#endif
 
-#ifdef __WIN32__
+#if defined(__WIN32__) || defined(_WIN32)
 #include <windows.h>
 #else
 #define HANDLE int
@@ -65,6 +70,7 @@ struct partinfo_t {
 };
 
 struct ipod_t {
+    unsigned char* sectorbuf;
     HANDLE dh;
     char diskname[4096];
     int sector_size;
@@ -98,9 +104,10 @@ int ipod_close(struct ipod_t* ipod);
 int ipod_seek(struct ipod_t* ipod, unsigned long pos);
 int ipod_scsi_inquiry(struct ipod_t* ipod, int page_code,
                       unsigned char* buf, int bufsize);
-ssize_t ipod_read(struct ipod_t* ipod, unsigned char* buf, int nbytes);
-ssize_t ipod_write(struct ipod_t* ipod, unsigned char* buf, int nbytes);
-int ipod_alloc_buffer(unsigned char** sectorbuf, int bufsize);
+ssize_t ipod_read(struct ipod_t* ipod, int nbytes);
+ssize_t ipod_write(struct ipod_t* ipod, int nbytes);
+int ipod_alloc_buffer(struct ipod_t* ipod, int bufsize);
+int ipod_dealloc_buffer(struct ipod_t* ipod);
 
 /* In fat32format.c */
 int format_partition(struct ipod_t* ipod, int partition);

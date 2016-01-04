@@ -1,7 +1,6 @@
 /*
  * This config file is for the Sandisk Sansa c200v2
  */
-#define TARGET_TREE /* this target is using the target tree system */
 
 /* For Rolo and boot loader */
 #define MODEL_NUMBER 44
@@ -14,7 +13,14 @@
 /* define this if you have recording possibility */
 #define HAVE_RECORDING
 
-#define REC_SAMPR_CAPS      SAMPR_CAP_ALL
+#define REC_SAMPR_CAPS      (SAMPR_CAP_48 | SAMPR_CAP_44 | SAMPR_CAP_32 | \
+                             SAMPR_CAP_24 | SAMPR_CAP_22 | SAMPR_CAP_16 | \
+                             SAMPR_CAP_12 | SAMPR_CAP_11 | SAMPR_CAP_8)
+
+/* because the samplerates don't match at each point, we must be able to
+ * tell PCM which set of rates to use. not needed if recording rates are
+ * a simple subset of playback rates and are equal values. */
+#define CONFIG_SAMPR_TYPES
 
 /* Define bitmask of input sources - recordable bitmask can be defined
    explicitly if different */
@@ -41,15 +47,14 @@
 /* define this if you have access to the quickscreen */
 #define HAVE_QUICKSCREEN
 
-/* define this if you have access to the pitchscreen */
-#define HAVE_PITCHSCREEN
-
 /* define this if you would like tagcache to build on this target */
 #define HAVE_TAGCACHE
 
 /* LCD dimensions */
 #define LCD_WIDTH  132
 #define LCD_HEIGHT 80
+/* sqrt(132^2 + 80^2) / 1.4 = 110.3 */
+#define LCD_DPI 110
 #define LCD_DEPTH  16   /* 65536 colours */
 #define LCD_PIXELFORMAT RGB565 /* rgb565 */
 
@@ -131,6 +136,8 @@
 #define BATTERY_CAPACITY_INC 0          /* capacity increment */
 #define BATTERY_TYPES_COUNT  1          /* only one type */
 
+#define CONFIG_BATTERY_MEASURE VOLTAGE_MEASURE
+
 /* Charging implemented in a target-specific algorithm */
 #define CONFIG_CHARGING CHARGING_TARGET
 
@@ -177,10 +184,10 @@
 /* enable these for the experimental usb stack */
 #define HAVE_USBSTACK
 //#define USB_HANDLED_BY_OF
-#define USE_ROCKBOX_USB
 //#define USB_ENABLE_SERIAL
 #define USB_VENDOR_ID 0x0781
 #define USB_PRODUCT_ID 0x7452
+#define HAVE_BOOTLOADER_USB_MODE
 #define HAVE_USB_HID_MOUSE
 
 /* Define this if you have adjustable CPU frequency */

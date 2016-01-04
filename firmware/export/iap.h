@@ -22,7 +22,9 @@
 
 #include <stdbool.h>
 
-#define RX_BUFLEN 260
+/* This is just the payload size, without sync, length and checksum */
+#define RX_BUFLEN (64*1024)
+/* This is the entire frame length, sync, length, payload and checksum */
 #define TX_BUFLEN 128
 
 extern bool iap_getc(unsigned char x);
@@ -32,5 +34,8 @@ extern void iap_periodic(void);
 extern void iap_handlepkt(void);
 extern void iap_send_pkt(const unsigned char * data, int len);
 const unsigned char *iap_get_serbuf(void);
+#ifdef HAVE_LINE_REC
+extern bool iap_record(bool onoff);
+#endif
 
 #endif

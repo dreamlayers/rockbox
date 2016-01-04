@@ -103,7 +103,6 @@
 #include "mpegplayer.h"
 #include "lib/helper.h"
 #include "mpeg_settings.h"
-#include "mpeg2.h"
 #include "video_out.h"
 #include "stream_thread.h"
 #include "stream_mgr.h"
@@ -273,6 +272,15 @@ CONFIG_KEYPAD == SANSA_M200_PAD
 #define MPEG_RW         BUTTON_LEFT
 #define MPEG_FF         BUTTON_RIGHT
 
+#elif CONFIG_KEYPAD ==  CREATIVE_ZENXFI3_PAD
+#define MPEG_MENU       BUTTON_MENU
+#define MPEG_STOP       (BUTTON_PLAY|BUTTON_REPEAT)
+#define MPEG_PAUSE      (BUTTON_PLAY|BUTTON_REL)
+#define MPEG_VOLDOWN    BUTTON_VOL_DOWN
+#define MPEG_VOLUP      BUTTON_VOL_UP
+#define MPEG_RW         BUTTON_DOWN
+#define MPEG_FF         BUTTON_UP
+
 #elif CONFIG_KEYPAD == PHILIPS_HDD1630_PAD
 #define MPEG_MENU       BUTTON_MENU
 #define MPEG_STOP       BUTTON_POWER
@@ -309,14 +317,16 @@ CONFIG_KEYPAD == SANSA_M200_PAD
 #elif CONFIG_KEYPAD == ONDAVX777_PAD
 #define MPEG_MENU       BUTTON_POWER
 
-#elif CONFIG_KEYPAD == SAMSUNG_YH_PAD
-#define MPEG_MENU       BUTTON_LEFT
-#define MPEG_STOP       BUTTON_RIGHT
-#define MPEG_PAUSE      BUTTON_PLAY
+#elif (CONFIG_KEYPAD == SAMSUNG_YH820_PAD) || \
+      (CONFIG_KEYPAD == SAMSUNG_YH920_PAD)
+#define MPEG_MENU       BUTTON_REW
+#define MPEG_STOP       (BUTTON_PLAY | BUTTON_REPEAT)
+#define MPEG_PAUSE      (BUTTON_PLAY | BUTTON_REL)
 #define MPEG_VOLDOWN    BUTTON_DOWN
 #define MPEG_VOLUP      BUTTON_UP
-#define MPEG_RW         BUTTON_REW
-#define MPEG_FF         BUTTON_FFWD
+#define MPEG_RW         BUTTON_LEFT
+#define MPEG_FF         BUTTON_RIGHT
+#define MPEG_SHOW_OSD   BUTTON_FFWD
 
 #elif CONFIG_KEYPAD == PBELL_VIBE500_PAD
 #define MPEG_MENU       BUTTON_MENU
@@ -344,6 +354,78 @@ CONFIG_KEYPAD == SANSA_M200_PAD
 #define MPEG_VOLUP      BUTTON_UP
 #define MPEG_RW         BUTTON_REW
 #define MPEG_FF         BUTTON_FF
+
+#elif CONFIG_KEYPAD == SANSA_FUZEPLUS_PAD
+#define MPEG_MENU       BUTTON_POWER
+#define MPEG_PAUSE      (BUTTON_PLAYPAUSE | BUTTON_REL)
+#define MPEG_STOP       (BUTTON_PLAYPAUSE | BUTTON_REPEAT)
+#define MPEG_VOLDOWN    BUTTON_VOL_DOWN
+#define MPEG_VOLUP      BUTTON_VOL_UP
+#define MPEG_RW         BUTTON_LEFT
+#define MPEG_FF         BUTTON_RIGHT
+
+#elif CONFIG_KEYPAD == SANSA_CONNECT_PAD
+#define MPEG_MENU       BUTTON_POWER
+#define MPEG_PAUSE      (BUTTON_SELECT | BUTTON_REL)
+#define MPEG_STOP       (BUTTON_SELECT | BUTTON_REPEAT)
+#define MPEG_VOLDOWN    BUTTON_VOL_DOWN
+#define MPEG_VOLUP      BUTTON_VOL_UP
+#define MPEG_RW         BUTTON_LEFT
+#define MPEG_FF         BUTTON_RIGHT
+
+#elif CONFIG_KEYPAD == SAMSUNG_YPR0_PAD
+#define MPEG_MENU       BUTTON_MENU
+#define MPEG_PAUSE      BUTTON_SELECT
+#define MPEG_STOP       BUTTON_POWER
+#define MPEG_VOLDOWN    BUTTON_DOWN
+#define MPEG_VOLUP      BUTTON_UP
+#define MPEG_RW         BUTTON_LEFT
+#define MPEG_FF         BUTTON_RIGHT
+
+#elif CONFIG_KEYPAD == HM60X_PAD
+#define MPEG_MENU       BUTTON_POWER
+#define MPEG_PAUSE      BUTTON_SELECT
+#define MPEG_STOP       (BUTTON_SELECT | BUTTON_POWER)
+#define MPEG_VOLDOWN    (BUTTON_POWER | BUTTON_DOWN)
+#define MPEG_VOLUP      (BUTTON_POWER | BUTTON_UP)
+#define MPEG_RW         BUTTON_LEFT
+#define MPEG_FF         BUTTON_RIGHT
+
+#elif CONFIG_KEYPAD == HM801_PAD
+#define MPEG_MENU       BUTTON_POWER
+#define MPEG_PAUSE      BUTTON_PLAY
+#define MPEG_STOP       (BUTTON_POWER | BUTTON_PLAY)
+#define MPEG_VOLDOWN    (BUTTON_POWER | BUTTON_DOWN)
+#define MPEG_VOLUP      (BUTTON_POWER | BUTTON_UP)
+#define MPEG_RW         BUTTON_PREV
+#define MPEG_FF         BUTTON_NEXT
+
+#elif CONFIG_KEYPAD == SONY_NWZ_PAD
+#define MPEG_MENU       BUTTON_BACK
+#define MPEG_PAUSE      BUTTON_PLAY
+#define MPEG_STOP       BUTTON_POWER
+#define MPEG_VOLDOWN    BUTTON_UP
+#define MPEG_VOLUP      BUTTON_DOWN
+#define MPEG_RW         BUTTON_LEFT
+#define MPEG_FF         BUTTON_RIGHT
+
+#elif CONFIG_KEYPAD == CREATIVE_ZEN_PAD
+#define MPEG_MENU       BUTTON_MENU
+#define MPEG_PAUSE      BUTTON_PLAYPAUSE
+#define MPEG_STOP       BUTTON_BACK
+#define MPEG_VOLDOWN    BUTTON_DOWN
+#define MPEG_VOLUP      BUTTON_UP
+#define MPEG_RW         BUTTON_LEFT
+#define MPEG_FF         BUTTON_RIGHT
+
+#elif CONFIG_KEYPAD == DX50_PAD
+#define MPEG_MENU       BUTTON_POWER
+#define MPEG_VOLDOWN    BUTTON_VOL_DOWN
+#define MPEG_VOLUP      BUTTON_VOL_UP
+#define MPEG_RW         BUTTON_LEFT
+#define MPEG_FF         BUTTON_RIGHT
+#define MPEG_PAUSE      BUTTON_PLAY
+#define MPEG_STOP       (BUTTON_PLAY|BUTTON_REPEAT)
 
 #else
 #error No keymap defined!
@@ -387,6 +469,7 @@ enum video_action
     VIDEO_STOP = 0,
     VIDEO_PREV,
     VIDEO_NEXT,
+    VIDEO_ACTION_MANUAL = 0x8000, /* Flag that says user did it */
 };
 
 /* OSD status - same order as icon array */
@@ -481,15 +564,15 @@ static struct fps fps NOCACHEBSS_ATTR; /* Accessed on other processor */
 static void osd_show(unsigned show);
 
 #ifdef LCD_LANDSCAPE
-    #define _X (x + osd.x)
-    #define _Y (y + osd.y)
-    #define _W width
-    #define _H height
+    #define __X (x + osd.x)
+    #define __Y (y + osd.y)
+    #define __W width
+    #define __H height
 #else
-    #define _X (LCD_WIDTH - (y + osd.y) - height)
-    #define _Y (x + osd.x)
-    #define _W height
-    #define _H width
+    #define __X (LCD_WIDTH - (y + osd.y) - height)
+    #define __Y (x + osd.x)
+    #define __W height
+    #define __H width
 #endif
 
 #ifdef HAVE_LCD_COLOR
@@ -515,17 +598,17 @@ static unsigned draw_blendcolor(unsigned c1, unsigned c2, unsigned char amount)
  * The origin is the upper-left corner of the OSD area */
 static void draw_update_rect(int x, int y, int width, int height)
 {
-    mylcd_update_rect(_X, _Y, _W, _H);
+    mylcd_update_rect(__X, __Y, __W, __H);
 }
 
 static void draw_clear_area(int x, int y, int width, int height)
 {
 #ifdef HAVE_LCD_COLOR
-    rb->screen_clear_area(rb->screens[SCREEN_MAIN], _X, _Y, _W, _H);
+    rb->screen_clear_area(rb->screens[SCREEN_MAIN], __X, __Y, __W, __H);
 #else
     int oldmode = grey_get_drawmode();
     grey_set_drawmode(DRMODE_SOLID | DRMODE_INVERSEVID);
-    grey_fillrect(_X, _Y, _W, _H);
+    grey_fillrect(__X, __Y, __W, __H);
     grey_set_drawmode(oldmode);
 #endif
 }
@@ -537,7 +620,7 @@ static void draw_clear_area_rect(const struct vo_rect *rc)
 
 static void draw_fillrect(int x, int y, int width, int height)
 {
-    mylcd_fillrect(_X, _Y, _W, _H);
+    mylcd_fillrect(__X, __Y, __W, __H);
 }
 
 static void draw_hline(int x1, int x2, int y)
@@ -608,7 +691,7 @@ static void draw_oriented_mono_bitmap_part(const unsigned char *src,
 {
     const unsigned char *src_end;
     fb_data *dst, *dst_end;
-    unsigned fg_pattern, bg_pattern;
+    unsigned fg_pattern;
 
     if (x + width > SCREEN_WIDTH)
         width = SCREEN_WIDTH - x; /* Clip right */
@@ -624,8 +707,8 @@ static void draw_oriented_mono_bitmap_part(const unsigned char *src,
     if (height <= 0)
         return; /* nothing left to do */
 
-    fg_pattern = rb->lcd_get_foreground();
-    bg_pattern = rb->lcd_get_background();
+    fg_pattern =     rb->lcd_get_foreground();
+    /*bg_pattern =*/ rb->lcd_get_background();
 
     src += stride * (src_y >> 3) + src_x; /* move starting point */
     src_y  &= 7;
@@ -647,7 +730,7 @@ static void draw_oriented_mono_bitmap_part(const unsigned char *src,
             dst_col--;
 
             if (data & 1)
-                *dst_col = fg_pattern;
+                *dst_col = FB_SCALARPACK(fg_pattern);
 #if 0
             else
                 *dst_col = bg_pattern;
@@ -662,6 +745,194 @@ static void draw_oriented_mono_bitmap_part(const unsigned char *src,
         while (dst_col > dst_end);
     }
     while (src < src_end);
+}
+
+
+#define ALPHA_COLOR_FONT_DEPTH 2
+#define ALPHA_COLOR_LOOKUP_SHIFT (1 << ALPHA_COLOR_FONT_DEPTH)
+#define ALPHA_COLOR_LOOKUP_SIZE ((1 << ALPHA_COLOR_LOOKUP_SHIFT) - 1)
+#define ALPHA_COLOR_PIXEL_PER_BYTE (8 >> ALPHA_COLOR_FONT_DEPTH)
+#define ALPHA_COLOR_PIXEL_PER_WORD (32 >> ALPHA_COLOR_FONT_DEPTH)
+#ifdef CPU_ARM
+#define BLEND_INIT do {} while (0)
+#define BLEND_FINISH do {} while(0)
+#define BLEND_START(acc, color, alpha) \
+    asm volatile("mul %0, %1, %2" : "=&r" (acc) : "r" (color), "r" (alpha))
+#define BLEND_CONT(acc, color, alpha) \
+    asm volatile("mla %0, %1, %2, %0" : "+&r" (acc) : "r" (color), "r" (alpha))
+#define BLEND_OUT(acc) do {} while (0)
+#elif defined(CPU_COLDFIRE)
+#define ALPHA_BITMAP_READ_WORDS
+#define BLEND_INIT \
+    unsigned long _macsr = coldfire_get_macsr(); \
+    coldfire_set_macsr(EMAC_UNSIGNED)
+#define BLEND_FINISH \
+    coldfire_set_macsr(_macsr)
+#define BLEND_START(acc, color, alpha) \
+    asm volatile("mac.l %0, %1, %%acc0" :: "%d" (color), "d" (alpha))
+#define BLEND_CONT BLEND_START
+#define BLEND_OUT(acc) asm volatile("movclr.l %%acc0, %0" : "=d" (acc))
+#else
+#define BLEND_INIT do {} while (0)
+#define BLEND_FINISH do {} while(0)
+#define BLEND_START(acc, color, alpha) ((acc) = (color) * (alpha))
+#define BLEND_CONT(acc, color, alpha) ((acc) += (color) * (alpha))
+#define BLEND_OUT(acc) do {} while (0)
+#endif
+
+/* Blend the given two colors */
+static inline unsigned blend_two_colors(unsigned c1, unsigned c2, unsigned a)
+{
+#if LCD_DEPTH == 16
+    a += a >> (ALPHA_COLOR_LOOKUP_SHIFT - 1);
+#if (LCD_PIXELFORMAT == RGB565SWAPPED)
+    c1 = swap16(c1);
+    c2 = swap16(c2);
+#endif
+    unsigned c1l = (c1 | (c1 << 16)) & 0x07e0f81f;
+    unsigned c2l = (c2 | (c2 << 16)) & 0x07e0f81f;
+    unsigned p;
+    BLEND_START(p, c1l, a);
+    BLEND_CONT(p, c2l, ALPHA_COLOR_LOOKUP_SIZE + 1 - a);
+    BLEND_OUT(p);
+    p = (p >> ALPHA_COLOR_LOOKUP_SHIFT) & 0x07e0f81f;
+    p |= (p >> 16);
+#if (LCD_PIXELFORMAT == RGB565SWAPPED)
+    return swap16(p);
+#else
+    return p;
+#endif
+
+#else /* LCD_DEPTH == 24 */
+    unsigned s = c1;
+    unsigned d = c2;
+    unsigned s1 = s & 0xff00ff;
+    unsigned d1 = d & 0xff00ff;
+    a += a >> (ALPHA_COLOR_LOOKUP_SHIFT - 1);
+    d1 = (d1 + ((s1 - d1) * a >> ALPHA_COLOR_LOOKUP_SHIFT)) & 0xff00ff;
+    s &= 0xff00;
+    d &= 0xff00;
+    d = (d + ((s - d) * a >> ALPHA_COLOR_LOOKUP_SHIFT)) & 0xff00;
+
+    return d1 | d;
+#endif
+}
+
+static void draw_oriented_alpha_bitmap_part(const unsigned char *src,
+                                            int src_x, int src_y,
+                                            int stride, int x, int y,
+                                            int width, int height)
+{
+    fb_data *dst, *dst_start;
+    unsigned fg_pattern;
+
+    if (x + width > SCREEN_WIDTH)
+        width = SCREEN_WIDTH - x; /* Clip right */
+    if (x < 0)
+        width += x, x = 0; /* Clip left */
+    if (width <= 0)
+        return; /* nothing left to do */
+
+    if (y + height > SCREEN_HEIGHT)
+        height = SCREEN_HEIGHT - y; /* Clip bottom */
+    if (y < 0)
+        height += y, y = 0; /* Clip top */
+    if (height <= 0)
+        return; /* nothing left to do */
+
+    /* initialize blending */
+    BLEND_INIT;
+
+    fg_pattern =    rb->lcd_get_foreground();
+    /*bg_pattern=*/ rb->lcd_get_background();
+
+    dst_start = rb->lcd_framebuffer + (LCD_WIDTH - y - 1) + x*LCD_WIDTH;
+    int col, row = height;
+    unsigned data, pixels;
+    unsigned skip_end = (stride - width);
+    unsigned skip_start = src_y * stride + src_x;
+
+#ifdef ALPHA_BITMAP_READ_WORDS
+    uint32_t *src_w = (uint32_t *)((uintptr_t)src & ~3);
+    skip_start += ALPHA_COLOR_PIXEL_PER_BYTE * ((uintptr_t)src & 3);
+    src_w += skip_start / ALPHA_COLOR_PIXEL_PER_WORD;
+    data = letoh32(*src_w++);
+#else
+    src += skip_start / ALPHA_COLOR_PIXEL_PER_BYTE;
+    data = *src;
+#endif
+    pixels = skip_start % ALPHA_COLOR_PIXEL_PER_WORD;
+    data >>= pixels * ALPHA_COLOR_LOOKUP_SHIFT;
+#ifdef ALPHA_BITMAP_READ_WORDS
+    pixels = 8 - pixels;
+#endif
+
+    do
+    {
+        col = width;
+        dst = dst_start--;
+#ifdef ALPHA_BITMAP_READ_WORDS
+#define UPDATE_SRC_ALPHA    do { \
+            if (--pixels) \
+                data >>= ALPHA_COLOR_LOOKUP_SHIFT; \
+            else \
+            { \
+                data = letoh32(*src_w++); \
+                pixels = ALPHA_COLOR_PIXEL_PER_WORD; \
+            } \
+        } while (0)
+#elif ALPHA_COLOR_PIXEL_PER_BYTE == 2
+#define UPDATE_SRC_ALPHA    do { \
+            if (pixels ^= 1) \
+                data >>= ALPHA_COLOR_LOOKUP_SHIFT; \
+            else \
+                data = *(++src); \
+        } while (0)
+#else
+#define UPDATE_SRC_ALPHA    do { \
+            if (pixels = (++pixels % ALPHA_COLOR_PIXEL_PER_BYTE)) \
+                data >>= ALPHA_COLOR_LOOKUP_SHIFT; \
+            else \
+                data = *(++src); \
+        } while (0)
+#endif
+        do
+        {
+            unsigned color = blend_two_colors(FB_UNPACK_SCALAR_LCD(*dst), fg_pattern,
+                                    data & ALPHA_COLOR_LOOKUP_SIZE );
+            *dst= FB_SCALARPACK(color);
+            dst += LCD_WIDTH;
+            UPDATE_SRC_ALPHA;
+        }
+        while (--col);
+#ifdef ALPHA_BITMAP_READ_WORDS
+        if (skip_end < pixels)
+        {
+            pixels -= skip_end;
+            data >>= skip_end * ALPHA_COLOR_LOOKUP_SHIFT;
+        } else {
+            pixels = skip_end - pixels;
+            src_w += pixels / ALPHA_COLOR_PIXEL_PER_WORD;
+            pixels %= ALPHA_COLOR_PIXEL_PER_WORD;
+            data = letoh32(*src_w++);
+            data >>= pixels * ALPHA_COLOR_LOOKUP_SHIFT;
+            pixels = 8 - pixels;
+        }
+#else
+        if (skip_end)
+        {
+            pixels += skip_end;
+            if (pixels >= ALPHA_COLOR_PIXEL_PER_BYTE)
+            {
+                src += pixels / ALPHA_COLOR_PIXEL_PER_BYTE;
+                pixels %= ALPHA_COLOR_PIXEL_PER_BYTE;
+                data = *src;
+                data >>= pixels * ALPHA_COLOR_LOOKUP_SHIFT;
+            } else
+                data >>= skip_end * ALPHA_COLOR_LOOKUP_SHIFT;
+        }
+#endif
+    } while (--row);
 }
 
 static void draw_putsxy_oriented(int x, int y, const char *str)
@@ -691,8 +962,12 @@ static void draw_putsxy_oriented(int x, int y, const char *str)
 
         bits = rb->font_get_bits(pf, ch);
 
-        draw_oriented_mono_bitmap_part(bits, ofs, 0, width, x, y,
-                                       width - ofs, pf->height);
+        if (pf->depth)
+            draw_oriented_alpha_bitmap_part(bits, ofs, 0, width, x, y,
+                                            width - ofs, pf->height);
+        else
+            draw_oriented_mono_bitmap_part(bits, ofs, 0, width, x, y,
+                                           width - ofs, pf->height);
 
         x += width - ofs;
         ofs = 0;
@@ -752,10 +1027,10 @@ static void fps_update_post_frame_callback(void)
                 int height = cliprect.b - cliprect.t;
 
                 /* OSD coordinates -> framebuffer coordinates */
-                fps.pf_x = _X;
-                fps.pf_y = _Y;
-                fps.pf_width = _W;
-                fps.pf_height = _H;
+                fps.pf_x = __X;
+                fps.pf_y = __Y;
+                fps.pf_width = __W;
+                fps.pf_height = __H;
 
                 cb = fps_post_frame_callback;
             }
@@ -811,25 +1086,25 @@ static void fps_init(void)
 
 #if defined(HAVE_LCD_ENABLE) || defined(HAVE_LCD_SLEEP)
 /* So we can refresh the overlay */
-static void osd_lcd_enable_hook(void* param)
+static void osd_lcd_enable_hook(unsigned short id, void* param)
 {
+    (void)id;
     (void)param;
     rb->queue_post(rb->button_queue, LCD_ENABLE_EVENT_1, 0);
 }
 #endif
 
-static void osd_backlight_on_video_mode(bool video_on)
+static void osdbacklight_hw_on_video_mode(bool video_on)
 {
     if (video_on) {
         /* Turn off backlight timeout */
-        /* backlight control in lib/helper.c */
-        backlight_force_on();
+        backlight_ignore_timeout();
 #if defined(HAVE_LCD_ENABLE) || defined(HAVE_LCD_SLEEP)
         rb->remove_event(LCD_EVENT_ACTIVATION, osd_lcd_enable_hook);
 #endif
     } else {
 #if defined(HAVE_LCD_ENABLE) || defined(HAVE_LCD_SLEEP)
-        rb->add_event(LCD_EVENT_ACTIVATION, false, osd_lcd_enable_hook);
+        rb->add_event(LCD_EVENT_ACTIVATION, osd_lcd_enable_hook);
 #endif
         /* Revert to user's backlight settings */
         backlight_use_settings();
@@ -1505,7 +1780,7 @@ static int osd_play(uint32_t time)
     retval = stream_seek(time, SEEK_SET);
 
     if (retval >= STREAM_OK) {
-        osd_backlight_on_video_mode(true);
+        osdbacklight_hw_on_video_mode(true);
         osd_backlight_brightness_video_mode(true);
         stream_show_vo(true);
 
@@ -1552,8 +1827,17 @@ static int osd_pause(void)
 
     osd_set_status(OSD_STATUS_PAUSED);
 
-    osd_backlight_on_video_mode(false);
+    osdbacklight_hw_on_video_mode(false);
     /* Leave brightness alone and restore it when OSD is hidden */
+
+    if (stream_can_seek() && rb->global_settings->pause_rewind) {
+        stream_seek(-rb->global_settings->pause_rewind*TS_SECOND,
+                    SEEK_CUR);
+        osd_schedule_refresh(OSD_REFRESH_VIDEO);
+        /* Update time display now */
+        osd_update_time();
+        osd_refresh(OSD_REFRESH_TIME);
+    }
 
     return status;
 }
@@ -1564,7 +1848,7 @@ static void osd_resume(void)
     /* Cancel video and resume auto refresh - the resyc when starting
      * playback will perform those tasks */
     osd_set_hp_pause_flag(false);
-    osd_backlight_on_video_mode(true);
+    osdbacklight_hw_on_video_mode(true);
     osd_backlight_brightness_video_mode(true);
     osd_cancel_refresh(OSD_REFRESH_VIDEO | OSD_REFRESH_RESUME);
     osd_set_status(OSD_STATUS_PLAYING);
@@ -1588,7 +1872,7 @@ static void osd_stop(void)
     if (resume_time != INVALID_TIMESTAMP)
         settings.resume_time = resume_time;
 
-    osd_backlight_on_video_mode(false);
+    osdbacklight_hw_on_video_mode(false);
     osd_backlight_brightness_video_mode(false);
 }
 
@@ -1698,7 +1982,7 @@ static bool is_videofile(const char* file)
 static bool get_videofile(int direction, char* videofile, size_t bufsize)
 {
     struct tree_context *tree = rb->tree_get_context();
-    struct entry *dircache = tree->dircache;
+    struct entry *dircache = rb->tree_get_entries(tree);
     int i, step, end, found = 0;
     char *videoname = rb->strrchr(videofile, '/') + 1;
     size_t rest = bufsize - (videoname - videofile) - 1;
@@ -1754,15 +2038,6 @@ static void osd_handle_phone_plug(bool inserted)
             osd_pause();
 
             osd_set_hp_pause_flag(true);
-
-            if (stream_can_seek() && rb->global_settings->unplug_rw) {
-                stream_seek(-rb->global_settings->unplug_rw*TS_SECOND,
-                            SEEK_CUR);
-                osd_schedule_refresh(OSD_REFRESH_VIDEO);
-                /* Update time display now */
-                osd_update_time();
-                osd_refresh(OSD_REFRESH_TIME);
-            }
         }
     }
 }
@@ -1971,7 +2246,7 @@ static int button_loop(void)
                     /* Release within 3 seconds of start: skip to previous
                      * file */
                     osd_stop();
-                    next_action = VIDEO_PREV;
+                    next_action = VIDEO_PREV | VIDEO_ACTION_MANUAL;
                 }
             }
             else if ((button & ~BUTTON_REPEAT) == old_button) {
@@ -2001,7 +2276,7 @@ static int button_loop(void)
             if ((old_button | BUTTON_REL) == button) {
                 /* If button has been released: skip to next file */
                 osd_stop();
-                next_action = VIDEO_NEXT;
+                next_action = VIDEO_NEXT | VIDEO_ACTION_MANUAL;
             }
             else if ((button & ~BUTTON_REPEAT) == old_button) {
                 button = osd_seek_btn(old_button);
@@ -2083,11 +2358,10 @@ enum plugin_status plugin_start(const void* parameter)
 
         while (!quit)
         {
-            int result;
-
             init_settings(videofile);
 
-            result = stream_open(videofile);
+            int result = stream_open(videofile);
+            bool manual_skip = false;
 
             if (result >= STREAM_OK) {
                 /* start menu */
@@ -2099,6 +2373,8 @@ enum plugin_status plugin_start(const void* parameter)
                 if (result != MPEG_START_QUIT) {
                     /* Enter button loop and process UI */
                     next_action = button_loop();
+                    manual_skip = next_action & VIDEO_ACTION_MANUAL;
+                    next_action &= ~VIDEO_ACTION_MANUAL;                    
                 }
 
                 stream_close();
@@ -2173,6 +2449,13 @@ enum plugin_status plugin_start(const void* parameter)
                                                    sizeof(videofile));
                 /* quit after finished the last videofile */
                 quit = !get_videofile_says;
+
+                if (manual_skip)
+                {
+                    rb->system_sound_play(get_videofile_says ?
+                                          SOUND_TRACK_SKIP : SOUND_TRACK_NO_MORE);
+                }
+
                 break;
                 }
             case VIDEO_PREV:
@@ -2180,6 +2463,13 @@ enum plugin_status plugin_start(const void* parameter)
                 get_videofile_says = get_videofile(VIDEO_PREV, videofile,
                                                    sizeof(videofile));
                 /* if there is no previous file, play the same videofile */
+
+                if (manual_skip)
+                {
+                    rb->system_sound_play(get_videofile_says ?
+                                          SOUND_TRACK_SKIP : SOUND_TRACK_NO_MORE);
+                }
+
                 break;
                 }
             case VIDEO_STOP:

@@ -34,7 +34,6 @@
 #ifdef HAVE_HOTSWAP
 #include "sdmmc.h"
 #include "disk.h"
-#include "fat.h"
 #endif
 #include "dma-target.h"     
 #include "system-target.h"
@@ -43,10 +42,6 @@
 /* The configuration method is not very flexible. */
 #define CARD_NUM_SLOT   0
 #define NUM_CARDS       2
-
-#if NUM_CARDS < NUM_DRIVES
-#error NUM_CARDS less than NUM_DRIVES
-#endif
 
 #define EC_OK                    0
 #define EC_FAILED                1
@@ -119,8 +114,8 @@ static long             sd_stack [(DEFAULT_STACK_SIZE*2 + 0x1c0)/sizeof(long)];
 static const char               sd_thread_name[] = "sd";
 static struct mutex             sd_mtx SHAREDBSS_ATTR;
 static struct event_queue       sd_queue;
-static struct wakeup            transfer_completion_signal;
-static volatile unsigned int    transfer_error[NUM_VOLUMES];
+static struct semaphore         transfer_completion_signal;
+static volatile unsigned int    transfer_error[NUM_DRIVES];
 /* align on cache line size */
 static unsigned char    aligned_buffer[UNALIGNED_NUM_SECTORS * SD_BLOCK_SIZE] 
                         __attribute__((aligned(32)));
@@ -223,7 +218,7 @@ void SDI (void)
 
     dbgprintf ("SDI %x\n", transfer_error[curr_card]);
     
-    wakeup_signal(&transfer_completion_signal);
+    semaphore_release(&transfer_completion_signal);
 
     /* Ack the interrupt */
     SRCPND = SDI_MASK;
@@ -242,7 +237,7 @@ void dma_callback (void)
     SDIDSTA |= S3C2410_SDIDSTA_CLEAR_BITS;  /* needed to clear int  */
     
     dbgprintf ("dma_cb\n");
-    wakeup_signal(&transfer_completion_signal);
+    semaphore_release(&transfer_completion_signal);
 }
 #endif
 
@@ -589,48 +584,29 @@ static void sd_thread(void)
         {
 #ifdef HAVE_HOTSWAP
         case SYS_HOTSWAP_INSERTED:
-        case SYS_HOTSWAP_EXTRACTED:
-        {
+        case SYS_HOTSWAP_EXTRACTED:;
             int success = 1;
-            fat_lock();          /* lock-out FAT activity first -
-                                    prevent deadlocking via disk_mount that
-                                    would cause a reverse-order attempt with
-                                    another thread */
-            mutex_lock(&sd_mtx); /* lock-out card activity - direct calls
-                                    into driver that bypass the fat cache */
 
-            /* We now have exclusive control of fat cache and ata */
+            disk_unmount(0);     /* release "by force" */
 
-            disk_unmount(0);     /* release "by force", ensure file
-                                    descriptors aren't leaked and any busy
-                                    ones are invalid if mounting */
+            mutex_lock(&sd_mtx); /* lock-out card activity */
 
             /* Force card init for new card, re-init for re-inserted one or
              * clear if the last attempt to init failed with an error. */
             card_info[0].initialized = 0;
 
+            /* Access is now safe */
+            mutex_unlock(&sd_mtx);
+
             if (ev.id == SYS_HOTSWAP_INSERTED)
-            {
-                /* FIXME: once sd_enabled is implement properly,
-                 * reinitializing the controllers might be needed */
-                sd_enable(true);
-                if (success < 0) /* initialisation failed */
-                    panicf("SD init failed : %d", success);
                 success = disk_mount(0); /* 0 if fail */
-            }
 
             /* notify the system about the changed filesystems
              */
             if (success)
                 queue_broadcast(SYS_FS_CHANGED, 0);
-
-            /* Access is now safe */
-            mutex_unlock(&sd_mtx);
-            fat_unlock();
-            sd_enable(false);
-        }
             break;
-#endif
+#endif /* HAVE_HOTSWAP */
         }        
     }
 }
@@ -783,7 +759,7 @@ static int sd_transfer_sectors(int card_no, unsigned long start,
                                 (9<<4) /* 2^9 = 512 */ ;
 #endif
 
-        wakeup_wait(&transfer_completion_signal, 100 /*TIMEOUT_BLOCK*/);
+        semaphore_wait(&transfer_completion_signal, 100 /*TIMEOUT_BLOCK*/);
         
         /* wait for DMA to finish */
         while (DSTAT0 & DSTAT_STAT_BUSY)
@@ -851,7 +827,7 @@ sd_transfer_error:
     return ret;
 }
 
-int sd_read_sectors(IF_MD2(int card_no,) unsigned long start, int incount,
+int sd_read_sectors(IF_MD(int card_no,) unsigned long start, int incount,
                      void* inbuf)
 {
     int ret;
@@ -872,7 +848,7 @@ int sd_read_sectors(IF_MD2(int card_no,) unsigned long start, int incount,
 }
 
 /*****************************************************************************/
-int sd_write_sectors(IF_MD2(int drive,) unsigned long start, int count,
+int sd_write_sectors(IF_MD(int drive,) unsigned long start, int count,
                       const void* outbuf)
 {
 #ifdef BOOTLOADER /* we don't need write support in bootloader */
@@ -928,7 +904,7 @@ int sd_init(void)
     sd_enabled = true;
     sd_enable(false);
 #endif
-    wakeup_init(&transfer_completion_signal);
+    semaphore_init(&transfer_completion_signal, 1, 0);
     /* init mutex */
     mutex_init(&sd_mtx);
     queue_init(&sd_queue, true);

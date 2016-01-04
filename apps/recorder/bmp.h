@@ -36,9 +36,11 @@
 #define BM_MAX_WIDTH (((LCD_WIDTH) + 7) & ~7)
 
 struct uint8_rgb {
+    /* Little endian */
     uint8_t blue;
     uint8_t green;
     uint8_t red;
+    uint8_t alpha;
 };
 
 struct dim {

@@ -7,6 +7,7 @@
 #include "rtc-gb.h"
 #include "save.h"
 #include "sound.h"
+#include "loader.h"
 
 /* From http://www.semis.demon.co.uk/Gameboy/Gbspec.txt (4/17/2007)
  * Cartridge type:
@@ -124,7 +125,6 @@ static void initmem(void *mem, int size)
 
 static byte *loadfile(int fd, int *len)
 {
-    int c;
     byte *d;
 
     *len=lseek(fd,0,SEEK_END);
@@ -136,7 +136,7 @@ static byte *loadfile(int fd, int *len)
     }
     lseek(fd,0,SEEK_SET);
     
-    c = read(fd, d, *len);
+    read(fd, d, *len);
 
     return d;
 }

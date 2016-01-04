@@ -31,7 +31,9 @@
 enum plugin_status plugin_start(const void* file)
 {
     int button;
+#if defined(TV_AUTOSCROLL_PRE) 
     int lastbutton = BUTTON_NONE;
+#endif
     bool autoscroll = false;
     long old_tick;
     bool done = false;
@@ -95,6 +97,10 @@ enum plugin_status plugin_start(const void* file)
 #ifdef TV_AUTOSCROLL_PRE
                 if (lastbutton != TV_AUTOSCROLL_PRE)
                     break;
+#endif
+#ifdef TV_AUTOSCROLL2
+                /* fallthrough */
+            case TV_AUTOSCROLL2:
 #endif
                 autoscroll = !autoscroll;
                 break;
@@ -211,7 +217,9 @@ enum plugin_status plugin_start(const void* file)
         }
         if (button != BUTTON_NONE)
         {
+#if defined(TV_AUTOSCROLL_PRE) 
             lastbutton = button;
+#endif
             rb->yield();
         }
         if (autoscroll)

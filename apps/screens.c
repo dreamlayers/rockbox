@@ -53,16 +53,16 @@
 #include "backdrop.h"
 #include "viewport.h"
 #include "language.h"
+#include "replaygain.h"
 
-#if CONFIG_CODEC == SWCODEC
-#include "dsp.h"
+#if defined(ARCHOS_FMRECORDER) || defined(ARCHOS_RECORDERV2)
+#include "adc.h"
 #endif
 
-#if (CONFIG_STORAGE & STORAGE_MMC)
+#if (CONFIG_STORAGE & STORAGE_MMC) && (defined(ARCHOS_ONDIOSP) || defined(ARCHOS_ONDIOFM))
 int mmc_remove_request(void)
 {
     struct queue_event ev;
-    int i;
     FOR_NB_SCREENS(i)
         screens[i].clear_display();
     splash(0, ID2P(LANG_REMOVE_MMC));
@@ -94,14 +94,17 @@ static void charging_display_info(bool animate)
     static unsigned phase = 3;
     unsigned i;
 
-#ifdef NEED_ATA_POWER_BATT_MEASURE
-    if (ide_powered()) /* FM and V2 can only measure when ATA power is on */
-#endif
+#if !defined(NEED_ATA_POWER_BATT_MEASURE)
     {
         int battv = battery_voltage();
         lcd_putsf(0, 7, "  Batt: %d.%02dV %d%%  ", battv / 1000,
                  (battv % 1000) / 10, battery_level());
     }
+#elif defined(ARCHOS_FMRECORDER) || defined(ARCHOS_RECORDERV2)
+    /* IDE power is normally off here, so display input current instead */
+    lcd_putsf(7, 7, "%dmA  ", 
+              (adc_read(ADC_EXT_POWER) * EXT_SCALE_FACTOR) / 10000);
+#endif
 
 #ifdef ARCHOS_RECORDER
     lcd_puts(0, 2, "Charge mode:");
@@ -263,7 +266,8 @@ int charging_screen(void)
             rc = 2;
         else if (usb_detect() == USB_INSERTED)
             rc = 3;
-        else if (!charger_inserted())
+        /* do not depend on power management thread here */
+        else if (!(power_input_status() & POWER_INPUT_MAIN_CHARGER))
             rc = 1;
     } while (!rc);
 
@@ -346,7 +350,6 @@ bool set_time_screen(const char* title, struct tm *tm)
     struct viewport viewports[NB_SCREENS];
     bool done = false, usb = false;
     int cursorpos = 0;
-    unsigned int s;
     unsigned char offsets_ptr[] =
         { OFF_HOURS, OFF_MINUTES, OFF_SECONDS, OFF_YEAR, 0, OFF_DAY };
 
@@ -563,7 +566,7 @@ bool set_time_screen(const char* title, struct tm *tm)
         }
     }
     FOR_NB_SCREENS(s)
-        screens[s].scroll_stop(&viewports[s]);
+        screens[s].scroll_stop_viewport(&viewports[s]);
 #ifdef HAVE_TOUCHSCREEN
     touchscreen_set_mode(old_mode);
 #endif
@@ -572,13 +575,14 @@ bool set_time_screen(const char* title, struct tm *tm)
 #endif /* defined(HAVE_LCD_BITMAP) && (CONFIG_RTC != 0) */
 
 #if (CONFIG_KEYPAD == RECORDER_PAD) && !defined(HAVE_SW_POWEROFF)
+#include "scroll_engine.h"
 bool shutdown_screen(void)
 {
     int button;
     bool done = false;
     long time_entered = current_tick;
 
-    lcd_stop_scroll();
+    lcd_scroll_stop();
 
     splash(0, str(LANG_CONFIRM_SHUTDOWN));
 
@@ -728,10 +732,12 @@ static const char* id3_get_info(int selected_item, void* data,
                 break;
 #if CONFIG_CODEC == SWCODEC
             case LANG_ID3_TRACK_GAIN:
-                val=id3->track_gain_string;
+                replaygain_itoa(buffer, buffer_len, id3->track_level);
+                val=(id3->track_level) ? buffer : NULL; /* only show level!=0 */
                 break;
             case LANG_ID3_ALBUM_GAIN:
-                val=id3->album_gain_string;
+                replaygain_itoa(buffer, buffer_len, id3->album_level);
+                val=(id3->album_level) ? buffer : NULL; /* only show level!=0 */
                 break;
 #endif
             case LANG_ID3_PATH:
@@ -758,6 +764,8 @@ bool browse_id3(void)
     struct id3view_info info;
     info.count = 0;
     info.id3 = id3;
+    bool ret = false;
+    push_current_activity(ACTIVITY_ID3SCREEN);
     for (i = 0; i < ARRAYLEN(id3_headers); i++)
     {
         char temp[8];
@@ -771,12 +779,24 @@ bool browse_id3(void)
     gui_synclist_draw(&id3_lists);
     while (true) {
         key = get_action(CONTEXT_LIST,HZ/2);
-        if(key!=ACTION_NONE && key!=ACTION_UNKNOWN
-        && !gui_synclist_do_button(&id3_lists, &key,LIST_WRAP_UNLESS_HELD))
+        if(!gui_synclist_do_button(&id3_lists, &key,LIST_WRAP_UNLESS_HELD))
         {
-            return(default_event_handler(key) == SYS_USB_CONNECTED);
+            if (key == ACTION_STD_OK || key == ACTION_STD_CANCEL)
+            {
+                ret = false;
+                break;
+            }
+            else if (key == ACTION_STD_MENU ||
+                        default_event_handler(key) == SYS_USB_CONNECTED)
+            {
+                ret =  true;
+                break;
+            }
         }
     }
+
+    pop_current_activity();
+    return ret;
 }
 
 static const char* runtime_get_data(int selected_item, void* data,

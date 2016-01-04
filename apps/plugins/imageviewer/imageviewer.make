@@ -32,7 +32,7 @@ ifndef APP_TYPE
     IMGDEC_OUTLDS = $(IMGVBUILDDIR)/%.link
     IMGDEC_OVLFLAGS = -T$(IMGVBUILDDIR)/$*.link -Wl,--gc-sections -Wl,-Map,$(IMGVBUILDDIR)/$*.map
 else
-    IMGDEC_OVLFLAGS = $(PLUGINLDFLAGS)
+    IMGDEC_OVLFLAGS = $(PLUGINLDFLAGS) -Wl,-Map,$(IMGVBUILDDIR)/$*.map
 endif
 
 $(IMGVBUILDDIR)/%.ovl: $(IMGDEC_OUTLDS)
@@ -40,14 +40,10 @@ $(IMGVBUILDDIR)/%.ovl: $(IMGDEC_OUTLDS)
 		$(filter-out $(PLUGIN_CRT0),$(filter %.o, $^)) \
 		$(filter %.a, $+) \
 		-lgcc $(IMGDEC_OVLFLAGS)
-ifdef APP_TYPE
-	$(SILENT)cp $(IMGVBUILDDIR)/$*.elf $@
-else
-	$(SILENT)$(OC) -O binary $(IMGVBUILDDIR)/$*.elf $@
-endif
+	$(SILENT)$(call objcopy,$(IMGVBUILDDIR)/$*.elf,$@)
 
 # rule to create reference map for image decoder
-$(IMGVBUILDDIR)/%.refmap: $(APPSDIR)/plugin.h $(IMGVSRCDIR)/imageviewer.h $(PLUGINLINK_LDS) $(PLUGINLIB) $(PLUGINBITMAPLIB)
+$(IMGVBUILDDIR)/%.refmap: $(APPSDIR)/plugin.h $(IMGVSRCDIR)/imageviewer.h $(PLUGINLINK_LDS) $(PLUGIN_LIBS)
 	$(call PRINTS,LD $(@F))$(CC) $(IMGDECFLAGS) -o /dev/null \
 		$(filter %.o, $^) \
 		$(filter %.a, $+) \

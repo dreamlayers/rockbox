@@ -59,7 +59,7 @@ extern const fb_data chessbox_pieces[];
 #define YOFS ((LCD_HEIGHT-8*TILE_HEIGHT)/2)
 
 /* save files */
-#define SAVE_FILE  PLUGIN_GAMES_DIR "/chessbox.save"
+#define SAVE_FILE  PLUGIN_GAMES_DATA_DIR "/chessbox.save"
 
 /* commands enum */
 #define COMMAND_NOP        0
@@ -94,7 +94,7 @@ const char *level_string[] = { "Level 1: 60 moves / 5 min" ,
 int wt_command = COMMAND_NOP;
 
 /* ---- Get the board column and row (e2 f.e.) for a physical x y ---- */
-void xy2cr ( short x, short y, short *c, short *r ) {
+static void xy2cr ( short x, short y, short *c, short *r ) {
     if (computer == black ) {
         *c = x ;
         *r = y ;
@@ -105,7 +105,7 @@ void xy2cr ( short x, short y, short *c, short *r ) {
 }
 
 /* ---- get physical x y for a board column and row (e2 f.e.) ---- */
-void cr2xy ( short c, short r, short *x, short *y ) {
+static void cr2xy ( short c, short r, short *x, short *y ) {
     if ( computer == black ) {
         *x = c ;
         *y = r ;
@@ -174,7 +174,7 @@ static void cb_drawboard (void) {
 }
 
 /* ---- Switch mark on board ---- */
-void cb_switch ( short x , short y ) {
+static void cb_switch ( short x , short y ) {
     rb->lcd_set_drawmode ( DRMODE_COMPLEMENT );
     rb->lcd_drawrect ( XOFS + x*TILE_WIDTH + 1 ,
                        YOFS + ( 7 - y )*TILE_HEIGHT +1 ,
@@ -184,7 +184,7 @@ void cb_switch ( short x , short y ) {
 }
 
 /* ---- callback for capturing interaction while thinking ---- */
-void cb_wt_callback ( void ) {
+static void cb_wt_callback ( void ) {
     int button = BUTTON_NONE;
     
     wt_command = COMMAND_NOP;
@@ -208,7 +208,7 @@ void cb_wt_callback ( void ) {
 }
 
 /* ---- set playing parameters depending on level ---- */
-void cb_setlevel ( int lev ) {
+static void cb_setlevel ( int lev ) {
     Level = (lev > 7) ? 7 : ( (lev < 1) ? 1 : lev ) ;
     switch (Level) {
         case 1 :
@@ -257,7 +257,7 @@ void cb_setlevel ( int lev ) {
 }
 
 /* ---- increase playing level ---- */
-void cb_levelup ( void ) {
+static void cb_levelup ( void ) {
     if ( Level == 7 )
         cb_setlevel ( 1 );
     else
@@ -266,7 +266,7 @@ void cb_levelup ( void ) {
 };
 
 /* ---- Save current position ---- */
-void cb_saveposition ( void ) {
+static void cb_saveposition ( void ) {
     int fd;
     short sq,i,c;
     unsigned short temp;
@@ -319,9 +319,8 @@ void cb_saveposition ( void ) {
 }
 
 /* ---- Restore saved position ---- */
-void cb_restoreposition ( void ) {
+static void cb_restoreposition ( void ) {
     int fd;
-    int c;
     short sq;
     unsigned short m;
     
@@ -357,7 +356,7 @@ void cb_restoreposition ( void ) {
             else
                 --color[sq];
         }
-        GameCnt = -1; c = '?';
+        GameCnt = -1;
         while (rb->read(fd, &(GameList[++GameCnt].gmove),
                         sizeof(GameList[GameCnt].gmove)) > 0) {
             rb->read(fd, &(GameList[GameCnt].score),
@@ -420,7 +419,7 @@ static int cb_menu_viewer(void)
 }
 
 /* ---- get a command in game mode ---- */
-struct cb_command cb_get_viewer_command (void) {
+static struct cb_command cb_get_viewer_command (void) {
     int button;
     struct cb_command result = { 0, {0,0,0,0,0}, 0 };
     
@@ -431,6 +430,11 @@ struct cb_command cb_get_viewer_command (void) {
 #ifdef CB_RC_QUIT
             case CB_RC_QUIT:
                 result.type = COMMAND_QUIT;
+                return result;
+#endif
+#ifdef CB_RESTART
+            case CB_RESTART:
+                result.type = COMMAND_RESTART;
                 return result;
 #endif
             case CB_MENU:
@@ -448,7 +452,7 @@ struct cb_command cb_get_viewer_command (void) {
 }
 
 /* ---- viewer main loop ---- */
-void cb_start_viewer(char* filename){
+static void cb_start_viewer(char* filename){
     struct pgn_game_node *first_game, *selected_game;
     struct pgn_ply_node *curr_ply;
     bool exit_game = false;
@@ -576,6 +580,7 @@ void cb_start_viewer(char* filename){
                         GNUChess_Initialize();
                         cb_drawboard();
                         curr_ply = selected_game->first_ply;
+                        break;
                     case COMMAND_SELECT:
                         exit_game = true;
                         break;
@@ -639,10 +644,13 @@ static int cb_menu(void)
 }
 
 /* ---- get a command in game mode ---- */
-struct cb_command cb_getcommand (void) {
+static struct cb_command cb_getcommand (void) {
     static short x = 4 , y = 3 ;
     short c , r , l;
-    int button, lastbutton = BUTTON_NONE;
+    int button;
+#if defined(CB_PLAY_PRE) || defined(CB_SELECT_PRE)
+    int lastbutton = BUTTON_NONE;
+#endif
     int marked = false , from_marked = false ;
     short marked_x = 0 , marked_y = 0 ;
     struct cb_command result = { 0, {0,0,0,0,0}, 0 };
@@ -657,6 +665,11 @@ struct cb_command cb_getcommand (void) {
                 result.type = COMMAND_QUIT;
                 return result;
 #endif
+#ifdef CB_RESTART
+            case CB_RESTART:
+                result.type = COMMAND_RESTART;
+                return result;
+#endif
             case CB_MENU:
                 result.type = cb_menu();
                 return result;
@@ -667,10 +680,17 @@ struct cb_command cb_getcommand (void) {
 #ifdef CB_PLAY_PRE
                 if (lastbutton != CB_PLAY_PRE)
                     break;
+                /* fallthrough */
+#endif
+#ifdef CB_PLAY_ALT
+            case CB_PLAY_ALT:
 #endif
                 result.type = COMMAND_PLAY;
                 return result;
             case CB_UP:
+#ifdef CB_SCROLL_UP
+            case CB_SCROLL_UP:
+#endif
                 if ( !from_marked ) cb_switch ( x , y );
                 y++;
                 if ( y == 8 ) {
@@ -686,6 +706,9 @@ struct cb_command cb_getcommand (void) {
                 }
                 break;
             case CB_DOWN:
+#ifdef CB_SCROLL_DOWN
+            case CB_SCROLL_DOWN:
+#endif
                 if ( !from_marked ) cb_switch ( x , y );
                 y--;
                 if ( y < 0 ) {
@@ -701,6 +724,9 @@ struct cb_command cb_getcommand (void) {
                 }
                 break;
             case CB_LEFT:
+#ifdef CB_SCROLL_LEFT
+            case CB_SCROLL_LEFT:
+#endif
                 if ( !from_marked ) cb_switch ( x , y );
                 x--;
                 if ( x < 0 ) {
@@ -716,6 +742,9 @@ struct cb_command cb_getcommand (void) {
                 }
                 break;
             case CB_RIGHT:
+#ifdef CB_SCROLL_RIGHT
+            case CB_SCROLL_RIGHT:
+#endif
                 if ( !from_marked ) cb_switch ( x , y );
                 x++;
                 if ( x == 8 ) {
@@ -762,14 +791,16 @@ struct cb_command cb_getcommand (void) {
                 }
                 break;
         }
+#if defined(CB_PLAY_PRE) || defined(CB_SELECT_PRE)
         if (button != BUTTON_NONE)
             lastbutton = button;
+#endif
     }
 
 }
 
 /* ---- game main loop ---- */
-void cb_play_game(void) {
+static void cb_play_game(void) {
     struct cb_command command;
     struct pgn_game_node *game;
     char move_buffer[20];
@@ -838,13 +869,11 @@ void cb_play_game(void) {
                     cb_drawboard();
                 }
                 break;
-#ifdef COMMAND_RESTART
             case COMMAND_RESTART:
                 GNUChess_Initialize();
                 game = pgn_init_game();
                 cb_drawboard();
                 break;
-#endif
             case COMMAND_RESUME:
                 cb_drawboard();
                 break;

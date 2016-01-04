@@ -31,11 +31,23 @@
 /* Overdrive mode */
 #define CPUFREQ_MAX         528000000
 
-static inline void udelay(unsigned int usecs)
+#define CPU_MULTI_FREQUENCY 3
+
+static inline void udelay(unsigned long usecs)
 {
-    unsigned stop = GPTCNT + usecs;
+    unsigned long stop = GPTCNT + usecs;
     while (TIME_BEFORE(GPTCNT, stop));
 }
+
+static inline unsigned long usec_timer(void)
+{
+    return GPTCNT;
+}
+
+/* Fire an event usecs microseconds from now */
+typedef void (* uevent_cb_type)(void);
+void uevent(unsigned long usecs, uevent_cb_type callback);
+void uevent_cancel(void);
 
 void watchdog_init(unsigned int half_seconds);
 void watchdog_service(void);
@@ -50,9 +62,6 @@ void system_prepare_fw_start(void);
 void tick_stop(void);
 void kernel_device_init(void);
 void system_halt(void);
-
-/* Handle some audio lockout related tasks */
-void kernel_audio_locking(bool locking);
 
 #define KDEV_INIT
 
@@ -77,5 +86,21 @@ struct ARM_REGS {
 } regs;
 
 void dumpregs(void);
+
+bool usb_plugged(void);
+void usb_connect_event(void);
+
+/** Sector read/write filters **/
+
+/* Filter some things in the MBR - see usb-gigabeat-s.c */
+void usb_fix_mbr(unsigned char *mbr);
+#define USBSTOR_READ_SECTORS_FILTER() \
+    ({ if (cur_cmd.sector == 0) \
+            usb_fix_mbr(cur_cmd.data[cur_cmd.data_select]); \
+    0; })
+
+/* Disallow MBR writes entirely since it was "fixed" in usb_fix_mbr */
+#define USBSTOR_WRITE_SECTORS_FILTER() \
+    ({ cur_cmd.sector != 0 ? 0 : -1; })
 
 #endif /* SYSTEM_TARGET_H */

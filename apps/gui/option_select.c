@@ -22,6 +22,7 @@
 #include <stdlib.h>
 #include "string-extra.h"
 #include "config.h"
+#include "system.h"
 #include "option_select.h"
 #include "kernel.h"
 #include "lang.h"
@@ -35,12 +36,6 @@
 #include "menu.h"
 #include "quickscreen.h"
 
-#if defined (HAVE_SCROLLWHEEL)      || \
-    (CONFIG_KEYPAD == PLAYER_PAD)
-/* Define this if your target makes sense to have 
-   smaller values at the top of the list increasing down the list */
-#define ASCENDING_INT_SETTINGS
-#endif
 
 static int selection_to_val(const struct settings_list *setting, int selection);
 int option_value_as_int(const struct settings_list *setting)
@@ -278,11 +273,12 @@ void option_select_next_val(const struct settings_list *setting,
                 val = max;
         }
         *value = val;
+        if (apply)
+            sound_set(setting_id, val);
     }
     else if ((setting->flags & F_CHOICE_SETTING) == F_CHOICE_SETTING)
     {
         struct choice_setting *info = (struct choice_setting *)setting->choice_setting;
-        val = *value + 1;
         if (!previous)
         {
             val = *value + 1;
@@ -315,13 +311,18 @@ void option_select_next_val(const struct settings_list *setting,
             }
         }
         *value = val;
+        if (apply && tbl_info->option_callback)
+            tbl_info->option_callback(val);
     }
 }
 #endif
 
 static int selection_to_val(const struct settings_list *setting, int selection)
 {
-    int min = 0, max = 0, step = 1;
+    /* rockbox: comment 'set but unused' variables
+    int min = 0;
+    */
+    int max = 0, step = 1;
     if (((setting->flags & F_BOOL_SETTING) == F_BOOL_SETTING) ||
           ((setting->flags & F_CHOICE_SETTING) == F_CHOICE_SETTING))
         return selection;
@@ -344,11 +345,12 @@ static int selection_to_val(const struct settings_list *setting, int selection)
         int setting_id = setting->sound_setting->setting;
 #ifndef ASCENDING_INT_SETTINGS
         step = sound_steps(setting_id);
-        max = sound_max(setting_id);
-        min = sound_min(setting_id);
+        max = (setting_id == SOUND_VOLUME) ?
+            global_settings.volume_limit : sound_max(setting_id);
+        /* min = sound_min(setting_id); */
 #else
         step = -sound_steps(setting_id);
-        min = sound_max(setting_id);
+        /* min = sound_max(setting_id); */
         max = sound_min(setting_id);
 #endif
     }
@@ -356,12 +358,12 @@ static int selection_to_val(const struct settings_list *setting, int selection)
     {
         const struct int_setting *info = setting->int_setting;
 #ifndef ASCENDING_INT_SETTINGS
-        min = info->min;
+        /* min = info->min; */
         max = info->max;
         step = info->step;
 #else
         max = info->min;
-        min = info->max;
+        /* min = info->max; */
         step = -info->step;
 #endif
     }
@@ -428,7 +430,8 @@ static void val_to_selection(const struct settings_list *setting, int oldvalue,
             int setting_id = setting->sound_setting->setting;
             int steps = sound_steps(setting_id);
             int min = sound_min(setting_id);
-            int max = sound_max(setting_id);
+            int max = (setting_id == SOUND_VOLUME) ?
+                global_settings.volume_limit : sound_max(setting_id);
             *nb_items = (max-min)/steps + 1;
 #ifndef ASCENDING_INT_SETTINGS
             *selected = (max - oldvalue) / steps;
@@ -489,6 +492,7 @@ bool option_screen(const struct settings_list *setting,
         temp_var = oldvalue = *(bool*)setting->setting?1:0;
     }
     else return false; /* only int/bools can go here */
+    push_current_activity(ACTIVITY_OPTIONSELECT);
     gui_synclist_init(&lists, value_setting_get_name_cb,
                       (void*)setting, false, 1, parent);
     if (setting->lang_id == -1)
@@ -569,6 +573,50 @@ bool option_screen(const struct settings_list *setting,
         if (function == sound_get_fn(SOUND_VOLUME))
             global_status.last_volume_change = current_tick;
     }
+    pop_current_activity();
     return false;
 }
 
+int get_setting_info_for_bar(int setting_id, int *count, int *val)
+{
+    const struct settings_list *setting = &settings[setting_id];
+    int var_type = setting->flags&F_T_MASK;
+    void (*function)(int) = NULL;
+    int oldvalue;
+
+    if (var_type == F_T_INT || var_type == F_T_UINT)
+    {
+        oldvalue = *(int*)setting->setting;
+    }
+    else if (var_type == F_T_BOOL)
+    {
+        oldvalue = *(bool*)setting->setting?1:0;
+    }
+    else
+    {
+        *val = 0;
+        *count = 1;
+        return false; /* only int/bools can go here */
+    }
+
+    val_to_selection(setting, oldvalue, count, val, &function);
+    return true;
+}
+
+#ifdef HAVE_TOUCHSCREEN
+void update_setting_value_from_touch(int setting_id, int selection)
+{
+    const struct settings_list *setting = &settings[setting_id];
+    int new_val = selection_to_val(setting, selection);
+    int var_type = setting->flags&F_T_MASK;
+
+    if (var_type == F_T_INT || var_type == F_T_UINT)
+    {
+        *(int*)setting->setting = new_val;
+    }
+    else if (var_type == F_T_BOOL)
+    {
+        *(bool*)setting->setting = new_val ? true : false;
+    }
+}
+#endif

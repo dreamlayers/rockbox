@@ -4,7 +4,6 @@
 #   Jukebox    |    |   (  <_> )  \___|    < | \_\ (  <_> > <  <
 #   Firmware   |____|_  /\____/ \___  >__|_ \|___  /\____/__/\_ \
 #                     \/            \/     \/    \/            \/
-# $Id$
 #
 CFLAGS := -O -g -W -Wall -Wshadow -pedantic
 LDFLAGS := -g
@@ -13,16 +12,16 @@ LDFLAGS := -g
 
 CLEANALL := scramble descramble iriver sh2d bmp2rb rdf2binary convbdf \
     generate_rocklatin mkboot ipod_fw codepages uclpack mi4 gigabeat lngdump \
-    telechips gigabeats creative hmac-sha1 rbspeexenc mkzenboot mk500boot
+    telechips gigabeats creative hmac-sha1 rbspeexenc mkzenboot mk500boot convttf
 
 all: scramble descramble sh2d rdf2binary mkboot mkzenboot convbdf codepages \
 	uclpack rbspeexenc voicefont mk500boot
 
 scramble: scramble.o iriver.o mi4.o gigabeat.o gigabeats.o telechips.o \
-	iaudio_bl_flash.o creative.o hmac-sha1.o
+	iaudio_bl_flash.o creative.o hmac-sha1.o rkw.o
 descramble: descramble.o iriver.o gigabeat.o
 scramble.o: scramble.c iriver.h mi4.h gigabeat.h telechips.h iaudio_bl_flash.h \
-	creative.h
+	creative.h rkw.h
 
 descramble.o: descramble.c iriver.h gigabeat.h
 creative.o: creative.c creative.h
@@ -32,6 +31,7 @@ gigabeat.o: gigabeat.c gigabeat.h
 gigabeats.o: gigabeats.c gigabeats.h
 mi4.o: mi4.c mi4.h
 telechips.o: telechips.c telechips.h
+rkw.o: rkw.c rkw.h
 iaudio_bl_flash.o: iaudio_bl_flash.c iaudio_bl_flash.h
 iaudio_bl_flash.c iaudio_bl_flash.h: iaudio_bl_flash.bmp bmp2rb
 	$(SILENT)./bmp2rb -f 7 -h . $< >iaudio_bl_flash.c
@@ -49,12 +49,12 @@ mkboot:	mkboot.c
 
 mk500boot: mk500boot.c mr500.c
 	$(SILENT)$(CC) $(CFLAGS) $+ -o $@
-	
+
 mkzenboot.o: mkzenboot.c
-	$(SILENT)$(CC) $(CFLAGS) -DSTANDALONE -c -o $@ $+
+	$(SILENT)$(CC) $(CFLAGS) -std=c99 -DSTANDALONE -c -o $@ $+
 
 mkzenboot: mkzenboot.o hmac-sha1.o
-	$(SILENT)$(CC) $(LDFLAGS) -lz $+ -o $@
+	$(SILENT)$(CC) $(LDFLAGS) $+ -lz -o $@
 
 mkzenboot.exe: mkzenboot.o hmac-sha1.o
 	$(SILENT)$(CC) $(LDFLAGS) -lz $+ C:\MingW\lib\libz.a -o $@
@@ -95,7 +95,12 @@ voicefont: voicefont.c
 	$(SILENT)$(CC) $(CFLAGS) $+ -o $@
 
 usb_benchmark: usb_benchmark.c
-	$(SILENT)$(CC) $(CFLAGS) -lusb $+ -o $@
+	$(SILENT)$(CC) $(CFLAGS) $+ -lusb -o $@
+
+convttf: convttf.c
+	$(call PRINTS,CC $(@F))
+	$(SILENT)$(CC) $(CFLAGS) -lm -std=c99 -O2 -Wall -g $+ -o $@ \
+		`freetype-config --libs` `freetype-config --cflags`
 
 clean:
 	@echo "Cleaning tools"

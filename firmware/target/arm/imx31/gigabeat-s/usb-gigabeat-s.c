@@ -25,7 +25,6 @@
 #include "usb.h"
 #include "usb_core.h"
 #include "usb_drv.h"
-#include "usb-target.h"
 #include "mc13783.h"
 #include "ccm-imx31.h"
 #include "avic-imx31.h"
@@ -60,13 +59,21 @@ bool usb_plugged(void)
     return mc13783_read(MC13783_INTERRUPT_SENSE0) & MC13783_USB4V4S;
 }
 
-void usb_connect_event(void)
+/* Helper to update the USB cable status */
+static void update_usb_status(bool sense)
 {
-    int status = usb_plugged() ? USB_INSERTED : USB_EXTRACTED;
+    int status = sense ? USB_INSERTED : USB_EXTRACTED;
     usb_status = status;
     /* Notify power that USB charging is potentially available */
     charger_usb_detect_event(status);
-    usb_status_event((status == USB_INSERTED) ? USB_POWERED : USB_UNPOWERED);
+    usb_status_event(status);
+}
+
+/* Detect presence of USB bus - called from PMIC ISR */
+void usb_connect_event(void)
+{
+    /* Read the associated sense value */
+    update_usb_status(mc13783_event_sense(MC13783_USB_EVENT));
 }
 
 int usb_detect(void)
@@ -80,10 +87,10 @@ void usb_init_device(void)
     usb_drv_startup();
 
     /* Initially poll */
-    usb_connect_event();
+    update_usb_status(usb_plugged());
 
     /* Enable PMIC event */
-    mc13783_enable_event(MC13783_USB_EVENT);
+    mc13783_enable_event(MC13783_USB_EVENT, true);
 }
 
 void usb_enable(bool on)
@@ -116,8 +123,6 @@ void usb_attach(void)
         bootloader_install_mode =
             (button_status() & USB_BL_INSTALL_MODE_BTN) != 0;
     }
-
-    usb_drv_attach();
 }
 
 static void __attribute__((interrupt("IRQ"))) USB_OTG_HANDLER(void)
@@ -136,13 +141,6 @@ void usb_drv_int_enable(bool enable)
     {
         avic_disable_int(INT_USB_OTG);
     }
-}
-
-/* Called during the bus reset interrupt when in detect mode */
-void usb_drv_usb_detect_event(void)
-{
-    if (usb_drv_powered())
-        usb_status_event(USB_INSERTED);
 }
 
 /* Called when reading the MBR */

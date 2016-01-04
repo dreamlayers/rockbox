@@ -224,6 +224,16 @@
 #define CHC_SETTINGS_OK BUTTON_SELECT
 #define CHC_SETTINGS_CANCEL BUTTON_BACK
 
+#elif CONFIG_KEYPAD == CREATIVE_ZENXFI3_PAD
+#define CHC_QUIT BUTTON_POWER
+#define CHC_STARTSTOP BUTTON_PLAY
+#define CHC_RESET (BUTTON_BACK|BUTTON_REPEAT)
+#define CHC_MENU BUTTON_MENU
+#define CHC_SETTINGS_INC BUTTON_UP
+#define CHC_SETTINGS_DEC BUTTON_DOWN
+#define CHC_SETTINGS_OK BUTTON_PLAY
+#define CHC_SETTINGS_CANCEL BUTTON_POWER
+
 #elif CONFIG_KEYPAD == PHILIPS_HDD1630_PAD
 #define CHC_QUIT BUTTON_POWER
 #define CHC_STARTSTOP BUTTON_SELECT
@@ -266,15 +276,18 @@
 #define CHC_QUIT            BUTTON_POWER
 #define CHC_SETTINGS_CANCEL BUTTON_POWER
 
-#elif CONFIG_KEYPAD == SAMSUNG_YH_PAD
-#define CHC_QUIT             BUTTON_REC
+#elif (CONFIG_KEYPAD == SAMSUNG_YH820_PAD) || \
+      (CONFIG_KEYPAD == SAMSUNG_YH920_PAD)
+#define CHC_QUIT             BUTTON_REW
 #define CHC_STARTSTOP        BUTTON_PLAY
 #define CHC_RESET            BUTTON_FFWD
 #define CHC_MENU             BUTTON_LEFT
 #define CHC_SETTINGS_INC     BUTTON_UP
 #define CHC_SETTINGS_DEC     BUTTON_DOWN
 #define CHC_SETTINGS_OK      BUTTON_PLAY
+#define CHC_SETTINGS_OK2     BUTTON_RIGHT
 #define CHC_SETTINGS_CANCEL  BUTTON_REW
+#define CHC_SETTINGS_CANCEL2 BUTTON_LEFT
 
 #elif CONFIG_KEYPAD == PBELL_VIBE500_PAD
 #define CHC_QUIT             BUTTON_REC
@@ -287,24 +300,103 @@
 #define CHC_SETTINGS_CANCEL  BUTTON_CANCEL
 
 #elif CONFIG_KEYPAD == MPIO_HD200_PAD
-#define CHC_QUIT (BUTTON_REC|BUTTON_PLAY)
-#define CHC_STARTSTOP BUTTON_PLAY
-#define CHC_RESET BUTTON_REW
-#define CHC_MENU BUTTON_FUNC
-#define CHC_SETTINGS_INC BUTTON_VOL_UP
-#define CHC_SETTINGS_DEC BUTTON_VOL_DOWN
-#define CHC_SETTINGS_OK BUTTON_FUNC
+#define CHC_QUIT            (BUTTON_REC|BUTTON_PLAY)
+#define CHC_STARTSTOP       BUTTON_PLAY
+#define CHC_RESET           BUTTON_REW
+#define CHC_MENU            (BUTTON_FUNC|BUTTON_REPEAT)
+#define CHC_SETTINGS_INC    BUTTON_VOL_UP
+#define CHC_SETTINGS_DEC    BUTTON_VOL_DOWN
+#define CHC_SETTINGS_OK     BUTTON_FUNC
 #define CHC_SETTINGS_CANCEL BUTTON_REC
 
 #elif CONFIG_KEYPAD == MPIO_HD300_PAD
-#define CHC_QUIT (BUTTON_REC|BUTTON_REPEAT)
-#define CHC_STARTSTOP BUTTON_PLAY
-#define CHC_RESET BUTTON_REW
+#define CHC_QUIT            (BUTTON_MENU|BUTTON_REPEAT)
+#define CHC_STARTSTOP       BUTTON_PLAY
+#define CHC_RESET           BUTTON_REW
+#define CHC_MENU            BUTTON_MENU
+#define CHC_SETTINGS_INC    BUTTON_UP
+#define CHC_SETTINGS_DEC    BUTTON_DOWN
+#define CHC_SETTINGS_OK     BUTTON_ENTER
+#define CHC_SETTINGS_CANCEL BUTTON_REC
+
+#elif CONFIG_KEYPAD == SANSA_FUZEPLUS_PAD
+#define CHC_QUIT BUTTON_POWER
+#define CHC_STARTSTOP BUTTON_PLAYPAUSE
+#define CHC_RESET BUTTON_BACK
+#define CHC_MENU (BUTTON_SELECT|BUTTON_REPEAT)
+#define CHC_SETTINGS_INC BUTTON_UP
+#define CHC_SETTINGS_DEC BUTTON_DOWN
+#define CHC_SETTINGS_OK BUTTON_SELECT
+#define CHC_SETTINGS_CANCEL BUTTON_BACK
+
+#elif CONFIG_KEYPAD == SANSA_CONNECT_PAD
+#define CHC_QUIT BUTTON_POWER
+#define CHC_STARTSTOP BUTTON_NEXT
+#define CHC_RESET BUTTON_PREV
+#define CHC_MENU BUTTON_SELECT
+#define CHC_SETTINGS_INC BUTTON_VOL_UP
+#define CHC_SETTINGS_DEC BUTTON_VOL_DOWN
+#define CHC_SETTINGS_OK BUTTON_SELECT
+#define CHC_SETTINGS_CANCEL BUTTON_LEFT
+
+#elif CONFIG_KEYPAD == SAMSUNG_YPR0_PAD
+#define CHC_QUIT BUTTON_BACK
+#define CHC_STARTSTOP BUTTON_SELECT
+#define CHC_RESET BUTTON_USER
 #define CHC_MENU BUTTON_MENU
 #define CHC_SETTINGS_INC BUTTON_UP
 #define CHC_SETTINGS_DEC BUTTON_DOWN
-#define CHC_SETTINGS_OK BUTTON_ENTER
-#define CHC_SETTINGS_CANCEL BUTTON_MENU
+#define CHC_SETTINGS_OK BUTTON_SELECT
+#define CHC_SETTINGS_CANCEL BUTTON_BACK
+
+#elif CONFIG_KEYPAD == HM60X_PAD
+#define CHC_QUIT BUTTON_POWER
+#define CHC_STARTSTOP BUTTON_SELECT
+#define CHC_RESET BUTTON_LEFT
+#define CHC_MENU BUTTON_RIGHT
+#define CHC_SETTINGS_INC BUTTON_UP
+#define CHC_SETTINGS_DEC BUTTON_DOWN
+#define CHC_SETTINGS_OK BUTTON_SELECT
+#define CHC_SETTINGS_CANCEL BUTTON_POWER
+
+#elif CONFIG_KEYPAD == HM801_PAD
+#define CHC_QUIT BUTTON_POWER
+#define CHC_STARTSTOP BUTTON_PLAY
+#define CHC_RESET BUTTON_LEFT
+#define CHC_MENU BUTTON_RIGHT
+#define CHC_SETTINGS_INC BUTTON_UP
+#define CHC_SETTINGS_DEC BUTTON_DOWN
+#define CHC_SETTINGS_OK BUTTON_SELECT
+#define CHC_SETTINGS_CANCEL BUTTON_PREV
+
+#elif CONFIG_KEYPAD == SONY_NWZ_PAD
+#define CHC_QUIT             BUTTON_BACK
+#define CHC_STARTSTOP        BUTTON_PLAY
+#define CHC_RESET            BUTTON_LEFT
+#define CHC_MENU             BUTTON_POWER
+#define CHC_SETTINGS_INC     BUTTON_UP
+#define CHC_SETTINGS_DEC     BUTTON_DOWN
+#define CHC_SETTINGS_OK      BUTTON_RIGHT
+#define CHC_SETTINGS_CANCEL  BUTTON_BACK
+
+#elif CONFIG_KEYPAD == CREATIVE_ZEN_PAD
+#define CHC_QUIT             BUTTON_BACK
+#define CHC_STARTSTOP        BUTTON_PLAYPAUSE
+#define CHC_RESET            BUTTON_SHORTCUT
+#define CHC_MENU             BUTTON_MENU
+#define CHC_SETTINGS_INC     BUTTON_UP
+#define CHC_SETTINGS_DEC     BUTTON_DOWN
+#define CHC_SETTINGS_OK      BUTTON_SELECT
+#define CHC_SETTINGS_CANCEL  BUTTON_BACK
+
+#elif CONFIG_KEYPAD == DX50_PAD
+#define CHC_QUIT            (BUTTON_POWER|BUTTON_REPEAT)
+#define CHC_RESET           (BUTTON_PLAY|BUTTON_REPEAT)
+#define CHC_MENU            BUTTON_RIGHT
+#define CHC_STARTSTOP       BUTTON_PLAY
+#define CHC_SETTINGS_INC    BUTTON_VOL_UP
+#define CHC_SETTINGS_DEC    BUTTON_VOL_DOWN
+#define CHC_SETTINGS_CANCEL BUTTON_RIGHT
 
 #else
 #error No keymap defined!
@@ -372,7 +464,7 @@ static int chessclock_set_int(char* string,
 
 static char * show_time(int secs);
 
-static bool pause;
+static bool chesspause;
 
 #define MAX_TIME 7200
 
@@ -436,7 +528,7 @@ enum plugin_status plugin_start(const void* parameter)
         timer_holder[i].hidden=false;
     }
 
-    pause=true; /* We start paused */
+    chesspause=true; /* We start paused */
 
     nr=0;
     do {
@@ -511,7 +603,7 @@ static int run_timer(int nr)
     long ticks=0;
     bool round_time=false;
 
-    show_pause_mode(pause);
+    show_pause_mode(chesspause);
 
     if (settings.round_time*HZ<max_ticks) {
         max_ticks=settings.round_time*HZ;
@@ -533,7 +625,7 @@ static int run_timer(int nr)
             ticks = max_ticks;
         } else {
             now=*rb->current_tick;
-            if (!pause) {
+            if (!chesspause) {
                 ticks+=now-last_tick;
                 if ((max_ticks-ticks)/HZ == 10) {
                      /* Backlight on if 10 seconds remain */
@@ -565,8 +657,8 @@ static int run_timer(int nr)
 
             /* PLAY = Stop/Start toggle */
             case CHC_STARTSTOP:
-                pause=!pause;
-                show_pause_mode(pause);
+                chesspause=!chesspause;
+                show_pause_mode(chesspause);
                 break;
 
             /* LEFT = Reset timer */
@@ -633,7 +725,7 @@ static int run_timer(int nr)
                         break;
                 }
                 rb->lcd_clear_display();
-                show_pause_mode(pause);
+                show_pause_mode(chesspause);
                 rb->lcd_puts(0, FIRST_LINE, (unsigned char *)player_info);
             }
             break;
@@ -726,7 +818,7 @@ static int chessclock_set_int(char* string,
             *variable = min;
 
     }
-    rb->lcd_stop_scroll();
+    rb->lcd_scroll_stop();
 
     return CHCL_OK;
 }

@@ -19,15 +19,15 @@
  *
  ****************************************************************************/
 
-#include "config.h"
 #include <stdio.h>
+#include "kernel.h"
 #include "general.h"
 #include "file.h"
 #include "dir.h"
+#include "rbpaths.h"
 #include "limits.h"
 #include "stdlib.h"
 #include "string-extra.h"
-#include "system.h"
 #include "time.h"
 #include "timefuncs.h"
 
@@ -126,7 +126,7 @@ char *create_numbered_filename(char *buffer, const char *path,
         /* automatic numbering */
         max_num = 0;
 
-    dir = opendir(pathlen ? buffer : "/");
+    dir = opendir(pathlen ? buffer : HOME_DIR);
     if (!dir)
         return NULL;
 

@@ -23,17 +23,20 @@
 #include <stdlib.h>         /* EXIT_SUCCESS */
 #include "sim-ui-defines.h"
 #include "lcd-charcells.h"
+#ifdef HAVE_REMOTE_LCD
 #include "lcd-remote.h"
+#endif
 #include "config.h"
 #include "button.h"
 #include "kernel.h"
 #include "backlight.h"
-#include "misc.h"
+#include "system.h"
 #include "button-sdl.h"
-#include "backlight.h"
 #include "sim_tasks.h"
 #include "buttonmap.h"
 #include "debug.h"
+#include "powermgmt.h"
+#include "storage.h"
 
 #ifdef HAVE_TOUCHSCREEN
 #include "touchscreen.h"
@@ -53,6 +56,7 @@ static int mouse_coords = 0;
 #else
 #define USB_KEY SDLK_u
 #endif
+#define EXT_KEY SDLK_e
 
 #if defined(IRIVER_H100_SERIES) || defined (IRIVER_H300_SERIES)
 int _remote_type=REMOTETYPE_H100_LCD;
@@ -66,6 +70,11 @@ int remote_type(void)
 struct event_queue button_queue;
 
 static int btn = 0;    /* Hopefully keeps track of currently pressed keys... */
+
+int sdl_app_has_input_focus = 1;
+#if (CONFIG_PLATFORM & PLATFORM_MAEMO)
+static int n900_updown_key_pressed = 0;
+#endif
 
 #ifdef HAS_BUTTON_HOLD
 bool hold_button_state = false;
@@ -209,11 +218,45 @@ static void mouse_event(SDL_MouseButtonEvent *event, bool button_up)
 
 static bool event_handler(SDL_Event *event)
 {
+    SDLKey ev_key;
+
     switch(event->type)
     {
+    case SDL_ACTIVEEVENT:
+        if (event->active.state & SDL_APPINPUTFOCUS)
+        {
+            if (event->active.gain == 1)
+                sdl_app_has_input_focus = 1;
+            else
+                sdl_app_has_input_focus = 0;
+        }
+        break;
     case SDL_KEYDOWN:
     case SDL_KEYUP:
-        button_event(event->key.keysym.sym, event->type == SDL_KEYDOWN);
+        ev_key = event->key.keysym.sym;
+#if (CONFIG_PLATFORM & PLATFORM_MAEMO5)
+        /* N900 with shared up/down cursor mapping. Seen on the German,
+           Finnish, Italian, French and Russian version. Probably more. */
+        if (event->key.keysym.mod & KMOD_MODE || n900_updown_key_pressed)
+        {
+            /* Prevent stuck up/down keys: If you release the ALT key before the cursor key,
+               rockbox will see a KEYUP event for left/right instead of up/down and
+               the previously pressed up/down key would stay active. */
+            if (ev_key == SDLK_LEFT || ev_key == SDLK_RIGHT)
+            {
+                if (event->type == SDL_KEYDOWN)
+                    n900_updown_key_pressed = 1;
+                else
+                    n900_updown_key_pressed = 0;
+            }
+
+            if (ev_key == SDLK_LEFT)
+                ev_key = SDLK_UP;
+            else if (ev_key == SDLK_RIGHT)
+                ev_key = SDLK_DOWN;
+        }
+#endif
+        button_event(ev_key, event->type == SDL_KEYDOWN);
         break;
 #ifdef HAVE_TOUCHSCREEN
     case SDL_MOUSEMOTION:
@@ -236,7 +279,12 @@ static bool event_handler(SDL_Event *event)
         break;
     }
     case SDL_QUIT:
+        /* Will post SDL_USEREVENT in shutdown_hw() if successful. */
+        sdl_sys_quit();
+        break;
+    case SDL_USEREVENT:
         return true;
+        break;
     }
 
     return false;
@@ -249,8 +297,10 @@ void gui_message_loop(void)
 
     do {
         /* wait for the next event */
-        while(SDL_WaitEvent(&event) == 0)
+        if(SDL_WaitEvent(&event) == 0) {
             printf("SDL_WaitEvent() error\n");
+            return; /* error, out of here */
+        }
 
         sim_enter_irq_handler();
         quit = event_handler(&event);
@@ -262,22 +312,30 @@ void gui_message_loop(void)
 static void button_event(int key, bool pressed)
 {
     int new_btn = 0;
-    static bool usb_connected = false;
-    if (usb_connected && key != USB_KEY)
-        return;
     switch (key)
     {
+#ifdef SIMULATOR
     case USB_KEY:
         if (!pressed)
         {
+            static bool usb_connected = false;
             usb_connected = !usb_connected;
-            if (usb_connected)
-                queue_post(&button_queue, SYS_USB_CONNECTED, 0);
-            else
-                queue_post(&button_queue, SYS_USB_DISCONNECTED, 0);
+            sim_trigger_usb(usb_connected);
         }
         return;
-
+#ifdef HAVE_MULTIDRIVE
+    case EXT_KEY:
+        if (!pressed)
+            sim_trigger_external(!storage_present(1));
+        return;
+#endif
+#endif
+#if (CONFIG_PLATFORM & PLATFORM_PANDORA)
+    case SDLK_LCTRL:
+        /* Will post SDL_USEREVENT in shutdown_hw() if successful. */
+        sys_poweroff();
+        break;
+#endif
 #ifdef HAS_BUTTON_HOLD
     case SDLK_h:
         if(pressed)
@@ -323,6 +381,7 @@ static void button_event(int key, bool pressed)
             }
         break;
 #endif
+#ifndef APPLICATION
     case SDLK_KP0:
     case SDLK_F5:
         if(pressed)
@@ -331,6 +390,7 @@ static void button_event(int key, bool pressed)
             return;
         }
         break;
+#endif
 #ifdef HAVE_TOUCHSCREEN
     case SDLK_F4:
         if(pressed)
@@ -341,10 +401,16 @@ static void button_event(int key, bool pressed)
 #endif
     default:
 #ifdef HAVE_TOUCHSCREEN
-        new_btn = key_to_touch(key, mouse_coords);
+# ifndef HAS_BUTTON_HOLD
+        if(touchscreen_is_enabled())
+# endif
+            new_btn = key_to_touch(key, mouse_coords);
         if (!new_btn)
 #endif
             new_btn = key_to_button(key);
+#ifdef HAVE_TOUCHPAD
+        new_btn = touchpad_filter(new_btn);
+#endif
         break;
     }
     /* Call to make up for scrollwheel target implementation.  This is
@@ -367,6 +433,7 @@ static void button_event(int key, bool pressed)
 #ifdef HAVE_BUTTON_LIGHT
         buttonlight_on();
 #endif
+        reset_poweroff_timer();
         queue_post(&button_queue, new_btn, 1<<24);
         new_btn &= ~(BUTTON_SCROLL_FWD | BUTTON_SCROLL_BACK);
     }
@@ -377,10 +444,14 @@ static void button_event(int key, bool pressed)
     else
         btn &= ~new_btn;
 }
-#if defined(HAVE_BUTTON_DATA) && defined(HAVE_TOUCHSCREEN)
+#if defined(HAVE_BUTTON_DATA)
 int button_read_device(int* data)
 {
+#if defined(HAVE_TOUCHSCREEN)
     *data = mouse_coords;
+#else
+    (void) *data;   /* suppress compiler warnings */
+#endif
 #else
 int button_read_device(void)
 {

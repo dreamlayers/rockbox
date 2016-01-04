@@ -212,8 +212,8 @@ void lcd_set_contrast(int val)
 
 void lcd_set_invert_display(bool yesno)
 {
-    /* TODO: Implement lcd_set_invert_display() */
-    (void)yesno;
+    lcd_send_command(R_SPEC_DISPLAY_PATTERN);
+    lcd_send_command(yesno);
 }
 
 #if defined(HAVE_LCD_ENABLE)
@@ -347,7 +347,7 @@ void lcd_update_rect(int x, int y, int width, int height)
     if ((width <= 0) || (height <= 0))
         return; /* Nothing left to do. */
 
-    addr = &lcd_framebuffer[y][x];
+    addr = FBADDR(x,y);
 
     if (width <= 1) {                    
         lcd_send_command(R_ENTRY_MODE);  /* The X end address must be larger */

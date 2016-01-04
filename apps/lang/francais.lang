@@ -31,6 +31,7 @@
 # - Nicolas Pennequin
 # - Clément Pit-Claudel 
 # - Michaël Burtin
+# - Olivier Kaloudoff
 #
 # Original comments below:
 #
@@ -276,7 +277,7 @@
     *: "PLAY = Yes"
     cowond2*: "MENU, or top-right = Yes"
     iriverh100,iriverh120,iriverh300: "NAVI = Yes"
-    samsungyh*,ipod*,iaudiox5,iaudiom5,gigabeat*,sansae200*,sansac200*,iriverh10,iriverh10_5gb,mrobe100,sansaclip*,sansafuze*: "SELECT = Yes"
+    ipod*,iaudiox5,iaudiom5,gigabeat*,sansae200*,sansac200*,iriverh10,iriverh10_5gb,mrobe100,sansaclip*,sansafuze*,sansaconnect: "SELECT = Yes"
     mrobe500: "PLAY, POWER, or top-right = Yes"
     archosplayer: "(PLAY/STOP)"
     vibe500: "OK = Yes"
@@ -285,7 +286,7 @@
     *: "PLAY = Oui"
     cowond2*: "MENU = Oui"
     iriverh100,iriverh120,iriverh300: "NAVI = Oui"
-    samsungyh*,ipod*,iaudiox5,iaudiom5,gigabeat*,sansae200*,sansac200*,iriverh10,iriverh10_5gb,mrobe100,sansaclip*,sansafuze*: "SELECT = Oui"
+    ipod*,iaudiox5,iaudiom5,gigabeat*,sansae200*,sansac200*,iriverh10,iriverh10_5gb,mrobe100,sansaclip*,sansafuze*,sansaconnect: "SELECT = Oui"
     mrobe500: "PLAY ou POWER = Oui"
     archosplayer: "(PLAY/STOP)"
     vibe500: "OK = Oui"
@@ -445,7 +446,7 @@
 </phrase>
 <phrase>
   id: LANG_PLAYLISTS
-  desc: in the main menu and file view setting
+  desc: in the file view setting
   user: core
   <source>
     *: "Playlists"
@@ -2012,19 +2013,16 @@
 </phrase>
 <phrase>
   id: LANG_HEADPHONE_UNPLUG_RW
-  desc: in pause_phones_menu.
+  desc: deprecated
   user: core
   <source>
-    *: none
-    headphone_detection: "Duration to Rewind"
+    *: ""
   </source>
   <dest>
-    *: none
-    headphone_detection: "Durée à rejouer"
+    *: ""
   </dest>
   <voice>
-    *: none
-    headphone_detection: "Durée à rejouer"
+    *: ""
   </voice>
 </phrase>
 <phrase>
@@ -2262,17 +2260,19 @@
     *: "Building database... %d found (OFF to return)"
     iriverh100,iriverh120,iriverh300: "Building database... %d found (STOP to return)"
     ipod*: "Building database... %d found (PREV to return)"
-    iaudiox5,iaudiom5,gigabeat*,mrobe100: "Building database... %d found (LEFT to return)"
+    iaudiox5,iaudiom5,gigabeat*,mrobe100,samsungyh*: "Building database... %d found (LEFT to return)"
     iriverh10,iriverh10_5gb,sansae200*,sansac200*,sansafuze*,vibe500: "Building database... %d found (PREV to return)"
     gogearsa9200: "Building database... %d found (REW to return)"
+    archosplayer: "Building DB %d found"
   </source>
   <dest>
     *: "Création base de données... %d trouvés (OFF = retour)"
     iriverh100,iriverh120,iriverh300: "Création base de données... %d trouvés (STOP = retour)"
     ipod*: "Création base de données... %d trouvés (PREV = retour)"
-    iaudiox5,iaudiom5,gigabeat*,mrobe100: "Création base de données... %d trouvés (LEFT = retour)"
+    iaudiox5,iaudiom5,gigabeat*,mrobe100,samsungyh*: "Création base de données... %d trouvés (LEFT = retour)"
     iriverh10,iriverh10_5gb,sansae200*,sansac200*,sansafuze*,vibe500: "Création base de données... %d trouvés (PREV = retour)"
     gogearsa9200: "Création base de données... %d trouvés (REW = retour)"
+    archosplayer: "Création BD %d trouvés"
   </dest>
   <voice>
     *: "entrées trouvées pour base de données"
@@ -3975,8 +3975,8 @@
     rtc: "ON = Set"
     mrobe500: "HEART = Set"
     iriverh100,iriverh120,iriverh300: "NAVI = Set"
-    ipod*,iaudiox5,iaudiom5,iriverh10,iriverh10_5gb,sansae200*,sansac200*,gigabeat*,mrobe100,sansaclip*,sansafuze*: "SELECT = Set"
-    gogearsa9200: "PLAY = Set"
+    ipod*,iaudiox5,iaudiom5,iriverh10,iriverh10_5gb,sansae200*,sansac200*,gigabeat*,mrobe100,sansaclip*,sansafuze*,sansaconnect: "SELECT = Set"
+    gogearsa9200,samsungyh*: "PLAY = Set"
     vibe500: "OK = Set"
     mpiohd300: "ENTER = Set"
   </source>
@@ -3985,14 +3985,14 @@
     rtc: "ON = Valider"
     mrobe500: "HEART = Valider"
     iriverh100,iriverh120,iriverh300: "NAVI = Valider"
-    ipod*,iaudiox5,iaudiom5,iriverh10,iriverh10_5gb,sansae200*,sansac200*,gigabeat*,mrobe100,sansaclip*,sansafuze*: "SELECT = Valider"
-    gogearsa9200: "PLAY = Valider"
+    ipod*,iaudiox5,iaudiom5,iriverh10,iriverh10_5gb,sansae200*,sansac200*,gigabeat*,mrobe100,sansaclip*,sansafuze*,sansaconnect: "SELECT = Valider"
+    gogearsa9200,samsungyh*: "PLAY = Valider"
     vibe500: "OK = Valider"
     mpiohd300: "ENTER = Valider"
   </dest>
   <voice>
     *: none
-    rtc,iriverh100,iriverh120,iriverh300,iriverh10,iriverh10_5gb,iaudiox5,iaudiom5,ipod*,sansae200*,sansac200*,gigabeat*,mrobe100,gogearsa9200: ""
+    rtc,iriverh100,iriverh120,iriverh300,iriverh10,iriverh10_5gb,iaudiox5,iaudiom5,ipod*,sansae200*,sansac200*,gigabeat*,mrobe100,gogearsa9200,samsungyh*: ""
   </voice>
 </phrase>
 <phrase>
@@ -4008,10 +4008,12 @@
     iaudiox5,iaudiom5: "RECORD = Revert"
     iriverh10,iriverh10_5gb,sansae200*,sansafuze*: "PREV = Revert"
     gigabeatfx: "POWER = Revert"
+    sansafuzeplus: "BACK = Revert"
     mrobe100: "DISPLAY = Revert"
     gigabeats: "BACK = Revert"
     gogearsa9200: "LEFT = Revert"
     vibe500: "CANCEL = Revert"
+    samsungyh*: "REW = Revert"
   </source>
   <dest>
     *: none
@@ -4022,10 +4024,12 @@
     iaudiox5,iaudiom5: "RECORD = Annuler"
     iriverh10,iriverh10_5gb,sansae200*,sansafuze*: "PREV = Annuler"
     gigabeatfx: "POWER = Annuler"
+    sansafuzeplus: "BACK = Annuler"
     mrobe100: "DISPLAY = Annuler"
     gigabeats: "BACK = Annuler"
     gogearsa9200: "LEFT = Annuler"
     vibe500: "C = Annuler"
+    samsungyh*: "REW = Annuler"
   </dest>
   <voice>
     *: none
@@ -4556,6 +4560,7 @@
     gigabeats: "SELECT=Set POWER=Cancel"
     vibe500: "OK=Set C=Cancel"
     mpiohd300: "ENTER=Set MENU=Cancel"
+    sansafuzeplus: "SELECT=Set  BACK=Cancel"
   </source>
   <dest>
     *: none
@@ -4565,6 +4570,7 @@
     gigabeats: "SELECT=Valider POWER=Annuler"
     vibe500: "OK=Valider C=Annuler"
     mpiohd300: "ENTER=Valider MENU=Annuler"
+    sansafuzeplus: "SELECT=Valider  BACK=Annuler"
   </dest>
   <voice>
     *: none
@@ -5410,19 +5416,19 @@
 </phrase>
 <phrase>
   id: LANG_FM_SAVE_CHANGES
-  desc: When you try to exit radio to confirm save
+  desc: deprecated
   user: core
   <source>
     *: none
-    radio: "Save Changes?"
+    radio: ""
   </source>
   <dest>
     *: none
-    radio: "Sauvegarder les changements ?"
+    radio: ""
   </dest>
   <voice>
     *: none
-    radio: "Sauvegarder les changements ?"
+    radio: ""
   </voice>
 </phrase>
 <phrase>
@@ -5664,20 +5670,20 @@
   </voice>
 </phrase>
 <phrase>
-  id: LANG_RECORDING_FREQUENCY
-  desc: in the recording settings
+  id: LANG_FREQUENCY
+  desc: in recording and playback settings
   user: core
   <source>
     *: none
-    recording: "Frequency"
+    recording,play_frequency: "Frequency"
   </source>
   <dest>
     *: none
-    recording: "Fréquence"
+    recording,play_frequency: "Fréquence"
   </dest>
   <voice>
     *: none
-    recording: "Fréquence"
+    recording,play_frequency: "Fréquence"
   </voice>
 </phrase>
 <phrase>
@@ -5902,20 +5908,6 @@
   <voice>
     *: none
     recording: "Coupe selon la taille du fichier"
-  </voice>
-</phrase>
-<phrase>
-  id: LANG_REC_SIZE
-  desc: deprecated
-  user:
-  <source>
-    *: none
-  </source>
-  <dest>
-    *: none
-  </dest>
-  <voice>
-    *: none
   </voice>
 </phrase>
 <phrase>
@@ -6502,10 +6494,10 @@
 </phrase>
 <phrase>
   id: LANG_CATALOG
-  desc: in onplay menu
+  desc: in main menu and onplay menu
   user: core
   <source>
-    *: "Playlist Catalog"
+    *: "Playlist Catalogue"
   </source>
   <dest>
     *: "Catalogue de listes de lecture"
@@ -6687,19 +6679,19 @@
   <source>
     *: none
     multivolume: "HD1"
-    sansae200*,sansac200*,sansafuze*: "mSD:"
+    sansae200*,sansac200*,sansafuze*,sansaclipplus: "mSD:"
     archosondio*: "MMC:"
   </source>
   <dest>
     *: none
     multivolume: "DD1"
-    sansae200*,sansac200*,sansafuze*: "mSD:"
+    sansae200*,sansac200*,sansafuze*,sansaclipplus: "mSD:"
     archosondio*: "MMC:"
   </dest>
   <voice>
     *: none
     multivolume: "D D 1"
-    sansae200*,sansac200*,sansafuze*: "micro S D"
+    sansae200*,sansac200*,sansafuze*,sansaclipplus: "micro S D"
     archosondio*: "M M C"
   </voice>
 </phrase>
@@ -6999,10 +6991,10 @@
 </phrase>
 <phrase>
   id: LANG_CATALOG_VIEW
-  desc: in onplay playlist catalog submenu
+  desc: in onplay playlist catalogue submenu
   user: core
   <source>
-    *: "View Catalog"
+    *: "View Catalogue"
   </source>
   <dest>
     *: "Afficher le catalogue"
@@ -7013,7 +7005,7 @@
 </phrase>
 <phrase>
   id: LANG_CATALOG_ADD_TO
-  desc: in onplay playlist catalog submenu
+  desc: in onplay playlist catalogue submenu
   user: core
   <source>
     *: "Add to Playlist"
@@ -7027,7 +7019,7 @@
 </phrase>
 <phrase>
   id: LANG_CATALOG_ADD_TO_NEW
-  desc: in onplay playlist catalog submenu
+  desc: in onplay playlist catalogue submenu
   user: core
   <source>
     *: "Add to New Playlist"
@@ -7041,7 +7033,7 @@
 </phrase>
 <phrase>
   id: LANG_CATALOG_NO_DIRECTORY
-  desc: error message when playlist catalog directory doesn't exist
+  desc: error message when playlist catalogue directory doesn't exist
   user: core
   <source>
     *: "%s doesn't exist"
@@ -7055,7 +7047,7 @@
 </phrase>
 <phrase>
   id: LANG_CATALOG_NO_PLAYLISTS
-  desc: error message when no playlists for playlist catalog
+  desc: error message when no playlists for playlist catalogue
   user: core
   <source>
     *: "No Playlists"
@@ -7604,15 +7596,15 @@
 </phrase>
 <phrase>
   id: LANG_BACKDROP_LOADED
-  desc: text for splash to indicate a new backdrop has been loaded successfully
+  desc: deprecated
   user: core
   <source>
     *: none
-    lcd_non-mono: "Backdrop Loaded"
+    lcd_non-mono: ""
   </source>
   <dest>
     *: none
-    lcd_non-mono: "Fond d'écran chargé"
+    lcd_non-mono: ""
   </dest>
   <voice>
     *: none
@@ -7621,15 +7613,15 @@
 </phrase>
 <phrase>
   id: LANG_BACKDROP_FAILED
-  desc: text for splash to indicate a failure to load a bitmap as backdrop
+  desc: deprecated
   user: core
   <source>
     *: none
-    lcd_non-mono: "Backdrop Failed"
+    lcd_non-mono: ""
   </source>
   <dest>
     *: none
-    lcd_non-mono: "Echec chargement fond d'écran"
+    lcd_non-mono: ""
   </dest>
   <voice>
     *: none
@@ -7930,7 +7922,7 @@
     *: "Mode:"
   </dest>
   <voice>
-    *: ""
+    *: "Mode:"
   </voice>
 </phrase>
 <phrase>
@@ -8019,6 +8011,7 @@
     iriverh100,iriverh120,iriverh300: "The disk is full. Press STOP to continue."
     iaudiom5,iaudiox5: "The disk is full. Press POWER to continue."
     sansae200*,sansac200*,vibe500: "The disk is full. Press PREV to continue."
+    samsungyh*: "Disk full. Press LEFT to continue."
   </source>
   <dest>
     *: none
@@ -8026,6 +8019,7 @@
     iriverh100,iriverh120,iriverh300: "Disque plein. Presser STOP pour continuer."
     iaudiom5,iaudiox5: "Disque plein. Presser POWER pour continuer."
     sansae200*,sansac200*,vibe500: "Disque plein. Presser PREV pour continuer."
+    samsungyh*: "Disque plein. Presser LEFT pour continuer."
   </dest>
   <voice>
     *: none
@@ -8123,6 +8117,7 @@
     iriverh10,iriverh10_5gb,sansae200*,sansac200*,vibe500: "PREV to abort"
     gigabeats: "BACK to abort"
     gigabeatfx: "POWER to abort"
+    sansafuzeplus: "BACK to abort"
   </source>
   <dest>
     *: "OFF pour Annuler"
@@ -8132,6 +8127,7 @@
     iriverh10,iriverh10_5gb,sansae200*,sansac200*,vibe500: "PREV pour Annuler"
     gigabeats: "BACK pour Annuler"
     gigabeatfx: "POWER pour Annuler"
+    sansafuzeplus: "BACK pour Annuler"
   </dest>
   <voice>
     *: ""
@@ -10460,15 +10456,15 @@
   user: core
   <source>
     *: none
-    ipodvideo: "Bass Cutoff"
+    ipodvideo,ipod6g,mpiohd200,mpiohd300,gigabeatfx,mrobe100: "Bass Cutoff"
   </source>
   <dest>
     *: none
-    ipodvideo: "Fréquence de coupure pour basses"
+    ipodvideo,ipod6g,mpiohd200,mpiohd300,gigabeatfx,mrobe100: "Fréquence de coupure pour basses"
   </dest>
   <voice>
     *: none
-    ipodvideo: "Fréquence de coupure pour les basses"
+    ipodvideo,ipod6g,mpiohd200,mpiohd300,gigabeatfx,mrobe100: "Fréquence de coupure pour les basses"
   </voice>
 </phrase>
 <phrase>
@@ -10477,15 +10473,15 @@
   user: core
   <source>
     *: none
-    ipodvideo: "Treble Cutoff"
+    ipodvideo,ipod6g,mpiohd200,mpiohd300,gigabeatfx,mrobe100: "Treble Cutoff"
   </source>
   <dest>
     *: none
-    ipodvideo: "Fréquence de coupure pour aigus"
+    ipodvideo,ipod6g,mpiohd200,mpiohd300,gigabeatfx,mrobe100: "Fréquence de coupure pour aigus"
   </dest>
   <voice>
     *: none
-    ipodvideo: "Fréquence de coupure pour les aigus"
+    ipodvideo,ipod6g,mpiohd200,mpiohd300,gigabeatfx,mrobe100: "Fréquence de coupure pour les aigus"
   </voice>
 </phrase>
 <phrase>
@@ -10632,15 +10628,15 @@
   user: core
   <source>
     *: none
-    gigabeatfx: "Touchpad Sensitivity"
+    gigabeatfx,sansafuzeplus: "Touchpad Sensitivity"
   </source>
   <dest>
     *: none
-    gigabeatfx: "Sensibilité du pavé tactile"
+    gigabeatfx,sansafuzeplus: "Sensibilité du pavé tactile"
   </dest>
   <voice>
     *: none
-    gigabeatfx: "Sensibilité du pavé tactile"
+    gigabeatfx,sansafuzeplus: "Sensibilité du pavé tactile"
   </voice>
 </phrase>
 <phrase>
@@ -11543,16 +11539,16 @@
 </phrase>
 <phrase>
   id: LANG_SKIN_RAM_USAGE
-  desc: how much RAM the skins are using
+  desc: deprecated
   user: core
   <source>
-    *: "Skin RAM usage:"
+    *: ""
   </source>
   <dest>
-    *: "Tampon du thème:"
+    *: ""
   </dest>
   <voice>
-    *: "Tampon du thème utilisé"
+    *: ""
   </voice>
 </phrase>
 <phrase>
@@ -12127,20 +12123,20 @@
   </voice>
 </phrase>
 <phrase>
-  id: LANG_RECORDING_HISTOGRAM_INTERVAL
+  id: LANG_HISTOGRAM_INTERVAL
   desc: in record settings menu
   user: core
   <source>
     *: none
-    recording_histogram: "Histogram interval"
+    histogram: "Histogram interval"
   </source>
   <dest>
     *: none
-    recording_histogram: "Intervalle de l'histogramme"
+    histogram: "Intervalle de l'histogramme"
   </dest>
   <voice>
     *: none
-    recording_histogram: "Intervalle de l'histogramme"
+    histogram: "Intervalle de l'histogramme"
   </voice>
 </phrase>
 <phrase>
@@ -12421,15 +12417,15 @@
   user: core
   <source>
     *: none
-    gigabeats: "3-D Enhancement"
+    gigabeats,mpiohd200,mpiohd300,sansafuzeplus,creativezenxfi2,creativezenxfi3: "3-D Enhancement"
   </source>
   <dest>
     *: none
-    gigabeats: "Amélioration 3-D"
+    gigabeats,mpiohd200,mpiohd300,sansafuzeplus,creativezenxfi2,creativezenxfi3: "Amélioration des effets 3D"
   </dest>
   <voice>
     *: none
-    gigabeats: "Amélioration 3-D"
+    gigabeats,mpiohd200,mpiohd300,sansafuzeplus,creativezenxfi2,creativezenxfi3: "Amélioration des effets 3D"
   </voice>
 </phrase>
 <phrase>
@@ -12631,29 +12627,442 @@
 </phrase>
 <phrase>
   id: LANG_AUTORESUME_ENABLE
-  desc: resume settings menu
+  desc: deprecated
   user: core
   <source>
-    *: "Enable automatic resume"
+    *: ""
   </source>
   <dest>
-    *: "Activer la reprise automatique"
+    *: ""
   </dest>
   <voice>
-    *: "Activer la reprise automatique"
+    *: ""
   </voice>
 </phrase>
 <phrase>
   id: LANG_AUTORESUME_ENABLE_YES
+  desc: deprecated
+  user: core
+  <source>
+    *: ""
+  </source>
+  <dest>
+    *: ""
+  </dest>
+  <voice>
+    *: ""
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_AUTORESUME
   desc: resume settings menu
   user: core
   <source>
-    *: "Yes (requires initialized database)"
+    *: "Automatic resume"
   </source>
   <dest>
-    *: "Oui (nécessite l'activation de la base de données)"
+    *: "Reprise automatique"
   </dest>
   <voice>
-    *: "Oui (nécessite l'activation de la base de données)"
+    *: "Reprise automatique"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_AUTORESUME_AUTOMATIC
+  desc: resume on automatic track change
+  user: core
+  <source>
+    *: "Resume on automatic track change"
+  </source>
+  <dest>
+    *: "Reprise sur changement automatique de piste"
+  </dest>
+  <voice>
+    *: "Reprise sur changement automatique de piste"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_AUTORESUME_CUSTOM
+  desc: enable customization of resume on automatic track change
+  user: core
+  <source>
+    *: "In custom directories only"
+  </source>
+  <dest>
+    *: "Dans répertoire personnalisé seulement"
+  </dest>
+  <voice>
+    *: "Dans répertoire personnalisé seulement"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_PAUSE_REWIND
+  desc: Seconds to rewind when rewind on pause is enabled.
+  user: core
+  <source>
+    *: "Rewind on Pause"
+  </source>
+  <dest>
+    *: "Rembobiner lors de la mise en pause"
+  </dest>
+  <voice>
+    *: "Rembobiner lors de la mise en pause"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_CURRENT_PLAYLIST
+  desc: Used when you need to say playlist, also voiced
+  user: core
+  <source>
+    *: "Current Playlist"
+  </source>
+  <dest>
+    *: "Liste de lecture courante"
+  </dest>
+  <voice>
+    *: "Liste de lecture courante"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_USB_SKIP_FIRST_DRIVE
+  desc: in settings_menu
+  user: core
+  <source>
+    *: none
+    multidrive_usb: "USB Hide Internal Drive"
+  </source>
+  <dest>
+    *: none
+    multidrive_usb: "Cacher le disque USB interne"
+  </dest>
+  <voice>
+    *: none
+    multidrive_usb: "Cacher le disque USB interne"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_SET_AS_PLAYLISTCAT_DIR
+  desc: used in the onplay menu to set a playlist catalogue dir
+  user: core
+  <source>
+    *: "Set As Playlist Catalogue Directory"
+  </source>
+  <dest>
+    *: "Sélectionner comme répertoire des catalogues de listes de lecture"
+  </dest>
+  <voice>
+    *: "Sélectionner comme répertoire des catalogues de listes de lecture"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_LIST_LINE_PADDING
+  desc: list padding, in display settings
+  user: core
+  <source>
+    *: none
+    touchscreen: "Line Padding in Lists"
+  </source>
+  <dest>
+    *: none
+    touchscreen: "Remplissage vertical des lignes des listes"
+  </dest>
+  <voice>
+    *: none
+    touchscreen: "Remplissage vertical des lignes des listes"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_SAVE_CHANGES
+  desc: When you try to exit screens to confirm save
+  user: core
+  <source>
+    *: "Save Changes?"
+  </source>
+  <dest>
+    *: "Enregistrer les changements ?"
+  </dest>
+  <voice>
+    *: "Enregistrer les changements ?"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_AUTOMATIC
+  desc: generic automatic
+  user: core
+  <source>
+    *: "Automatic"
+  </source>
+  <dest>
+    *: "Automatique"
+  </dest>
+  <voice>
+    *: "Automatique"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_SLEEP_TIMER_CANCEL_CURRENT
+  desc: shown instead of sleep timer when it's running
+  user: core
+  <source>
+    *: "Cancel Sleep Timer"
+  </source>
+  <dest>
+    *: "Annuler la minuterie d'arrêt"
+  </dest>
+  <voice>
+    *: "Annuler la minuterie d'arrêt"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_SLEEP_TIMER_DURATION
+  desc: default sleep timer duration in minutes
+  user: core
+  <source>
+    *: "Default Sleep Timer Duration"
+  </source>
+  <dest>
+    *: "Durée par défaut de la minuterie d'arrêt"
+  </dest>
+  <voice>
+    *: "Durée par défaut de la minuterie d'arrêt"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_RESET_PLAYLISTCAT_DIR
+  desc:
+  user: core
+  <source>
+    *: "Reset Playlist Catalogue Directory"
+  </source>
+  <dest>
+    *: "RAZ du répertoire des catalogues de listes de lecture"
+  </dest>
+  <voice>
+    *: "RAZ du répertoire des catalogues de listes de lecture"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_SLEEP_TIMER_ON_POWER_UP
+  desc: whether sleep timer starts on power up
+  user: core
+  <source>
+    *: "Start Sleep Timer On Boot"
+  </source>
+  <dest>
+    *: "Lancer la minuterie d'arrêt au démarrage"
+  </dest>
+  <voice>
+    *: "Lancer la minuterie d'arrêt au démarrage"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_KEYCLICK_HARDWARE
+  desc: in keyclick settings menu
+  user: core
+  <source>
+    *: none
+    hardware_click: "Speaker Keyclick"
+  </source>
+  <dest>
+    *: none
+    hardware_click: "Clics audibles sans écouteurs"
+  </dest>
+  <voice>
+    *: none
+    hardware_click: "Clics audibles sans écouteurs"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_KEYCLICK_SOFTWARE
+  desc: in keyclick settings menu
+  user: core
+  <source>
+    *: none
+    hardware_click: "Headphone Keyclick"
+  </source>
+  <dest>
+    *: none
+    hardware_click: "Clics dans les écouteurs"
+  </dest>
+  <voice>
+    *: none
+    hardware_click: "Clics dans les écouteurs"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_SHORTCUTS
+  desc: Title in the shortcuts menu
+  user: core
+  <source>
+    *: "Shortcuts"
+  </source>
+  <dest>
+    *: "Raccourcis"
+  </dest>
+  <voice>
+    *: "Raccourcis"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_GLYPHS
+  desc: in settings_menu
+  user: core
+  <source>
+    *: "Glyphs To Cache"
+  </source>
+  <dest>
+    *: "Mise en cache des caractères"
+  </dest>
+  <voice>
+    *: "Mise en cache des caractères"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_STARTUP_SHUTDOWN
+  desc: in the general settings menu
+  user: core
+  <source>
+    *: "Startup/Shutdown"
+  </source>
+  <dest>
+    *: "Démarrage/Arrêt"
+  </dest>
+  <voice>
+    *: "Démarrage/Arrêt"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_KEYPRESS_RESTARTS_SLEEP_TIMER
+  desc: whether to restart running sleep timer on keypress
+  user: core
+  <source>
+    *: "Restart Sleep Timer On Keypress"
+  </source>
+  <dest>
+    *: "Redémarrer la mise en veille programmable sur pression d'une touche"
+  </dest>
+  <voice>
+    *: "Redémarrer la mise en veille programmable sur pression d'une touche"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_SELECT_FOLDER
+  desc: in settings_menu
+  user: core
+  <source>
+    *: "Select one or more directories"
+  </source>
+  <dest>
+    *: "Sélectionnez un ou plusieurs dossier"
+  </dest>
+  <voice>
+    *: "Sélectionnez un ou plusieurs dossier"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_CROSSFEED_MEIER
+  desc: in sound settings
+  user: core
+  <source>
+    *: none
+    swcodec: "Simple (Meier)"
+  </source>
+  <dest>
+    *: none
+    swcodec: "Simple (Meier)"
+  </dest>
+  <voice>
+    *: none
+    swcodec: "Simple"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_SLEEP_TIMER_START_CURRENT
+  desc: shown when a sleep timer isn't running
+  user: core
+  <source>
+    *: "Start Sleep Timer"
+  </source>
+  <dest>
+    *: "Démarrer la minuterie d'arrêt"
+  </dest>
+  <voice>
+    *: "Démarrer la minuterie d'arrêt"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_SELECT_DATABASE_DIRS
+  desc: in settings_menu
+  user: core
+  <source>
+    *: "Select directories to scan"
+  </source>
+  <dest>
+    *: "Sélectionnez les dossiers à explorer"
+  </dest>
+  <voice>
+    *: "Sélectionnez les dossiers à explorer"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_CODEPAGE_WESTERN_EUROPEAN
+  desc: in codepage setting menu
+  user: core
+  <source>
+    *: "Europe de l'Est (CP1252)"
+  </source>
+  <dest>
+    *: "Europe de l'Est (CP1252)"
+  </dest>
+  <voice>
+    *: "Europe de l'Est"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_CROSSFEED_CUSTOM
+  desc: in sound settings
+  user: core
+  <source>
+    *: none
+    swcodec: "Custom"
+  </source>
+  <dest>
+    *: none
+    swcodec: "Personnalisé"
+  </dest>
+  <voice>
+    *: none
+    swcodec: "Personnalisé"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_USE_SHORTCUTS_INSTEAD_OF_QS
+  desc: in settings_menu.
+  user: core
+  <source>
+    *: none
+    quickscreen: "Use Shortcuts Menu Instead of Quick Screen"
+  </source>
+  <dest>
+    *: none
+    quickscreen: "Utiliser les raccourcis au lieu des réglages rapides"
+  </dest>
+  <voice>
+    *: none
+    quickscreen: "Utiliser les raccourcis au lieu des réglages rapides"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_CONSTRAIN_NEXT_FOLDER
+  desc: in settings_menu. Whether LANG_NEXT_FOLDER should be constrained to directories within LANG_SET_AS_START_DIR
+  user: core
+  <source>
+    *: "Constrain Auto-Change"
+  </source>
+  <dest>
+    *: "Restreindre le changement de répertoire auto"
+  </dest>
+  <voice>
+    *: "Restreindre le changement de répertoire auto"
   </voice>
 </phrase>

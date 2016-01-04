@@ -29,8 +29,7 @@
 #include "cpu.h"
 #include "system.h"
 #include "lcd.h"
-#include "kernel.h"
-#include "thread.h"
+#include "../kernel-internal.h"
 #include "storage.h"
 #include "disk.h"
 #include "font.h"
@@ -39,7 +38,6 @@
 #include "panic.h"
 #include "power.h"
 #include "file.h"
-#include "buffer.h"
 #include "rolo.h"
 #include "usb.h"
 #include "powermgmt.h"
@@ -146,7 +144,6 @@ void main(void)
     power_init();
     system_init();
     kernel_init();
-    buffer_init();
     lcd_init();
     show_logo();
     enable_irq();

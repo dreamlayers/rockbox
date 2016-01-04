@@ -29,8 +29,8 @@
 
 
 /* save files */
-#define SCORE_FILE PLUGIN_GAMES_DIR "/blackjack.score"
-#define SAVE_FILE  PLUGIN_GAMES_DIR "/blackjack.save"
+#define SCORE_FILE PLUGIN_GAMES_DATA_DIR "/blackjack.score"
+#define SAVE_FILE  PLUGIN_GAMES_DATA_DIR "/blackjack.save"
 #define NUM_SCORES 5
 
 /* final game return status */
@@ -166,7 +166,8 @@ enum {
 #define BJACK_RIGHT         BUTTON_RIGHT
 #define BJACK_LEFT          BUTTON_LEFT
 
-#elif CONFIG_KEYPAD == SANSA_E200_PAD
+#elif (CONFIG_KEYPAD == SANSA_E200_PAD) || \
+      (CONFIG_KEYPAD == SANSA_CONNECT_PAD)
 #define BJACK_SELECT_NAME    "SELECT"
 #define BJACK_STAY_NAME     "RIGHT"
 #define BJACK_QUIT_NAME     "POWER"
@@ -198,23 +199,7 @@ enum {
 #define BJACK_RIGHT         BUTTON_RIGHT
 #define BJACK_LEFT          BUTTON_LEFT
 
-#elif CONFIG_KEYPAD == SANSA_C200_PAD
-#define BJACK_SELECT_NAME    "SELECT"
-#define BJACK_STAY_NAME     "RIGHT"
-#define BJACK_QUIT_NAME     "POWER"
-#define BJACK_DOUBLE_NAME   "LEFT"
-#define BJACK_SELECT        BUTTON_SELECT
-#define BJACK_QUIT          BUTTON_POWER
-#define BJACK_MAX           BUTTON_VOL_UP
-#define BJACK_MIN           BUTTON_VOL_DOWN
-#define BJACK_STAY          BUTTON_RIGHT
-#define BJACK_DOUBLEDOWN    BUTTON_LEFT
-#define BJACK_UP            BUTTON_UP
-#define BJACK_DOWN          BUTTON_DOWN
-#define BJACK_RIGHT         BUTTON_RIGHT
-#define BJACK_LEFT          BUTTON_LEFT
-
-#elif CONFIG_KEYPAD == SANSA_CLIP_PAD
+#elif CONFIG_KEYPAD == SANSA_C200_PAD || CONFIG_KEYPAD == SANSA_CLIP_PAD
 #define BJACK_SELECT_NAME    "SELECT"
 #define BJACK_STAY_NAME     "RIGHT"
 #define BJACK_QUIT_NAME     "POWER"
@@ -330,6 +315,22 @@ enum {
 #define BJACK_RIGHT         BUTTON_RIGHT
 #define BJACK_LEFT          BUTTON_LEFT
 
+#elif CONFIG_KEYPAD == CREATIVE_ZENXFI3_PAD
+#define BJACK_SELECT_NAME   "PLAY"
+#define BJACK_STAY_NAME     "MENU"
+#define BJACK_QUIT_NAME     "POWER"
+#define BJACK_DOUBLE_NAME   "BACK"
+#define BJACK_SELECT        BUTTON_PLAY
+#define BJACK_QUIT          BUTTON_POWER
+#define BJACK_MAX           BUTTON_VOL_UP
+#define BJACK_MIN           BUTTON_VOL_DOWN
+#define BJACK_STAY          BUTTON_MENU
+#define BJACK_DOUBLEDOWN    BUTTON_BACK
+#define BJACK_UP            BUTTON_UP
+#define BJACK_DOWN          BUTTON_DOWN
+#define BJACK_RIGHT         BUTTON_MENU
+#define BJACK_LEFT          BUTTON_BACK
+
 #elif CONFIG_KEYPAD == PHILIPS_HDD1630_PAD
 #define BJACK_SELECT_NAME    "SELECT"
 #define BJACK_STAY_NAME     "VOL-"
@@ -392,15 +393,16 @@ enum {
 #define BJACK_QUIT_NAME     "POWER"
 #define BJACK_QUIT          BUTTON_POWER
 
-#elif CONFIG_KEYPAD == SAMSUNG_YH_PAD
+#elif (CONFIG_KEYPAD == SAMSUNG_YH820_PAD) || \
+      (CONFIG_KEYPAD == SAMSUNG_YH920_PAD)
 #define BJACK_SELECT_NAME  "PLAY"
-#define BJACK_STAY_NAME    "RECORD"
-#define BJACK_QUIT_NAME    "REW"
-#define BJACK_DOUBLE_NAME  "FFWD"
+#define BJACK_STAY_NAME    "FFWD"
+#define BJACK_QUIT_NAME    "LONG REW"
+#define BJACK_DOUBLE_NAME  "REW"
 #define BJACK_SELECT       BUTTON_PLAY
-#define BJACK_QUIT         BUTTON_REW
-#define BJACK_STAY         BUTTON_REC
-#define BJACK_DOUBLEDOWN   BUTTON_FFWD
+#define BJACK_QUIT         (BUTTON_REW|BUTTON_REPEAT)
+#define BJACK_STAY         BUTTON_FFWD
+#define BJACK_DOUBLEDOWN   (BUTTON_REW|BUTTON_REL)
 #define BJACK_UP           BUTTON_UP
 #define BJACK_DOWN         BUTTON_DOWN
 #define BJACK_RIGHT        BUTTON_RIGHT
@@ -436,19 +438,122 @@ enum {
 #define BJACK_LEFT          BUTTON_VOL_DOWN
 
 #elif CONFIG_KEYPAD == MPIO_HD300_PAD
-#define BJACK_SELECT_NAME   "FUNC"
-#define BJACK_STAY_NAME     "VOL +"
-#define BJACK_RESUME_NAME   "PLAY"
-#define BJACK_QUIT_NAME     "REC+PLAY"
-#define BJACK_DOUBLE_NAME   "VOL -"
+#define BJACK_SELECT_NAME   "ENTER"
+#define BJACK_STAY_NAME     "PLAY"
+#define BJACK_RESUME_NAME   ""
+#define BJACK_QUIT_NAME     "Long MENU"
+#define BJACK_DOUBLE_NAME   "REC"
 #define BJACK_SELECT        BUTTON_ENTER
-#define BJACK_QUIT          (BUTTON_REC|BUTTON_REPEAT)
+#define BJACK_QUIT          (BUTTON_MENU|BUTTON_REPEAT)
 #define BJACK_STAY          BUTTON_PLAY
 #define BJACK_DOUBLEDOWN    BUTTON_REC
 #define BJACK_UP            BUTTON_UP
 #define BJACK_DOWN          BUTTON_DOWN
 #define BJACK_RIGHT         BUTTON_FF
 #define BJACK_LEFT          BUTTON_REW
+
+#elif CONFIG_KEYPAD == SANSA_FUZEPLUS_PAD
+#define BJACK_SELECT_NAME   "SELECT"
+#define BJACK_STAY_NAME     "PLAYPAUSE"
+#define BJACK_RESUME_NAME   ""
+#define BJACK_QUIT_NAME     "POWER"
+#define BJACK_DOUBLE_NAME   "BACK"
+#define BJACK_SELECT        BUTTON_SELECT
+#define BJACK_QUIT          BUTTON_POWER
+#define BJACK_MAX           BUTTON_BOTTOMRIGHT
+#define BJACK_MIN           BUTTON_BOTTOMLEFT
+#define BJACK_STAY          BUTTON_BACK
+#define BJACK_DOUBLEDOWN    BUTTON_PLAYPAUSE
+#define BJACK_UP            BUTTON_UP
+#define BJACK_DOWN          BUTTON_DOWN
+#define BJACK_RIGHT         BUTTON_RIGHT
+#define BJACK_LEFT          BUTTON_LEFT
+
+#elif CONFIG_KEYPAD == SAMSUNG_YPR0_PAD
+#define BJACK_SELECT_NAME   "SELECT"
+#define BJACK_STAY_NAME     "MENU"
+#define BJACK_QUIT_NAME     "BACK"
+#define BJACK_DOUBLE_NAME   "USER"
+#define BJACK_SELECT        BUTTON_SELECT
+#define BJACK_QUIT          BUTTON_BACK
+#define BJACK_MAX           (BUTTON_LEFT|BUTTON_UP)
+#define BJACK_MIN           (BUTTON_RIGHT|BUTTON_DOWN)
+#define BJACK_STAY          BUTTON_MENU
+#define BJACK_DOUBLEDOWN    BUTTON_USER
+#define BJACK_UP            BUTTON_UP
+#define BJACK_DOWN          BUTTON_DOWN
+#define BJACK_RIGHT         BUTTON_RIGHT
+#define BJACK_LEFT          BUTTON_LEFT
+
+#elif CONFIG_KEYPAD == HM60X_PAD
+#define BJACK_SELECT_NAME   "SELECT"
+#define BJACK_STAY_NAME     "UP+POWER"
+#define BJACK_QUIT_NAME     "POWER"
+#define BJACK_DOUBLE_NAME   "DOWN+POWER"
+#define BJACK_SELECT        BUTTON_SELECT
+#define BJACK_QUIT          BUTTON_POWER
+#define BJACK_STAY          (BUTTON_UP|BUTTON_POWER)
+#define BJACK_DOUBLEDOWN    (BUTTON_DOWN|BUTTON_POWER)
+#define BJACK_UP            BUTTON_UP
+#define BJACK_DOWN          BUTTON_DOWN
+#define BJACK_RIGHT         BUTTON_RIGHT
+#define BJACK_LEFT          BUTTON_LEFT
+
+#elif CONFIG_KEYPAD == HM801_PAD
+#define BJACK_SELECT_NAME   "SELECT"
+#define BJACK_STAY_NAME     "PLAY"
+#define BJACK_QUIT_NAME     "POWER"
+#define BJACK_DOUBLE_NAME   "PREV"
+#define BJACK_SELECT        BUTTON_SELECT
+#define BJACK_QUIT          BUTTON_POWER
+#define BJACK_STAY          BUTTON_PLAY
+#define BJACK_DOUBLEDOWN    BUTTON_PREV
+#define BJACK_UP            BUTTON_UP
+#define BJACK_DOWN          BUTTON_DOWN
+#define BJACK_RIGHT         BUTTON_RIGHT
+#define BJACK_LEFT          BUTTON_LEFT
+
+#elif CONFIG_KEYPAD == SONY_NWZ_PAD
+#define BJACK_SELECT        BUTTON_PLAY
+#define BJACK_QUIT          BUTTON_BACK
+#define BJACK_STAY          (BUTTON_POWER|BUTTON_PLAY)
+#define BJACK_DOUBLEDOWN    (BUTTON_POWER|BUTTON_DOWN)
+#define BJACK_UP            BUTTON_UP
+#define BJACK_DOWN          BUTTON_DOWN
+#define BJACK_RIGHT         BUTTON_RIGHT
+#define BJACK_LEFT          BUTTON_LEFT
+#define BJACK_SELECT_NAME   "Play"
+#define BJACK_STAY_NAME     "Option+Play"
+#define BJACK_QUIT_NAME     "Back"
+#define BJACK_DOUBLE_NAME   "Option+Down"
+
+#elif CONFIG_KEYPAD == CREATIVE_ZEN_PAD
+#define BJACK_SELECT        BUTTON_SELECT
+#define BJACK_QUIT          BUTTON_BACK
+#define BJACK_STAY          BUTTON_PLAYPAUSE
+#define BJACK_DOUBLEDOWN    BUTTON_SHORTCUT
+#define BJACK_UP            BUTTON_UP
+#define BJACK_DOWN          BUTTON_DOWN
+#define BJACK_RIGHT         BUTTON_RIGHT
+#define BJACK_LEFT          BUTTON_LEFT
+#define BJACK_SELECT_NAME   "Select"
+#define BJACK_STAY_NAME     "Play/Pause"
+#define BJACK_QUIT_NAME     "Back"
+#define BJACK_DOUBLE_NAME   "Shortcut"
+
+#elif CONFIG_KEYPAD == DX50_PAD
+#define BJACK_QUIT          BUTTON_POWER
+#define BJACK_DOUBLEDOWN    BUTTON_RIGHT
+#define BJACK_SELECT        BUTTON_PLAY
+#define BJACK_QUIT          BUTTON_POWER
+#define BJACK_STAY          BUTTON_LEFT
+#define BJACK_UP            BUTTON_VOL_UP
+#define BJACK_DOWN          BUTTON_VOL_DOWN
+#define BJACK_LEFT          BUTTON_LEFT
+#define BJACK_SELECT_NAME   "Play"
+#define BJACK_STAY_NAME     "Left"
+#define BJACK_QUIT_NAME     "Power"
+#define BJACK_DOUBLE_NAME   "Right"
 
 #else
 #error No keymap defined!
@@ -574,7 +679,7 @@ static void blackjack_drawtable(struct game_context* bj) {
     unsigned int w, h, y_loc;
     char str[10];
 
-#if LCD_HEIGHT <= 64
+#if LCD_HEIGHT <= 64 || LCD_WIDTH <= 96
     rb->lcd_getstringsize("Bet", &w, &h);
     rb->lcd_putsxy(LCD_WIDTH - w, 2*h + 1, "Bet");
     rb->snprintf(str, 9, "$%d", bj->current_bet);
@@ -746,7 +851,7 @@ static void update_total(struct game_context* bj) {
     unsigned int w, h;
     rb->snprintf(total, 3, "%d", bj->player_total);
     rb->lcd_getstringsize(total, &w, &h);
-#if LCD_HEIGHT > 64
+#if LCD_HEIGHT > 64 && LCD_WIDTH > 96
     h *= 2;
 #endif
     rb->lcd_putsxy(LCD_WIDTH - w, LCD_HEIGHT/2 + h, total);
@@ -856,7 +961,7 @@ static void finish_game(struct game_context* bj) {
     }
     rb->lcd_getstringsize(str, &w, &h);
 
-#if LCD_HEIGHT <= 64
+#if LCD_HEIGHT <= 64 || LCD_WIDTH <= 96
     rb->lcd_set_drawmode(DRMODE_BG+DRMODE_INVERSEVID);
     rb->lcd_fillrect(0, LCD_HEIGHT/2, LCD_WIDTH, LCD_HEIGHT/2);
     rb->lcd_set_drawmode(DRMODE_SOLID);
@@ -925,7 +1030,7 @@ static unsigned int blackjack_get_yes_no(char message[20]) {
     rb->lcd_getstringsize(message_yes, &w, &h);
     const char *stg[] = {message_yes, message_no};
 
-#if LCD_HEIGHT <= 64
+#if LCD_HEIGHT <= 64 || LCD_WIDTH <= 96
     b = 2*h+1;
 #else
     b = h-1;
@@ -973,7 +1078,8 @@ static unsigned int blackjack_get_yes_no(char message[20]) {
 /*****************************************************************************
 * blackjack_get_amount() gets an amount from the player to be used
 ******************************************************************************/
-static signed int blackjack_get_amount(char message[20], signed int lower_limit,
+static signed int blackjack_get_amount(const char message[20],
+                                       signed int lower_limit,
                                        signed int upper_limit,
                                        signed int start) {
     int button;
@@ -995,7 +1101,7 @@ static signed int blackjack_get_amount(char message[20], signed int lower_limit,
     rb->lcd_set_foreground(LCD_BLACK);
 #endif
 
-#if LCD_HEIGHT <= 64
+#if LCD_HEIGHT <= 64 || LCD_WIDTH <= 96
     rb->lcd_clear_display();
     rb->lcd_puts(0, 1, message);
     rb->lcd_putsf(0, 2, "$%d", amount);
@@ -1017,7 +1123,9 @@ static signed int blackjack_get_amount(char message[20], signed int lower_limit,
       (CONFIG_KEYPAD == IPOD_3G_PAD) || \
       (CONFIG_KEYPAD == IPOD_1G2G_PAD) || \
       (CONFIG_KEYPAD == SANSA_E200_PAD) || \
-      (CONFIG_KEYPAD == SANSA_FUZE_PAD)
+      (CONFIG_KEYPAD == SANSA_FUZE_PAD) || \
+      (CONFIG_KEYPAD == SANSA_CONNECT_PAD) || \
+      (CONFIG_KEYPAD == MPIO_HD300_PAD)
     rb->lcd_putsxy(LCD_WIDTH/2 - 9*w, LCD_HEIGHT/2 - h-2, " >>|:     +1");
     rb->lcd_putsxy(LCD_WIDTH/2 - 9*w, LCD_HEIGHT/2 - 1, " |<<:     -1");
     rb->lcd_putsxy(LCD_WIDTH/2 - 9*w, LCD_HEIGHT/2 + h, "SCROLL+: +10");
@@ -1091,7 +1199,7 @@ static signed int blackjack_get_amount(char message[20], signed int lower_limit,
         }
 
         if(changed) {
-#if LCD_HEIGHT <= 64
+#if LCD_HEIGHT <= 64 || LCD_WIDTH <= 96
             rb->lcd_putsf(0, 2, "$%d", amount);
             rb->lcd_update();
 #else
@@ -1117,7 +1225,12 @@ static signed int blackjack_get_amount(char message[20], signed int lower_limit,
 * blackjack_get_bet() gets the player's bet.
 ******************************************************************************/
 static void blackjack_get_bet(struct game_context* bj) {
-    bj->current_bet = blackjack_get_amount("Please enter a bet", 10,
+#if LCD_WIDTH <= 96
+    static const char msg[] = "Enter a bet";
+#else
+    static const char msg[] = "Please enter a bet";
+#endif
+    bj->current_bet = blackjack_get_amount(msg, 10,
                                            bj->player_money, bj->current_bet);
 }
 

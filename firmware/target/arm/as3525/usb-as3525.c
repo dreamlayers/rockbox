@@ -18,23 +18,21 @@
  * KIND, either express or implied.
  *
  ****************************************************************************/
-
-#include <stdbool.h>
 #include "config.h"
+#include "system.h"
 #include "usb.h"
 #ifdef HAVE_USBSTACK
 #include "usb_core.h"
 #endif
-#include "usb-target.h"
 #include "power.h"
 #include "as3525.h"
+#include "usb_drv.h"
 
-static bool bus_activity = 0;
-static bool connected = 0;
+static int usb_status = USB_EXTRACTED;
 
 void usb_enable(bool on)
 {
-#if defined(HAVE_USBSTACK) && defined(USE_ROCKBOX_USB)
+#if defined(HAVE_USBSTACK)
     if (on)
         usb_core_init();
     else
@@ -46,36 +44,25 @@ void usb_enable(bool on)
 
 void usb_insert_int(void)
 {
-    connected = 1;
+    usb_status = USB_INSERTED;
+#ifdef USB_STATUS_BY_EVENT
+    usb_status_event(USB_INSERTED);
+#endif
 }
 
 void usb_remove_int(void)
 {
-    connected = 0;
-    bus_activity = 0;
-}
-
-void usb_drv_usb_detect_event(void)
-{
-    /* Bus activity seen */
-    bus_activity = 1;
+    usb_status = USB_EXTRACTED;
+#ifdef USB_STATUS_BY_EVENT
+    usb_status_event(USB_EXTRACTED);
+#endif
 }
 
 int usb_detect(void)
 {
-#if CONFIG_CPU == AS3525v2 && !defined(USE_ROCKBOX_USB)
-    /* Rebooting on USB plug can crash these players in a state where
-     * hardware power off (pressing the power button) doesn't work anymore
-     * TODO: Implement USB in rockbox for these players */
-    return USB_EXTRACTED;
-#elif defined(USB_DETECT_BY_DRV)
-    if(bus_activity && connected)
-        return USB_INSERTED;
-    else if(connected)
-        return USB_POWERED;
-    else
-        return USB_UNPOWERED;
-#else
-    return connected?USB_INSERTED:USB_EXTRACTED;
-#endif
+    return usb_status;
+}
+
+void usb_init_device(void)
+{
 }

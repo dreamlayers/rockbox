@@ -23,6 +23,9 @@
 #include "plugin.h"
 #include "mpegplayer.h"
 
+/* PCM channel we're using */
+#define MPEG_PCM_CHANNEL    PCM_MIXER_CHAN_PLAYBACK
+
 /* Pointers */
 
 /* Start of buffer */
@@ -47,6 +50,8 @@ static uint32_t volatile clock_time IBSS_ATTR; /* Timestamp adjusted */
 
 static int pcm_skipped = 0;
 static int pcm_underruns = 0;
+
+static unsigned int old_sampr = 0;
 
 /* Small silence clip. ~5.80ms @ 44.1kHz */
 static int16_t silence[256*2] ALIGNED_ATTR(4) = { 0 };
@@ -82,7 +87,7 @@ static inline ssize_t pcm_output_bytes_free(void)
 }
 
 /* Audio DMA handler */
-static void get_more(unsigned char **start, size_t *size)
+static void get_more(const void **start, size_t *size)
 {
     ssize_t sz;
 
@@ -127,20 +132,21 @@ static void get_more(unsigned char **start, size_t *size)
             else if (offset < 100*CLOCK_RATE/1000)
             {
                 /* Frame less than 100ms early - play it */
-                *start = pcmbuf_head->data;
+                struct pcm_frame_header *head = pcmbuf_head;
 
                 pcm_advance_buffer(&pcmbuf_head, sz);
                 pcmbuf_curr_size = sz;
 
                 sz -= PCM_HDR_SIZE;
 
-                *size = sz;
-
                 /* Audio is time master - keep clock synchronized */
                 clock_time = time + (sz >> 2);
 
                 /* Update base clock */
                 clock_tick += sz >> 2;
+
+                *start = head->data;
+                *size = sz;
                 return;
             }
             /* Frame will be dropped - play silence clip */
@@ -157,11 +163,11 @@ static void get_more(unsigned char **start, size_t *size)
     }
 
     /* Keep clock going at all times */
-    *start = (unsigned char *)silence;
-    *size = sizeof (silence);
-
-    clock_tick += sizeof (silence) / 4;
     clock_time += sizeof (silence) / 4;
+    clock_tick += sizeof (silence) / 4;
+
+    *start = silence;
+    *size = sizeof (silence);
 
     if (sz < 0)
         pcmbuf_read = pcmbuf_written;
@@ -171,7 +177,7 @@ static void get_more(unsigned char **start, size_t *size)
 
 /* Return a buffer pointer if at least size bytes are available and if so,
  * give the actual free space */
-unsigned char * pcm_output_get_buffer(ssize_t *size)
+void * pcm_output_get_buffer(ssize_t *size)
 {
     ssize_t sz = *size;
     ssize_t free = pcm_output_bytes_free() - PCM_HDR_SIZE;
@@ -216,24 +222,22 @@ bool pcm_output_empty(void)
 /* Flushes the buffer - clock keeps counting */
 void pcm_output_flush(void)
 {
-    bool playing, paused;
-
     rb->pcm_play_lock();
 
-    playing = rb->pcm_is_playing();
-    paused = rb->pcm_is_paused();
+    enum channel_status status = rb->mixer_channel_status(MPEG_PCM_CHANNEL);
 
     /* Stop PCM to clear current buffer */
-    if (playing)
-        rb->pcm_play_stop();
+    if (status != CHANNEL_STOPPED)
+        rb->mixer_channel_stop(MPEG_PCM_CHANNEL);
+
+    rb->pcm_play_unlock();
 
     pcm_reset_buffer();
 
     /* Restart if playing state was current */
-    if (playing && !paused)
-        rb->pcm_play_data(get_more, NULL, 0);
-
-    rb->pcm_play_unlock();
+    if (status == CHANNEL_PLAYING)
+        rb->mixer_channel_play_data(MPEG_PCM_CHANNEL,
+                                    get_more, NULL, 0);
 }
 
 /* Seek the reference clock to the specified time - next audio data ready to
@@ -263,10 +267,12 @@ uint32_t pcm_output_get_clock(void)
     do
     {
         time = clock_time;
-        rem = rb->pcm_get_bytes_waiting() >> 2;
+        rem = rb->mixer_channel_get_bytes_waiting(MPEG_PCM_CHANNEL) >> 2;
     }
     while (UNLIKELY(time != clock_time ||
-        (rem == 0 && rb->pcm_is_playing() && !rb->pcm_is_paused())));
+        (rem == 0 &&
+         rb->mixer_channel_status(MPEG_PCM_CHANNEL) == CHANNEL_PLAYING))
+    );
 
     return time - rem;
 
@@ -282,10 +288,12 @@ uint32_t pcm_output_get_ticks(uint32_t *start)
     do
     {
         tick = clock_tick;
-        rem = rb->pcm_get_bytes_waiting() >> 2;
+        rem = rb->mixer_channel_get_bytes_waiting(MPEG_PCM_CHANNEL) >> 2;
     }
     while (UNLIKELY(tick != clock_tick ||
-        (rem == 0 && rb->pcm_is_playing() && !rb->pcm_is_paused())));
+        (rem == 0 &&
+         rb->mixer_channel_status(MPEG_PCM_CHANNEL) == CHANNEL_PLAYING))
+    );
 
     if (start)
         *start = clock_start;
@@ -298,16 +306,22 @@ void pcm_output_play_pause(bool play)
 {
     rb->pcm_play_lock();
 
-    if (rb->pcm_is_playing())
+    if (rb->mixer_channel_status(MPEG_PCM_CHANNEL) != CHANNEL_STOPPED)
     {
-        rb->pcm_play_pause(play);
+        rb->mixer_channel_play_pause(MPEG_PCM_CHANNEL, play);
+        rb->pcm_play_unlock();
     }
-    else if (play)
+    else
     {
-        rb->pcm_play_data(get_more, NULL, 0);
-    }
+        rb->pcm_play_unlock();
 
-    rb->pcm_play_unlock();
+        if (play)
+        {
+            rb->mixer_channel_set_amplitude(MPEG_PCM_CHANNEL, MIX_AMP_UNITY);
+            rb->mixer_channel_play_data(MPEG_PCM_CHANNEL,
+                                        get_more, NULL, 0);
+        }
+    }
 }
 
 /* Stops all playback and resets the clock */
@@ -315,13 +329,13 @@ void pcm_output_stop(void)
 {
     rb->pcm_play_lock();
 
-    if (rb->pcm_is_playing())
-        rb->pcm_play_stop();
+    if (rb->mixer_channel_status(MPEG_PCM_CHANNEL) != CHANNEL_STOPPED)
+        rb->mixer_channel_stop(MPEG_PCM_CHANNEL);
+
+    rb->pcm_play_unlock();
 
     pcm_output_flush();
     pcm_output_set_clock(0);
-
-    rb->pcm_play_unlock();
 }
 
 /* Drains any data if the start threshold hasn't been reached */
@@ -341,11 +355,6 @@ bool pcm_output_init(void)
     pcmbuf_end  = SKIPBYTES(pcm_buffer, PCMOUT_BUFSIZE);
 
     pcm_reset_buffer();
-
-    /* Some targets could play at the movie frequency without resampling but
-     * as of now DSP assumes a certain frequency (always 44100Hz) so
-     * resampling will be needed for other movie audio rates. */
-    rb->pcm_set_frequency(NATIVE_FREQUENCY);
 
 #if INPUT_SRC_CAPS != 0
     /* Select playback */
@@ -373,10 +382,13 @@ bool pcm_output_init(void)
     }
 #endif
 
+    old_sampr = rb->mixer_get_frequency();
+    rb->mixer_set_frequency(CLOCK_RATE);
     return true;
 }
 
 void pcm_output_exit(void)
 {
-    rb->pcm_set_frequency(HW_SAMPR_DEFAULT);
+    if (old_sampr != 0)
+        rb->mixer_set_frequency(old_sampr);
 }

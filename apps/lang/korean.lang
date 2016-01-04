@@ -2358,20 +2358,20 @@
   </voice>
 </phrase>
 <phrase>
-  id: LANG_RECORDING_FREQUENCY
-  desc: in the recording settings
+  id: LANG_FREQUENCY
+  desc: in recording and playback settings
   user: core
   <source>
     *: none
-    recording: "Frequency"
+    recording,play_frequency: "Frequency"
   </source>
   <dest>
     *: none
-    recording: "주파수"
+    recording,play_frequency: "주파수"
   </dest>
   <voice>
     *: none
-    recording: "주파수"
+    recording,play_frequency: "주파수"
   </voice>
 </phrase>
 <phrase>
@@ -4314,19 +4314,19 @@
   <source>
     *: none
     multivolume: "HD1"
-    sansae200*,sansac200*,sansafuze*: "mSD:"
+    sansae200*,sansac200*,sansafuze*,sansaclipplus: "mSD:"
     archosondio*: "MMC:"
   </source>
   <dest>
     *: none
     multivolume: "HD1"
-    sansae200*,sansac200*,sansafuze*: "mSD:"
+    sansae200*,sansac200*,sansafuze*,sansaclipplus: "mSD:"
     archosondio*: "MMC:"
   </dest>
   <voice>
     *: none
     multivolume: "H D 1 "
-    sansae200*,sansac200*,sansafuze*: "micro S D"
+    sansae200*,sansac200*,sansafuze*,sansaclipplus: "micro S D"
     archosondio*: "M M C"
   </voice>
 </phrase>
@@ -4466,6 +4466,7 @@
     mrobe100: "DISPLAY = Revert"
     gigabeats: "BACK = Revert"
     vibe500: "CANCEL = Revert"
+    samsungyh*: "REW = Revert"
   </source>
   <dest>
     *: none
@@ -4478,6 +4479,7 @@
     mrobe100: "[화면]: 원상태 복구"
     gigabeats: "[뒤]: 원상태 복구"
     vibe500: "C: 원상태 복구"
+    samsungyh*: "REW: 원상태 복구"
   </dest>
   <voice>
     *: none
@@ -4544,6 +4546,7 @@
     iriverh100,iriverh120,iriverh300: "The disk is full. Press STOP to continue."
     iaudiom5,iaudiox5: "The disk is full. Press POWER to continue."
     sansae200*,sansac200*,vibe500: "The disk is full. Press UP to continue."
+    samsungyh*: "Disk full. Press LEFT to continue."
   </source>
   <dest>
     *: none
@@ -4551,6 +4554,7 @@
     iriverh100,iriverh120,iriverh300: "디스크 공간이 부족합니다. [정지] 버튼을 누르세요."
     iaudiom5,iaudiox5: "디스크 공간이 부족합니다. [전원] 버튼을 누르세요."
     sansae200*,sansac200*,vibe500: "디스크 공간이 부족합니다. [위] 버튼을 누르세요."
+    samsungyh*: "디스크 공간이 부족합니다. LEFT 버튼을 누르세요."
   </dest>
   <voice>
     *: none
@@ -4721,6 +4725,7 @@
     gigabeats: "SELECT=Set POWER=Cancel"
     vibe500: "OK=Set C=Cancel"
     mpiohd300: "ENTER=Set MENU=Cancel"
+    sansafuzeplus: "SELECT=Set  BACK=Cancel"
   </source>
   <dest>
     *: none
@@ -7197,6 +7202,7 @@
     iriverh10,iriverh10_5gb,sansae200*,sansac200*,vibe500: "PREV to abort"
     gigabeats: "BACK to abort"
     gigabeatfx: "POWER to abort"
+    sansafuzeplus: "BACK to abort"
   </source>
   <dest>
     *: "[꺼짐]: 중지"
@@ -7227,15 +7233,15 @@
 </phrase>
 <phrase>
   id: LANG_BACKDROP_LOADED
-  desc: text for splash to indicate a new backdrop has been loaded successfully
+  desc: deprecated
   user: core
   <source>
     *: none
-    lcd_non-mono: "Backdrop Loaded"
+    lcd_non-mono: ""
   </source>
   <dest>
     *: none
-    lcd_non-mono: "배경화면을 읽어들였습니다"
+    lcd_non-mono: ""
   </dest>
   <voice>
     *: none
@@ -7244,15 +7250,15 @@
 </phrase>
 <phrase>
   id: LANG_BACKDROP_FAILED
-  desc: text for splash to indicate a failure to load a bitmap as backdrop
+  desc: deprecated
   user: core
   <source>
     *: none
-    lcd_non-mono: "Backdrop Failed"
+    lcd_non-mono: ""
   </source>
   <dest>
     *: none
-    lcd_non-mono: "배경화면 읽기 실패"
+    lcd_non-mono: ""
   </dest>
   <voice>
     *: none
@@ -7528,19 +7534,19 @@
 </phrase>
 <phrase>
   id: LANG_FM_SAVE_CHANGES
-  desc: When you try to exit radio to confirm save
+  desc: deprecated
   user: core
   <source>
     *: none
-    radio: "Save Changes?"
+    radio: ""
   </source>
   <dest>
     *: none
-    radio: "변경사항을 저장할까요?"
+    radio: ""
   </dest>
   <voice>
     *: none
-    radio: "변경사항을 저장할까요?"
+    radio: ""
   </voice>
 </phrase>
 <phrase>
@@ -7717,7 +7723,7 @@
   desc: in onplay menu
   user: core
   <source>
-    *: "Playlist Catalog"
+    *: "Playlist Catalogue"
   </source>
   <dest>
     *: "재생목록 모음"
@@ -7728,7 +7734,7 @@
 </phrase>
 <phrase>
   id: LANG_CATALOG_ADD_TO
-  desc: in onplay playlist catalog submenu
+  desc: in onplay playlist catalogue submenu
   user: core
   <source>
     *: "Add to Playlist"
@@ -7742,7 +7748,7 @@
 </phrase>
 <phrase>
   id: LANG_CATALOG_ADD_TO_NEW
-  desc: in onplay playlist catalog submenu
+  desc: in onplay playlist catalogue submenu
   user: core
   <source>
     *: "Add to New Playlist"
@@ -7756,10 +7762,10 @@
 </phrase>
 <phrase>
   id: LANG_CATALOG_VIEW
-  desc: in onplay playlist catalog submenu
+  desc: in onplay playlist catalogue submenu
   user: core
   <source>
-    *: "View Catalog"
+    *: "View Catalogue"
   </source>
   <dest>
     *: "재생목록들 보기"
@@ -7770,7 +7776,7 @@
 </phrase>
 <phrase>
   id: LANG_CATALOG_NO_DIRECTORY
-  desc: error message when playlist catalog directory doesn't exist
+  desc: error message when playlist catalogue directory doesn't exist
   user: core
   <source>
     *: "%s doesn't exist"
@@ -7784,7 +7790,7 @@
 </phrase>
 <phrase>
   id: LANG_CATALOG_NO_PLAYLISTS
-  desc: error message when no playlists for playlist catalog
+  desc: error message when no playlists for playlist catalogue
   user: core
   <source>
     *: "No Playlists"
@@ -7876,20 +7882,6 @@
   <voice>
     *: none
     recording: "파일크기에 따라 분리"
-  </voice>
-</phrase>
-<phrase>
-  id: LANG_REC_SIZE
-  desc: deprecated
-  user:
-  <source>
-    *: none
-  </source>
-  <dest>
-    *: none
-  </dest>
-  <voice>
-    *: none
   </voice>
 </phrase>
 <phrase>
@@ -9066,14 +9058,14 @@
     *: "Building database... %d found (OFF to return)"
     iriverh100,iriverh120,iriverh300: "Building database... %d found (STOP to return)"
     ipod*: "Building database... %d found (PREV to return)"
-    iaudiox5,iaudiom5,gigabeat*,mrobe100: "Building database... %d found (LEFT to return)"
+    iaudiox5,iaudiom5,gigabeat*,mrobe100,samsungyh*: "Building database... %d found (LEFT to return)"
     iriverh10,iriverh10_5gb,sansae200*,sansac200*,gogearsa9200,vibe500: "Building database... %d found (PREV to return)"
   </source>
   <dest>
     *: "음악 DB 생성 중... %d개 완료 ([꺼짐]: 돌아가기)"
     iriverh100,iriverh120,iriverh300: "음악 DB 생성 중... %d개 완료 ([정지]: 돌아가기)"
     ipod*: "음악 DB 생성 중... %d개 완료 ([이전]: 돌아가기)"
-    iaudiox5,iaudiom5,gigabeat*,mrobe100: "음악 DB 생성 중... %d개 완료 ([왼쪽]: 돌아가기)"
+    iaudiox5,iaudiom5,gigabeat*,mrobe100,samsungyh*: "음악 DB 생성 중... %d개 완료 ([왼쪽]: 돌아가기)"
     iriverh10,iriverh10_5gb,sansae200*,sansac200*,gogearsa9200,vibe500: "음악 DB 생성 중... %d개 완료 ([이전]: 돌아가기)"
   </dest>
   <voice>
@@ -9252,15 +9244,15 @@
   user: core
   <source>
     *: none
-    ipodvideo: "Bass Cutoff"
+    ipodvideo,ipod6g,mpiohd200,mpiohd300,gigabeatfx,mrobe100: "Bass Cutoff"
   </source>
   <dest>
     *: none
-    ipodvideo: "중저음 컷오프 주파수"
+    ipodvideo,ipod6g,mpiohd200,mpiohd300,gigabeatfx,mrobe100: "중저음 컷오프 주파수"
   </dest>
   <voice>
     *: none
-    ipodvideo: "중저음 컷오프 주파수"
+    ipodvideo,ipod6g,mpiohd200,mpiohd300,gigabeatfx,mrobe100: "중저음 컷오프 주파수"
   </voice>
 </phrase>
 <phrase>
@@ -9393,15 +9385,15 @@
   user: core
   <source>
     *: none
-    gigabeatfx: "Touchpad Sensitivity"
+    gigabeatfx,sansafuzeplus: "Touchpad Sensitivity"
   </source>
   <dest>
     *: none
-    gigabeatfx: "터치패드 감도"
+    gigabeatfx,sansafuzeplus: "터치패드 감도"
   </dest>
   <voice>
     *: none
-    gigabeatfx: "터치패드 감도"
+    gigabeatfx,sansafuzeplus: "터치패드 감도"
   </voice>
 </phrase>
 <phrase>
@@ -9689,14 +9681,14 @@
   <source>
     *: "PLAY = Yes"
     iriverh100,iriverh120,iriverh300: "NAVI = Yes"
-    samsungyh*,ipod*,iaudiox5,iaudiom5,gigabeat*,sansae200*,sansac200*,iriverh10,iriverh10_5gb,mrobe100,gogearsa9200: "SELECT = Yes"
+    ipod*,iaudiox5,iaudiom5,gigabeat*,sansae200*,sansac200*,iriverh10,iriverh10_5gb,mrobe100,gogearsa9200: "SELECT = Yes"
     archosplayer: "(PLAY/STOP)"
     vibe500: "OK = Yes"
   </source>
   <dest>
     *: "[재생] = 예"
     iriverh100,iriverh120,iriverh300: "[네비] = 예"
-    samsungyh*,ipod*,iaudiox5,iaudiom5,gigabeat*,sansae200*,sansac200*,iriverh10,iriverh10_5gb,mrobe100,gogearsa9200: "[선택] = 예"
+    ipod*,iaudiox5,iaudiom5,gigabeat*,sansae200*,sansac200*,iriverh10,iriverh10_5gb,mrobe100,gogearsa9200: "[선택] = 예"
     archosplayer: "(재생/정지)"
     vibe500: "OK = 예"
   </dest>
@@ -9712,7 +9704,8 @@
     *: none
     rtc: "ON = Set"
     iriverh100,iriverh120,iriverh300: "NAVI = Set"
-    ipod*,iaudiox5,iaudiom5,iriverh10,iriverh10_5gb,sansae200*,sansac200*,gigabeat*,mrobe100,gogearsa9200: "SELECT = Set"
+    ipod*,iaudiox5,iaudiom5,iriverh10,iriverh10_5gb,sansae200*,sansac200*,gigabeat*,mrobe100: "SELECT = Set"
+    gogearsa9200,samsungyh*: "PLAY = Set"
     vibe500: "OK = Set"
     mpiohd300: "ENTER = Set"
   </source>
@@ -9720,7 +9713,8 @@
     *: none
     rtc: "[켬] = 설정"
     iriverh100,iriverh120,iriverh300: "[네비] = 설정"
-    ipod*,iaudiox5,iaudiom5,iriverh10,iriverh10_5gb,sansae200*,sansac200*,gigabeat*,mrobe100,gogearsa9200: "[선택] = 설정"
+    ipod*,iaudiox5,iaudiom5,iriverh10,iriverh10_5gb,sansae200*,sansac200*,gigabeat*,mrobe100: "[선택] = 설정"
+    gogearsa9200,samsungyh*: "PLAY = 설정"
     vibe500: "OK = 설정"
     mpiohd300: "ENTER = 설정"
   </dest>
@@ -10117,7 +10111,7 @@
     *: "모드:"
   </dest>
   <voice>
-    *: ""
+    *: "모드:"
   </voice>
 </phrase>
 <phrase>
@@ -10681,15 +10675,15 @@
   user: core
   <source>
     *: none
-    ipodvideo: "Treble Cutoff"
+    ipodvideo,ipod6g,mpiohd200,mpiohd300,gigabeatfx,mrobe100: "Treble Cutoff"
   </source>
   <dest>
     *: none
-    ipodvideo: "고음역 컷오프 주파수"
+    ipodvideo,ipod6g,mpiohd200,mpiohd300,gigabeatfx,mrobe100: "고음역 컷오프 주파수"
   </dest>
   <voice>
     *: none
-    ipodvideo: "고음역 컷오프 주파수"
+    ipodvideo,ipod6g,mpiohd200,mpiohd300,gigabeatfx,mrobe100: "고음역 컷오프 주파수"
   </voice>
 </phrase>
 <phrase>

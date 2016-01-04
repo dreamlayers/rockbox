@@ -37,7 +37,7 @@ struct GPatch * drumSet[128];
 
 struct SynthObject voices[MAX_VOICES] IBSS_ATTR;
 
-void *alloc(int size)
+static void *alloc(int size)
 {
     static char *offset = NULL;
     static size_t totalSize = 0;
@@ -114,9 +114,9 @@ unsigned char readChar(int file)
     return buf[0];
 }
 
-unsigned char * readData(int file, int len)
+void * readData(int file, int len)
 {
-    unsigned char * dat = malloc(len);
+    void * dat = malloc(len);
     rb->read(file, dat, len);
     return dat;
 }
@@ -136,11 +136,10 @@ int midi_debug(const char *fmt, ...)
 {
     static int p_xtpt = 0;
     char p_buf[50];
-    bool ok;
     va_list ap;
 
     va_start(ap, fmt);
-    ok = rb->vsnprintf(p_buf,sizeof(p_buf), fmt, ap);
+    rb->vsnprintf(p_buf,sizeof(p_buf), fmt, ap);
     va_end(ap);
 
     int i=0;

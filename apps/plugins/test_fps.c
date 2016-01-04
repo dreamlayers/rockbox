@@ -21,25 +21,16 @@
 #include "plugin.h"
 #include "lib/helper.h"
 #include "lib/grey.h"
+#include "lib/pluginlib_touchscreen.h"
+#include "lib/pluginlib_exit.h"
+#include "lib/pluginlib_actions.h"
 
-#if (CONFIG_KEYPAD == IPOD_4G_PAD) || (CONFIG_KEYPAD == IPOD_3G_PAD) || \
-    (CONFIG_KEYPAD == IPOD_1G2G_PAD)
-#define FPS_QUIT BUTTON_MENU
-#elif CONFIG_KEYPAD == IAUDIO_M3_PAD
-#define FPS_QUIT BUTTON_RC_REC
-#elif CONFIG_KEYPAD == SAMSUNG_YH_PAD
-#define FPS_QUIT BUTTON_PLAY
-#elif CONFIG_KEYPAD == SANSA_FUZE_PAD
-#define FPS_QUIT (BUTTON_HOME|BUTTON_REPEAT)
-#elif CONFIG_KEYPAD == MPIO_HD200_PAD
-#define FPS_QUIT (BUTTON_REC|BUTTON_PLAY)
-#elif CONFIG_KEYPAD == MPIO_HD300_PAD
-#define FPS_QUIT (BUTTON_REC|BUTTON_REPEAT)
-#elif defined(BUTTON_OFF)
-#define FPS_QUIT BUTTON_OFF
-#else
-#define FPS_QUIT BUTTON_POWER
-#endif
+/* this set the context to use with PLA */
+static const struct button_mapping *plugin_contexts[] = { pla_main_ctx };
+
+
+#define FPS_QUIT   PLA_EXIT
+#define FPS_QUIT2  PLA_CANCEL
 
 #define DURATION (2*HZ) /* longer duration gives more precise results */
 
@@ -352,6 +343,45 @@ static void time_greyscale(void)
 }
 #endif
 
+void plugin_quit(void)
+{
+#ifdef HAVE_TOUCHSCREEN
+    static struct touchbutton button[] = {{
+            .action = ACTION_STD_OK,
+            .title = "OK",
+            /* .vp runtime initialized, rest false/NULL */
+    }};
+    struct viewport *vp = &button[0].vp;
+    struct screen *lcd = rb->screens[SCREEN_MAIN];
+    rb->viewport_set_defaults(vp, SCREEN_MAIN);
+    const int border = 10;
+    const int height = 50;
+
+    lcd->set_viewport(vp);
+    /* button matches the bottom center in the grid */
+    vp->x = lcd->lcdwidth/3;
+    vp->width = lcd->lcdwidth/3;
+    vp->height = height;
+    vp->y = lcd->lcdheight - height - border;
+
+    touchbutton_draw(button, ARRAYLEN(button));
+    lcd->update_viewport();
+    if (rb->touchscreen_get_mode() == TOUCHSCREEN_POINT)
+    {
+        while(touchbutton_get(button, ARRAYLEN(button)) != ACTION_STD_OK);
+    }
+    else
+#endif
+        while (1)
+        {
+            int btn = pluginlib_getaction(TIMEOUT_BLOCK, plugin_contexts,
+                                                   ARRAYLEN(plugin_contexts));
+            exit_on_usb(btn);
+            if ((btn == FPS_QUIT) || (btn == FPS_QUIT2))
+                break;
+        }
+}
+
 /* plugin entry point */
 enum plugin_status plugin_start(const void* parameter)
 {
@@ -363,11 +393,15 @@ enum plugin_status plugin_start(const void* parameter)
     /* standard stuff */
     (void)parameter;
     
+#ifdef HAVE_TOUCHSCREEN
+    rb->touchscreen_set_mode(rb->global_settings->touch_mode);
+#endif
+
     log_init();
 #if (CONFIG_PLATFORM & PLATFORM_NATIVE)
     cpu_freq = *rb->cpu_frequency; /* remember CPU frequency */
 #endif
-    backlight_force_on(); /* backlight control in lib/helper.c */
+    backlight_ignore_timeout();
 
     time_main_update();
     rb->sleep(HZ);
@@ -389,10 +423,10 @@ enum plugin_status plugin_start(const void* parameter)
                      (cpu_freq + 500000) / 1000000);
     log_text(str);
 #endif
-    backlight_use_settings(); /* backlight control in lib/helper.c */
+    backlight_use_settings();
 
     /* wait until user closes plugin */
-    while (rb->button_get(true) != FPS_QUIT);
+    plugin_quit();
 
     return PLUGIN_OK;
 }

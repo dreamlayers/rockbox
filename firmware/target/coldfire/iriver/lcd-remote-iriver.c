@@ -21,6 +21,7 @@
 
 #include "config.h"
 #include "system.h"
+#include "kernel.h"
 #include "file.h"
 #include "lcd-remote.h"
 #include "adc.h"
@@ -90,6 +91,7 @@ void lcd_remote_emireduce(bool state)
 }
 #endif
 
+#if 0 // FIXME
 void lcd_remote_powersave(bool on)
 {
     if (remote_initialized)
@@ -98,6 +100,7 @@ void lcd_remote_powersave(bool on)
         lcd_remote_write_command(LCD_REMOTE_CNTL_ENTIRE_ON_OFF | (on ? 1 : 0));
     }
 }
+#endif
 
 void lcd_remote_set_contrast(int val)
 {
@@ -310,7 +313,7 @@ void lcd_remote_update(void)
         lcd_remote_write_command(LCD_REMOTE_CNTL_SET_PAGE_ADDRESS | y);
         lcd_remote_write_command(LCD_REMOTE_CNTL_HIGHCOL | ((xoffset >> 4) & 0xf));
         lcd_remote_write_command(LCD_REMOTE_CNTL_LOWCOL | (xoffset & 0xf));
-        lcd_remote_write_data(lcd_remote_framebuffer[y], LCD_REMOTE_WIDTH);
+        lcd_remote_write_data(FBREMOTEADDR(0, y), LCD_REMOTE_WIDTH);
     }
 }
 
@@ -344,6 +347,6 @@ void lcd_remote_update_rect(int x, int y, int width, int height)
         lcd_remote_write_command(LCD_REMOTE_CNTL_SET_PAGE_ADDRESS | y);
         lcd_remote_write_command(LCD_REMOTE_CNTL_HIGHCOL | (((x+xoffset) >> 4) & 0xf));
         lcd_remote_write_command(LCD_REMOTE_CNTL_LOWCOL | ((x+xoffset) & 0xf));
-        lcd_remote_write_data(&lcd_remote_framebuffer[y][x], width);
+        lcd_remote_write_data(FBREMOTEADDR(x,y), width);
     }
 }

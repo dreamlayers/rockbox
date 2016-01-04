@@ -3,6 +3,8 @@
 
 #define MODEL_NAME   "Ondio SP"
 
+#define ONDIO_SERIES
+
 /* define this if you can flip your LCD */
 #define HAVE_LCD_FLIP
 
@@ -15,6 +17,8 @@
 /* LCD dimensions */
 #define LCD_WIDTH  112
 #define LCD_HEIGHT 64
+/* sqrt(112^2 + 64^2) / 1.5 = 83.8 */
+#define LCD_DPI 84
 #define LCD_DEPTH  1
 
 #define LCD_PIXEL_ASPECT_WIDTH 4
@@ -37,9 +41,6 @@
 #define AB_REPEAT_ENABLE
 #define ACTION_WPSAB_SINGLE ACTION_WPS_BROWSE
 
-/* define this if you have access to the pitchscreen */
-#define HAVE_PITCHSCREEN
-
 /* Define this if you have a software controlled poweroff */
 #define HAVE_SW_POWEROFF
 
@@ -57,6 +58,8 @@
 #define BATTERY_CAPACITY_MAX 1500 /* max. capacity selectable */
 #define BATTERY_CAPACITY_INC 50   /* capacity increment */
 #define BATTERY_TYPES_COUNT  2    /* Alkalines or NiMH */
+
+#define CONFIG_BATTERY_MEASURE VOLTAGE_MEASURE
 
 /* define this if the unit should not shut down on low battery. */
 #define NO_LOW_BATTERY_SHUTDOWN

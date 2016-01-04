@@ -18,9 +18,10 @@
  * KIND, either express or implied.
  *
  ****************************************************************************/
+
 #include "config.h"
 #include "system.h"
-#include "file.h"
+#include "kernel.h"
 #include "lcd-remote.h"
 #include "scroll_engine.h"
 
@@ -67,6 +68,7 @@ int lcd_remote_default_contrast(void)
     return DEFAULT_REMOTE_CONTRAST_SETTING;
 }
 
+#if 0 // FIXME
 void lcd_remote_powersave(bool on)
 {
     if(remote_initialized) {
@@ -76,6 +78,7 @@ void lcd_remote_powersave(bool on)
             lcd_remote_write_command(LCD_SET_POWER_SAVE | 1);
     }
 }
+#endif
 
 void lcd_remote_set_contrast(int val)
 {
@@ -226,7 +229,7 @@ void lcd_remote_update(void)
                have to update one page at a time. */
             lcd_remote_write_command(LCD_SET_PAGE | (y > 5 ? y + 2 : y));
             lcd_remote_write_command_ex(LCD_SET_COLUMN | 0, 0);
-            lcd_remote_write_data(lcd_remote_framebuffer[y], LCD_REMOTE_WIDTH);
+            lcd_remote_write_data(FBREMOTEADDR(0, y), LCD_REMOTE_WIDTH);
         }
     }
 }
@@ -258,7 +261,7 @@ void lcd_remote_update_rect(int x, int y, int width, int height)
             lcd_remote_write_command_ex(LCD_SET_COLUMN | ((x >> 4) & 0xf),
                                         x & 0xf);
 
-            lcd_remote_write_data(&lcd_remote_framebuffer[y][x], width);
+            lcd_remote_write_data(FBREMOTEADDR(x,y), width);
         }
     }
 }

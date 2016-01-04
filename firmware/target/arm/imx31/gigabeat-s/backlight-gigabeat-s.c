@@ -18,8 +18,10 @@
  * KIND, either express or implied.
  *
  ****************************************************************************/
+
 #include "config.h"
 #include "system.h"
+#include "kernel.h"
 #include "backlight.h"
 #include "mc13783.h"
 #include "backlight-target.h"
@@ -77,7 +79,7 @@ static uint32_t backlight_pwm_bits;     /* Final PWM setting for fade-in */
 /* Backlight ramping settings */
 static uint32_t led_ramp_mask = MC13783_LEDMDRAMPDOWN | MC13783_LEDMDRAMPUP;
 
-bool _backlight_init(void)
+bool backlight_hw_init(void)
 {
     /* Set default LED register value */
     mc13783_write(MC13783_LED_CONTROL0,
@@ -86,7 +88,7 @@ bool _backlight_init(void)
 #ifdef HAVE_BACKLIGHT_BRIGHTNESS
     /* Our PWM and I-Level is different than retailos (but same apparent
      * brightness), so init to our default. */
-    _backlight_set_brightness(DEFAULT_BRIGHTNESS_SETTING);
+    backlight_hw_brightness(DEFAULT_BRIGHTNESS_SETTING);
 #else
     /* Use default PWM */
     backlight_pwm_bits = mc13783_read(MC13783_LED_CONTROL2) & MC13783_LEDMDDC;
@@ -111,7 +113,7 @@ void backlight_set_fade_in(bool value)
         led_ramp_mask &= ~MC13783_LEDMDRAMPUP;
 }
 
-void _backlight_on(void)
+void backlight_hw_on(void)
 {
     static const char regs[2] =
     {
@@ -147,7 +149,7 @@ void _backlight_on(void)
     }
 }
 
-void _backlight_off(void)
+void backlight_hw_off(void)
 {
     uint32_t ctrl0 = MC13783_LED_CONTROL0_BITS | MC13783_LEDEN;
 
@@ -171,7 +173,7 @@ void _backlight_off(void)
 #ifdef HAVE_BACKLIGHT_BRIGHTNESS
 /* Assumes that the backlight has been initialized - parameter should
  * already be range-checked in public interface. */
-void _backlight_set_brightness(int brightness)
+void backlight_hw_brightness(int brightness)
 {
     uint32_t md = led_md_pwm_table[brightness].md;
     backlight_pwm_bits = backlight_on_status ?

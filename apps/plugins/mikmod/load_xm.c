@@ -136,7 +136,7 @@ static	XMWAVHEADER *wh=NULL,*s=NULL;
 
 /*========== Loader code */
 
-int XM_Test(void)
+static int XM_Test(void)
 {
 	UBYTE id[38];
 
@@ -146,13 +146,13 @@ int XM_Test(void)
 	return 0;
 }
 
-int XM_Init(void)
+static int XM_Init(void)
 {
 	if(!(mh=(XMHEADER *)MikMod_malloc(sizeof(XMHEADER)))) return 0;
 	return 1;
 }
 
-void XM_Cleanup(void)
+static void XM_Cleanup(void)
 {
 	MikMod_free(mh);
 }
@@ -500,7 +500,7 @@ static int LoadInstruments(void)
 
 				/* read the remainder of the header
 				   (2 bytes for 1.03, 22 for 1.04) */
-				if (headend>=_mm_ftell(modreader)) for(u=headend-_mm_ftell(modreader);u;u--) _mm_read_UBYTE(modreader);
+				if (headend>=_mm_ftell(modreader)) for(u=headend-_mm_ftell(modreader);u;u--) (void)_mm_read_UBYTE(modreader);
 
 				/* we can't trust the envelope point count here, as some
 				   modules have incorrect values (K_OSPACE.XM reports 32 volume
@@ -634,7 +634,7 @@ static int LoadInstruments(void)
 					break;
 				}
 				_mm_fseek(modreader,ck,SEEK_SET);
-				for(u=headend-_mm_ftell(modreader);u;u--) _mm_read_UBYTE(modreader);
+				for(u=headend-_mm_ftell(modreader);u;u--) (void)_mm_read_UBYTE(modreader);
 
 				if(_mm_eof(modreader)) {
 					MikMod_free(nextwav);MikMod_free(wh);
@@ -657,13 +657,14 @@ static int LoadInstruments(void)
 	return 1;
 }
 
-int XM_Load(int curious)
+static int XM_Load(int curious)
 {
 	INSTRUMENT *d;
 	SAMPLE *q;
 	int t,u;
 	int dummypat=0;
 	char tracker[21],modtype[60];
+    (void)curious;
 
 	/* try to read module header */
 	_mm_read_string(mh->id,17,modreader);
@@ -803,7 +804,7 @@ int XM_Load(int curious)
 	return 1;
 }
 
-CHAR *XM_LoadTitle(void)
+static CHAR *XM_LoadTitle(void)
 {
 	CHAR s[21];
 

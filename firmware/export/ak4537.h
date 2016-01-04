@@ -22,13 +22,21 @@
 #ifndef _AK4537_H
 #define _AK4537_H
 
+
+#define AUDIOHW_CAPS    (LIN_GAIN_CAP | MIC_GAIN_CAP)
+
 /* Volume goes from -127.0 ... 0 dB in 0.5 dB increments */
-#define VOLUME_MIN -1270
-#define VOLUME_MAX     0
+AUDIOHW_SETTING(VOLUME, "dB",  0,  1, -128,   0, -25)
+#ifdef HAVE_RECORDING
+/* line input: -23 .. +12dB */
+AUDIOHW_SETTING(LEFT_GAIN,  "dB", 0,  1, -23, 12, 0)
+AUDIOHW_SETTING(RIGHT_GAIN, "dB", 0,  1, -23, 12, 0)
+/* mic gain: +15dB fixed +20dB switchable mic preamp gain
+   and the line stage of -23..+12dB make a total range of -8..+47dB */
+AUDIOHW_SETTING(MIC_GAIN,   "dB", 0,  1,   -8,   47,   20)
 
-extern int tenthdb2master(int db);
-
-extern void audiohw_set_master_vol(int vol_l, int vol_r);
+void audiohw_set_recsrc(int source);
+#endif /* HAVE_RECORDING */
 
 #define AKC_NUM_REGS        0x11
 

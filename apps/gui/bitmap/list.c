@@ -22,13 +22,13 @@
 /* This file contains the code to draw the list widget on BITMAP LCDs. */
 
 #include "config.h"
+#include "system.h"
 #include "lcd.h"
 #include "font.h"
 #include "button.h"
 #include "string.h"
 #include "settings.h"
 #include "kernel.h"
-#include "system.h"
 #include "file.h"
 
 #include "action.h"
@@ -41,39 +41,33 @@
 #include "viewport.h"
 #include "statusbar-skinned.h"
 #include "debug.h"
+#include "line.h"
 
 #define ICON_PADDING 1
+#define ICON_PADDING_S "1"
 
 /* these are static to make scrolling work */
 static struct viewport list_text[NB_SCREENS], title_text[NB_SCREENS];
 
 #ifdef HAVE_TOUCHSCREEN
-/* difference in pixels between draws, above it means enough to start scrolling */
-#define SCROLL_BEGIN_THRESHOLD 3 
-
-static enum {
-    SCROLL_NONE,            /* no scrolling */
-    SCROLL_BAR,             /* scroll by using the scrollbar */
-    SCROLL_SWIPE,           /* scroll by wiping over the screen */
-    SCROLL_KINETIC,         /* state after releasing swipe */
-} scroll_mode;
-
 static int y_offset;
+static bool hide_selection;
 #endif
 
+/* list-private helpers from the generic list.c (move to header?) */
 int gui_list_get_item_offset(struct gui_synclist * gui_list, int item_width,
                              int text_pos, struct screen * display,
                              struct viewport *vp);
 bool list_display_title(struct gui_synclist *list, enum screen_type screen);
+int list_get_nb_lines(struct gui_synclist *list, enum screen_type screen);
 
 void gui_synclist_scroll_stop(struct gui_synclist *lists)
 {
-    int i;
     FOR_NB_SCREENS(i)
     {
-        screens[i].scroll_stop(&list_text[i]);
-        screens[i].scroll_stop(&title_text[i]);
-        screens[i].scroll_stop(lists->parent[i]);
+        screens[i].scroll_stop_viewport(&list_text[i]);
+        screens[i].scroll_stop_viewport(&title_text[i]);
+        screens[i].scroll_stop_viewport(lists->parent[i]);
     }
 }
 
@@ -91,80 +85,87 @@ void gui_synclist_scroll_stop(struct gui_synclist *lists)
         Note: This image is flipped horizontally when the language is a
         right-to-left one (Hebrew, Arabic)
 */
+
+static int list_icon_width(enum screen_type screen)
+{
+    return get_icon_width(screen) + ICON_PADDING * 2;
+}
+
 static bool draw_title(struct screen *display, struct gui_synclist *list)
 {
     const int screen = display->screen_type;
-    int style = STYLE_DEFAULT;
     struct viewport *title_text_vp = &title_text[screen];
+    struct line_desc line = LINE_DESC_DEFINIT;
 
     if (sb_set_title_text(list->title, list->title_icon, screen))
         return false; /* the sbs is handling the title */
-    display->scroll_stop(title_text_vp);
+    display->scroll_stop_viewport(title_text_vp);
     if (!list_display_title(list, screen))
         return false;
     *title_text_vp = *(list->parent[screen]);
-    title_text_vp->height = font_get(title_text_vp->font)->height;
+    line.height = list->line_height[screen];
+    title_text_vp->height = line.height;
 
-    if (list->title_icon != Icon_NOICON && global_settings.show_icons)
-    {
-        struct viewport title_icon = *title_text_vp;
+#if LCD_DEPTH > 1
+    /* XXX: Do we want to support the separator on remote displays? */
+    if (display->screen_type == SCREEN_MAIN && global_settings.list_separator_height != 0)
+        line.separator_height = abs(global_settings.list_separator_height)
+                                + (lcd_get_dpi() > 200 ? 2 : 1);
+#endif
 
-        title_icon.width = get_icon_width(screen) + ICON_PADDING * 2;
-        if (VP_IS_RTL(&title_icon))
-        {
-            title_icon.x += title_text_vp->width - title_icon.width;
-        }
-        else
-        {
-            title_text_vp->x += title_icon.width;
-        }
-        title_text_vp->width -= title_icon.width;
-
-        display->set_viewport(&title_icon);
-        screen_put_icon(display, 0, 0, list->title_icon);
-    }
 #ifdef HAVE_LCD_COLOR
     if (list->title_color >= 0)
-    {
-        style |= (STYLE_COLORED|list->title_color);
-    }
+        line.style |= (STYLE_COLORED|list->title_color);
 #endif
+    line.scroll = true;
+
     display->set_viewport(title_text_vp);
-    display->puts_scroll_style(0, 0, list->title, style);
+
+    if (list->title_icon != Icon_NOICON && global_settings.show_icons)
+        put_line(display, 0, 0, &line, "$"ICON_PADDING_S"I$t",
+                 list->title_icon, list->title);
+    else
+        put_line(display, 0, 0, &line, "$t", list->title);
+
     return true;
 }
 
 void list_draw(struct screen *display, struct gui_synclist *list)
 {
-    struct viewport list_icons;
-    int start, end, line_height, style, i;
+    int start, end, item_offset, i;
     const int screen = display->screen_type;
     const int list_start_item = list->start_item[screen];
-    const int icon_width = get_icon_width(screen) + ICON_PADDING;
     const bool scrollbar_in_left = (global_settings.scrollbar == SCROLLBAR_LEFT);
+    const bool scrollbar_in_right = (global_settings.scrollbar == SCROLLBAR_RIGHT);
     const bool show_cursor = !global_settings.cursor_style &&
                         list->show_selection_marker;
+    const bool have_icons = global_settings.show_icons && list->callback_get_item_icon;
     struct viewport *parent = (list->parent[screen]);
-#ifdef HAVE_LCD_COLOR
-    unsigned char cur_line = 0;
-#endif
-    int item_offset;
+    struct line_desc linedes = LINE_DESC_DEFINIT;
     bool show_title;
     struct viewport *list_text_vp = &list_text[screen];
+    int indent = 0;
 
-    line_height = font_get(parent->font)->height;
     display->set_viewport(parent);
     display->clear_viewport();
-    display->scroll_stop(list_text_vp);
+    display->scroll_stop_viewport(list_text_vp);
     *list_text_vp = *parent;
     if ((show_title = draw_title(display, list)))
     {
-        list_text_vp->y += line_height;
-        list_text_vp->height -= line_height;
+        int title_height = title_text[screen].height;
+        list_text_vp->y += title_height;
+        list_text_vp->height -= title_height;
     }
 
-    const int nb_lines = viewport_get_nb_lines(list_text_vp);
+    const int nb_lines = list_get_nb_lines(list, screen);
 
+    linedes.height = list->line_height[screen];
+    linedes.nlines = list->selected_size;
+#if LCD_DEPTH > 1
+    /* XXX: Do we want to support the separator on remote displays? */
+    if (display->screen_type == SCREEN_MAIN)
+        linedes.separator_height = abs(global_settings.list_separator_height);
+#endif
     start = list_start_item;
     end = start + nb_lines;
 
@@ -178,7 +179,7 @@ void list_draw(struct screen *display, struct gui_synclist *list)
     {
         /* make it negative for more consistent apparence when switching
          * directions */
-        draw_offset -= line_height;
+        draw_offset -= linedes.height;
         if (start > 0)
             start--;
     }
@@ -189,88 +190,76 @@ void list_draw(struct screen *display, struct gui_synclist *list)
 #endif
 
     /* draw the scrollbar if its needed */
-    if (global_settings.scrollbar && nb_lines < list->nb_items)
+    if (global_settings.scrollbar != SCROLLBAR_OFF)
     {
-        struct viewport vp = *list_text_vp;
-        vp.width = SCROLLBAR_WIDTH;
-        vp.height = line_height * nb_lines;
-        vp.x = parent->x;
-        list_text_vp->width -= SCROLLBAR_WIDTH;
-        if (scrollbar_in_left)
-            list_text_vp->x += SCROLLBAR_WIDTH;
-        else
-            vp.x += list_text_vp->width;
-        display->set_viewport(&vp);
-        gui_scrollbar_draw(display,
-                (scrollbar_in_left? 0: 1), 0, SCROLLBAR_WIDTH-1, vp.height,
-                list->nb_items, list_start_item, list_start_item + nb_lines,
-                VERTICAL);
-    }
-    else if (show_title)
-    {
-        /* shift everything a bit in relation to the title... */
-        if (!VP_IS_RTL(list_text_vp) && scrollbar_in_left)
+        /* if the scrollbar is shown the text viewport needs to shrink */
+        if (nb_lines < list->nb_items)
         {
+            struct viewport vp = *list_text_vp;
+            vp.width = SCROLLBAR_WIDTH;
+            vp.height = linedes.height * nb_lines;
             list_text_vp->width -= SCROLLBAR_WIDTH;
-            list_text_vp->x += SCROLLBAR_WIDTH;
+            if (scrollbar_in_right)
+                vp.x += list_text_vp->width;
+            else /* left */
+                list_text_vp->x += SCROLLBAR_WIDTH;
+            display->set_viewport(&vp);
+            gui_scrollbar_draw(display,
+                    (scrollbar_in_left? 0: 1), 0, SCROLLBAR_WIDTH-1, vp.height,
+                    list->nb_items, list_start_item, list_start_item + nb_lines,
+                    VERTICAL);
         }
-        else if (VP_IS_RTL(list_text_vp) && !scrollbar_in_left)
-        {
-            list_text_vp->width -= SCROLLBAR_WIDTH;
-        }
-    }
-
-    /* setup icon placement */
-    list_icons = *list_text_vp;
-    int icon_count = (list->callback_get_item_icon != NULL) ? 1 : 0;
-    if (show_cursor)
-        icon_count++;
-    if (icon_count)
-    {
-        list_icons.width = icon_width * icon_count;
-        list_text_vp->width -= list_icons.width + ICON_PADDING;
-        if (VP_IS_RTL(&list_icons))
-            list_icons.x += list_text_vp->width + ICON_PADDING;
-        else
-            list_text_vp->x += list_icons.width + ICON_PADDING;
+        /* shift everything a bit in relation to the title */
+        else if (!VP_IS_RTL(list_text_vp) && scrollbar_in_left)
+            indent += SCROLLBAR_WIDTH;
+        else if (VP_IS_RTL(list_text_vp) && scrollbar_in_right)
+            indent += SCROLLBAR_WIDTH;
     }
 
     for (i=start; i<end && i<list->nb_items; i++)
     {
         /* do the text */
+        enum themable_icons icon;
         unsigned const char *s;
         char entry_buffer[MAX_PATH];
         unsigned char *entry_name;
         int text_pos = 0;
         int line = i - start;
+        int line_indent = 0;
+        int style = STYLE_DEFAULT;
+        bool is_selected = false;
+        icon = list->callback_get_item_icon ?
+                    list->callback_get_item_icon(i, list->data) : Icon_NOICON;
         s = list->callback_get_item_name(i, list->data, entry_buffer,
                                          sizeof(entry_buffer));
         entry_name = P2STR(s);
+
+        while (*entry_name == '\t')
+        {
+            line_indent++;
+            entry_name++;
+        }
+        if (line_indent)
+        {
+            if (global_settings.show_icons)
+                line_indent *= list_icon_width(screen);
+            else
+                line_indent *= display->getcharwidth();
+        }
+        line_indent += indent;
+
         display->set_viewport(list_text_vp);
-        style = STYLE_DEFAULT;
         /* position the string at the correct offset place */
         int item_width,h;
         display->getstringsize(entry_name, &item_width, &h);
         item_offset = gui_list_get_item_offset(list, item_width, text_pos,
                 display, list_text_vp);
 
-#ifdef HAVE_LCD_COLOR
-        /* if the list has a color callback */
-        if (list->callback_get_item_color)
-        {
-            int color = list->callback_get_item_color(i, list->data);
-            /* if color selected */
-            if (color >= 0)
-            {
-                style |= STYLE_COLORED|color;
-            }
-        }
-#endif
         /* draw the selected line */
         if(
 #ifdef HAVE_TOUCHSCREEN
             /* don't draw it during scrolling */
-            scroll_mode == SCROLL_NONE &&
+            !hide_selection &&
 #endif
                 i >= list->selected_item
                 && i <  list->selected_item + list->selected_size
@@ -293,56 +282,53 @@ void list_draw(struct screen *display, struct gui_synclist *list)
             {
                 /* Display colour line selector */
                 style = STYLE_COLORBAR;
+                linedes.text_color = global_settings.lst_color;
+                linedes.line_color = global_settings.lss_color;
             }
             else if (global_settings.cursor_style == 3)
             {
                 /* Display gradient line selector */
                 style = STYLE_GRADIENT;
-
-                /* Make the lcd driver know how many lines the gradient should
-                   cover and current line number */
-                /* number of selected lines */
-                style |= NUMLN_PACK(list->selected_size);
-                /* current line number, zero based */
-                style |= CURLN_PACK(cur_line);
-                cur_line++;
+                linedes.text_color = global_settings.lst_color;
+                linedes.line_color = global_settings.lss_color;
+                linedes.line_end_color = global_settings.lse_color;
             }
 #endif
-            /* if the text is smaller than the viewport size */
-            if (item_offset> item_width - (list_text_vp->width - text_pos))
-            {
-                /* don't scroll */
-                display->puts_style_xyoffset(0, line, entry_name,
-                        style, item_offset, draw_offset);
-            }
-            else
-            {
-                display->puts_scroll_style_xyoffset(0, line, entry_name,
-                        style, item_offset, draw_offset);
+            is_selected = true;
+        }
+        
+#ifdef HAVE_LCD_COLOR
+        /* if the list has a color callback */
+        if (list->callback_get_item_color)
+        {
+            int c = list->callback_get_item_color(i, list->data);
+            if (c >= 0)
+            {   /* if color selected */
+                linedes.text_color = c;
+                style |= STYLE_COLORED;
             }
         }
+#endif
+
+        linedes.style = style;
+        linedes.scroll = is_selected ?: list->scroll_all;
+        linedes.line = i % list->selected_size;
+
+        /* the list can have both, one of or neither of cursor and item icons,
+         * if both don't apply icon padding twice between the icons */
+        if (show_cursor && have_icons)
+            put_line(display, 0, line * linedes.height + draw_offset,
+                    &linedes, "$*s$"ICON_PADDING_S"I$i$"ICON_PADDING_S"s$*t",
+                    line_indent, is_selected ? Icon_Cursor : Icon_NOICON,
+                    icon, item_offset, entry_name);
+        else if (show_cursor || have_icons)
+            put_line(display, 0, line * linedes.height + draw_offset,
+                    &linedes, "$*s$"ICON_PADDING_S"I$*t", line_indent,
+                    show_cursor ? (is_selected ? Icon_Cursor:Icon_NOICON):icon,
+                    item_offset, entry_name);
         else
-        {
-            if (list->scroll_all)
-                display->puts_scroll_style_xyoffset(0, line, entry_name,
-                        style, item_offset, draw_offset);
-            else
-                display->puts_style_xyoffset(0, line, entry_name,
-                        style, item_offset, draw_offset);
-        }
-        /* do the icon */
-        display->set_viewport(&list_icons);
-        if (list->callback_get_item_icon != NULL)
-        {
-            screen_put_icon_with_offset(display, show_cursor?1:0,
-                                    (line),show_cursor?ICON_PADDING:0,draw_offset,
-                                    list->callback_get_item_icon(i, list->data));
-        }
-        if (show_cursor && i >= list->selected_item &&
-                i <  list->selected_item + list->selected_size)
-        {
-            screen_put_icon_with_offset(display, 0, line, 0, draw_offset, Icon_Cursor);
-        }
+            put_line(display, 0, line * linedes.height + draw_offset,
+                    &linedes, "$*s$*t", line_indent, item_offset, entry_name);
     }
     display->set_viewport(parent);
     display->update_viewport();
@@ -352,26 +338,27 @@ void list_draw(struct screen *display, struct gui_synclist *list)
 #if defined(HAVE_TOUCHSCREEN)
 /* This needs to be fixed if we ever get more than 1 touchscreen on a target. */
 
-static bool released = false;
+/* difference in pixels between draws, above it means enough to start scrolling */
+#define SCROLL_BEGIN_THRESHOLD 3 
 
-/* Used for kinetic scrolling as we need to know the last position to
- * recognize the scroll direction.
- * This gets reset to 0 at the end of scrolling
- */
-static int last_position=0;
+static enum {
+    SCROLL_NONE,            /* no scrolling */
+    SCROLL_BAR,             /* scroll by using the scrollbar */
+    SCROLL_SWIPE,           /* scroll by wiping over the screen */
+    SCROLL_KINETIC,         /* state after releasing swipe */
+} scroll_mode;
 
 static int scrollbar_scroll(struct gui_synclist * gui_list,
                                               int y)
 {
     const int screen = screens[SCREEN_MAIN].screen_type;
-    const int nb_lines = viewport_get_nb_lines(&list_text[screen]);
+    const int nb_lines = list_get_nb_lines(gui_list, screen);
 
     if (nb_lines <  gui_list->nb_items)
     {
         /* scrollbar scrolling is still line based */
         y_offset = 0;
-        int scrollbar_size = nb_lines*
-            font_get(gui_list->parent[screen]->font)->height;
+        int scrollbar_size = nb_lines*gui_list->line_height[screen];
         int actual_y = y - list_text[screen].y;
 
         int new_selection = (actual_y * gui_list->nb_items)
@@ -479,6 +466,7 @@ void _gui_synclist_stop_kinetic_scrolling(void)
     if (scroll_mode == SCROLL_KINETIC)
         kinetic_force_stop();
     scroll_mode = SCROLL_NONE;
+    hide_selection = false;
 }
 /*
  * returns false if scrolling should be stopped entirely
@@ -490,11 +478,12 @@ void _gui_synclist_stop_kinetic_scrolling(void)
  
 static int scroll_begin_threshold;
 static int threshold_accumulation;
-static bool swipe_scroll(struct gui_synclist * gui_list, int line_height, int difference)
+static bool swipe_scroll(struct gui_synclist * gui_list, int difference)
 {
     /* fixme */
     const enum screen_type screen = screens[SCREEN_MAIN].screen_type;
-    const int nb_lines = viewport_get_nb_lines(&list_text[screen]);
+    const int nb_lines = list_get_nb_lines(gui_list, screen);
+    const int line_height = gui_list->line_height[screen];
 
     if (UNLIKELY(scroll_begin_threshold == 0))
         scroll_begin_threshold = touchscreen_get_scroll_threshold();
@@ -559,13 +548,12 @@ static int kinetic_callback(struct timeout *tmo)
         return 0;
 
     struct cb_data *data = (struct cb_data*)tmo->data;
-    int line_height = font_get(data->list->parent[0]->font)->height;
     /* ds = v*dt */
     int pixel_diff = data->velocity * RELOAD_INTERVAL / HZ;
     /* remember signedness to detect stopping */
     int old_sign = SIGN(data->velocity);
     /* advance the list */
-    if (!swipe_scroll(data->list, line_height, pixel_diff))
+    if (!swipe_scroll(data->list, pixel_diff))
     {
         /* nothing to scroll? */
         data->velocity = 0;
@@ -580,15 +568,15 @@ static int kinetic_callback(struct timeout *tmo)
             data->velocity = 0;
     }
 
-    queue_post(&button_queue, BUTTON_TOUCHSCREEN, 0);
+    /* let get_action() timeout, which loads to a
+     * gui_synclist_draw() call from the main thread */
+    queue_post(&button_queue, BUTTON_REDRAW, 0);
     /* stop if the velocity hit or crossed zero */
     if (!data->velocity)
     {
         kinetic_stats_reset();
         return 0;
     }
-    /* let get_action() timeout, which loads to a
-     * gui_synclist_draw() call from the main thread */
     return RELOAD_INTERVAL; /* cancel or reload */
 }
 
@@ -621,208 +609,233 @@ static bool kinetic_setup_scroll(struct gui_synclist *list)
     return false;
 }
 
-unsigned gui_synclist_do_touchscreen(struct gui_synclist * gui_list)
+#define OUTSIDE    0
+#define TITLE_TEXT (1<<0)
+#define TITLE_ICON (1<<1)
+#define SCROLLBAR  (1<<2)
+#define LIST_TEXT  (1<<3)
+#define LIST_ICON  (1<<4)
+
+#define TITLE      (TITLE_TEXT|TITLE_ICON)
+#define LIST       (LIST_TEXT|LIST_ICON)
+
+static int get_click_location(struct gui_synclist *list, int x, int y)
 {
+    int screen = SCREEN_MAIN;
+    struct viewport *parent, *title, *text;
+    int retval = OUTSIDE;
+
+    parent = list->parent[screen];
+    if (viewport_point_within_vp(parent, x, y))
+    {
+        /* see if the title was clicked */
+        title = &title_text[screen];
+        if (viewport_point_within_vp(title, x, y))
+            retval = TITLE_TEXT;
+        /* check the icon too */
+        if (list->title_icon != Icon_NOICON && global_settings.show_icons)
+        {
+            int width = list_icon_width(screen);
+            struct viewport vp = *title;
+            if (VP_IS_RTL(&vp))
+                vp.x += vp.width;
+            else
+                vp.x -= width;
+            vp.width = width;
+            if (viewport_point_within_vp(&vp, x, y))
+                retval = TITLE_ICON;
+        }
+        /* check scrollbar. assume it's shown, if it isn't it will be handled
+         * later */
+        if (retval == OUTSIDE)
+        {
+            bool on_scrollbar_clicked;
+            int adj_x = x - parent->x;
+            switch (global_settings.scrollbar)
+            {
+                case SCROLLBAR_LEFT:
+                    on_scrollbar_clicked = adj_x <= SCROLLBAR_WIDTH; break;
+                case SCROLLBAR_RIGHT:
+                    on_scrollbar_clicked = adj_x > (title->x + title->width - SCROLLBAR_WIDTH); break;
+                default:
+                    on_scrollbar_clicked = false; break;
+            }
+            if (on_scrollbar_clicked)
+                retval = SCROLLBAR;
+        }
+        if (retval == OUTSIDE)
+        {
+            text = &list_text[screen];
+            if (viewport_point_within_vp(text, x, y))
+                retval = LIST_TEXT;
+            else /* if all fails, it must be on the list icons */
+                retval = LIST_ICON;
+        }
+    }
+    return retval;
+}
+
+unsigned gui_synclist_do_touchscreen(struct gui_synclist * list)
+{
+    enum screen_type screen;
+    struct viewport *parent;
     short x, y;
-    const enum screen_type screen = SCREEN_MAIN;
-    struct viewport *info_vp = sb_skin_get_info_vp(screen);
-    const int button = action_get_touchscreen_press_in_vp(&x, &y, info_vp);
-    const int list_start_item = gui_list->start_item[screen];
-    const int line_height = font_get(gui_list->parent[screen]->font)->height;
-    const struct viewport *list_text_vp = &list_text[screen];
-    const bool old_released = released;
-    const bool show_title = list_display_title(gui_list, screen);
-    const bool show_cursor = !global_settings.cursor_style &&
-                        gui_list->show_selection_marker;
-    const bool on_title_clicked = show_title && y < line_height && (button&BUTTON_REL);
-    const bool cancelled_kinetic = (scroll_mode == SCROLL_KINETIC
-                        && button != ACTION_NONE && button != ACTION_UNKNOWN
-                        && !is_kinetic_over());
-    int icon_width = 0;
-    int line, list_width = list_text_vp->width;
-    static bool wait_for_release = false;
+    int action, adj_x, adj_y, line, line_height, list_start_item;
+    bool recurse;
+    static bool initial_touch = true;
+    static int last_y;
+    
+    screen = SCREEN_MAIN;
+    parent = list->parent[screen];
+    line_height = list->line_height[screen];
+    list_start_item = list->start_item[screen];
+    /* start with getting the action code and finding the click location */
+    action = action_get_touchscreen_press(&x, &y);
+    adj_x = x - parent->x;
+    adj_y = y - parent->y;
 
-    released = (button&BUTTON_REL) != 0;
-    if (released)
-        wait_for_release = false;
 
-    if (button == ACTION_NONE || button == ACTION_UNKNOWN)
+    /* some defaults before running the state machine */
+    recurse = false;
+    hide_selection = false;
+
+    switch (scroll_mode)
     {
-        /* this happens when we hit edges of the list while kinetic scrolling,
-         * but not when manually cancelling */
-        if (scroll_mode == SCROLL_KINETIC)
-            return ACTION_REDRAW;
-        return ACTION_NONE;
-    }
-
-    /* x and y are relative to info_vp */
-    if (gui_list->callback_get_item_icon != NULL)
-        icon_width += get_icon_width(screen);
-    if (show_cursor)
-        icon_width += get_icon_width(screen);
-
-    if (on_title_clicked)
-    {
-        if (scroll_mode == SCROLL_NONE || is_kinetic_over())
+        case SCROLL_NONE:
         {
-            if (x < icon_width)
+            int click_loc;
+            if (initial_touch)
             {
-                /* Top left corner is GO_TO_ROOT */
-                if (button == BUTTON_REL)
-                    return ACTION_STD_MENU;
-                else if (button == (BUTTON_REPEAT|BUTTON_REL))
-                    return ACTION_STD_CONTEXT;
-                return ACTION_NONE;
-            }
-            else /* click on title text is cancel */
-                if (button == BUTTON_REL)
-                    return ACTION_STD_CANCEL;
-        }
-        /* do this after the above so the scrolling stops without
-         * going back in the list with the same touch */
-        if (scroll_mode == SCROLL_KINETIC)
-        {
-            kinetic_force_stop();
-            scroll_mode = SCROLL_NONE;
-        }
-    }
-    else /* list area clicked (or not released) */
-    {
-        const int actual_y = y - (show_title ? line_height : 0);
-        bool on_scrollbar_clicked;
-        switch (global_settings.scrollbar)
-        {
-            case SCROLLBAR_LEFT:
-                on_scrollbar_clicked = x <= SCROLLBAR_WIDTH; break;
-            case SCROLLBAR_RIGHT:
-                on_scrollbar_clicked = x > (icon_width + list_width); break;
-            default:
-                on_scrollbar_clicked = false; break;
-        }
-        /* conditions for scrollbar scrolling:
-         *    * pen is on the scrollbar
-         *      AND scrollbar is on the right (left case is handled above)
-         * OR * pen is in the somewhere else but we did scrollbar scrolling before
-         *
-         * scrollbar scrolling must end if the pen is released
-         * scrollbar scrolling must not happen if we're currently scrolling
-         * via swiping the screen
-         **/
-
-        if (!released && scroll_mode != SCROLL_SWIPE &&
-            (on_scrollbar_clicked || scroll_mode == SCROLL_BAR))
-        {
-            if (scroll_mode == SCROLL_KINETIC)
-                kinetic_force_stop();
-            scroll_mode = SCROLL_BAR;
-            return scrollbar_scroll(gui_list, y);
-        }
-
-        /* |--------------------------------------------------------|
-         * | Description of the touchscreen list interface:         |
-         * |--------------------------------------------------------|
-         * | Pressing an item will select it and "enter" it.        |
-         * |                                                        |
-         * | Pressing and holding your pen down will scroll through |
-         * | the list of items.                                     |
-         * |                                                        |
-         * | Pressing and holding your pen down on a single item    |
-         * | will bring up the context menu of it.                  |
-         * |--------------------------------------------------------|
-         */
-        if (actual_y > 0 || button & BUTTON_REPEAT)
-        {
-            /* selection needs to be corrected if an items are only
-             * partially visible */
-            line = (actual_y - y_offset) / line_height;
-
-            if (cancelled_kinetic)
-            {
-                kinetic_force_stop();
-                scroll_mode = SCROLL_SWIPE;
+                /* on the first touch last_y has to be reset to avoid
+                 * glitches with touches from long ago */
+                last_y = adj_y;
+                initial_touch = false;
             }
 
-            /* Pressed below the list*/
-            if (list_start_item + line >= gui_list->nb_items)
+            line = 0; /* silence gcc 'used uninitialized' warning */
+            click_loc = get_click_location(list, x, y);
+            if (click_loc & LIST)
             {
-                /* don't collect last_position outside of the list area
-                 * it'd break selecting after such a situation */
-                last_position = 0;
-                return ACTION_NONE;
-            }
-
-            if (button & BUTTON_REPEAT && scroll_mode == SCROLL_NONE
-                && !wait_for_release)
-            {
-                /* held a single line for a while, bring up the context menu */
-                gui_synclist_select_item(gui_list, list_start_item + line);
-                /* don't sent context repeatedly */
-                wait_for_release = true;
-                return ACTION_STD_CONTEXT;
-            }
-            if (released && !cancelled_kinetic)
-            {
-                /* Pen was released anywhere on the screen */
-                last_position = 0;
-                if (scroll_mode == SCROLL_NONE)
+                if(!skinlist_get_item(&screens[screen], list, adj_x, adj_y, &line))
                 {
-                    /* select current line */
-                    gui_synclist_select_item(gui_list, list_start_item + line);
+                    /* selection needs to be corrected if items are only partially visible */
+                    line = (adj_y - y_offset) / line_height;
+                    if (list_display_title(list, screen))
+                        line -= 1; /* adjust for the list title */
+                }
+                if (line >= list->nb_items)
+                    return ACTION_NONE;
+                list->selected_item = list_start_item+line;
+
+                gui_synclist_speak_item(list);
+            }
+            if (action == BUTTON_TOUCHSCREEN)
+            {
+                /* if not scrolling, the user is trying to select */
+                int diff = adj_y - last_y;
+                if ((click_loc & LIST) && swipe_scroll(list, diff))
+                    scroll_mode = SCROLL_SWIPE;
+                else if (click_loc & SCROLLBAR)
+                    scroll_mode = SCROLL_BAR;
+            }
+            else if (action == BUTTON_REPEAT)
+            {
+                if (click_loc & LIST)
+                {
+                    /* held a single line for a while, bring up the context menu */
+                    gui_synclist_select_item(list, list_start_item + line);
+                    /* don't sent context repeatedly */
+                    action_wait_for_release();
+                    initial_touch = true;
+                    return ACTION_STD_CONTEXT;
+                }
+            }
+            else if (action & BUTTON_REL)
+            {
+                initial_touch = true;
+                if (click_loc & LIST)
+                {   /* release on list item enters it */
+                    gui_synclist_select_item(list, list_start_item + line);
                     return ACTION_STD_OK;
                 }
-                else
-                {
-                    /* we were scrolling
-                     *  -> reset scrolling but do nothing else */
-                    if (scroll_mode == SCROLL_SWIPE)
-                    {
-                        if (kinetic_setup_scroll(gui_list))
-                            scroll_mode = SCROLL_KINETIC;
-                    }
-                    if (scroll_mode != SCROLL_KINETIC)
-                        scroll_mode = SCROLL_NONE;
-                    return ACTION_NONE;
+                else if (click_loc & TITLE_TEXT)
+                {   /* clicking the title goes one level up (cancel) */
+                    return ACTION_STD_CANCEL;
                 }
+                else if (click_loc & TITLE_ICON)
+                {   /* clicking the title icon goes back to the root */
+                    return ACTION_STD_MENU;
+                }
+            }
+            break;
+        }
+        case SCROLL_SWIPE:
+        {
+            /* when swipe scrolling, we accept outside presses as well and
+             * grab the entire screen (i.e. click_loc does not matter) */
+            int diff = adj_y - last_y;
+            hide_selection = true;
+            kinetic_stats_collect(diff);
+            if (swipe_scroll(list, diff))
+            {
+                /* letting the pen go enters kinetic scrolling */
+                if ((action & BUTTON_REL))
+                {
+                    if (kinetic_setup_scroll(list))
+                    {
+                        hide_selection = true;
+                        scroll_mode = SCROLL_KINETIC;
+                    }
+                    else
+                        scroll_mode = SCROLL_NONE;
+                }
+            }
+            else if (action & BUTTON_REL)
+                scroll_mode = SCROLL_NONE;
+
+            if (scroll_mode == SCROLL_NONE)
+                initial_touch = true;
+            break;
+        }
+        case SCROLL_KINETIC:
+        {
+            /* during kinetic scrolling we need to handle cancellation.
+             * This state is actually only entered upon end of it as this
+             * function is not called during the animation. */
+            if (!is_kinetic_over())
+            {   /* a) the user touched the screen (manual cancellation) */
+                kinetic_force_stop();
+                if (get_click_location(list, x, y) & SCROLLBAR)
+                    scroll_mode = SCROLL_BAR;
+                else
+                    scroll_mode = SCROLL_SWIPE;
             }
             else
-            {   /* pen is on the screen */
-                bool redraw = false, result = false;
-                /* beginning of list interaction denoted by release in
-                 * the previous call */
-                if (old_released || is_kinetic_over())
-                {
-                    scroll_mode = SCROLL_NONE;
-                    redraw = true;
-                }
-                
-                /* select current item; gui_synclist_select_item()
-                 * is not called because it has side effects that
-                 * disturb kinetic scrolling */
-                gui_list->selected_item = list_start_item+line;
-                gui_synclist_speak_item(gui_list);
-                if (last_position == 0)
-                    last_position = actual_y;
-                else
-                {
-                    /* record speed data in case we do kinetic scrolling */
-                    int diff = actual_y - last_position;
-                    kinetic_stats_collect(diff);
-                    result = swipe_scroll(gui_list, line_height, diff);
-                }
-
-                /* Start scrolling once the pen is moved without
-                 * releasing it inbetween */
-                if (result)
-                {
-                    redraw = true;
-                    scroll_mode = SCROLL_SWIPE;
-                }
-                last_position = actual_y;
-
-                return redraw ? ACTION_REDRAW:ACTION_NONE;
+            {   /* b) kinetic scrolling stopped on its own */
+                /* need to re-run this with SCROLL_NONE since otherwise
+                 * the next touch is not detected correctly */
+                scroll_mode = SCROLL_NONE;
+                recurse = true;
             }
+            break;
+        }
+        case SCROLL_BAR:
+        {
+            hide_selection = true;
+            /* similarly to swipe scroll, using the scrollbar grabs
+             * focus so the click location is irrelevant */
+            scrollbar_scroll(list, adj_y);
+            if (action & BUTTON_REL)
+                scroll_mode = SCROLL_NONE;
+            break;
         }
     }
-    return ACTION_REDRAW;
+
+    /* register y position unless forcefully reset */
+    if (!initial_touch)
+        last_y = adj_y;
+
+    return recurse ? gui_synclist_do_touchscreen(list) : ACTION_REDRAW;
 }
+
 #endif

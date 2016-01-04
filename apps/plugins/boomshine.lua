@@ -148,15 +148,15 @@ function Cursor:do_action(action)
     if action == rb.actions.ACTION_TOUCHSCREEN and HAS_TOUCHSCREEN then
         _, self.x, self.y = rb.action_get_touchscreen_press()
         return true
-    elseif action == rb.actions.ACTION_KBD_SELECT then
+    elseif action == rb.actions.PLA_SELECT then
         return true
-    elseif (action == rb.actions.ACTION_KBD_RIGHT) then
+    elseif (action == rb.actions.PLA_RIGHT) then
         self.x = self.x + self.size
-    elseif (action == rb.actions.ACTION_KBD_LEFT) then
+    elseif (action == rb.actions.PLA_LEFT) then
         self.x = self.x - self.size
-    elseif (action == rb.actions.ACTION_KBD_UP) then
+    elseif (action == rb.actions.PLA_UP) then
         self.y = self.y - self.size
-    elseif (action == rb.actions.ACTION_KBD_DOWN) then
+    elseif (action == rb.actions.PLA_DOWN) then
         self.y = self.y + self.size
     end
 
@@ -212,7 +212,7 @@ function random_color()
 end
 
 function start_round(level, goal, nrBalls, total)
-    local player_added, score, exit, nrExpandedBalls = false, 0, false, 0
+    local player_added, score, exit, nrExpendedBalls = false, 0, false, 0
     local balls, explodedBalls = {}, {}
     local cursor = Cursor:new()
 
@@ -233,8 +233,8 @@ function start_round(level, goal, nrBalls, total)
         end
 
         -- Check for actions
-        local action = rb.get_action(rb.contexts.CONTEXT_KEYBOARD, 0)
-        if(action == rb.actions.ACTION_KBD_ABORT) then
+        local action = rb.get_plugin_action(0)
+        if action == rb.actions.PLA_EXIT or action == rb.actions.PLA_CANCEL then
             exit = true
             break
         end
@@ -257,7 +257,7 @@ function start_round(level, goal, nrBalls, total)
             for _, explodedBall in ipairs(explodedBalls) do
                 if ball:checkHit(explodedBall) then
                     score = score + 100*level
-                    nrExpandedBalls = nrExpandedBalls + 1
+                    nrExpendedBalls = nrExpendedBalls + 1
                     table.insert(explodedBalls, ball)
                     table.remove(balls, i)
                     break
@@ -280,7 +280,7 @@ function start_round(level, goal, nrBalls, total)
         rb.lcd_clear_display()
 
         set_foreground(DEFAULT_FOREGROUND_COLOR)
-        draw_positioned_string(0, 0, string.format("%d balls expanded", nrExpandedBalls))
+        draw_positioned_string(0, 0, string.format("%d balls expended", nrExpendedBalls))
         draw_positioned_string(0, 1, string.format("Level %d", level))
         draw_positioned_string(1, 1, string.format("%d level points", score))
         draw_positioned_string(1, 0, string.format("%d total points", total+score))
@@ -309,7 +309,7 @@ function start_round(level, goal, nrBalls, total)
         end
     end
 
-    return exit, score, nrExpandedBalls
+    return exit, score, nrExpendedBalls
 end
 
 -- Helper function to display a message
@@ -345,7 +345,7 @@ function display_message(to, ...)
         rb.sleep(to)
     end
 
-    rb.lcd_stop_scroll() -- Stop our scrolling message
+    rb.lcd_scroll_stop() -- Stop our scrolling message
 end
 
 if HAS_TOUCHSCREEN then
@@ -353,17 +353,19 @@ if HAS_TOUCHSCREEN then
 end
 rb.backlight_force_on()
 
+math.randomseed(os.time())
+
 local idx, highscore = 1, 0
 while levels[idx] ~= nil do
     local goal, nrBalls = levels[idx][1], levels[idx][2]
 
     display_message(rb.HZ*2, "Level %d: get %d out of %d balls", idx, goal, nrBalls)
 
-    local exit, score, nrExpandedBalls = start_round(idx, goal, nrBalls, highscore)
+    local exit, score, nrExpendedBalls = start_round(idx, goal, nrBalls, highscore)
     if exit then
         break -- Exiting..
     else
-        if nrExpandedBalls >= goal then
+        if nrExpendedBalls >= goal then
             display_message(rb.HZ*2, "You won!")
             idx = idx + 1
             highscore = highscore + score

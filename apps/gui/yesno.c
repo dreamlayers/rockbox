@@ -147,7 +147,6 @@ enum yesno_res gui_syncyesno_run(const struct text_message * main_message,
                                  const struct text_message * yes_message,
                                  const struct text_message * no_message)
 {
-    int i;
     int button;
     int result=-1;
     bool result_displayed;
@@ -167,9 +166,13 @@ enum yesno_res gui_syncyesno_run(const struct text_message * main_message,
 #else
         viewportmanager_theme_enable(i, true, yn[i].vp);
 #endif
-        screens[i].stop_scroll();
+        screens[i].scroll_stop();
         gui_yesno_draw(&(yn[i]));
     }
+
+    /* make sure to eat any extranous keypresses */
+    action_wait_for_release();
+
     while (result==-1)
     {
         /* Repeat the question every 5secs (more or less) */
@@ -186,7 +189,7 @@ enum yesno_res gui_syncyesno_run(const struct text_message * main_message,
             case ACTION_TOUCHSCREEN:
                 {
                     short int x, y;
-                    if (action_get_touchscreen_press_in_vp(&x, &y, yn[0].vp) == BUTTON_TOUCHSCREEN)
+                    if (action_get_touchscreen_press_in_vp(&x, &y, yn[0].vp) == BUTTON_REL)
                     {
                         if (y > yn[0].vp->height/2)
                         {
@@ -204,6 +207,7 @@ enum yesno_res gui_syncyesno_run(const struct text_message * main_message,
                 break;
             case ACTION_NONE:
             case SYS_CHARGER_DISCONNECTED:
+            case SYS_BATTERY_UPDATE:
                 /* ignore some SYS events that can happen */
                 continue;
             default:
@@ -227,8 +231,22 @@ enum yesno_res gui_syncyesno_run(const struct text_message * main_message,
 
     FOR_NB_SCREENS(i)
     {
-        screens[i].scroll_stop(yn[i].vp);
+        screens[i].scroll_stop_viewport(yn[i].vp);
         viewportmanager_theme_undo(i, true);
     }
+
     return(result);
+}
+
+
+/* Function to manipulate all yesno dialogues.
+   This function needs the output text as an argument. */
+bool yesno_pop(const char* text)
+{
+    const char *lines[]={text};
+    const struct text_message message={lines, 1};
+    bool ret = (gui_syncyesno_run(&message,NULL,NULL)== YESNO_YES);
+    FOR_NB_SCREENS(i)
+        screens[i].clear_viewport();
+    return ret;
 }

@@ -36,9 +36,8 @@ struct fb fb IBSS_ATTR;
 
 extern int debug_trace;
 
-unsigned int oldbuttonstate = 0, newbuttonstate,holdbutton;
 #ifdef HAVE_WHEEL_POSITION
-int oldwheel = -1, wheel;
+static int oldwheel = -1, wheel;
 
 static int wheelmap[8] = {
     PAD_UP,     /* Top */
@@ -52,41 +51,43 @@ static int wheelmap[8] = {
 };
 #endif
 
-int released, pressed;
-
-
-#ifdef ROCKBOY_SCROLLWHEEL
-/* Scrollwheel events are posted directly and not polled by the button
-   driver - synthesize polling */
-static inline unsigned int read_scroll_wheel(void)
-{
-    unsigned int buttons = BUTTON_NONE;
-    unsigned int btn;
-
-    /* Empty out the button queue and see if any scrollwheel events were
-       posted */
-    do
-    {
-        btn = rb->button_get_w_tmo(0);
-        buttons |= btn;
-    }
-    while (btn != BUTTON_NONE);
-
-    return buttons & (ROCKBOY_SCROLLWHEEL_CC | ROCKBOY_SCROLLWHEEL_CW);
-}
-#endif
-
 void ev_poll(void)
 {
     event_t ev;
-    newbuttonstate = rb->button_status();
-#ifdef ROCKBOY_SCROLLWHEEL
-    newbuttonstate |= read_scroll_wheel();
+
+    static unsigned int oldbuttonstate;
+    unsigned int buttons = BUTTON_NONE;
+    unsigned int released, pressed;
+    unsigned int btn;
+    bool quit = false;
+
+    do
+    {
+        btn = rb->button_get(false);
+        /* BUTTON_NONE doesn't necessarily mean no button is pressed,
+         * it just means the button queue became empty for this tick.
+         * One can only be sure that no button is pressed by
+         * calling button_status(). */
+        if (btn == BUTTON_NONE)
+        {
+            /* loop only until all button events are popped off */
+            quit = true;
+            btn = rb->button_status();
+        }
+        buttons |= btn;
+#if defined(HAVE_SCROLLWHEEL) && !defined(ROCKBOY_SCROLLWHEEL)
+        /* filter out scroll wheel events if not supported */
+        buttons &= ~(BUTTON_SCROLL_FWD|BUTTON_SCROLL_BACK);
 #endif
-    released = ~newbuttonstate & oldbuttonstate;
-    pressed = newbuttonstate & ~oldbuttonstate;
-    oldbuttonstate = newbuttonstate;
+    }
+    while (!quit);
+
+    released = ~buttons & oldbuttonstate;
+    pressed = buttons & ~oldbuttonstate;
+
+    oldbuttonstate = buttons;
 #if (LCD_WIDTH == 160) && (LCD_HEIGHT == 128) && (LCD_DEPTH == 2)
+    static unsigned int holdbutton;
     if (rb->button_hold()&~holdbutton)
         fb.mode=(fb.mode+1)%4;
     holdbutton=rb->button_hold();
@@ -260,12 +261,21 @@ void vid_init(void)
     fb.enabled=1;
 
 #if defined(HAVE_LCD_COLOR)
+#if LCD_DEPTH == 24
+    fb.cc[0].r = 0;  /* 8-8 (wasted bits on red) */
+    fb.cc[0].l = 16; /* this is the offset to the R bits (24-8) */
+    fb.cc[1].r = 0;  /* 8-6 (wasted bits on green) */
+    fb.cc[1].l = 8;  /* This is the offset to the G bits (24-8-8) */
+    fb.cc[2].r = 0;  /* 8-5 (wasted bits on red) */
+    fb.cc[2].l = 0;  /* This is the offset to the B bits (24-8-8-8) */
+#else
     fb.cc[0].r = 3;  /* 8-5 (wasted bits on red) */
     fb.cc[0].l = 11; /* this is the offset to the R bits (16-5) */
     fb.cc[1].r = 2;  /* 8-6 (wasted bits on green) */
     fb.cc[1].l = 5;  /* This is the offset to the G bits (16-5-6) */
     fb.cc[2].r = 3;  /* 8-5 (wasted bits on red) */
     fb.cc[2].l = 0;  /* This is the offset to the B bits (16-5-6-5) */
+#endif
 #else
     fb.mode=3;
 #endif
@@ -374,4 +384,3 @@ void vid_update(int scanline)
 #endif /* LCD_HEIGHT */
 }
 #endif
-

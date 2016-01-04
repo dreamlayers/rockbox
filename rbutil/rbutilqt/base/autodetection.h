@@ -7,7 +7,6 @@
  *                     \/            \/     \/    \/            \/
  *
  *   Copyright (C) 2007 by Dominik Wenger
- *   $Id$
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -23,7 +22,10 @@
 #ifndef AUTODETECTION_H_
 #define AUTODETECTION_H_
 
-#include <QtCore>
+#include <QObject>
+#include <QString>
+#include <QList>
+#include <QStringList>
 
 class Autodetection :public QObject
 {
@@ -32,24 +34,36 @@ class Autodetection :public QObject
 public:
     Autodetection(QObject* parent=0);
 
+    enum PlayerStatus {
+        PlayerOk,
+        PlayerIncompatible,
+        PlayerMtpMode,
+        PlayerWrongFilesystem,
+        PlayerError,
+        PlayerAmbiguous,
+    };
+
+    struct Detected {
+        QString device;
+        QStringList usbdevices;
+        QString mountpoint;
+        enum PlayerStatus status;
+    };
+
     bool detect();
 
-    QString getDevice() {return m_device;}
-    QString getMountPoint() {return m_mountpoint;}
-    QString errdev(void) { return m_errdev; }
-    QString incompatdev(void) { return m_incompat; }
-    static QStringList mountpoints(void);
-    static QString resolveDevicename(QString path);
+    QList<struct Detected> detected(void) { return m_detected; }
 
 private:
     QString resolveMountPoint(QString);
-    bool detectUsb(void);
-    bool detectAjbrec(QString);
+    void detectUsb(void);
+    void mergeMounted(void);
+    void mergePatcher(void);
+    QString detectAjbrec(QString);
+    int findDetectedDevice(QString device);
+    void updateDetectedDevice(struct Detected& entry);
 
-    QString m_device;
-    QString m_mountpoint;
-    QString m_errdev;
-    QString m_incompat;
+    QList<struct Detected> m_detected;
     QList<int> m_usbconid;
 };
 

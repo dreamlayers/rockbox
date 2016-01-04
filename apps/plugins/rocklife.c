@@ -120,7 +120,7 @@ static inline unsigned char get_cell(int x, int y, char *pgrid) {
 }
 
 /* clear grid */
-void init_grid(char *pgrid){
+static void init_grid(char *pgrid){
     memset(pgrid, 0, GRID_W * GRID_H);
 }
 
@@ -473,7 +473,7 @@ enum plugin_status plugin_start(const void* parameter)
     char *ptemp;
     (void)(parameter);
 
-    backlight_force_on(); /* backlight control in lib/helper.c */
+    backlight_ignore_timeout();
 #if LCD_DEPTH > 1
     rb->lcd_set_backdrop(NULL);
 #ifdef HAVE_LCD_COLOR
@@ -577,6 +577,6 @@ enum plugin_status plugin_start(const void* parameter)
         rb->yield();
     }
 
-    backlight_use_settings(); /* backlight control in lib/helper.c */
+    backlight_use_settings();
     return usb? PLUGIN_USB_CONNECTED: PLUGIN_OK;
 }

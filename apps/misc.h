@@ -24,7 +24,6 @@
 #include <stdbool.h>
 #include <inttypes.h>
 #include "config.h"
-#include "system.h"
 #include "screen_access.h"
 
 extern const unsigned char * const byte_units[];
@@ -58,15 +57,23 @@ bool warn_on_pl_erase(void);
  */
 int read_line(int fd, char* buffer, int buffer_size);
 int fast_readline(int fd, char *buf, int buf_size, void *parameters,
-                  int (*callback)(int n, const char *buf, void *parameters));
+                  int (*callback)(int n, char *buf, void *parameters));
 
 bool settings_parseline(char* line, char** name, char** value);
 long default_event_handler_ex(long event, void (*callback)(void *), void *parameter);
 long default_event_handler(long event);
 bool list_stop_handler(void);
-void car_adapter_mode_init(void);
+void car_adapter_mode_init(void) INIT_ATTR;
 extern int show_logo(void);
 
+/* Unicode byte order mark sequences and lengths */
+#define BOM_UTF_8 "\xef\xbb\xbf"
+#define BOM_UTF_8_SIZE 3
+#define BOM_UTF_16_LE "\xff\xfe"
+#define BOM_UTF_16_BE "\xfe\xff"
+#define BOM_UTF_16_SIZE 2
+
+int split_string(char *str, const char needle, char *vector[], int vector_length);
 int open_utf8(const char* pathname, int flags);
 
 #ifdef BOOTFILE
@@ -100,5 +107,65 @@ bool parse_color(enum screen_type screen, char *text, int *value);
 int clamp_value_wrap(int value, int max, int min);
 #endif
 #endif
+
+enum current_activity {
+    ACTIVITY_UNKNOWN = 0,
+    ACTIVITY_MAINMENU,
+    ACTIVITY_WPS,
+    ACTIVITY_RECORDING,
+    ACTIVITY_FM,
+    ACTIVITY_PLAYLISTVIEWER,
+    ACTIVITY_SETTINGS,
+    ACTIVITY_FILEBROWSER,
+    ACTIVITY_DATABASEBROWSER,
+    ACTIVITY_PLUGINBROWSER,
+    ACTIVITY_QUICKSCREEN,
+    ACTIVITY_PITCHSCREEN,
+    ACTIVITY_OPTIONSELECT,
+    ACTIVITY_PLAYLISTBROWSER,
+    ACTIVITY_PLUGIN,
+    ACTIVITY_CONTEXTMENU,
+    ACTIVITY_SYSTEMSCREEN,
+    ACTIVITY_TIMEDATESCREEN,
+    ACTIVITY_BOOKMARKSLIST,
+    ACTIVITY_SHORTCUTSMENU,
+    ACTIVITY_ID3SCREEN,
+    ACTIVITY_USBSCREEN
+};
+
+#if CONFIG_CODEC == SWCODEC
+void beep_play(unsigned int frequency, unsigned int duration,
+               unsigned int amplitude);
+
+enum system_sound
+{
+    SOUND_KEYCLICK = 0,
+    SOUND_TRACK_SKIP,
+    SOUND_TRACK_NO_MORE,
+};
+
+/* Play a standard sound */
+void system_sound_play(enum system_sound sound);
+
+typedef bool (*keyclick_callback)(int action, void* data);
+void keyclick_set_callback(keyclick_callback cb, void* data);
+/* Produce keyclick based upon button and global settings */
+void keyclick_click(bool rawbutton, int action);
+
+/* Return current ReplayGain mode a file should have (REPLAYGAIN_TRACK or
+ * REPLAYGAIN_ALBUM) if ReplayGain processing is enabled, or -1 if no
+ * information present.
+ */
+struct mp3entry;
+int id3_get_replaygain_mode(const struct mp3entry *id3);
+void replaygain_update(void);
+#else
+static inline void replaygain_update(void) {}
+#endif /* CONFIG_CODEC == SWCODEC */
+
+void push_current_activity(enum current_activity screen);
+void pop_current_activity(void);
+enum current_activity get_current_activity(void);
+
 
 #endif /* MISC_H */

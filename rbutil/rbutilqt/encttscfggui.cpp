@@ -18,15 +18,28 @@
  * KIND, either express or implied.
  *
  ****************************************************************************/
- 
-#include "encttscfggui.h"
-#include "browsedirtree.h"
 
-EncTtsCfgGui::EncTtsCfgGui(QDialog* parent,EncTtsSettingInterface* interface,QString name) : QDialog(parent)
+#include <QSpacerItem>
+#include <QPushButton>
+#include <QHBoxLayout>
+#include <QDoubleSpinBox>
+#include <QSpinBox>
+#include <QLineEdit>
+#include <QFileDialog>
+#include <QComboBox>
+#include <QGroupBox>
+#include <QLabel>
+#include <QCheckBox>
+#include <QProgressDialog>
+#include "encttscfggui.h"
+#include "Logger.h"
+
+EncTtsCfgGui::EncTtsCfgGui(QDialog* parent, EncTtsSettingInterface* iface, QString name)
+        : QDialog(parent)
 {
-    m_settingInterface = interface;
-    
-    m_busyCnt=0; 
+    m_settingInterface = iface;
+
+    m_busyCnt=0;
     // create a busy Dialog
     m_busyDlg= new QProgressDialog("", "", 0, 0,this);
     m_busyDlg->setWindowTitle(tr("Waiting for engine..."));
@@ -34,8 +47,8 @@ EncTtsCfgGui::EncTtsCfgGui(QDialog* parent,EncTtsSettingInterface* interface,QSt
     m_busyDlg->setLabel(0);
     m_busyDlg->setCancelButton(0);
     m_busyDlg->hide();
-    connect(interface,SIGNAL(busy()),this,SLOT(showBusy()));
-    connect(interface,SIGNAL(busyEnd()),this,SLOT(hideBusy()));
+    connect(iface,SIGNAL(busy()),this,SLOT(showBusy()));
+    connect(iface,SIGNAL(busyEnd()),this,SLOT(hideBusy()));
 
     //setup the window
     setWindowTitle(name);
@@ -45,10 +58,10 @@ EncTtsCfgGui::EncTtsCfgGui(QDialog* parent,EncTtsSettingInterface* interface,QSt
 void EncTtsCfgGui::setUpWindow()
 {
     m_settingsList = m_settingInterface->getSettings();
-    
+
     // layout
     QVBoxLayout *mainLayout = new QVBoxLayout;
-    
+
     // groupbox
     QGroupBox *groupBox = new QGroupBox(this);
     QGridLayout *gridLayout = new QGridLayout(groupBox);
@@ -74,10 +87,10 @@ void EncTtsCfgGui::setUpWindow()
 
     groupBox->setLayout(gridLayout);
     mainLayout->addWidget(groupBox);
-    
+
     // connect browse btn
     connect(&m_browseBtnMap,SIGNAL(mapped(QObject*)),this,SLOT(browse(QObject*)));
-    
+
     // ok - cancel buttons
     QPushButton* okBtn = new QPushButton(tr("Ok"),this);
     okBtn->setDefault(true);
@@ -86,14 +99,14 @@ void EncTtsCfgGui::setUpWindow()
     cancelBtn->setIcon(QIcon(":icons/process-stop.png"));
     connect(okBtn,SIGNAL(clicked()),this,SLOT(accept()));
     connect(cancelBtn,SIGNAL(clicked()),this,SLOT(reject()));
-    
+
     QHBoxLayout *btnbox = new QHBoxLayout;
     btnbox->addWidget(okBtn);
     btnbox->addWidget(cancelBtn);
     btnbox->insertStretch(0,1);
-    
+
     mainLayout->addLayout(btnbox);
-    
+
     this->setLayout(mainLayout);
 }
 
@@ -162,18 +175,18 @@ QWidget* EncTtsCfgGui::createWidgets(EncTtsSetting* setting)
         }
         default:
         {
-            qDebug() << "Warning: unknown EncTTsSetting type" << setting->type();
+            LOG_WARNING() << "Warning: unknown EncTTsSetting type" << setting->type();
             break;
         }
     }
-    
+
     // remember widget
     if(value != NULL)
-    {    
+    {
         m_settingsWidgetsMap.insert(setting,value);
         connect(setting,SIGNAL(updateGui()),this,SLOT(updateWidget()));
     }
-    
+
     return value;
 }
 
@@ -205,8 +218,8 @@ void EncTtsCfgGui::updateSetting()
     if(widget == NULL) return;
     // get the corresponding setting
     EncTtsSetting* setting = m_settingsWidgetsMap.key(widget);
-    
-    // update widget based on setting type 
+
+    // update widget based on setting type
     switch(setting->type())
     {
         case EncTtsSetting::eDOUBLE:
@@ -240,9 +253,9 @@ void EncTtsCfgGui::updateSetting()
         }
         default:
         {
-            qDebug() << "unknown Settingtype !!";
+            LOG_WARNING() << "unknown setting type!";
             break;
-        }  
+        }
     }
 }
 
@@ -253,7 +266,7 @@ void EncTtsCfgGui::updateWidget()
     if(setting == NULL) return;
     // get corresponding widget
     QWidget* widget = m_settingsWidgetsMap.value(setting);
-    
+
     // update Widget based on setting type
     switch(setting->type())
     {
@@ -280,7 +293,7 @@ void EncTtsCfgGui::updateWidget()
         case EncTtsSetting::eSTRING:
         {
             QLineEdit* lineedit = (QLineEdit*) widget;
-          
+
             lineedit->blockSignals(true);
             lineedit->setText(setting->current().toString());
             lineedit->blockSignals(false);
@@ -289,7 +302,7 @@ void EncTtsCfgGui::updateWidget()
         case EncTtsSetting::eREADONLYSTRING:
         {
             QLabel* label = (QLabel*) widget;
-          
+
             label->blockSignals(true);
             label->setText(setting->current().toString());
             label->blockSignals(false);
@@ -298,20 +311,20 @@ void EncTtsCfgGui::updateWidget()
         case EncTtsSetting::eSTRINGLIST:
         {
             QComboBox* combobox = (QComboBox*) widget;
-          
+
             combobox->blockSignals(true);
             combobox->clear();
             combobox->addItems(setting->list());
             int index = combobox->findText(setting->current().toString());
             combobox->setCurrentIndex(index);
             combobox->blockSignals(false);
-            
+
             break;
         }
         case EncTtsSetting::eBOOL:
         {
             QCheckBox* checkbox = (QCheckBox*) widget;
-          
+
             checkbox->blockSignals(true);
             checkbox->setCheckState(setting->current().toBool() == true ? Qt::Checked : Qt::Unchecked);
             checkbox->blockSignals(false);
@@ -319,27 +332,27 @@ void EncTtsCfgGui::updateWidget()
         }
         default:
         {
-            qDebug() << "unknown EncTTsSetting";
+            LOG_WARNING() << "unknown EncTTsSetting";
             break;
-        }  
+        }
     }
 }
 
 void EncTtsCfgGui::showBusy()
 {
     if(m_busyCnt == 0) m_busyDlg->show();
-    
+
     m_busyCnt++;
 }
 
 void EncTtsCfgGui::hideBusy()
 {
     m_busyCnt--;
-    
+
     if(m_busyCnt == 0) m_busyDlg->hide();
 }
-    
-    
+
+
 void EncTtsCfgGui::accept(void)
 {
     m_settingInterface->saveSettings();
@@ -357,7 +370,7 @@ void EncTtsCfgGui::browse(QObject* settingObj)
     // cast top setting
     EncTtsSetting* setting= qobject_cast<EncTtsSetting*>(settingObj);
     if(setting == NULL) return;
-    
+
     //current path
     QString curPath = setting->current().toString();
     // show file dialog
@@ -368,5 +381,3 @@ void EncTtsCfgGui::browse(QObject* settingObj)
     setting->setCurrent(exe);
 }
 
-
-  

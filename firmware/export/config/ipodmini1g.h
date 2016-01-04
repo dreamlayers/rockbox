@@ -1,7 +1,6 @@
 /*
  * This config file is for the Apple iPod Mini (1st Gen)
  */
-#define TARGET_TREE /* this target is using the target tree system */
 
 #define IPOD_ARCH 1
 
@@ -18,6 +17,8 @@
 
 /* define this if you have recording possibility */
 /*#define HAVE_RECORDING*/
+
+#define INPUT_SRC_CAPS (SRC_CAP_FMRADIO)
 
 /* define the bitmask of hardware sample rates */
 #define HW_SAMPR_CAPS   (SAMPR_CAP_96 | SAMPR_CAP_88 | SAMPR_CAP_48 | \
@@ -47,8 +48,6 @@
 
 /* define this if you have access to the quickscreen */
 #define HAVE_QUICKSCREEN
-/* define this if you have access to the pitchscreen */
-#define HAVE_PITCHSCREEN
 
 /* define this if you would like tagcache to build on this target */
 #define HAVE_TAGCACHE
@@ -56,6 +55,8 @@
 /* LCD dimensions */
 #define LCD_WIDTH  138
 #define LCD_HEIGHT 110
+/* sqrt(138^2 + 110^2) / 1.7 = 105.7 */
+#define LCD_DPI 106
 #define LCD_DEPTH  2   /* 4 colours - 2bpp */
 
 #define LCD_PIXELFORMAT HORIZONTAL_PACKING
@@ -77,6 +78,9 @@
 #define HAVE_LCD_FLIP
 
 #define CONFIG_KEYPAD IPOD_4G_PAD
+
+/* Define this to have CPU boosted while scrolling in the UI */
+#define HAVE_GUI_BOOST
 
 #define HAVE_SCROLLWHEEL
 /* define to activate advanced wheel acceleration code */
@@ -138,6 +142,8 @@
 #define BATTERY_CAPACITY_INC      10 /* capacity increment */
 #define BATTERY_TYPES_COUNT        1 /* only one type */
 
+#define CONFIG_BATTERY_MEASURE VOLTAGE_MEASURE
+
 /* define current usage levels */
 #define CURRENT_NORMAL     50  /* PP5024 uses ~40mA, so add some for disk */
 #define CURRENT_BACKLIGHT  20  /* FIXME: This needs to be measured */
@@ -153,6 +159,10 @@
 :Qa
  * if USB/MAIN power is discernable and hardware doesn't compel charging */
 #define HAVE_USB_CHARGING_ENABLE
+
+/* Define Apple remote tuner */
+#define CONFIG_TUNER IPOD_REMOTE_TUNER
+#define HAVE_RDS_CAP
 
 /* Define this if you have a PortalPlayer PP5020 */
 #define CONFIG_CPU PP5020
@@ -191,7 +201,6 @@
 
 /* enable these for the experimental usb stack */
 #define HAVE_USBSTACK
-#define USE_ROCKBOX_USB
 #define USB_VENDOR_ID 0x05ac
 #define USB_PRODUCT_ID 0x1205
 #define HAVE_USB_HID_MOUSE
@@ -199,11 +208,16 @@
 /* Define this if you have adjustable CPU frequency */
 #define HAVE_ADJUSTABLE_CPU_FREQ
 
+#define HAVE_HARDWARE_CLICK
+
 #define BOOTFILE_EXT "ipod"
 #define BOOTFILE "rockbox." BOOTFILE_EXT
 #define BOOTDIR "/.rockbox"
 
 #define ICODE_ATTR_TREMOR_NOT_MDCT
+
+#define IPOD_ACCESSORY_PROTOCOL
+#define HAVE_SERIAL
 
 #define IRAM_LCDFRAMEBUFFER IBSS_ATTR /* put the lcd frame buffer in IRAM */
 
@@ -211,7 +225,9 @@
 /* DMA is used only for reading on PP502x because although reads are ~8x faster
  * writes appear to be ~25% slower.
  */
+#ifndef BOOTLOADER
 #define HAVE_ATA_DMA
+#endif
 
 /* Define this if a programmable hotkey is mapped */
 #define HAVE_HOTKEY

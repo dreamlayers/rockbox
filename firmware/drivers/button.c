@@ -42,7 +42,7 @@
 #include "lcd-remote.h"
 #endif
 
-struct event_queue button_queue;
+struct event_queue button_queue SHAREDBSS_ATTR;
 
 static long lastbtn;   /* Last valid button status */
 static long last_read; /* Last button status, for debouncing/filtering */
@@ -87,13 +87,13 @@ static bool phones_present = false;
 
 #ifdef HAVE_BUTTON_DATA
 static int button_read(int *data);
+static int lastdata = 0;
 #else
 static int button_read(void);
 #endif
 
 #ifdef HAVE_TOUCHSCREEN
 static int last_touchscreen_touch;
-static int lastdata = 0;
 #endif    
 #if defined(HAVE_HEADPHONE_DETECTION)
 static struct timeout hp_detect_timeout; /* Debouncer for headphone plug/unplug */
@@ -177,7 +177,7 @@ static void button_tick(void)
         /* Use the autoresetting oneshot to debounce the detection signal */
         phones_present = !phones_present;
         timeout_register(&hp_detect_timeout, btn_detect_callback,
-                         HZ, phones_present);
+                         HZ/2, phones_present);
     }
 #endif
 
@@ -215,6 +215,27 @@ static void button_tick(void)
             }
             else /* repeat? */
             {
+
+#if defined(DX50) || defined(DX90)
+                /*
+                    Power button on these devices reports two distinct key codes, which are
+                    triggerd by a short or medium duration press. Additionlly a long duration press
+                    will trigger a hard reset, which is hardwired.
+
+                    The time delta between medium and long duration press is not large enough to
+                    register here as power off repeat. A hard reset is triggered before Rockbox
+                    can power off.
+
+                    To cirumvent the hard reset, Rockbox will shutdown on the first POWEROFF_BUTTON
+                    repeat. POWEROFF_BUTTON is associated with the a medium duration press of the
+                    power button.
+                */
+                if(btn & POWEROFF_BUTTON)
+                {
+                    sys_poweroff();
+                }
+#endif
+
                 if ( repeat )
                 {
                     if (!post)
@@ -485,7 +506,8 @@ static int button_flip(int button)
 #if CONFIG_KEYPAD == RECORDER_PAD
         | BUTTON_F1 | BUTTON_F3
 #endif
-#if CONFIG_KEYPAD == SANSA_C200_PAD
+#if (CONFIG_KEYPAD == SANSA_C200_PAD) || (CONFIG_KEYPAD == SANSA_CLIP_PAD) ||\
+    (CONFIG_KEYPAD == GIGABEAT_PAD) || (CONFIG_KEYPAD == GIGABEAT_S_PAD)
         | BUTTON_VOL_UP | BUTTON_VOL_DOWN
 #endif
 #if CONFIG_KEYPAD == PHILIPS_SA9200_PAD
@@ -516,7 +538,8 @@ static int button_flip(int button)
     if (button & BUTTON_F3)
         newbutton |= BUTTON_F1;
 #endif
-#if CONFIG_KEYPAD == SANSA_C200_PAD
+#if (CONFIG_KEYPAD == SANSA_C200_PAD) || (CONFIG_KEYPAD == SANSA_CLIP_PAD) ||\
+    (CONFIG_KEYPAD == GIGABEAT_PAD) || (CONFIG_KEYPAD == GIGABEAT_S_PAD)
     if (button & BUTTON_VOL_UP)
         newbutton |= BUTTON_VOL_DOWN;
     if (button & BUTTON_VOL_DOWN)
@@ -670,3 +693,15 @@ int button_apply_acceleration(const unsigned int data)
     return delta;
 }
 #endif /* HAVE_WHEEL_ACCELERATION */
+
+#if (defined(HAVE_TOUCHPAD) || defined(HAVE_TOUCHSCREEN)) && !defined(HAS_BUTTON_HOLD)
+void button_enable_touch(bool en)
+{
+#ifdef HAVE_TOUCHPAD
+    touchpad_enable(en);
+#endif
+#ifdef HAVE_TOUCHSCREEN
+    touchscreen_enable(en);
+#endif
+}
+#endif

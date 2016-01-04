@@ -1,6 +1,6 @@
 #include "config.h"
 
-ENTRY(start)
+ENTRY(_vectors)
 
 OUTPUT_FORMAT(elf32-littlearm)
 OUTPUT_ARCH(arm)
@@ -27,15 +27,32 @@ STARTUP(target/arm/tms320dm320/crt0.o)
  */
 #define LCD_TTB_AREA    0x100000*((LCD_BUFFER_SIZE>>19)+1)
 
-#define BOOT_OFFSET     0x1000000
+/* Bootloader only uses/knows about the upper 32 M */
+#define DRAMORIG    CONFIG_SDRAM_START+0x02000000
+#define DRAMSIZE    (MEMORYSIZE * 0x80000)
 
-#define DRAMSIZE (MEMORYSIZE * 0x100000) - BOOT_OFFSET
-
-#define DRAMORIG    (0x00900000+BOOT_OFFSET) /* actually it's 0x00900000 */
 #define IRAMORIG    0x00000000
 #define IRAMSIZE    0x4000
+
+#ifdef SANSA_CONNECT
+/* Offset in flash from beginning, we don't want overwrite OF bootloader
+   due to recovery mode and more importantly - hardware block protection.
+   This offset makes Rockbox bootloader a replacement for OF vmlinux.
+   In .srr file header add any valid memory address from following
+   <0x1000000; 0x1300180) u (0x131EAF4; 0x1420000) u (0x1440000; 0x5000000>
+   ensuring that complete bootloader fits in.
+   Entry point in .srr file should be 0x120010. */
+#define FLASHOFFSET 0x20010
+#else
+#define FLASHOFFSET 0
+#endif
+
 #define FLASHORIG   0x00100000
-#define FLASHSIZE   8M
+#define FLASHSIZE   0x00800000-FLASHOFFSET
+
+PRO_STACK_SIZE =  0x2000;
+IRQ_STACK_SIZE =  0x400;
+FIQ_STACK_SIZE =  0x400;
 
 /* End of the audio buffer, where the codec buffer starts */
 #define TTB_BEGIN   (DRAMORIG + DRAMSIZE - LCD_TTB_AREA)
@@ -44,103 +61,126 @@ MEMORY
 {
    DRAM : ORIGIN = DRAMORIG, LENGTH = DRAMSIZE
    IRAM : ORIGIN = IRAMORIG, LENGTH = IRAMSIZE
-   FLASH : ORIGIN = FLASHORIG, LENGTH = FLASHSIZE
+   FLASH : ORIGIN = FLASHORIG+FLASHOFFSET, LENGTH = FLASHSIZE
 }
 
 SECTIONS
 {
-    . = DRAMORIG;
+    /* Set up variables needed for memory initialization */
+    _sdram_start    = DRAMORIG;
+    _sdram_sizem    = (DRAMSIZE / 0x100000);
 
-    .text : {
-        loadaddress = .;
-        _loadaddress = .;
-        *(.init.text)
-        *(.text*)
-        *(.glue_7)
-        *(.glue_7t)
-        . = ALIGN(0x4);
-    } > DRAM
+    _flash_start    = FLASHORIG;
+    _flash_sizem    = (FLASHSIZE / 0x100000);
 
-    .rodata :
-    {
-        *(.rodata)  /* problems without this, dunno why */
-        *(.rodata*)
-        *(.rodata.str1.1)
-        *(.rodata.str1.4)
-        . = ALIGN(0x4);
-
-        /* Pseudo-allocate the copies of the data sections */
-        _datacopy = .;
-    } > DRAM
-
-    .data : {
-        *(.data*)
-        . = ALIGN(0x4);
-        _dataend = . ;
-    } > DRAM
-
-    .vectors IRAMORIG :
+    .vectors :
     {
         _vectorsstart = .;
-        KEEP(*(.resetvectors));
-        *(.resetvectors);
-        KEEP(*(.vectors));
-        *(.vectors);
+        KEEP(*(.vectors))
         _vectorsend = .;
-    } > IRAM AT > DRAM
+    } > IRAM AT> FLASH
     _vectorscopy = LOADADDR(.vectors);
-    
+
+    /* crt0.S initialization */
+    .init :
+    {
+        . = ALIGN(0x4);
+        _loadaddress = .;
+        *(.init)
+    } > FLASH
+
+    /* Program code */
+    .text :
+    {
+        . = ALIGN(0x4);
+        *(.text*)
+    } > FLASH
+
+    /* Thumb interworking sections - for some reason LD dies even if these
+     * sections are empty.
+     */
+    .glue :
+    {
+       . = ALIGN(0x4);
+       *(.glue_7)  /* ARM calling Thumb */
+       *(.glue_7t) /* Thumb calling ARM */
+    } > FLASH
+
+    /* Read-only data */
+    .rodata :
+    {
+        . = ALIGN(0x4);
+        *(.rodata*)
+    } > FLASH
+
+    /* Dynamic data - this needs to be copied out of flash before it is used. */
+    .data :
+    {
+        . = ALIGN(0x4);
+        _dramstart = .;
+        *(.data*)
+        _dramend = .;
+    } > DRAM AT> FLASH
+    _dramcopy = LOADADDR(.data);
+
+ 	.bss (NOLOAD) :
+    {
+        . = ALIGN(0x4);
+       	_bss_start = .;
+        *(.bss*)
+        *(COMMON)
+       	_bss_end = .;
+    } > DRAM
+
     .iram :
     {
-        _iramstart = .;
-        *(.icode)
-        *(.irodata*)
-        *(.idata)
         . = ALIGN(0x4);
+        _iramstart = .;
+        *(.icode*)
+        *(.irodata*)
+        *(.idata*)
         _iramend = .;
-    } > IRAM AT> DRAM
+    } > IRAM AT> FLASH
 
     _iramcopy = LOADADDR(.iram);
     
     .ibss (NOLOAD) :
     {
-        _iedata = .;
-        *(.ibss)
         . = ALIGN(0x4);
-        _iend = .;
+        _ibss_start = .;
+        *(.ibss*)
+        _ibss_end = .;
     } > IRAM
 
-    .stack (NOLOAD) :
+    /* Program stack space */
+    .pro_stack (NOLOAD): 
     {
-         *(.stack)
-         stackbegin = .;
-         . += 0x2000;
-         stackend = .;
-    } > IRAM
-    
-    .irqstack (NOLOAD) :
-    {
-       *(.stack)
-       . += 0x400;
-       irq_stack = .;
-    } > IRAM
-    
-    .fiqstack (NOLOAD) :
-    {
-       *(.stack)
-       . += 0x100;
-       fiq_stack = .;
-    } > IRAM
-    
- 	.bss (NOLOAD) :
-    {
-    	. = ADDR(.data) + SIZEOF(.data) + SIZEOF(.vectors) + SIZEOF(.iram);
-       	_edata = .;
-        *(.bss*)
-        *(COMMON)
         . = ALIGN(0x4);
-       	_end = .;
-    } > DRAM
+        *(.stack)
+        stackbegin = .;        /* Variable for thread.c */
+        _pro_stack_end = .;       
+        . += PRO_STACK_SIZE;
+        _pro_stack_start = .;
+        stackend = .;          /* Variable for tread.c */
+    } > IRAM
+
+    /* IRQ stack space */
+    .irq_stack (NOLOAD):
+    {
+        . = ALIGN(0x4);
+        _irq_stack_end = .;
+        . += IRQ_STACK_SIZE;
+        _irq_stack_start = .;
+    } > IRAM
+
+    /* FIQ stack space */
+    .fiq_stack (NOLOAD):
+    {
+        . = ALIGN(0x4);
+        _fiq_stack_end = .;
+        . += FIQ_STACK_SIZE;
+        _fiq_stack_start = .;
+    } > IRAM
     
     .ttbtable TTB_BEGIN (NOLOAD) :
     {

@@ -156,6 +156,14 @@
 #define BTN_DOWN         BUTTON_DOWN
 #define BTN_PLAY         BUTTON_PLAY
 
+#elif CONFIG_KEYPAD == CREATIVE_ZENXFI3_PAD
+#define BTN_QUIT        (BUTTON_PLAY|BUTTON_REPEAT)
+#define BTN_RIGHT        BUTTON_MENU
+#define BTN_LEFT         BUTTON_BACK
+#define BTN_UP           BUTTON_VOL_UP
+#define BTN_DOWN         BUTTON_VOL_DOWN
+#define BTN_PLAY        (BUTTON_PLAY|BUTTON_REL)
+
 #elif CONFIG_KEYPAD == PHILIPS_HDD1630_PAD
 #define BTN_QUIT         BUTTON_POWER
 #define BTN_RIGHT        BUTTON_RIGHT
@@ -185,8 +193,9 @@
 #elif CONFIG_KEYPAD == ONDAVX777_PAD
 #define BTN_QUIT         BUTTON_POWER
 
-#elif CONFIG_KEYPAD == SAMSUNG_YH_PAD
-#define BTN_QUIT         BUTTON_REW
+#elif (CONFIG_KEYPAD == SAMSUNG_YH820_PAD) || \
+      (CONFIG_KEYPAD == SAMSUNG_YH920_PAD)
+#define BTN_QUIT         (BUTTON_PLAY|BUTTON_REPEAT)
 #define BTN_RIGHT        BUTTON_RIGHT
 #define BTN_LEFT         BUTTON_LEFT
 #define BTN_UP           BUTTON_UP
@@ -203,19 +212,75 @@
 
 #elif CONFIG_KEYPAD == MPIO_HD200_PAD
 #define BTN_QUIT         (BUTTON_REC | BUTTON_PLAY)
-#define BTN_RIGHT        BUTTON_VOL_DOWN
-#define BTN_LEFT         BUTTON_VOL_UP
-#define BTN_UP           BUTTON_REW
-#define BTN_DOWN         BUTTON_FF
+#define BTN_RIGHT        BUTTON_FF
+#define BTN_LEFT         BUTTON_REW
+#define BTN_UP           BUTTON_VOL_UP
+#define BTN_DOWN         BUTTON_VOL_DOWN
 #define BTN_PLAY         BUTTON_PLAY
 
 #elif CONFIG_KEYPAD == MPIO_HD300_PAD
-#define BTN_QUIT         (BUTTON_REC | BUTTON_REPEAT)
+#define BTN_QUIT         (BUTTON_MENU | BUTTON_REPEAT)
 #define BTN_RIGHT        BUTTON_FF
 #define BTN_LEFT         BUTTON_REW
 #define BTN_UP           BUTTON_UP
 #define BTN_DOWN         BUTTON_DOWN
 #define BTN_PLAY         BUTTON_PLAY
+
+#elif CONFIG_KEYPAD == SANSA_FUZEPLUS_PAD
+#define BTN_QUIT         BUTTON_POWER
+#define BTN_RIGHT        BUTTON_RIGHT
+#define BTN_LEFT         BUTTON_LEFT
+#define BTN_UP           BUTTON_UP
+#define BTN_DOWN         BUTTON_DOWN
+#define BTN_PLAY         BUTTON_PLAYPAUSE
+
+#elif CONFIG_KEYPAD == SANSA_CONNECT_PAD
+#define BTN_QUIT         BUTTON_POWER
+#define BTN_RIGHT        BUTTON_RIGHT
+#define BTN_LEFT         BUTTON_LEFT
+#define BTN_UP           BUTTON_UP
+#define BTN_DOWN         BUTTON_DOWN
+#define BTN_PLAY         BUTTON_SELECT
+
+#elif CONFIG_KEYPAD == SAMSUNG_YPR0_PAD
+#define BTN_QUIT         BUTTON_BACK
+#define BTN_RIGHT        BUTTON_RIGHT
+#define BTN_LEFT         BUTTON_LEFT
+#define BTN_UP           BUTTON_UP
+#define BTN_DOWN         BUTTON_DOWN
+#define BTN_PLAY         BUTTON_USER
+
+#elif (CONFIG_KEYPAD == HM60X_PAD) || \
+    (CONFIG_KEYPAD == HM801_PAD)
+#define BTN_QUIT         BUTTON_POWER
+#define BTN_RIGHT        BUTTON_RIGHT
+#define BTN_LEFT         BUTTON_LEFT
+#define BTN_UP           BUTTON_UP
+#define BTN_DOWN         BUTTON_DOWN
+#define BTN_PLAY         BUTTON_SELECT
+
+#elif (CONFIG_KEYPAD == SONY_NWZ_PAD)
+#define BTN_QUIT         BUTTON_BACK
+#define BTN_RIGHT        BUTTON_RIGHT
+#define BTN_LEFT         BUTTON_LEFT
+#define BTN_UP           BUTTON_UP
+#define BTN_DOWN         BUTTON_DOWN
+#define BTN_PLAY         BUTTON_PLAY
+
+#elif (CONFIG_KEYPAD == CREATIVE_ZEN_PAD)
+#define BTN_QUIT         BUTTON_BACK
+#define BTN_RIGHT        BUTTON_RIGHT
+#define BTN_LEFT         BUTTON_LEFT
+#define BTN_UP           BUTTON_UP
+#define BTN_DOWN         BUTTON_DOWN
+#define BTN_PLAY         BUTTON_PLAYPAUSE
+
+#elif CONFIG_KEYPAD == DX50_PAD
+#define BTN_QUIT         BUTTON_POWER
+#define BTN_RIGHT        BUTTON_RIGHT
+#define BTN_LEFT         BUTTON_LEFT
+#define BTN_UP           BUTTON_VOL_UP
+#define BTN_DOWN         BUTTON_VOL_DOWN
 
 #else
 #error No keymap defined!
@@ -295,7 +360,7 @@ static inline void synthbuf(void)
     samples_in_buf = BUF_SIZE-i;
 }
 
-void get_more(unsigned char** start, size_t* size)
+static void get_more(const void** start, size_t* size)
 {
 #ifndef SYNC
     if(lastswap != swap)
@@ -309,10 +374,10 @@ void get_more(unsigned char** start, size_t* size)
 
     *size = samples_in_buf*sizeof(int32_t);
 #ifndef SYNC
-    *start = (unsigned char*)((swap ? gmbuf : gmbuf + BUF_SIZE));
+    *start = swap ? gmbuf : gmbuf + BUF_SIZE;
     swap = !swap;
 #else
-    *start = (unsigned char*)(gmbuf);
+    *start = gmbuf;
 #endif
 }
 
@@ -372,7 +437,7 @@ static int midimain(const void * filename)
     samples_this_second = 0;
 
     synthbuf();
-    rb->pcm_play_data(&get_more, NULL, 0);
+    rb->pcm_play_data(&get_more, NULL, NULL, 0);
 
     while (!quit)
     {
@@ -421,7 +486,7 @@ static int midimain(const void * filename)
                 seekBackward(5);
                 midi_debug("Rewind to %d:%02d\n", playing_time/60, playing_time%60);
                 if (is_playing)
-                    rb->pcm_play_data(&get_more, NULL, 0);
+                    rb->pcm_play_data(&get_more, NULL, NULL, 0);
                 break;
             }
 
@@ -431,7 +496,7 @@ static int midimain(const void * filename)
                 seekForward(5);
                 midi_debug("Skip to %d:%02d\n", playing_time/60, playing_time%60);
                 if (is_playing)
-                    rb->pcm_play_data(&get_more, NULL, 0);
+                    rb->pcm_play_data(&get_more, NULL, NULL, 0);
                 break;
             }
 
@@ -446,7 +511,7 @@ static int midimain(const void * filename)
                 {
                     midi_debug("Playing from %d:%02d\n", playing_time/60, playing_time%60);
                     is_playing = true;
-                    rb->pcm_play_data(&get_more, NULL, 0);
+                    rb->pcm_play_data(&get_more, NULL, NULL, 0);
                 }
                 break;
             }
@@ -470,7 +535,7 @@ enum plugin_status plugin_start(const void* parameter)
         rb->splash(HZ*2, " Play .MID file ");
         return PLUGIN_OK;
     }
-    rb->lcd_setfont(0);
+    rb->lcd_setfont(FONT_SYSFIXED);
 
 #if defined(HAVE_ADJUSTABLE_CPU_FREQ)
     rb->cpu_boost(true);

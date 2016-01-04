@@ -122,14 +122,16 @@
 #define RIGHT BUTTON_RIGHT
 #define FIRE BUTTON_SELECT
 
-#elif CONFIG_KEYPAD == GIGABEAT_PAD
+#elif CONFIG_KEYPAD == GIGABEAT_PAD \
+   || CONFIG_KEYPAD == SAMSUNG_YPR0_PAD
 
 #define QUIT BUTTON_POWER
 #define LEFT BUTTON_LEFT
 #define RIGHT BUTTON_RIGHT
 #define FIRE BUTTON_SELECT
 
-#elif CONFIG_KEYPAD == SANSA_E200_PAD
+#elif (CONFIG_KEYPAD == SANSA_E200_PAD) || \
+      (CONFIG_KEYPAD == SANSA_CONNECT_PAD)
 
 #define QUIT BUTTON_POWER
 #define LEFT BUTTON_LEFT
@@ -179,6 +181,13 @@
 #define RIGHT BUTTON_RIGHT
 #define FIRE BUTTON_SELECT
 
+#elif CONFIG_KEYPAD == CREATIVE_ZENXFI3_PAD
+
+#define QUIT BUTTON_POWER
+#define LEFT BUTTON_BACK
+#define RIGHT BUTTON_MENU
+#define FIRE BUTTON_PLAY
+
 #elif CONFIG_KEYPAD == PHILIPS_HDD6330_PAD
 
 #define QUIT BUTTON_POWER
@@ -199,12 +208,14 @@ CONFIG_KEYPAD == MROBE500_PAD
 
 #define QUIT BUTTON_POWER
 
-#elif CONFIG_KEYPAD == SAMSUNG_YH_PAD
+#elif (CONFIG_KEYPAD == SAMSUNG_YH820_PAD) || \
+      (CONFIG_KEYPAD == SAMSUNG_YH920_PAD)
 
-#define QUIT  BUTTON_REC
+#define QUIT  BUTTON_REW
 #define LEFT  BUTTON_LEFT
 #define RIGHT BUTTON_RIGHT
 #define FIRE  BUTTON_PLAY
+#define FIRE2 BUTTON_UP
 
 #elif CONFIG_KEYPAD == PBELL_VIBE500_PAD
 
@@ -215,10 +226,46 @@ CONFIG_KEYPAD == MROBE500_PAD
 
 #elif CONFIG_KEYPAD == MPIO_HD300_PAD
 
-#define QUIT  BUTTON_REC
-#define LEFT  BUTTON_MENU
-#define RIGHT BUTTON_ENTER
+#define QUIT  BUTTON_MENU
+#define LEFT  BUTTON_REW
+#define RIGHT BUTTON_FF
+#define FIRE  BUTTON_ENTER
+
+#elif CONFIG_KEYPAD == SANSA_FUZEPLUS_PAD
+
+#define QUIT  BUTTON_POWER
+#define LEFT  BUTTON_LEFT
+#define RIGHT BUTTON_RIGHT
+#define FIRE  BUTTON_SELECT
+
+#elif CONFIG_KEYPAD == SONY_NWZ_PAD
+
+#define QUIT  BUTTON_BACK
+#define LEFT  BUTTON_LEFT
+#define RIGHT BUTTON_RIGHT
 #define FIRE  BUTTON_PLAY
+
+#elif CONFIG_KEYPAD == CREATIVE_ZEN_PAD
+
+#define QUIT  BUTTON_BACK
+#define LEFT  BUTTON_LEFT
+#define RIGHT BUTTON_RIGHT
+#define FIRE  BUTTON_SELECT
+
+#elif (CONFIG_KEYPAD == HM60X_PAD) || \
+    (CONFIG_KEYPAD == HM801_PAD)
+
+#define QUIT  BUTTON_POWER
+#define LEFT  BUTTON_LEFT
+#define RIGHT BUTTON_RIGHT
+#define FIRE  BUTTON_SELECT
+
+#elif CONFIG_KEYPAD == DX50_PAD
+
+#define QUIT  (BUTTON_POWER|BUTTON_REL)
+#define LEFT  BUTTON_LEFT
+#define RIGHT BUTTON_PLAY
+#define FIRE  BUTTON_RIGHT
 
 #else
     #error INVADROX: Unsupported keypad
@@ -258,7 +305,11 @@ CONFIG_KEYPAD == MROBE500_PAD
 #define ACTION_QUIT  (QUIT | RC_QUIT)
 #define ACTION_LEFT  LEFT
 #define ACTION_RIGHT RIGHT
+#ifndef FIRE2
 #define ACTION_FIRE  FIRE
+#else
+#define ACTION_FIRE  (FIRE | FIRE2)
+#endif
 
 #endif
 
@@ -632,7 +683,7 @@ CONFIG_KEYPAD == MROBE500_PAD
 #define TARGET_BOTTOM 3
 #define TARGET_UFO 4
 
-#define HISCOREFILE PLUGIN_GAMES_DIR "/invadrox.high"
+#define HISCOREFILE PLUGIN_GAMES_DATA_DIR "/invadrox.high"
 
 
 /* The time (in ms) for one iteration through the game loop - decrease this
@@ -733,7 +784,7 @@ static inline fb_data get_pixel(int x, int y)
 
 
 /* Draw "digits" least significant digits of num at (x,y) */
-void draw_number(int x, int y, int num, int digits)
+static void draw_number(int x, int y, int num, int digits)
 {
     int i;
     int d;
@@ -763,13 +814,13 @@ static inline void draw_score(void)
 }
 
 
-void draw_level(void)
+static void draw_level(void)
 {
     draw_number(LEVEL_X + 2 * NUM_SPACING, PLAYFIELD_Y + 2, level, 2);
 }
 
 
-void draw_lives(void)
+static void draw_lives(void)
 {
     int i;
     /* Lives num */
@@ -865,7 +916,7 @@ static inline bool next_alien(void)
  * Set curr_alien to first alive.
  * Return false if no-one is left alive.
  */
-bool first_alien(void)
+static bool first_alien(void)
 {
     int i, y;
 
@@ -885,7 +936,7 @@ bool first_alien(void)
 }
 
 
-bool move_aliens(void)
+static bool move_aliens(void)
 {
     int x, y, old_x, old_y;
 
@@ -1002,7 +1053,7 @@ static inline void draw_ship(void)
 }
 
 
-static inline void fire_alpha(int xc, int yc, fb_data color)
+static inline void fire_alpha(int xc, int yc, unsigned color)
 {
     int oldmode = rb->lcd_get_drawmode();
 
@@ -1016,7 +1067,7 @@ static inline void fire_alpha(int xc, int yc, fb_data color)
 }
 
 
-void move_fire(void)
+static void move_fire(void)
 {
     bool hit_green = false;
     bool hit_white = false;
@@ -1103,12 +1154,12 @@ void move_fire(void)
         /* Check for hit*/
         for (i = FIRE_SPEED; i >= 0; i--) {
             pix = get_pixel(fire_x, fire_y + i);
-            if(pix == screen_white) {
+            if(!memcmp(&pix, &screen_white, sizeof(fb_data))) {
                 hit_white = true;
                 fire_y += i;
                 break;
             }
-            if(pix == screen_green) {
+            if(!memcmp(&pix, &screen_green, sizeof(fb_data))) {
                 hit_green = true;
                 fire_y += i;
                 break;
@@ -1237,7 +1288,7 @@ static inline void draw_bomb(int i)
 }
 
 
-void move_bombs(void)
+static void move_bombs(void)
 {
     int i, j, bomber;
     bool abort;
@@ -1311,7 +1362,8 @@ void move_bombs(void)
             /* Check for green (ship or shield) */
             for (j = BOMB_HEIGHT; j >= BOMB_HEIGHT - BOMB_SPEED; j--) {
                 bombs[i].target = 0;
-                if(get_pixel(bombs[i].x + BOMB_WIDTH / 2, bombs[i].y + j) == screen_green) {
+                fb_data pix = get_pixel(bombs[i].x + BOMB_WIDTH / 2, bombs[i].y + j);
+                if(!memcmp(&pix, &screen_green, sizeof(fb_data))) {
                     /* Move to hit pixel */
                     bombs[i].x += BOMB_WIDTH / 2;
                     bombs[i].y += j;
@@ -1403,7 +1455,7 @@ static inline void move_ship(void)
 
 
 /* Unidentified Flying Object */
-void move_ufo(void)
+static void move_ufo(void)
 {
     static int ufo_speed;
     static int counter;
@@ -1476,7 +1528,7 @@ void move_ufo(void)
 }
 
 
-void draw_background(void)
+static void draw_background(void)
 {
 
     rb->lcd_bitmap(invadrox_background, 0, 0, LCD_WIDTH, LCD_HEIGHT);
@@ -1484,7 +1536,7 @@ void draw_background(void)
 }
 
 
-void new_level(void)
+static void new_level(void)
 {
     int i;
 
@@ -1597,7 +1649,7 @@ void new_level(void)
 }
 
 
-void init_invadrox(void)
+static void init_invadrox(void)
 {
     int i;
 
@@ -1749,7 +1801,7 @@ check_usb:
 }
 
 
-void game_loop(void)
+static void game_loop(void)
 {
     int i, end;
 
@@ -1818,7 +1870,7 @@ enum plugin_status plugin_start(UNUSED const void* parameter)
 {
     rb->lcd_setfont(FONT_SYSFIXED);
     /* Turn off backlight timeout */
-    backlight_force_on(); /* backlight control in lib/helper.c */
+    backlight_ignore_timeout();
 
     /* now go ahead and have fun! */
     game_loop();
@@ -1835,7 +1887,7 @@ enum plugin_status plugin_start(UNUSED const void* parameter)
     /* Restore user's original backlight setting */
     rb->lcd_setfont(FONT_UI);
     /* Turn on backlight timeout (revert to settings) */
-    backlight_use_settings(); /* backlight control in lib/helper.c */
+    backlight_use_settings();
 
     return PLUGIN_OK;
 }

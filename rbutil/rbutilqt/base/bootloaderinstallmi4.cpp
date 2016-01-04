@@ -7,7 +7,6 @@
  *                     \/            \/     \/    \/            \/
  *
  *   Copyright (C) 2008 by Dominik Riebeling
- *   $Id$
  *
  * All files in this archive are subject to the GNU General Public License.
  * See the file COPYING in the source tree root for full license agreement.
@@ -22,6 +21,7 @@
 #include <QtDebug>
 #include "bootloaderinstallmi4.h"
 #include "utils.h"
+#include "Logger.h"
 
 BootloaderInstallMi4::BootloaderInstallMi4(QObject *parent)
         : BootloaderInstallBase(parent)
@@ -32,7 +32,7 @@ BootloaderInstallMi4::BootloaderInstallMi4(QObject *parent)
 bool BootloaderInstallMi4::install(void)
 {
     emit logItem(tr("Downloading bootloader"), LOGINFO);
-    qDebug() << "[BootloaderInstallMi4] installing bootloader";
+    LOG_INFO() << "installing bootloader";
     downloadBlStart(m_blurl);
     connect(this, SIGNAL(downloadDone()), this, SLOT(installStage2()));
     return true;
@@ -49,19 +49,32 @@ void BootloaderInstallMi4::installStage2(void)
     QString moved = QFileInfo(Utils::resolvePathCase(m_blfile)).absolutePath()
                         + "/OF.mi4";
     if(!QFileInfo(moved).exists()) {
-        qDebug() << "[BootloaderInstallMi4] renaming" << fwfile << "to" << moved;
+        LOG_INFO() << "renaming" << fwfile << "to" << moved;
         oldbl.rename(moved);
     }
     else {
-        qDebug() << "[BootloaderInstallMi4] OF.mi4 already present, not renaming again.";
+        LOG_INFO() << "OF.mi4 already present, not renaming again.";
         oldbl.remove();
     }
 
     // place new bootloader
     m_tempfile.open();
-    qDebug() << "[BootloaderInstallMi4] renaming" << m_tempfile.fileName() << "to" << fwfile;
+    LOG_INFO() << "renaming" << m_tempfile.fileName()
+               << "to" << fwfile;
     m_tempfile.close();
-    m_tempfile.copy(fwfile);
+    if(!Utils::resolvePathCase(fwfile).isEmpty()) {
+        emit logItem(tr("A firmware file is already present on player"), LOGERROR);
+        emit done(true);
+        return;
+    }
+    if(m_tempfile.copy(fwfile)) {
+        emit logItem(tr("Bootloader successful installed"), LOGOK);
+    }
+    else {
+        emit logItem(tr("Copying modified firmware file failed"), LOGERROR);
+        emit done(true);
+        return;
+    }
 
     emit logItem(tr("Bootloader successful installed"), LOGOK);
     logInstall(LogAdd);
@@ -72,7 +85,7 @@ void BootloaderInstallMi4::installStage2(void)
 
 bool BootloaderInstallMi4::uninstall(void)
 {
-    qDebug() << "[BootloaderInstallMi4] Uninstalling bootloader";
+    LOG_INFO() << "Uninstalling bootloader";
 
     // check if it's actually a Rockbox bootloader
     emit logItem(tr("Checking for Rockbox bootloader"), LOGINFO);
@@ -116,7 +129,7 @@ BootloaderInstallBase::BootloaderType BootloaderInstallMi4::installed(void)
     QString resolved;
     resolved = Utils::resolvePathCase(m_blfile);
     if(resolved.isEmpty()) {
-        qDebug() << "[BootloaderInstallMi4] installed: BootloaderNone";
+        LOG_INFO() << "installed: BootloaderNone";
         return BootloaderNone;
     }
 
@@ -128,11 +141,11 @@ BootloaderInstallBase::BootloaderType BootloaderInstallMi4::installed(void)
     f.close();
 
     if(!memcmp(magic, "RBBL", 4)) {
-        qDebug() << "[BootloaderInstallMi4] installed: BootloaderRockbox";
+        LOG_INFO() << "installed: BootloaderRockbox";
         return BootloaderRockbox;
     }
     else {
-        qDebug() << "[BootloaderInstallMi4] installed: BootloaderOther";
+        LOG_INFO() << "installed: BootloaderOther";
         return BootloaderOther;
     }
 }
@@ -140,7 +153,7 @@ BootloaderInstallBase::BootloaderType BootloaderInstallMi4::installed(void)
 
 BootloaderInstallBase::Capabilities BootloaderInstallMi4::capabilities(void)
 {
-    qDebug() << "[BootloaderInstallMi4] getting capabilities";
+    LOG_INFO() << "getting capabilities";
     return Install | Uninstall | Backup | IsFile | CanCheckInstalled | CanCheckVersion;
 }
 

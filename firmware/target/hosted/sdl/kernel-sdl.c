@@ -34,6 +34,11 @@
 static SDL_TimerID tick_timer_id;
 long start_tick;
 
+#ifndef HAVE_SDL_THREADS
+/* for the wait_for_interrupt function */
+static SDL_cond *wfi_cond;
+static SDL_mutex *wfi_mutex;
+#endif
 /* Condition to signal that "interrupts" may proceed */
 static SDL_cond *sim_thread_cond;
 /* Mutex to serialize changing levels and exclude other threads while
@@ -66,7 +71,7 @@ int set_irq_level(int level)
         /* Not in a handler and "interrupts" are going from disabled to
          * enabled; signal any pending handlers still waiting */
         if (handlers_pending > 0)
-            SDL_CondSignal(sim_thread_cond);
+            SDL_CondBroadcast(sim_thread_cond);
     }
 
     interrupt_level = level; /* save new level */
@@ -98,6 +103,9 @@ void sim_exit_irq_handler(void)
 
     status_reg = 0;
     SDL_UnlockMutex(sim_irq_mtx);
+#ifndef HAVE_SDL_THREADS
+    SDL_CondSignal(wfi_cond);
+#endif
 }
 
 static bool sim_kernel_init(void)
@@ -115,15 +123,37 @@ static bool sim_kernel_init(void)
         panicf("Cannot create sim_thread_cond\n");
         return false;
     }
-
+#ifndef HAVE_SDL_THREADS
+    wfi_cond = SDL_CreateCond();
+    if (wfi_cond == NULL)
+    {
+        panicf("Cannot create wfi\n");
+        return false;
+    }
+    wfi_mutex = SDL_CreateMutex();
+    if (wfi_mutex == NULL)
+    {
+        panicf("Cannot create wfi mutex\n");
+        return false;
+    }
+#endif
     return true;
 }
 
 void sim_kernel_shutdown(void)
 {
     SDL_RemoveTimer(tick_timer_id);
+#ifndef HAVE_SDL_THREADS
+    SDL_DestroyCond(wfi_cond);
+    SDL_UnlockMutex(wfi_mutex);
+    SDL_DestroyMutex(wfi_mutex);
+#endif
+    enable_irq();
+    while(handlers_pending > 0)
+        SDL_Delay(10);
+
     SDL_DestroyMutex(sim_irq_mtx);
-    SDL_DestroyCond(sim_thread_cond);
+    SDL_DestroyCond(sim_thread_cond); 
 }
 
 Uint32 tick_timer(Uint32 interval, void *param)
@@ -168,4 +198,16 @@ void tick_start(unsigned int interval_in_ms)
     }
 
     tick_timer_id = SDL_AddTimer(interval_in_ms, tick_timer, NULL);
+#ifndef HAVE_SDL_THREADS
+    SDL_LockMutex(wfi_mutex);
+#endif
 }
+
+#ifndef HAVE_SDL_THREADS
+void wait_for_interrupt(void)
+{
+    /* the exit may come at any time, during the CondWait or before,
+     * so check it twice */
+    SDL_CondWait(wfi_cond, wfi_mutex);
+}
+#endif

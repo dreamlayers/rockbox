@@ -20,11 +20,11 @@
  ****************************************************************************/
 
 /* Include Standard files */
-#include "kernel.h"
+#include "../kernel-internal.h"
 #include "system.h"
 
 /* Show the Rockbox logo - in show_logo.c */
-extern int show_logo(void);
+extern void show_logo(void);
 
 int main(void)
 {

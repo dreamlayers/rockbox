@@ -22,7 +22,6 @@
 # Last Update: 04/06/06
 # If updates or corrections are needed, message me.
 # Se vi trovas erarojn, sendu mesaĝon al mi.
-
 <phrase>
   id: LANG_SET_BOOL_YES
   desc: bool true representation
@@ -2345,20 +2344,20 @@
   </voice>
 </phrase>
 <phrase>
-  id: LANG_RECORDING_FREQUENCY
-  desc: in the recording settings
+  id: LANG_FREQUENCY
+  desc: in recording and playback settings
   user: core
   <source>
     *: none
-    recording: "Frequency"
+    recording,play_frequency: "Frequency"
   </source>
   <dest>
     *: none
-    recording: "Frekvenco"
+    recording,play_frequency: "Frekvenco"
   </dest>
   <voice>
     *: none
-    recording: "Frekvenco"
+    recording,play_frequency: "Frekvenco"
   </voice>
 </phrase>
 <phrase>
@@ -4319,11 +4318,13 @@
     *: "OFF To Revert"
     vibe500: "CANCEL To Revert"
     mpiohd300: "MENU To Revert"
+    samsungyh*: "REW = Revert"
   </source>
   <dest>
     *: "OFF Por Malvalidigi"
     vibe500: "C Por Malvalidigi"
     mpiohd300: "MENU Por Malvalidigi"
+    samsungyh*: "REW Por Malvalidigi"
   </dest>
   <voice>
     *: ""
@@ -4405,9 +4406,11 @@
   user: core
   <source>
     *: "The disk is full. Press OFF to continue."
+    samsungyh*: "Disk full. Press LEFT to continue."
   </source>
   <dest>
     *: "Durdisko plena. Pesu OFF por kontinui."
+    samsungyh*: "Durdisko plena. Pesu LEFT por kontinui."
   </dest>
   <voice>
     *: ""
@@ -4547,11 +4550,13 @@
     *: "PLAY=Set OFF=Cancel"
     vibe500: "OK=Set C=Cancel"
     mpiohd300: "ENTER=Set MENU=Cancel"
+    sansafuzeplus: "SELECT=Set  BACK=Cancel"
   </source>
   <dest>
     *: "LEGI=Validigi OFF=Malvalidigi"
     vibe500: "OK=Validigi C=Malvalidigi"
     mpiohd300: "ENTER=Validigi MENU=Malvalidigi"
+    sansafuzeplus: "SELECT=Validigi  BACK=Malvalidigi"
   </dest>
   <voice>
     *: ""
@@ -6955,13 +6960,13 @@
 </phrase>
 <phrase>
   id: LANG_BACKDROP_LOADED
-  desc: text for splash to indicate a new backdrop has been loaded successfully
+  desc: deprecated
   user: core
   <source>
-    *: "Backdrop Loaded"
+    *: ""
   </source>
   <dest>
-    *: "Fono Ŝarĝita"
+    *: ""
   </dest>
   <voice>
     *: ""
@@ -6969,13 +6974,13 @@
 </phrase>
 <phrase>
   id: LANG_BACKDROP_FAILED
-  desc: text for splash to indicate a failure to load a bitmap as backdrop
+  desc: deprecated
   user: core
   <source>
-    *: "Backdrop Failed"
+    *: ""
   </source>
   <dest>
-    *: "Fono Ŝarĝo Malsukcesis"
+    *: ""
   </dest>
   <voice>
     *: ""
@@ -7249,13 +7254,13 @@
 </phrase>
 <phrase>
   id: LANG_FM_SAVE_CHANGES
-  desc: When you try to exit radio to confirm save
+  desc: deprecated
   user: core
   <source>
-    *: "Save Changes?"
+    *: ""
   </source>
   <dest>
-    *: "Savi Ŝanĝojn?"
+    *: ""
   </dest>
   <voice>
     *: ""

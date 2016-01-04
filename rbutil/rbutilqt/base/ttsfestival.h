@@ -7,7 +7,6 @@
 *                     \/            \/     \/    \/            \/
 *
 *   Copyright (C) 2009 by Dominik Wenger
-*   $Id$
 *
 * This program is free software; you can redistribute it and/or
 * modify it under the terms of the GNU General Public License
@@ -42,6 +41,7 @@ class TTSFestival : public TTSBase
         bool start(QString *errStr);
         bool stop();
         TTSStatus voice(QString text,QString wavfile,  QString *errStr);
+        QString voiceVendor(void) { return QString(); }
         Capabilities capabilities();
 
         // for settings

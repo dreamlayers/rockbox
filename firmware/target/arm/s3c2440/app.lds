@@ -35,7 +35,7 @@ SECTIONS
     .vectors DRAMORIG :
     {
         _vectorstart = .;
-        *(.vectors*);
+        KEEP(*(.vectors*));
         *(.init.text)
         . = ALIGN(0x4);
     } > DRAM
@@ -43,9 +43,8 @@ SECTIONS
     .text :
     {
         _textstart = .;
-        *(.text)
         *(.text*)
-        *(.icode)
+        *(.icode*)
         *(.glue_7)
         *(.glue_7t)
         . = ALIGN(0x4);
@@ -55,10 +54,7 @@ SECTIONS
 
     .rodata :
     {
-        *(.rodata)  /* problems without this, dunno why */
         *(.rodata*)
-        *(.rodata.str1.1)
-        *(.rodata.str1.4)
         *(.irodata*)
         . = ALIGN(0x4);
     } > DRAM

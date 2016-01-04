@@ -1,7 +1,6 @@
 /*
  * This config file is for the Sandisk Sansa e200
  */
-#define TARGET_TREE /* this target is using the target tree system */
 
 /* For Rolo and boot loader */
 #define MODEL_NUMBER 20
@@ -46,15 +45,14 @@
 /* define this if you have access to the quickscreen */
 #define HAVE_QUICKSCREEN
 
-/* define this if you have access to the pitchscreen */
-#define HAVE_PITCHSCREEN
-
 /* define this if you would like tagcache to build on this target */
 #define HAVE_TAGCACHE
 
 /* LCD dimensions */
 #define LCD_WIDTH  132
 #define LCD_HEIGHT 80
+/* sqrt(132^2 + 80^2) / 1.4 = 110.3 */
+#define LCD_DPI 110
 #define LCD_DEPTH  16   /* 65536 colours */
 #define LCD_PIXELFORMAT RGB565 /* rgb565 */
 
@@ -142,6 +140,8 @@
 #define BATTERY_CAPACITY_INC 0          /* capacity increment */
 #define BATTERY_TYPES_COUNT  1          /* only one type */
 
+#define CONFIG_BATTERY_MEASURE VOLTAGE_MEASURE
+
 /* Charging implemented in a target-specific algorithm */
 #define CONFIG_CHARGING CHARGING_TARGET
 #define HAVE_POWEROFF_WHILE_CHARGING
@@ -189,7 +189,6 @@
 
 /* enable these for the experimental usb stack */
 #define HAVE_USBSTACK
-#define USE_ROCKBOX_USB
 #define USB_VENDOR_ID 0x0781
 #define USB_PRODUCT_ID 0x7451
 #define HAVE_USB_HID_MOUSE

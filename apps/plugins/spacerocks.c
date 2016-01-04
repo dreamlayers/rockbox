@@ -188,6 +188,15 @@
 #define AST_RIGHT BUTTON_RIGHT
 #define AST_FIRE BUTTON_SELECT
 
+#elif CONFIG_KEYPAD == CREATIVE_ZENXFI3_PAD
+#define AST_PAUSE     (BUTTON_PLAY | BUTTON_REL)
+#define AST_QUIT       BUTTON_POWER
+#define AST_THRUST     BUTTON_UP
+#define AST_HYPERSPACE BUTTON_DOWN
+#define AST_LEFT       BUTTON_BACK
+#define AST_RIGHT      BUTTON_MENU
+#define AST_FIRE       BUTTON_VOL_UP
+
 #elif CONFIG_KEYPAD == PHILIPS_HDD1630_PAD
 #define AST_PAUSE BUTTON_VIEW
 #define AST_QUIT BUTTON_POWER
@@ -220,9 +229,11 @@
       (CONFIG_KEYPAD == MROBE500_PAD)
 #define AST_QUIT BUTTON_POWER
 
-#elif (CONFIG_KEYPAD == SAMSUNG_YH_PAD)
+#elif (CONFIG_KEYPAD == SAMSUNG_YH820_PAD) || \
+      (CONFIG_KEYPAD == SAMSUNG_YH920_PAD)
+
 #define AST_PAUSE      BUTTON_FFWD
-#define AST_QUIT       BUTTON_REC
+#define AST_QUIT       BUTTON_REW
 #define AST_THRUST     BUTTON_UP
 #define AST_HYPERSPACE BUTTON_DOWN
 #define AST_LEFT       BUTTON_LEFT
@@ -230,6 +241,7 @@
 #define AST_FIRE       BUTTON_PLAY
 
 #elif (CONFIG_KEYPAD == PBELL_VIBE500_PAD)
+
 #define AST_PAUSE      BUTTON_PLAY
 #define AST_QUIT       BUTTON_REC
 #define AST_THRUST     BUTTON_UP
@@ -250,13 +262,86 @@
 
 #elif (CONFIG_KEYPAD == MPIO_HD300_PAD)
 
-#define AST_PAUSE BUTTON_PLAY
-#define AST_QUIT (BUTTON_REC|BUTTON_REPEAT)
-#define AST_THRUST BUTTON_MENU
+#define AST_PAUSE (BUTTON_PLAY|BUTTON_REL)
+#define AST_QUIT (BUTTON_MENU|BUTTON_REPEAT)
+#define AST_THRUST BUTTON_REC
 #define AST_HYPERSPACE (BUTTON_PLAY|BUTTON_REPEAT)
-#define AST_LEFT BUTTON_REW
-#define AST_RIGHT BUTTON_FF
+#define AST_LEFT BUTTON_UP
+#define AST_RIGHT BUTTON_DOWN
 #define AST_FIRE BUTTON_ENTER
+
+#elif (CONFIG_KEYPAD == SANSA_FUZEPLUS_PAD)
+
+#define AST_PAUSE BUTTON_PLAYPAUSE
+#define AST_QUIT BUTTON_POWER
+#define AST_THRUST BUTTON_UP
+#define AST_HYPERSPACE BUTTON_BACK
+#define AST_LEFT BUTTON_LEFT
+#define AST_RIGHT BUTTON_RIGHT
+#define AST_FIRE BUTTON_SELECT
+
+#elif (CONFIG_KEYPAD == SANSA_CONNECT_PAD)
+
+#define ALT_PAUSE BUTTON_VOL_DOWN
+#define AST_QUIT BUTTON_POWER
+#define AST_THRUST BUTTON_UP
+#define AST_HYPERSPACE BUTTON_DOWN
+#define AST_LEFT BUTTON_LEFT
+#define AST_RIGHT BUTTON_RIGHT
+#define AST_FIRE BUTTON_SELECT
+
+#elif (CONFIG_KEYPAD == SAMSUNG_YPR0_PAD)
+#define AST_PAUSE       BUTTON_MENU
+#define AST_QUIT        BUTTON_BACK
+#define AST_THRUST      BUTTON_UP
+#define AST_HYPERSPACE  BUTTON_DOWN
+#define AST_LEFT        BUTTON_LEFT
+#define AST_RIGHT       BUTTON_RIGHT
+#define AST_FIRE        BUTTON_SELECT
+
+#elif (CONFIG_KEYPAD == HM60X_PAD)
+#define AST_PAUSE       (BUTTON_SELECT|BUTTON_POWER)
+#define AST_QUIT        BUTTON_POWER
+#define AST_THRUST      BUTTON_UP
+#define AST_HYPERSPACE  BUTTON_DOWN
+#define AST_LEFT        BUTTON_LEFT
+#define AST_RIGHT       BUTTON_RIGHT
+#define AST_FIRE        BUTTON_SELECT
+
+#elif (CONFIG_KEYPAD == HM801_PAD)
+#define AST_PAUSE       BUTTON_PLAY
+#define AST_QUIT        BUTTON_POWER
+#define AST_THRUST      BUTTON_UP
+#define AST_HYPERSPACE  BUTTON_DOWN
+#define AST_LEFT        BUTTON_LEFT
+#define AST_RIGHT       BUTTON_RIGHT
+#define AST_FIRE        BUTTON_SELECT
+
+#elif CONFIG_KEYPAD == SONY_NWZ_PAD
+#define AST_PAUSE       BUTTON_POWER
+#define AST_QUIT        BUTTON_BACK
+#define AST_THRUST      BUTTON_UP
+#define AST_HYPERSPACE  BUTTON_DOWN
+#define AST_LEFT        BUTTON_LEFT
+#define AST_RIGHT       BUTTON_RIGHT
+#define AST_FIRE        BUTTON_PLAY
+
+#elif CONFIG_KEYPAD == CREATIVE_ZEN_PAD
+#define AST_PAUSE       BUTTON_PLAYPAUSE
+#define AST_QUIT        BUTTON_BACK
+#define AST_THRUST      BUTTON_UP
+#define AST_HYPERSPACE  BUTTON_DOWN
+#define AST_LEFT        BUTTON_LEFT
+#define AST_RIGHT       BUTTON_RIGHT
+#define AST_FIRE        BUTTON_SELECT
+
+#elif (CONFIG_KEYPAD == DX50_PAD)
+#define AST_QUIT        BUTTON_POWER
+#define AST_THRUST      BUTTON_VOL_UP
+#define AST_HYPERSPACE  BUTTON_VOL_DOWN
+#define AST_LEFT        BUTTON_LEFT
+#define AST_RIGHT       BUTTON_PLAY
+#define AST_FIRE        BUTTON_RIGHT
 
 #else
 #error No keymap defined!
@@ -400,7 +485,7 @@
 #define SET_BG(x)
 #endif
 
-#define SCORE_FILE PLUGIN_GAMES_DIR "/spacerocks.score"
+#define SCORE_FILE PLUGIN_GAMES_DATA_DIR "/spacerocks.score"
 #define NUM_SCORES 5
 
 static struct highscore highscores[NUM_SCORES];
@@ -2009,7 +2094,7 @@ enum plugin_status plugin_start(const void* parameter)
     /* universal font */
     rb->lcd_setfont(FONT_SYSFIXED);
     /* Turn off backlight timeout */
-    backlight_force_on(); /* backlight control in lib/helper.c */
+    backlight_ignore_timeout();
     highscore_load(SCORE_FILE, highscores, NUM_SCORES);
     rb->srand(*rb->current_tick);
 
@@ -2022,7 +2107,7 @@ enum plugin_status plugin_start(const void* parameter)
     rb->lcd_setfont(FONT_UI);
     highscore_save(SCORE_FILE, highscores, NUM_SCORES);
     /* Turn on backlight timeout (revert to settings) */
-    backlight_use_settings(); /* backlight control in lib/helper.c */
+    backlight_use_settings();
 
     return ret;
 }

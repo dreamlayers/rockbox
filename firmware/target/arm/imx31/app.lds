@@ -46,7 +46,7 @@ SECTIONS
         . = ALIGN(0x200);
         *(.init.text)
         *(.text*)
-        *(.icode)
+        *(.icode*)
         *(.glue_7)
         *(.glue_7t)
         . = ALIGN(0x4);
@@ -54,27 +54,16 @@ SECTIONS
 
     .rodata :
     {
-        *(.rodata)  /* problems without this, dunno why */
         *(.rodata*)
-        *(.rodata.str1.1)
-        *(.rodata.str1.4)
-        *(.irodata)
+        *(.irodata*)
         . = ALIGN(0x4);
-
-        /* Pseudo-allocate the copies of the data sections */
-        _datacopy = .;
     } > DRAM
 
-    /* TRICK ALERT! For RAM execution, we put the .data section at the
-       same load address as the copy. Thus, we don't waste extra RAM
-       when we don't actually need the copy.  */
-    .data : AT ( _datacopy )
+    .data :
     {
-        _datastart = .;
         *(.data*)
-        *(.idata)
+        *(.idata*)
         . = ALIGN(0x4);
-        _dataend  = .;
     } > DRAM
 
 #if 0 /* Unneeded at the moment */
@@ -100,7 +89,7 @@ SECTIONS
     .vectors 0x0 :
     {
         _vectorsstart = .;
-        *(.vectors)
+        KEEP(*(.vectors))
         _vectorsend = .;
     } AT> DRAM
 
@@ -110,8 +99,7 @@ SECTIONS
     {
         . = ALIGN(4);
         _initstart = .;
-        *(.init)
-        *(.initdata)
+        *(.init*)
         _initend = .;
     } > INIT AT> DRAM
 
@@ -130,7 +118,7 @@ SECTIONS
     {
         _edata = .;
         *(.bss*)
-        *(.ibss)
+        *(.ibss*)
         *(COMMON)
         . = ALIGN(0x4);
     } > DRAM

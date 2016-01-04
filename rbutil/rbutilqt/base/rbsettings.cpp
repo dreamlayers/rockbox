@@ -7,7 +7,6 @@
  *                     \/            \/     \/    \/            \/
  *
  *   Copyright (C) 2007 by Dominik Wenger
- *   $Id$
  *
  * All files in this archive are subject to the GNU General Public License.
  * See the file COPYING in the source tree root for full license agreement.
@@ -20,6 +19,7 @@
 #include "rbsettings.h"
 #include "systeminfo.h"
 #include <QSettings>
+#include "Logger.h"
 
 #if defined(Q_OS_LINUX)
 #include <unistd.h>
@@ -32,6 +32,7 @@ const static struct {
     const char* def;
 } UserSettingsList[] = {
     { RbSettings::RbutilVersion,        "rbutil_version",       "" },
+    { RbSettings::ShowChangelog,        "show_changelog",       "false" },
     { RbSettings::CurrentPlatform,      "platform",             "" },
     { RbSettings::Mountpoint,           "mountpoint",           "" },
     { RbSettings::CachePath,            "cachepath",            "" },
@@ -41,23 +42,42 @@ const static struct {
     { RbSettings::OfPath,               "ofpath",               "" },
     { RbSettings::Platform,             "platform",             "" },
     { RbSettings::Language,             "lang",                 "" },
-    { RbSettings::Tts,                  "tts",                  "" },
-    { RbSettings::LastTalkedFolder,     "last_talked_folder",   "" },
+    { RbSettings::BackupPath,           "backuppath",           "" },
+    { RbSettings::InstallRockbox,       "install_rockbox",      "true" },
+    { RbSettings::InstallFonts,         "install_fonts",        "true" },
+    { RbSettings::InstallThemes,        "install_themes",       "false" },
+    { RbSettings::InstallGamefiles,     "install_gamefiles",    "true" },
+#if defined(Q_OS_WIN32)
+    { RbSettings::Tts,                  "tts",                  "sapi" },
+#elif defined(Q_OS_MACX)
+    { RbSettings::Tts,                  "tts",                  "carbon" },
+#else
+    { RbSettings::Tts,                  "tts",                  "espeak" },
+#endif
+    { RbSettings::UseTtsCorrections,    "use_tts_corrections",  "true" },
+    { RbSettings::TalkFolders,          "talk_folders",         "" },
+    { RbSettings::TalkProcessFiles,     "talk_process_files",   "true" },
+    { RbSettings::TalkProcessFolders,   "talk_process_folders", "true" },
+    { RbSettings::TalkRecursive,        "talk_recursive",       "true" },
+    { RbSettings::TalkSkipExisting,     "talk_skip_existing",   "true" },
+    { RbSettings::TalkStripExtensions,  "talk_strip_extensions","true" },
+    { RbSettings::TalkIgnoreFiles,      "talk_ignore_files",    "false" },
+    { RbSettings::TalkIgnoreWildcards,  "talk_ignore_wildcards","" },
     { RbSettings::VoiceLanguage,        "voicelanguage",        "" },
     { RbSettings::TtsLanguage,          ":tts:/language",       "" },
     { RbSettings::TtsOptions,           ":tts:/options",        "" },
+    { RbSettings::TtsPitch,             ":tts:/pitch",          "0" },
     { RbSettings::TtsPath,              ":tts:/path",           "" },
     { RbSettings::TtsVoice,             ":tts:/voice",          "" },
     { RbSettings::EncoderPath,          ":encoder:/encoderpath",        "" },
     { RbSettings::EncoderOptions,       ":encoder:/encoderoptions",     "" },
-    { RbSettings::CacheOffline,         "offline",              "false" },
     { RbSettings::CacheDisabled,        "cachedisable",         "false" },
     { RbSettings::TtsUseSapi4,          "sapi/useSapi4",        "false" },
     { RbSettings::EncoderNarrowBand,    ":encoder:/narrowband", "false" },
     { RbSettings::WavtrimThreshold,     "wavtrimthreshold",     "500"},
     { RbSettings::TtsSpeed,             ":tts:/speed",          "175" },
     { RbSettings::EncoderComplexity,    ":encoder:/complexity", "10" },
-    { RbSettings::EncoderQuality,       ":encoder:/quality",    "8.0" },
+    { RbSettings::EncoderQuality,       ":encoder:/quality",    "-1.0" },
     { RbSettings::EncoderVolume,        ":encoder:/volume",     "1.0" },
 };
 
@@ -77,13 +97,13 @@ void RbSettings::ensureRbSettingsExists()
         {
             userSettings = new QSettings(QCoreApplication::instance()->applicationDirPath()
                 + "/RockboxUtility.ini", QSettings::IniFormat, NULL);
-            qDebug() << "[Settings] configuration: portable";
+            LOG_INFO() << "configuration: portable";
         }
         else
         {
             userSettings = new QSettings(QSettings::IniFormat,
             QSettings::UserScope, "rockbox.org", "RockboxUtility",NULL);
-            qDebug() << "[Settings] configuration: system";
+            LOG_INFO() << "configuration: system";
         }
     }
 }
@@ -139,7 +159,7 @@ QVariant RbSettings::subValue(QString sub, enum UserSettings setting)
         i++;
 
     QString s = constructSettingPath(UserSettingsList[i].name, sub);
-    qDebug() << "[Settings] GET U:" << s << userSettings->value(s).toString();
+    LOG_INFO() << "GET U:" << s << userSettings->value(s).toString();
     return userSettings->value(s, UserSettingsList[i].def);
 }
 
@@ -160,7 +180,7 @@ void RbSettings::setSubValue(QString sub, enum UserSettings setting, QVariant va
 
     QString s = constructSettingPath(UserSettingsList[i].name, sub);
     userSettings->setValue(s, value);
-    qDebug() << "[Settings] SET U:" << s << userSettings->value(s).toString();
+    LOG_INFO() << "SET U:" << s << userSettings->value(s).toString();
 }
 
 QString RbSettings::constructSettingPath(QString path, QString substitute)

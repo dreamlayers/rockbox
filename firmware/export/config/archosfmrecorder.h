@@ -21,8 +21,7 @@
 
 /* define this if you have access to the quickscreen */
 #define HAVE_QUICKSCREEN
-/* define this if you have access to the pitchscreen */
-#define HAVE_PITCHSCREEN
+
 /* define this if you have the button bar */
 #define HAVE_BUTTONBAR
 
@@ -32,6 +31,8 @@
 /* LCD dimensions */
 #define LCD_WIDTH  112
 #define LCD_HEIGHT 64
+/* sqrt(112^2 + 64^2) / 1.5 = 85.4 */
+#define LCD_DPI 85
 #define LCD_DEPTH  1
 
 #define LCD_PIXEL_ASPECT_WIDTH 4
@@ -90,6 +91,8 @@
 #define BATTERY_CAPACITY_MAX 3200 /* max. capacity selectable */
 #define BATTERY_CAPACITY_INC 50   /* capacity increment */
 #define BATTERY_TYPES_COUNT  1    /* only one type */
+
+#define CONFIG_BATTERY_MEASURE VOLTAGE_MEASURE
 
 #define CURRENT_NORMAL    145  /* usual current in mA */
 #define CURRENT_RECORD     35  /* additional recording current */

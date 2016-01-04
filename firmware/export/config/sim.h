@@ -14,8 +14,6 @@
 
 #undef FLASH_SIZE
 
-#undef CPU_FREQ
-
 #undef HAVE_ATA_POWER_OFF
 
 #undef CONFIG_LCD
@@ -31,19 +29,28 @@
 
 #undef AMS_OF_SIZE
 
-#undef HAVE_MULTIDRIVE
-#undef NUM_DRIVES
-#undef HAVE_HOTSWAP
 #undef HAVE_HOTSWAP_STORAGE_AS_MAIN
+#undef HAVE_STORAGE_FLUSH
 
-#undef CONFIG_STORAGE
+#undef CONFIG_NAND
+
+#if defined(CONFIG_CHARGING) && CONFIG_CHARGING > CHARGING_MONITOR
+#undef CONFIG_CHARGING
+#define CONFIG_CHARGING CHARGING_MONITOR
+#endif
+
+/*
+ * Effectively disable battery smoothing, our simulated charge/ discharge
+ * cycle is way too fast for it otherwise
+ */
+#undef BATT_AVE_SAMPLES
+#define BATT_AVE_SAMPLES 1
 
 #undef CONFIG_USBOTG
 
 #undef USB_HANDLED_BY_OF
 
 #undef HAVE_USBSTACK
-#undef USE_ROCKBOX_USB
 #undef USB_VENDOR_ID
 #undef USB_PRODUCT_ID
 #undef USB_NUM_ENDPOINTS

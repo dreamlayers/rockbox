@@ -24,6 +24,7 @@
 
 #include "config.h"
 #include <stdbool.h>
+#include <inttypes.h>
 
 /* define some audiohw caps */
 #define TREBLE_CAP            (1 << 0)
@@ -35,6 +36,34 @@
 #define TREBLE_CUTOFF_CAP     (1 << 6)
 #define EQ_CAP                (1 << 7)
 #define DEPTH_3D_CAP          (1 << 8)
+#define LINEOUT_CAP           (1 << 9)
+#define MONO_VOL_CAP          (1 << 10)
+#define LIN_GAIN_CAP          (1 << 11)
+#define MIC_GAIN_CAP          (1 << 12)
+#define FILTER_ROLL_OFF_CAP   (1 << 13)
+
+/* Used by every driver to export its min/max/default values for its audio
+   settings. */
+#ifdef AUDIOHW_IS_SOUND_C
+/* This is the master file with the settings table... */
+struct sound_settings_info
+{
+    const char *unit;
+    char numdecimals;
+    char steps;
+    short minval;
+    short maxval;
+    short defaultval;
+};
+
+#undef AUDIOHW_SETTING /* will have been #defined in config.h as empty */
+#define AUDIOHW_SETTING(name, us, nd, st, minv, maxv, defv, expr...) \
+    static const struct sound_settings_info _audiohw_setting_##name = \
+    { .unit = us, .numdecimals = nd, .steps = st, \
+      .minval = minv, .maxval = maxv, .defaultval = defv }; \
+    static inline int _sound_val2phys_##name(int val) \
+    { return #expr[0] ? expr : val; }
+#endif
 
 #ifdef HAVE_UDA1380
 #include "uda1380.h"
@@ -68,35 +97,28 @@
 #include "jz4740-codec.h"
 #elif defined(HAVE_AK4537)
 #include "ak4537.h"
+#elif defined(HAVE_RK27XX_CODEC)
+#include "rk27xx_codec.h"
+#elif defined(HAVE_AIC3X)
+#include "aic3x.h"
 #elif defined(HAVE_CS42L55)
 #include "cs42l55.h"
+#elif defined(HAVE_IMX233_CODEC)
+#include "imx233-codec.h"
+#elif defined(HAVE_DUMMY_CODEC)
+#include "dummy_codec.h"
+#elif defined(HAVE_DF1704_CODEC)
+#include "df1704.h"
+#elif defined(HAVE_PCM1792_CODEC)
+#include "pcm1792.h"
+#elif (CONFIG_PLATFORM & (PLATFORM_ANDROID | PLATFORM_MAEMO\
+       | PLATFORM_PANDORA | PLATFORM_SDL))
+#include "hosted_codec.h"
+#elif defined(DX50)
+#include "codec-dx50.h"
+#elif defined(DX90)
+#include "codec-dx90.h"
 #endif
-#if (CONFIG_PLATFORM & PLATFORM_HOSTED)
-/* #include <SDL_audio.h> gives errors in other code areas,
- * we don't really need it here, so don't. but it should maybe be fixed */
-#ifndef SIMULATOR /* simulator gets values from the target .h files */
-#define VOLUME_MIN  -990
-#define VOLUME_MAX  0
-#endif
-#endif
-
-
-
-#define ONE_DB 10
-
-#if !defined(VOLUME_MIN) && !defined(VOLUME_MAX)
-#warning define for VOLUME_MIN and VOLUME_MAX is missing
-#define VOLUME_MIN -700
-#define VOLUME_MAX  0
-#endif
-
-#ifndef AUDIOHW_NUM_TONE_CONTROLS
-#define AUDIOHW_NUM_TONE_CONTROLS 0
-#endif
-
-/* volume/balance/treble/bass interdependency main part */
-#define VOLUME_RANGE (VOLUME_MAX - VOLUME_MIN)
-
 
 /* convert caps into defines */
 #ifdef AUDIOHW_CAPS
@@ -139,7 +161,7 @@
 enum
 {
     /* Band 1 is implied; bands must be contiguous, 1 to N */
-    AUDIOHW_EQ_BAND1 = 0,
+    AUDIOHW_EQ_BAND1,
 #define AUDIOHW_HAVE_EQ_BAND1
 #if (AUDIOHW_EQ_BAND_CAPS & (EQ_CAP << 1))
     AUDIOHW_EQ_BAND2,
@@ -165,7 +187,6 @@ enum
 #define AUDIOHW_HAVE_EQ_FREQUENCY
 enum
 {
-    __AUDIOHW_EQ_BAND_FREQUENCY = -1,
 #if defined(AUDIOHW_HAVE_EQ_BAND1) && \
         (AUDIOHW_EQ_FREQUENCY_CAPS & (EQ_CAP << 0))
     AUDIOHW_EQ_BAND1_FREQUENCY,
@@ -191,7 +212,7 @@ enum
     AUDIOHW_EQ_BAND5_FREQUENCY,
 #define AUDIOHW_HAVE_EQ_BAND5_FREQUENCY
 #endif
-    AUDIOHW_EQ_FREQUENCY_NUM,
+    AUDIOHW_EQ_FREQUENCY_NUM, /* Keep last */
 };
 #endif /* AUDIOHW_EQ_FREQUENCY_CAPS */
 
@@ -200,7 +221,6 @@ enum
 #define AUDIOHW_HAVE_EQ_WIDTH
 enum
 {
-    __AUDIOHW_EQ_BAND_WIDTH = -1,
 #if defined(AUDIOHW_HAVE_EQ_BAND1) && \
         (AUDIOHW_EQ_WIDTH_CAPS & (EQ_CAP << 1))
     AUDIOHW_EQ_BAND2_WIDTH,
@@ -223,7 +243,7 @@ enum
 /* Types and number of settings types (gain, frequency, width) */
 enum AUDIOHW_EQ_SETTINGS
 {
-    AUDIOHW_EQ_GAIN = 0,
+    AUDIOHW_EQ_GAIN,
 #ifdef AUDIOHW_HAVE_EQ_FREQUENCY
     AUDIOHW_EQ_FREQUENCY,
 #endif
@@ -238,121 +258,39 @@ enum AUDIOHW_EQ_SETTINGS
 #if (AUDIOHW_CAPS & DEPTH_3D_CAP)
 #define AUDIOHW_HAVE_DEPTH_3D
 #endif
-#else
-#if defined (HAVE_SW_TONE_CONTROLS)
+
+#if (AUDIOHW_CAPS & LINEOUT_CAP)
+#define AUDIOHW_HAVE_LINEOUT
+#endif
+
+#if (AUDIOHW_CAPS & MONO_VOL_CAP)
+#define AUDIOHW_HAVE_MONO_VOLUME
+#endif
+
+#ifdef HAVE_RECORDING
+#if (AUDIOHW_CAPS & LIN_GAIN_CAP)
+#define AUDIOHW_HAVE_LIN_GAIN
+#endif
+
+#if (AUDIOHW_CAPS & MIC_GAIN_CAP)
+#define AUDIOHW_HAVE_MIC_GAIN
+#endif
+#endif /* HAVE_RECORDING */
+
+#if (AUDIOHW_CAPS & FILTER_ROLL_OFF_CAP)
+#define AUDIOHW_HAVE_FILTER_ROLL_OFF
+#endif
+
+#endif /* AUDIOHW_CAPS */
+
+#ifdef HAVE_SW_TONE_CONTROLS
 /* Needed for proper sound support */
 #define AUDIOHW_HAVE_BASS
 #define AUDIOHW_HAVE_TREBLE
-#endif
-#endif /* AUDIOHW_CAPS */
+#endif /* HAVE_SW_TONE_CONTROLS */
 
-enum {
-    SOUND_VOLUME = 0,
-/* Tone control */
-#if defined(AUDIOHW_HAVE_BASS)
-    SOUND_BASS,
-#endif
-#if defined(AUDIOHW_HAVE_TREBLE)
-    SOUND_TREBLE,
-#endif
-    SOUND_BALANCE,
-    SOUND_CHANNELS,
-    SOUND_STEREO_WIDTH,
-#if (CONFIG_CODEC == MAS3587F) || (CONFIG_CODEC == MAS3539F)
-    SOUND_LOUDNESS,
-    SOUND_AVC,
-    SOUND_MDB_STRENGTH,
-    SOUND_MDB_HARMONICS,
-    SOUND_MDB_CENTER,
-    SOUND_MDB_SHAPE,
-    SOUND_MDB_ENABLE,
-    SOUND_SUPERBASS,
-#endif
-#if defined(HAVE_RECORDING)
-    SOUND_LEFT_GAIN,
-    SOUND_RIGHT_GAIN,
-    SOUND_MIC_GAIN,
-#endif
-/* Bass and treble tone controls */
-#if defined(AUDIOHW_HAVE_BASS_CUTOFF)
-    SOUND_BASS_CUTOFF,
-#endif
-#if defined(AUDIOHW_HAVE_TREBLE_CUTOFF)
-    SOUND_TREBLE_CUTOFF,
-#endif
-/* 3D effect */
-#if defined(AUDIOHW_HAVE_DEPTH_3D)
-    SOUND_DEPTH_3D,
-#endif
-/* Hardware EQ tone controls */
-/* Band gains */
-#if defined(AUDIOHW_HAVE_EQ)
-    /* Band 1 implied */
-    SOUND_EQ_BAND1_GAIN,
-#if defined(AUDIOHW_HAVE_EQ_BAND2)
-    SOUND_EQ_BAND2_GAIN,
-#endif
-#if defined(AUDIOHW_HAVE_EQ_BAND3)
-    SOUND_EQ_BAND3_GAIN,
-#endif
-#if defined(AUDIOHW_HAVE_EQ_BAND4)
-    SOUND_EQ_BAND4_GAIN,
-#endif
-#if defined(AUDIOHW_HAVE_EQ_BAND5)
-    SOUND_EQ_BAND5_GAIN,
-#endif
-/* Band frequencies */
-#if defined(AUDIOHW_HAVE_EQ_BAND1_FREQUENCY)
-    SOUND_EQ_BAND1_FREQUENCY,
-#endif
-#if defined(AUDIOHW_HAVE_EQ_BAND2_FREQUENCY)
-    SOUND_EQ_BAND2_FREQUENCY,
-#endif
-#if defined(AUDIOHW_HAVE_EQ_BAND3_FREQUENCY)
-    SOUND_EQ_BAND3_FREQUENCY,
-#endif
-#if defined(AUDIOHW_HAVE_EQ_BAND4_FREQUENCY)
-    SOUND_EQ_BAND4_FREQUENCY,
-#endif
-#if defined(AUDIOHW_HAVE_EQ_BAND5_FREQUENCY)
-    SOUND_EQ_BAND5_FREQUENCY,
-#endif
-/* Band widths */
-#if defined(AUDIOHW_HAVE_EQ_BAND2_WIDTH)
-    SOUND_EQ_BAND2_WIDTH,
-#endif
-#if defined(AUDIOHW_HAVE_EQ_BAND3_WIDTH)
-    SOUND_EQ_BAND3_WIDTH,
-#endif
-#if defined(AUDIOHW_HAVE_EQ_BAND4_WIDTH)
-    SOUND_EQ_BAND4_WIDTH,
-#endif
-#endif /* AUDIOHW_HAVE_EQ */
-    SOUND_LAST_SETTING, /* Keep this last */
-};
-
-enum Channel {
-    SOUND_CHAN_STEREO,
-    SOUND_CHAN_MONO,
-    SOUND_CHAN_CUSTOM,
-    SOUND_CHAN_MONO_LEFT,
-    SOUND_CHAN_MONO_RIGHT,
-    SOUND_CHAN_KARAOKE,
-    SOUND_CHAN_NUM_MODES,
-};
-
-struct sound_settings_info {
-    const char *unit;
-    char numdecimals;
-    char steps;
-    short minval;
-    short maxval;
-    short defaultval;
-};
-
-/* This struct is used by every driver to export its min/max/default values for
- * its audio settings. Keep in mind that the order must be correct! */
-extern const struct sound_settings_info audiohw_settings[];
+/* Generate enumeration of SOUND_xxx constants */
+#include "audiohw_settings.h"
 
 /* All usable functions implemented by a audio codec drivers. Most of
  * the function in sound settings are only called, when in audio codecs
@@ -382,17 +320,35 @@ void audiohw_postinit(void);
  */
 void audiohw_close(void);
 
-#if defined(AUDIOHW_HAVE_CLIPPING) || defined(HAVE_SDL_AUDIO) || defined(ANDROID)
- /**
+#ifdef AUDIOHW_HAVE_MONO_VOLUME
+  /**
  * Set new volume value
  * @param val to set.
  * NOTE: AUDIOHW_CAPS need to contain
  *          CLIPPING_CAP
  */
 void audiohw_set_volume(int val);
+#else /* Stereo volume */
+/**
+ * Set new voluem value for each channel
+ * @param vol_l sets left channel volume
+ * @param vol_r sets right channel volume
+ */
+void audiohw_set_volume(int vol_l, int vol_r);
+#endif /* AUDIOHW_HAVE_MONO_VOLUME */
+
+#ifdef AUDIOHW_HAVE_LINEOUT
+ /**
+ * Set new voluem value for each channel
+ * @param vol_l sets left channel volume
+ * @param vol_r sets right channel volume
+ */
+void audiohw_set_lineout_volume(int vol_l, int vol_r);
 #endif
 
-#ifdef AUDIOHW_HAVE_PRESCALER
+#ifndef AUDIOHW_HAVE_CLIPPING
+#if defined(AUDIOHW_HAVE_BASS) || defined(AUDIOHW_HAVE_TREBLE) \
+    || defined(AUDIOHW_HAVE_EQ)
 /**
  * Set new prescaler value.
  * @param val to set.
@@ -401,6 +357,7 @@ void audiohw_set_volume(int val);
  */
 void audiohw_set_prescaler(int val);
 #endif
+#endif /* !AUDIOHW_HAVE_CLIPPING */
 
 #ifdef AUDIOHW_HAVE_BALANCE
 /**
@@ -509,6 +466,16 @@ void audiohw_set_eq_band_width(unsigned int band, int val);
 void audiohw_set_depth_3d(int val);
 #endif
 
+#ifdef AUDIOHW_HAVE_FILTER_ROLL_OFF
+/**
+ * Set DAC's oversampling filter roll-off.
+ * @param val 0 - sharp roll-off, 1 - slow roll-off.
+ * NOTE: AUDIOHW_CAPS need to contain
+ *          FILTER_ROLL_OFF_CAP
+ */
+void audiohw_set_filter_roll_off(int val);
+#endif
+
 
 void audiohw_set_frequency(int fsel);
 
@@ -544,18 +511,35 @@ void audiohw_set_recvol(int left, int right, int type);
 void audiohw_set_monitor(bool enable);
 #endif
 
-
-
-#if CONFIG_CODEC != SWCODEC
-
-/* functions which are only used by mas35xx codecs, but are also
-   aviable on SWCODECS through dsp */
-
 /**
  * Set channel configuration.
- * @param val new channel value (see enum Channel).
+ * @param val new channel value (see enum below).
  */
+enum AUDIOHW_CHANNEL_CONFIG
+{
+    SOUND_CHAN_STEREO,
+    SOUND_CHAN_MONO,
+    SOUND_CHAN_CUSTOM,
+    SOUND_CHAN_MONO_LEFT,
+    SOUND_CHAN_MONO_RIGHT,
+    SOUND_CHAN_KARAOKE,
+    SOUND_CHAN_NUM_MODES,
+};
+
 void audiohw_set_channel(int val);
+
+#ifdef HAVE_PITCHCONTROL
+/**
+ * Set the pitch ratio
+ * @param ratio to set in .01% units
+ */
+void audiohw_set_pitch(int32_t val);
+
+/**
+ * Return the set pitch ratio
+ */ 
+int32_t audiohw_get_pitch(void);
+#endif /* HAVE_PITCHCONTROL */
 
 /**
  * Set stereo width.
@@ -563,12 +547,19 @@ void audiohw_set_channel(int val);
  */
 void audiohw_set_stereo_width(int val);
 
-#endif /* CONFIG_CODEC != SWCODEC */
-
 #ifdef HAVE_SPEAKER
-
 void audiohw_enable_speaker(bool on);
-
 #endif /* HAVE_SPEAKER */
+
+/**
+ * Some setting are the same for every codec and can be defined here.
+ */
+#ifdef HAVE_SW_TONE_CONTROLS
+AUDIOHW_SETTING(BASS,        "dB", 0, 1,  -24,  24,   0)
+AUDIOHW_SETTING(TREBLE,      "dB", 0, 1,  -24,  24,   0)
+#endif /* HAVE_SW_TONE_CONTROLS */
+AUDIOHW_SETTING(BALANCE,      "%", 0, 1, -100, 100,   0)
+AUDIOHW_SETTING(CHANNELS,      "", 0, 1,    0,   5,   0)
+AUDIOHW_SETTING(STEREO_WIDTH, "%", 0, 5,    0, 250, 100)
 
 #endif /* _AUDIOHW_H_ */

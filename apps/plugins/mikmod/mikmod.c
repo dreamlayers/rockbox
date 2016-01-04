@@ -31,7 +31,7 @@
 #define EV_EXIT 9999
 #define THREAD_STACK_SIZE DEFAULT_STACK_SIZE + 0x200
 static unsigned int thread_id;
-static struct event_queue thread_q;
+static struct event_queue thread_q SHAREDBSS_ATTR;
 /* use long for aligning */
 unsigned long thread_stack[THREAD_STACK_SIZE/sizeof(long)];
 #endif
@@ -49,9 +49,6 @@ static unsigned char* audio_buffer;
 /* amount of bytes left in audio_buffer */
 static size_t audio_buffer_free;
 
-
-/* The rockbox plugin interface */
-MEM_FUNCTION_WRAPPERS;
 
 bool quit;
 int playingtime IBSS_ATTR;
@@ -118,11 +115,11 @@ void mmsupp_printf(const char *fmt, ...)
 {
     static int p_xtpt = 0;
     char p_buf[LINE_LENGTH];
-    bool ok;
+    /* bool ok; */
     va_list ap;
 
     va_start(ap, fmt);
-    ok = rb->vsnprintf(p_buf, sizeof(p_buf), fmt, ap);
+    /* ok = */ (void)rb->vsnprintf(p_buf, sizeof(p_buf), fmt, ap);
     va_end(ap);
 
     int i=0;
@@ -147,12 +144,14 @@ void mmsupp_printf(const char *fmt, ...)
 /************************* File Access ***************************/
 
 /* support function for qsort() */
+/* not used
 static int compare(const void* p1, const void* p2)
 {
     return rb->strcasecmp(*((char **)p1), *((char **)p2));
 }
+*/
 
-bool mod_ext(const char ext[])
+static bool mod_ext(const char ext[])
 {
     if(!ext)
         return false;
@@ -182,10 +181,10 @@ bool mod_ext(const char ext[])
 }
 
 /*Read directory contents for scrolling. */
-void get_mod_list(void)
+static void get_mod_list(void)
 {
     struct tree_context *tree = rb->tree_get_context();
-    struct entry *dircache = tree->dircache;
+    struct entry *dircache = rb->tree_get_entries(tree);
     int i;
     char *pname;
 
@@ -212,7 +211,7 @@ void get_mod_list(void)
     }
 }
 
-int change_filename(int direct)
+static int change_filename(int direct)
 {
     bool file_erased = (file_pt[curfile] == NULL);
     direction = direct;
@@ -269,7 +268,7 @@ static inline void synthbuf(void)
     VC_WriteBytes(outptr, BUF_SIZE);
 }
 
-void get_more(unsigned char** start, size_t* size)
+static void get_more(const void** start, size_t* size)
 {
 #ifndef SYNC
     if (lastswap != swap)
@@ -283,14 +282,14 @@ void get_more(unsigned char** start, size_t* size)
 
     *size = BUF_SIZE;
 #ifndef SYNC
-    *start = (unsigned char*)((swap ? gmbuf : gmbuf + BUF_SIZE));
+    *start = swap ? gmbuf : gmbuf + BUF_SIZE;
     swap = !swap;
 #else
-    *start = (unsigned char*)(gmbuf);
+    *start = gmbuf;
 #endif
 }
 
-void showinfo()
+static void showinfo(void)
 {
     char statustext[LINE_LENGTH];
 
@@ -348,9 +347,9 @@ void showinfo()
     rb->lcd_update();
 }
 
-void showsamples()
+static void showsamples(void)
 {
-    int i, j;
+    int i;
     char statustext[LINE_LENGTH];
 
     if ( screenupdated )
@@ -367,9 +366,9 @@ void showsamples()
     screenupdated = true;
 }
 
-void showinstruments()
+static void showinstruments(void)
 {
-    int i, j;
+    int i;
     char statustext[LINE_LENGTH];
 
     if ( screenupdated )
@@ -386,7 +385,7 @@ void showinstruments()
     screenupdated = true;
 }
 
-void showcomments()
+static void showcomments(void)
 {
     int i, j=0, k=0, l;
     char statustext[LINE_LENGTH];
@@ -425,7 +424,7 @@ void showcomments()
     screenupdated = true;
 }
 
-int changedisplay()
+static void changedisplay(void)
 {
     display = (display+1) % 4;
 
@@ -494,7 +493,7 @@ static struct configdata config[] =
     { TYPE_BOOL, 0, 1, { .bool_p = &settings.boost }, "CPU Boost", NULL},
 };
 
-void applysettings()
+static void applysettings(void)
 {
     md_pansep = settings.pansep;
     md_reverb = settings.reverb;
@@ -522,10 +521,9 @@ void applysettings()
 /**
   Shows the settings menu
  */
-int settings_menu(void)
+static int settings_menu(void)
 {
     int selection = 0;
-    bool old_val;
 
     MENUITEM_STRINGLIST(settings_menu, "Mikmod Settings", NULL, "Panning Separation",
                         "Reverberation", "Interpolation", "Reverse Channels", "Surround",
@@ -583,7 +581,7 @@ int settings_menu(void)
 /**
   Show the main menu
  */
-int main_menu(void)
+static int main_menu(void)
 {
     int selection = 0;
     int result;
@@ -616,7 +614,7 @@ int main_menu(void)
 
 #ifdef USETHREADS
 /* double buffering thread */
-void thread(void)
+static void thread(void)
 {
     struct queue_event ev;
 
@@ -632,13 +630,13 @@ void thread(void)
 }
 #endif
 
-void mm_errorhandler(void)
+static void mm_errorhandler(void)
 {
     rb->splashf(HZ, "%s", MikMod_strerror(MikMod_errno));
     quit = true;
 }
 
-int playfile(char* filename)
+static int playfile(char* filename)
 {
     int vol = 0;
     int button;
@@ -662,7 +660,7 @@ int playfile(char* filename)
     {
         display = DISPLAY_INFO;
         Player_Start(module);
-        rb->pcm_play_data(&get_more, NULL, 0);
+        rb->pcm_play_data(&get_more, NULL, NULL, 0);
     }
 
 #ifdef HAVE_ADJUSTABLE_CPU_FREQ
@@ -806,7 +804,7 @@ int playfile(char* filename)
             }
             else
             {
-                rb->pcm_play_data(&get_more, NULL, 0);
+                rb->pcm_play_data(&get_more, NULL, NULL, 0);
             }
             Player_TogglePause();
             break;
@@ -825,7 +823,7 @@ int playfile(char* filename)
                     retval = menureturn;
                 }
             }
-            rb->lcd_setfont(0);
+            rb->lcd_setfont(FONT_SYSFIXED);
             screenupdated = false;
             break;
             
@@ -879,7 +877,7 @@ enum plugin_status plugin_start(const void* parameter)
         return PLUGIN_OK;
     }
 
-    rb->lcd_setfont(0);
+    rb->lcd_setfont(FONT_SYSFIXED);
 
     rb->pcm_play_stop();
 #if INPUT_SRC_CAPS != 0

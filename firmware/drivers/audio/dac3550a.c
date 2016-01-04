@@ -5,7 +5,7 @@
  *   Jukebox    |    |   (  <_> )  \___|    < | \_\ (  <_> > <  <
  *   Firmware   |____|_  /\____/ \___  >__|_ \|___  /\____/__/\_ \
  *                     \/            \/     \/    \/            \/
- * $Id: dac.c 17847 2008-06-28 18:10:04Z bagder $
+ * $Id$
  *
  * Copyright (C) 2002 by Linus Nielsen Feltzing
  *
@@ -26,15 +26,6 @@
 
 static bool line_in_enabled = false;
 static bool dac_enabled = false;
-
-/* convert tenth of dB volume (-780..+180) to dac3550 register value */
-int tenthdb2reg(int db)
-{
-    if (db < -540)                  /* 3 dB steps */
-        return (db + 780) / 30;
-    else                            /* 1.5 dB steps */
-        return (db + 660) / 15;
-}
 
 int dac_volume(unsigned int left, unsigned int right, bool deemph)
 {

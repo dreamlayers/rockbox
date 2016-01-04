@@ -7,7 +7,6 @@
  *                     \/            \/     \/    \/            \/
  *
  *   Copyright (C) 2008 by Dominik Riebeling
- *   $Id$
  *
  * All files in this archive are subject to the GNU General Public License.
  * See the file COPYING in the source tree root for full license agreement.
@@ -22,6 +21,7 @@
 
 #include <QtCore>
 #include "bootloaderinstallbase.h"
+#include "sansapatcher.h"
 
 
 // bootloader installation class for devices handled by sansapatcher.
@@ -39,6 +39,7 @@ class BootloaderInstallSansa : public BootloaderInstallBase
 
     private:
         bool sansaInitialize(struct sansa_t *);
+        struct sansa_t sansa;
 
     private slots:
         void installStage2(void);

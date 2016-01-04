@@ -49,18 +49,25 @@
 
 
 void audio_init(void) INIT_ATTR;
-void audio_play(long offset);
+void audio_play(unsigned long elapsed, unsigned long offset);
 void audio_stop(void);
+/* Stops audio from serving playback and frees resources*/
+void audio_hard_stop(void);
 void audio_pause(void);
 void audio_resume(void);
 void audio_next(void);
 void audio_prev(void);
 int audio_status(void);
+/* size of the audio buffer */
+size_t audio_buffer_size(void);
+/* size of the buffer available for allocating memory from the audio buffer using core_*()
+ * returns core_available() if audio buffer is not allocated yet */
+size_t audio_buffer_available(void);
 void audio_ff_rewind(long newpos);
 void audio_flush_and_reload_tracks(void);
 struct mp3entry* audio_current_track(void);
 struct mp3entry* audio_next_track(void);
-bool audio_peek_track(struct mp3entry** id3, int offset);
+bool audio_peek_track(struct mp3entry* id3, int offset);
 #ifdef HAVE_DISK_STORAGE
 void audio_set_buffer_margin(int setting);
 #endif
@@ -69,10 +76,6 @@ int audio_get_file_pos(void);
 void audio_beep(int duration);
 
 #if CONFIG_CODEC == SWCODEC
-/* Required call when audio buffer is required for some other purpose */
-unsigned char *audio_get_buffer(bool talk_buf, size_t *buffer_size); 
-/* only implemented in playback.c, but called from firmware */
-
 void audio_next_dir(void);
 void audio_prev_dir(void);
 
@@ -191,7 +194,7 @@ struct audio_recording_options
 };
 
 /* audio recording functions */
-void audio_init_recording(unsigned int buffer_offset);
+void audio_init_recording(void);
 void audio_close_recording(void);
 void audio_record(const char *filename);
 void audio_stop_recording(void);
@@ -205,10 +208,7 @@ unsigned long audio_num_recorded_bytes(void);
 
 #if CONFIG_CODEC == SWCODEC
 /* SWCODEC recording functions */
-/* playback.c */
-bool audio_load_encoder(int afmt);
-void audio_remove_encoder(void);
-unsigned char *audio_get_recording_buffer(size_t *buffer_size);
+unsigned long audio_prerecorded_time(void);
 #endif /* CONFIG_CODEC == SWCODEC */
 
 #endif /* HAVE_RECORDING */
@@ -232,12 +232,26 @@ int audio_get_spdif_sample_rate(void);
 void audio_spdif_set_monitor(int monitor_spdif);
 #endif /* HAVE_SPDIF_IN */
 
-unsigned long audio_prev_elapsed(void);
-
-#if CONFIG_CODEC != SWCODEC
 /***********************************************************************/
 /* audio event handling */
+enum track_event_flags
+{
+    TEF_NONE      = 0x0,  /* no flags are set */
+    TEF_CURRENT   = 0x1,  /* event is for the current track */
+#if CONFIG_CODEC == SWCODEC
+    TEF_AUTO_SKIP = 0x2,  /* event is sent in context of auto skip */
+    TEF_REWIND    = 0x4,  /* interpret as rewind, id3->elapsed is the
+                             position before the seek back to 0 */
+#endif /* CONFIG_CODEC == SWCODEC */
+};
 
+struct track_event
+{
+    unsigned int flags;   /* combo of enum track_event_flags values */
+    struct mp3entry *id3; /* pointer to mp3entry describing track */
+};
+
+#if CONFIG_CODEC != SWCODEC
 /* subscribe to one or more audio event(s) by OR'ing together the desired */
 /* event IDs (defined below); a handler is called with a solitary event ID */
 /* (so switch() is okay) and possibly some useful data (depending on the */
@@ -250,29 +264,29 @@ void audio_register_event_handler(AUDIO_EVENT_HANDLER handler, unsigned short ma
 /***********************************************************************/
 /* handler return codes */
 
-#define AUDIO_EVENT_RC_IGNORED      200 
+#define AUDIO_EVENT_RC_IGNORED      200
     /* indicates that no action was taken or the event was not recognized */
 
-#define AUDIO_EVENT_RC_HANDLED      201 
-    /* indicates that the event was handled and some action was taken which renders 
-    the original event invalid; USE WITH CARE!; this return code aborts all further 
+#define AUDIO_EVENT_RC_HANDLED      201
+    /* indicates that the event was handled and some action was taken which renders
+    the original event invalid; USE WITH CARE!; this return code aborts all further
     processing of the given event */
 
 /***********************************************************************/
 /* audio event IDs */
 
-#define AUDIO_EVENT_POS_REPORT      (1<<0)  
+#define AUDIO_EVENT_POS_REPORT      (1<<0)
     /* sends a periodic song position report to handlers; a report is sent on
-    each kernal tick; the number of ticks per second is defined by HZ; on each 
-    report the current song position is passed in 'data'; if a handler takes an 
-    action that changes the song or the song position it must return 
+    each kernal tick; the number of ticks per second is defined by HZ; on each
+    report the current song position is passed in 'data'; if a handler takes an
+    action that changes the song or the song position it must return
     AUDIO_EVENT_RC_HANDLED which suppresses the event for any remaining handlers */
 
-#define AUDIO_EVENT_END_OF_TRACK    (1<<1) 
+#define AUDIO_EVENT_END_OF_TRACK    (1<<1)
     /* generated when the end of the currently playing track is reached; no
     data is passed; if the handler implements some alternate end-of-track
     processing it should return AUDIO_EVENT_RC_HANDLED which suppresses the
-    event for any remaining handlers as well as the normal end-of-track 
+    event for any remaining handlers as well as the normal end-of-track
     processing */
 
 #endif
