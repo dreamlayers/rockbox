@@ -143,8 +143,11 @@ static void INIT_ATTR pll_init(void)
 
     /* PLL frequency is:
      * fXin * 8 * (M + 2) / ((P + 2) * 2**S
-     * 12 MHz * 8 * (14 + 2) / ((2 + 2) * 2**1) = 192 MHz */
-    PLLMODE = PLLMODE_M(14) | PLLMODE_P(2) | PLLMODE_S(1);
+     * Old: 12 MHz * 8 * (14 + 2) / ((2 + 2) * 2**1) = 192 MHz
+     * New for better 44100 Hz accuracy:
+     * 12 MHz * 8 * (59 + 2) / ((27 + 2) * 2**0) = 201931034 Hz */
+    #define PLL_FREQ (201931034)
+    PLLMODE = PLLMODE_M(59) | PLLMODE_P(27) | PLLMODE_S(0);
 
     /* Re-enable PLL clock */
     CKCTRL &= ~CKCTRL_PLL;
@@ -171,7 +174,7 @@ static void INIT_ATTR pll_init(void)
 #ifdef HAVE_ADJUSTABLE_CPU_FREQ
     /* FCLK = PLL/4 = 48 MHz, HCLK = PLL/4 = 48 MHz */
     SCLKmode = SCLKmode_H_PHASE(16) | SCLKmode_F_PHASE(16);
-    cpu_frequency = 48000000;
+    cpu_frequency = PLL_FREQ / 4;
 
     /* Use PLL output for DIVCLK0 and DIVCLK1. This switches CPU to PLL. */
     PLLMODE |= PLLMODE_DIV1;
@@ -220,57 +223,6 @@ static void INIT_ATTR clock_init(void)
     TCLKmode = (0 << 7) | 5;
 
     pll_init();
-
- #if 0
-    unsigned int i;
-
-    /* STP = 0x1, PW = 0x04 , HLD = 0x0 */
-    CSCFG3 = (CSCFG3 &~ 0x3fff) | 0x820;
-
-    /* XIN=External main, Fcpu=Fsys, BCKDIV=1 (Fbus = Fsys / 2) */
-    CLKCTRL = (CLKCTRL & ~0xff) | 0x14;
-
-    if (BMI & 0x20)
-      PCLKCFG0 = 0xc82d7000; /* EN1 = 1, XIN=Ext. main, DIV1 = 0x2d, P1 = 1 */
-    else
-      PCLKCFG0 = 0xc8ba7000; /* EN1 = 1, XIN=Ext. main, DIV1 = 0xba, P1 = 1 */
-
-    MCFG |= 0x2000;
-
-#ifdef LOGIK_DAX
-    /* Only seen in the Logik DAX original firmware */
-    SDCFG = (SDCFG & ~0x7000) | 0x2000;
-#endif
-
-    /* Disable PLL */
-    PLL0CFG |= 0x80000000;
-
-    /* Enable PLL, M=0xcf, P=0x13. m=M+8, p=P+2, S = 0
-       Fout = (215/21)*12MHz = 122857142Hz */
-    PLL0CFG = 0x0000cf13;
-
-    i = 8000;
-    while (--i) {};
-
-    /* Enable PLL0 */
-    CLKDIVC = 0x81000000;
-
-    /* Fsys = PLL0, Fcpu = Fsys, Fbus=Fsys / 2 */
-    CLKCTRL = 0x80000010;
-
-    asm volatile (
-        "nop      \n\t"
-        "nop      \n\t"
-    );
-
-    /* Enable Z-Clock */
-    PCLKCFG5 |= (1<<31) | (4<<28); /* Timer Z-Clock enable, XIN direct*/
-
-    /* Set TC32 timer to be our USEC_TIMER (Xin divided by 12 = 1MHz) */
-    TC32MCNT = 0;
-    TC32LDV = 0;
-    TC32EN = (1<<24) | 11;
-#endif
 }
 
 static void INIT_ATTR cpu_init(void)
@@ -395,7 +347,7 @@ void set_cpu_frequency(long frequency)
     if (max) {
         /* FCLK = PLL/2 = 96 MHz, HCLK = PLL/4 = 48 MHz */
         SCLKmode = SCLKmode_H_PHASE(16) | SCLKmode_F_PHASE(32);
-        cpu_frequency = 96000000;
+        cpu_frequency = PLL_FREQ / 2;
 
         asm volatile (
             /* Set ARM core to ASYNC mode */
@@ -420,7 +372,7 @@ void set_cpu_frequency(long frequency)
          * Slower might be better, but going to 24 MHz causes
          * audio crackling, maybe because of HCLK switching */
         SCLKmode = SCLKmode_H_PHASE(16) | SCLKmode_F_PHASE(16);
-        cpu_frequency = 48000000;
+        cpu_frequency = PLL_FREQ / 4;
     }
 
     restore_irq(flags);

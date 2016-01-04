@@ -100,11 +100,17 @@ void pcm_play_dma_init(void)
     /* Enable DAI clock */
     CKCTRL &= ~2;
 
-    /* Use clock divider mode to set DAI clock */
+#if 0
+    /* Simple configuration using 192 MHz PLL and clock divider mode:
+       192000000 / (16+1) = 44116.7 * 256 */
     DIVMODE |= 8;
-
-    /* Use PLL, DPHASE=16: 12000000 * 16 / (16+1) = 256.1 * 44100 */
-    DCLKmode = 0x4010;
+    DCLKmode = 0x4000 | 16;
+#else
+    /* Using PLL frequency optimized for 44100 Hz accuracy and DCO:
+       201931034.5 * 916 / 16384 = 44100.005 * 256 */
+    DIVMODE &= ~8;
+    DCLKmode = 0x4000 | 916;
+#endif
 
     DAMR = DAMR_EN | DAMR_SM | DAMR_BM | DAMR_FM | DAMR_BD_4 | DAMR_FD_64;
 
