@@ -23,6 +23,7 @@
 #include "cpu.h"
 #include "audio.h"
 #include "sound.h"
+#include "cscodec.h"
 
 #if INPUT_SRC_CAPS != 0
 void audio_set_output_source(int source)
@@ -47,6 +48,7 @@ void audio_input_mux(int source, unsigned flags)
             if (source != last_source)
             {
                 audiohw_set_monitor(false);
+                cscodec_select_ain(0, 0);
 #ifdef HAVE_RECORDING
                 audiohw_disable_recording();
 #endif
@@ -64,8 +66,11 @@ void audio_input_mux(int source, unsigned flags)
         case AUDIO_SRC_FMRADIO:         /* recording and playback */
             if (source != last_source)
             {
+                /* OF sets PGA to 18 for stereo and 24 for mono, but powers
+                 * it down. It uses 6, meaning +3dB in ADCx_VOL. Here, ADCx_VOL
+                 * is the prescaler and the PGA is used for +3dB gain. */
+                cscodec_select_ain(1, 30);
                 audiohw_set_monitor(true);
-                cscodec_select_ain(1);
             }
     } /* end switch */
 

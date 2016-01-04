@@ -110,47 +110,8 @@ void audiohw_preinit(void)
     /* Remove PDN */
     cscodec_setbits(CS42L51_POWER_CTL1, CS42L51_POWER_CTL1_PDN, 0);
 
-    // FIXME sequence for selecting radio input
-#if 0
-    cscodec_freeze(true);
-
-    /* OF uses 18 for stereo and 24 for mono */
-    // FIXME why init PGA when PGA is PDN
-    cscodec_write(CS42L51_ALC_PGA_CTL, 18);
-    cscodec_write(CS42L51_ALC_PGB_CTL, 18);
-
-    /* ADC volume +3dB, not muted */
-    cscodec_write(CS42L51_ADCA_VOL,6);
-    cscodec_write(CS42L51_ADCB_VOL,6);
-
     /* PCM volume 0dB, muted */
-    cscodec_write(CS42L51_PCMA_VOL, 1);// FIXME 0x80);
-    cscodec_write(CS42L51_PCMB_VOL, 1); //0x80);
-
-    /* Input AIN1 to ADC */
-    cscodec_write(CS42L51_ADC_INPUT,0);
-
-    cscodec_freeze(false);
-
-    /* FIXME WTF */
-    cscodec_write(CS42L51_POWER_CTL1,
-              /* Remove overall powerdown, only powering down PGA */
-              CS42L51_POWER_CTL1_PDN_PGAA | \
-              CS42L51_POWER_CTL1_PDN_PGAB);
-
-    /* FIXME worse hack */
-    cscodec_write(CS42L51_INTF_CTL,
-    CS42L51_INTF_CTL_LOOPBACK /* not | CS42L51_INTF_CTL_MASTER */ | \
-              /* Use I2S */
-              CS42L51_INTF_CTL_DAC_FORMAT(CS42L51_DAC_DIF_I2S) | \
-              CS42L51_INTF_CTL_ADC_I2S);
-#else
-    /* PCM volume 0dB, muted */
-    cscodec_write(CS42L51_PCMA_VOL, 0);// FIXME 0x80);
-    cscodec_write(CS42L51_PCMB_VOL, 0); //0x80);
-#endif
-              audiohw_mute(false);
-
+    audiohw_mute(false);
 }
 
 void audiohw_postinit(void)
@@ -269,14 +230,18 @@ void cscodec_select_ain(int ain, int gain)
     cscodec_setbits(CS42L51_POWER_CTL1, AINPOWER_BITS, ain ? 0 : AINPOWER_BITS);
     cscodec_setbits(CS42L51_POWER_CTL1, CS42L51_POWER_CTL1_PDN, 0);
 
-    /* OF sets PGA to 18 for stereo and 24 for mono, but powers it down.
-     * It uses 6, meaning +3dB in ADCx_VOL. Here, ADCx_VOL is the prescaler
-     * and the PGA is used for +3dB gain. */
-    cscodec_write(CS42L51_ALC_PGA_CTL, 6);
-    cscodec_write(CS42L51_ALC_PGB_CTL, 6);
+    if (ain != 0) {
+        unsigned char pgagain;
+        if (gain > 120) gain = 120;
+        if (gain < -30) gain = -30;
+        pgagain = (gain / 5) & 0x1f;
 
-    /* Input AIN1 to ADC */
-    cscodec_write(CS42L51_ADC_INPUT,0);
+        cscodec_write(CS42L51_ALC_PGA_CTL, pgagain);
+        cscodec_write(CS42L51_ALC_PGB_CTL, pgagain);
+
+        /* Input AIN1 to ADC */
+        cscodec_write(CS42L51_ADC_INPUT,0);
+    }
 
     cscodec_freeze(false);
 }
