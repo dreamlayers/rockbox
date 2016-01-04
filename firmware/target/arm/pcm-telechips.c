@@ -96,25 +96,12 @@ void pcm_play_dma_init(void)
 #elif defined(SANSA_C100)
     /* TODO */
 #elif defined(RC3000A)
+#define USE_TCC76X_DMA
     /* FIXME clocking should be done elsewhere. */
     /* Enable DAI clock */
     CKCTRL &= ~2;
-
-#if 0
-    /* Simple configuration using 192 MHz PLL and clock divider mode:
-       192000000 / (16+1) = 44116.7 * 256 */
-    DIVMODE |= 8;
-    DCLKmode = 0x4000 | 16;
-#else
-    /* Using PLL frequency optimized for 44100 Hz accuracy and DCO:
-       201931034.5 * 916 / 16384 = 44100.005 * 256 */
     DIVMODE &= ~8;
-    DCLKmode = 0x4000 | 916;
-#endif
-
     DAMR = DAMR_EN | DAMR_SM | DAMR_BM | DAMR_FM | DAMR_BD_4 | DAMR_FD_64;
-
-#define USE_TCC76X_DMA
 #else
 #error "Target isn't supported"
 #endif
@@ -141,6 +128,49 @@ void pcm_play_dma_postinit(void)
 
 void pcm_dma_apply_settings(void)
 {
+#ifdef CPU_TCC76X
+    /* Using PLL frequency optimized for 44100 Hz accuracy and DCO:
+       201931034.5 * 916 / 16384 = 44100.005 * 256 */
+    static const unsigned short freq_params[HW_NUM_FREQ] = {
+#ifdef HAVE_CS42L51
+        /* Note DAMR setup for CS42L51 dividing these frequencies below. */
+        HW_HAVE_8_([HW_FREQ_8]  = 0x8000 | 0x4000 | (166 * 2),)
+        HW_HAVE_11_([HW_FREQ_11] = 0x8000 | 0x4000 | (229 * 2),)
+        HW_HAVE_12_([HW_FREQ_12] = 0x8000 | 0x4000 | (249 * 2),)
+#else
+        HW_HAVE_8_([HW_FREQ_8]  = 0x4000 | 166,)
+        HW_HAVE_11_([HW_FREQ_11] =0x4000 | 229,)
+        HW_HAVE_12_([HW_FREQ_12] =0x4000 | 249,)
+#endif
+        HW_HAVE_16_([HW_FREQ_16] = 0x4000 | 332,)
+        HW_HAVE_22_([HW_FREQ_22] = 0x4000 | 458,)
+        HW_HAVE_24_([HW_FREQ_24] = 0x4000 | 499,)
+        HW_HAVE_32_([HW_FREQ_32] = 0x4000 | 665,)
+        HW_HAVE_44_([HW_FREQ_44] = 0x4000 | 916,)
+        HW_HAVE_48_([HW_FREQ_48] = 0x4000 | 997,)
+        HW_HAVE_64_([HW_FREQ_64] = 0x4000 | 1329,)
+        HW_HAVE_88_([HW_FREQ_88] = 0x4000 | 1832,)
+        HW_HAVE_96_([HW_FREQ_96] = 0x4000 | 1994,)
+    };
+    unsigned short freq_param = freq_params[pcm_fsel];
+
+#if defined(HAVE_CS42L51) && \
+    (defined(HW_HAVE_8) || defined(HW_HAVE_11) || defined(HW_HAVE_12))
+    DCLKmode = freq_param & 0x7FFF;
+
+    if (freq_param & 0x8000) {
+        /* CS42L51 quarter speed mode needs at least 512 MCLK/LRCK ratio */
+        DAMR = (DAMR & ~DAMR_BD_16) | DAMR_BD_8;
+    } else {
+        /* Other modes are fine with 256 MCLK/LRCK ratio */
+        DAMR = (DAMR & ~DAMR_BD_16) | DAMR_BD_4;
+    }
+#else
+    DCLKmode = freq_param;
+#endif
+
+    audiohw_set_frequency(pcm_fsel);
+#endif
 }
 
 static void play_start_pcm(void)
