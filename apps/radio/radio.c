@@ -133,6 +133,17 @@
 #define FM_PREV_PRESET
 #define FM_NEXT_PRESET
 
+#elif (CONFIG_KEYPAD == MPIO_HD300_PAD)
+/* Actually for RCA RC3000A which uses this keypad. Untested on MPIO HD300. */
+#define FM_MENU
+#define FM_PRESET
+#define FM_STOP
+#define FM_MODE
+#define FM_EXIT
+#define FM_PLAY
+#define FM_NEXT_PRESET
+#define FM_PREV_PRESET
+
 #endif
 
 /* presets.c needs these so keep unstatic or redo the whole thing! */
