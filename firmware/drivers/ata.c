@@ -35,6 +35,9 @@
 #include "ata-driver.h"
 #include "ata-defines.h"
 #include "storage.h"
+#if defined(HAVE_USBSTACK) && defined(USB_ENABLE_STORAGE)
+#include "ata_sat.h"
+#endif
 
 #define SECTOR_SIZE     512
 
@@ -1468,3 +1471,265 @@ int ata_num_drives(int first_drive)
     return 1;
 }
 #endif
+
+#if defined(HAVE_USBSTACK) && defined(USB_ENABLE_STORAGE)
+
+/* ATA errors are not reported as SCSI errors instead result in a standard
+   sense response which contains ATA registers. This sense response is also
+   sent if SAT_CKCOND is set regardless of whether an error occurred.
+ */
+static struct sat_response sat_res = {
+    .response_code   = 0x72, /* current error */
+    .sense_key       = 0x01, /* recovered error */
+    .asc             = 0x00,
+    .ascq            = 0x1d, /* ATA pass through information available */
+    .additional_len  = 0x0e, /* additional sense length */
+    .descriptor_code = 0x09, /* descriptor type */
+    .descriptor_len  = 0x0c, /* additional length */
+    /* Rest is uninitialized and filled out at runtime */
+};
+
+/* Not all parts of SAT are supported. If the host tries to do something
+   unsupported, do nothing and only return this.
+ */
+static const uint8_t unsupported_sense[] = {
+    0x72, /* current error */
+    0x05, /* illegal request */
+    0x24, /* invalid field in CDB */
+    0x00,
+    0x00, /* 3 reserved bytes */
+    0x00,
+    0x00,
+    0x00, /* additional sense length */
+};
+
+static const uint8_t timeout_sense[] = {
+    0x72, /* current error */
+    0x02, /* not ready */
+    0x00, /* no additional data, TODO: maybe provide some */
+    0x00,
+    0x00, /* 3 reserved bytes */
+    0x00,
+    0x00,
+    0x00, /* additional sense length */
+};
+
+static void ata_sat_16_command(const struct sat_16 *sat)
+{
+    if (sat->mult_proto_extend & SAT_EXTEND) {
+        ATA_OUT8(ATA_FEATURE, sat->hi_features);
+        ATA_OUT8(ATA_NSECTOR, sat->hi_sector_count);
+        ATA_OUT8(ATA_SECTOR, sat->hi_lba_low);
+        ATA_OUT8(ATA_LCYL, sat->hi_lba_mid);
+        ATA_OUT8(ATA_HCYL, sat->hi_lba_high);
+    }
+    ATA_OUT8(ATA_FEATURE, sat->lo_features);
+    ATA_OUT8(ATA_NSECTOR, sat->lo_sector_count);
+    ATA_OUT8(ATA_SECTOR, sat->lo_lba_low);
+    ATA_OUT8(ATA_LCYL, sat->lo_lba_mid);
+    ATA_OUT8(ATA_HCYL, sat->lo_lba_high);
+
+    /* Standard says to ignore the device bit and
+       present multiple devices as multiple SCSI LUNs. */
+    ATA_OUT8(ATA_SELECT, (sat->device & ~SELECT_DEVICE1) | ata_device);
+    ATA_OUT8(ATA_COMMAND, sat->command);
+}
+
+static void ata_sat_12_command(const struct sat_12 *sat)
+{
+    ATA_OUT8(ATA_FEATURE, sat->features);
+    ATA_OUT8(ATA_NSECTOR, sat->sector_count);
+    ATA_OUT8(ATA_SECTOR, sat->lba_low);
+    ATA_OUT8(ATA_LCYL, sat->lba_mid);
+    ATA_OUT8(ATA_HCYL, sat->lba_high);
+
+    ATA_OUT8(ATA_SELECT, (sat->device & ~SELECT_DEVICE1) | ata_device);
+    ATA_OUT8(ATA_COMMAND, sat->command);
+}
+
+static void ata_sat_command(const uint8_t *cdb)
+{
+    if (cdb[0] == SCSI_SAT_16) {
+        ata_sat_16_command((struct sat_16 *)cdb);
+    } else {
+        ata_sat_12_command((struct sat_12 *)cdb);
+    }
+}
+
+static void ata_sat_sense(struct sat_response *satr, bool extend)
+{
+    satr->status = ATA_IN8(ATA_ALT_STATUS);
+    satr->error = ATA_IN8(ATA_ERROR);
+    satr->device = ATA_IN8(ATA_SELECT);
+
+    if (extend) {
+        ATA_OUT8(ATA_SELECT, ata_device | 1);
+        satr->hi_sector_count = ATA_IN8(ATA_NSECTOR);
+        satr->hi_lba_low = ATA_IN8(ATA_SECTOR);
+        satr->hi_lba_mid = ATA_IN8(ATA_LCYL);
+        satr->hi_lba_high = ATA_IN8(ATA_HCYL);
+        satr->extend = SAT_EXTEND;
+    } else {
+        satr->extend = 0;
+    }
+
+    ATA_OUT8(ATA_SELECT, ata_device);
+    satr->lo_sector_count = ATA_IN8(ATA_NSECTOR);
+    satr->lo_lba_low = ATA_IN8(ATA_SECTOR);
+    satr->lo_lba_mid = ATA_IN8(ATA_LCYL);
+    satr->lo_lba_high = ATA_IN8(ATA_HCYL);
+}
+
+static size_t ata_sat_xfersize(const uint8_t *cdb)
+{
+    struct sat_12 *sat = (struct sat_12 *)cdb;
+    size_t l;
+
+    switch (SAT_T_LENGTH(sat->flags)) {
+    default:
+    case SAT_T_LENGTH_0:
+    case SAT_T_LENGTH_STPSIU: // FIXME unsupported
+        l = 0;
+        break;
+    case SAT_T_LENGTH_FEATURE:
+        if (cdb[0] == SCSI_SAT_16) {
+            struct sat_16 *sat16 = (struct sat_16 *)cdb;
+            l = sat16->lo_features;
+            if (sat16->mult_proto_extend & SAT_EXTEND) {
+                l += sat16->hi_features << 8;
+            }
+        } else {
+            l = sat->features;
+        }
+        break;
+    case SAT_T_LENGTH_SECTOR_COUNT:
+        if (cdb[0] == SCSI_SAT_16) {
+            struct sat_16 *sat16 = (struct sat_16 *)cdb;
+            l = sat16->lo_sector_count;
+            if (sat16->mult_proto_extend & SAT_EXTEND) {
+                l += sat16->hi_sector_count << 8;
+            }
+        } else {
+            l = sat->sector_count;
+        }
+        break;
+    }
+
+    if (sat->flags & SAT_BYT_BLOK) {
+        l *= 512; // FIXME is this always correct?
+    }
+
+    return l;
+}
+
+size_t ata_sat_readsize(const uint8_t *cdb) {
+    if ((((struct sat_12 *)cdb)->flags & SAT_T_DIR) == 0) {
+        return ata_sat_xfersize(cdb);
+    } else {
+        return 0;
+    }
+}
+
+size_t ata_sat_writesize(const uint8_t *cdb) {
+    if ((((struct sat_12 *)cdb)->flags & SAT_T_DIR) == 0) {
+        return 0;
+    } else {
+        return ata_sat_xfersize(cdb);
+    }
+}
+
+size_t ata_sat(const uint8_t *cdb, uint8_t *buf, void **sense)
+{
+    struct sat_12 *sat = (struct sat_12 *)cdb;
+    static const int sleep_tab[4] = { 0, HZ*2, HZ*6, HZ*16 };
+    int sleep_time;
+
+    /* Perform action */
+    switch (SAT_PROTO(sat->mult_proto)) {
+    case SAT_PROTO_HARD_RESET:
+        ata_hard_reset();
+        break;
+    case SAT_PROTO_SRST:
+        perform_soft_reset();
+        break;
+    case SAT_PROTO_NON_DATA:
+    case SAT_PROTO_PIO_IN:
+        ata_sat_command(cdb);
+        break;
+    case SAT_PROTO_RETURN_RESPONSE:
+        /* Don't send a command, just return a response */
+        break;
+#if 0
+    /* Unsupported protocols */
+    case SAT_PROTO_PIO_OUT:
+    case SAT_PROTO_DMA:
+    case SAT_PROTO_DMA_QUEUED:
+    case SAT_PROTO_DEV_DIAG:
+    case SAT_PROTO_DEV_RESET:
+    case SAT_PROTO_UDMA_IN:
+    case SAT_PROTO_UDMA_OUT:
+    case SAT_PROTO_FPDMA:
+#endif
+    default:
+        *sense = (void *)&unsupported_sense;
+        return sizeof(unsupported_sense);
+    }
+
+    /* Wait before reading status */
+    sleep_time = sleep_tab[SAT_OFFLINE(sat->flags)];
+    if (sleep_time == 0) {
+        /* wait at least 400ns between writing command and reading status */
+        __asm__ volatile ("nop");
+        __asm__ volatile ("nop");
+        __asm__ volatile ("nop");
+        __asm__ volatile ("nop");
+        __asm__ volatile ("nop");
+    } else {
+        sleep(sleep_time);
+    }
+
+    /* Perform action */
+    switch (SAT_PROTO(sat->mult_proto)) {
+    case SAT_PROTO_RETURN_RESPONSE:
+        break; /* Not even wait for ready? */
+
+    case SAT_PROTO_HARD_RESET:
+    case SAT_PROTO_SRST:
+    case SAT_PROTO_NON_DATA:
+        if (!wait_for_rdy()) {
+            *sense = (void *)&timeout_sense;
+            return sizeof(timeout_sense);
+        }
+        break;
+
+    case SAT_PROTO_PIO_IN:
+        if (!wait_for_start_of_transfer()) {
+            /* FIXME be more specific here */
+            *sense = (void *)&timeout_sense;
+            return sizeof(timeout_sense);
+        }
+        copy_read_sectors(buf, ata_sat_xfersize(cdb) / 2);
+        if(!wait_for_end_of_transfer()) {
+            /* FIXME be more specific here */
+            *sense = (void *)&timeout_sense;
+            return sizeof(timeout_sense);
+        }
+        break;
+    }
+
+    /* IF CK_COND or ERROR or DF return sense. Standard says both ERR and DF
+       is undefined, but there is no harm in returning sense data then. */
+    if((sat->flags & SAT_CKCOND) ||
+       SAT_PROTO(sat->mult_proto) == SAT_PROTO_RETURN_RESPONSE ||
+       (ATA_IN8(ATA_ALT_STATUS) & (STATUS_ERR | STATUS_DF))) {
+        ata_sat_sense(&sat_res,
+                      sat->opcode == SCSI_SAT_16 &&
+                      (sat->mult_proto & SAT_EXTEND));
+        *sense = (void *)&sat_res;
+        return sizeof(struct sat_response);
+    } else {
+        return 0;
+    }
+}
+
+#endif /* defined(HAVE_USBSTACK) && defined(USB_ENABLE_STORAGE) */

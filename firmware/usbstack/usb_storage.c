@@ -36,6 +36,10 @@
 #endif
 #include "core_alloc.h"
 #include "panic.h"
+#if defined(HAVE_USBSTACK) && defined(USB_ENABLE_STORAGE) && \
+    (CONFIG_STORAGE & STORAGE_ATA)
+#include "ata_sat.h"
+#endif
 
 #ifdef USB_USE_RAMDISK
 #define RAMDISK_SIZE 2048
@@ -320,11 +324,22 @@ static bool skip_first = 0;
 static unsigned char* ramdisk_buffer;
 #endif
 
+#if defined(HAVE_USBSTACK) && defined(USB_ENABLE_STORAGE) && \
+    (CONFIG_STORAGE & STORAGE_ATA)
+void *sat_sense_data = NULL;
+size_t sat_sense_len = 0;
+#define UMS_STATUS_SAT 0x02
+#endif
+
 static enum {
     WAITING_FOR_COMMAND,
     SENDING_BLOCKS,
     SENDING_RESULT,
     SENDING_FAILED_RESULT,
+#if defined(HAVE_USBSTACK) && defined(USB_ENABLE_STORAGE) && \
+    (CONFIG_STORAGE & STORAGE_ATA)
+    SENDING_SAT_RESULT,
+#endif
     RECEIVING_BLOCKS,
 #if CONFIG_RTC
     RECEIVING_TIME,
@@ -627,6 +642,19 @@ void usb_storage_transfer_complete(int ep,int dir,int status,int length)
             }
             send_csw(UMS_STATUS_FAIL);
             break;
+#if defined(HAVE_USBSTACK) && defined(USB_ENABLE_STORAGE) && \
+    (CONFIG_STORAGE & STORAGE_ATA)
+        case SENDING_SAT_RESULT:
+            if(dir==USB_DIR_OUT) {
+                logf("OUT received in SENDING");
+            }
+            if (sat_sense_len == 0) {
+                send_csw(UMS_STATUS_GOOD);
+            } else {
+                send_csw(UMS_STATUS_SAT);
+            }
+            break;
+#endif
         case SENDING_BLOCKS:
             if(dir==USB_DIR_OUT) {
                 logf("OUT received in SENDING");
@@ -857,20 +885,26 @@ static void handle_scsi(struct command_block_wrapper* cbw)
             break;
 
         case SCSI_REQUEST_SENSE: {
-            tb.sense_data->ResponseCode=0x70;/*current error*/
-            tb.sense_data->Obsolete=0;
-            tb.sense_data->fei_sensekey=cur_sense_data.sense_key&0x0f;
-            tb.sense_data->Information=cur_sense_data.information;
-            tb.sense_data->AdditionalSenseLength=10;
-            tb.sense_data->CommandSpecificInformation=0;
-            tb.sense_data->AdditionalSenseCode=cur_sense_data.asc;
-            tb.sense_data->AdditionalSenseCodeQualifier=cur_sense_data.ascq;
-            tb.sense_data->FieldReplaceableUnitCode=0;
-            tb.sense_data->SKSV=0;
-            tb.sense_data->SenseKeySpecific=0;
-            logf("scsi request_sense %d",lun);
-            send_command_result(tb.sense_data,
-                                MIN(sizeof(struct sense_data), length));
+            if (sat_sense_len > 0) {
+                memcpy(tb.transfer_buffer, sat_sense_data, sat_sense_len);
+                send_command_result(tb.transfer_buffer,
+                                    MIN(sat_sense_len, length));
+            } else {
+                tb.sense_data->ResponseCode=0x70;/*current error*/
+                tb.sense_data->Obsolete=0;
+                tb.sense_data->fei_sensekey=cur_sense_data.sense_key&0x0f;
+                tb.sense_data->Information=cur_sense_data.information;
+                tb.sense_data->AdditionalSenseLength=10;
+                tb.sense_data->CommandSpecificInformation=0;
+                tb.sense_data->AdditionalSenseCode=cur_sense_data.asc;
+                tb.sense_data->AdditionalSenseCodeQualifier=cur_sense_data.ascq;
+                tb.sense_data->FieldReplaceableUnitCode=0;
+                tb.sense_data->SKSV=0;
+                tb.sense_data->SenseKeySpecific=0;
+                logf("scsi request_sense %d",lun);
+                send_command_result(tb.sense_data,
+                                    MIN(sizeof(struct sense_data), length));
+            }
             break;
         }
 
@@ -1159,6 +1193,25 @@ static void handle_scsi(struct command_block_wrapper* cbw)
             break;
 #endif /* CONFIG_RTC */
 
+#if defined(HAVE_USBSTACK) && defined(USB_ENABLE_STORAGE) && \
+    (CONFIG_STORAGE & STORAGE_ATA)
+        case SCSI_SAT_12:
+        case SCSI_SAT_16:
+            sat_sense_len = ata_sat(cbw->command_block,
+                                    tb.transfer_buffer, &sat_sense_data);
+
+            if (ata_sat_writesize(cbw->command_block)) {
+                usb_drv_send_nonblocking(ep_in, tb.transfer_buffer,
+                                         ata_sat_writesize(cbw->command_block));
+                state = SENDING_SAT_RESULT;
+            } else if (sat_sense_len == 0) {
+                send_csw(UMS_STATUS_GOOD);
+            } else {
+                send_csw(UMS_STATUS_SAT);
+            }
+            break;
+#endif
+
         default:
             logf("scsi unknown cmd %x",cbw->command_block[0x0]);
             send_csw(UMS_STATUS_FAIL);
@@ -1206,6 +1259,12 @@ static void send_csw(int status)
     tb.csw->signature = htole32(CSW_SIGNATURE);
     tb.csw->tag = cur_cmd.tag;
     tb.csw->data_residue = 0;
+#if defined(HAVE_USBSTACK) && defined(USB_ENABLE_STORAGE) && \
+    (CONFIG_STORAGE & STORAGE_ATA)
+    if (status == UMS_STATUS_SAT) {
+        tb.csw->status = UMS_STATUS_FAIL;
+    } else
+#endif
     tb.csw->status = status;
 
     usb_drv_send_nonblocking(ep_in, tb.csw,
@@ -1223,6 +1282,13 @@ static void send_csw(int status)
         cur_sense_data.asc=0;
         cur_sense_data.ascq=0;
     }
+
+#if defined(HAVE_USBSTACK) && defined(USB_ENABLE_STORAGE) && \
+    (CONFIG_STORAGE & STORAGE_ATA)
+    if (status != UMS_STATUS_SAT) {
+        sat_sense_len = 0;
+    }
+#endif
 }
 
 static void copy_padded(char *dest, char *src, int len)
