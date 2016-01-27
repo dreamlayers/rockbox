@@ -382,14 +382,20 @@ static unsigned char sd_command(int cmd, unsigned long parameter,
     static struct {
         unsigned char cmd;
         unsigned long parameter;
-        const unsigned char crc7;    /* fixed, valid for CMD0 only */
+        unsigned char crc7;
         const unsigned char trailer;
     } __attribute__((packed)) command = {0x40, 0, 0x95, 0xFF};
 
     unsigned char ret;
 
     command.cmd = cmd + 0x40;
-    //printf("cmd: %d", command.cmd);
+
+    if (cmd == SD_GO_IDLE_STATE) {
+        command.crc7 = 0x95; /* Requires parameter == 0 */
+    } else if (cmd == SD_SEND_IF_COND) {
+        command.crc7 = 0x87; /* Requires parameter == 0x1AA */
+    }
+
     command.parameter = htobe32(parameter);
 
     write_transfer((unsigned char *)&command, sizeof(command));
@@ -448,9 +454,8 @@ static int initialize_card(int card_no)
     /* Mandatory command for v2 hosts */
     /* Non v2 cards will not respond to this command */
     if(sd_command(SD_SEND_IF_COND, 0x1AA, SD_SPI_RESP_R7, &response)
-       != SD_SPI_R1_IDLE_STATE)
-        if((response & 0xFFF) == 0x1AA)
-            sd_v2 = true;
+       == SD_SPI_R1_IDLE_STATE && (response & 0xFFF) == 0x1AA)
+        sd_v2 = true;
 
     /* Optional command to get voltage range */
     if (sd_command(SD_SPI_READ_OCR, 0, SD_SPI_RESP_R3, &card->ocr)
