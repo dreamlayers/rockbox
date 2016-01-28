@@ -379,12 +379,15 @@ static unsigned char poll_busy(void)
 static unsigned char sd_command(int cmd, unsigned long parameter,
                                 unsigned long resptype, void *data)
 {
+    /* TODO: Not sure why dummy and trailer are needed here.
+       The 2 GB Sandisk Ultra II card requires them. */
     static struct {
+        const unsigned char dummy;
         unsigned char cmd;
         unsigned long parameter;
         unsigned char crc7;
         const unsigned char trailer;
-    } __attribute__((packed)) command = {0x40, 0, 0x95, 0xFF};
+    } __attribute__((packed)) command = {0xFF, 0x40, 0, 0x95, 0xFF};
 
     unsigned char ret;
 
@@ -414,10 +417,9 @@ static unsigned char sd_command(int cmd, unsigned long parameter,
         *(unsigned long *)data = betoh32(*(unsigned long *)data);
         break;
     default:
-        return ret;
+        break;
     }
 
-    write_transfer(dummy, 1);
     return ret;
 }
 
