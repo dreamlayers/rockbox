@@ -451,7 +451,11 @@ static int initialize_card(int card_no)
     /* Switch to SPI mode (assuming CS already 0) */
     if (sd_command(SD_GO_IDLE_STATE, 0, SD_SPI_RESP_R1, NULL)
         != SD_SPI_R1_IDLE_STATE)
-        return -1;                /* error or no response */
+        /* FIXME Why does ADATA 32GB card need two tries after being
+           initialized once? Increasing timeout does not help. */
+        if (sd_command(SD_GO_IDLE_STATE, 0, SD_SPI_RESP_R1, NULL)
+            != SD_SPI_R1_IDLE_STATE)
+            return -1;                /* error or no response */
 
     /* Mandatory command for v2 hosts */
     /* Non v2 cards will not respond to this command */
