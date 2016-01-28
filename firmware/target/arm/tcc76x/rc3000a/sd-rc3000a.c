@@ -699,8 +699,9 @@ int sd_read_sectors(IF_MD(int drive,)
 
     if (incount > 1)
     {
-        /* MMC4.2: make multiplication conditional */
-        if (sd_command(SD_READ_MULTIPLE_BLOCK, start * BLOCK_SIZE, 0, NULL))
+        if (sd_command(SD_READ_MULTIPLE_BLOCK,
+                       (card->ocr & (1 << 30)) ? start : (start * BLOCK_SIZE),
+                       0, NULL))
         {
             rc =  -3;
             goto error;
@@ -729,8 +730,9 @@ int sd_read_sectors(IF_MD(int drive,)
     }
     if (incount > 0)
     {
-        /* MMC4.2: make multiplication conditional */
-        if (sd_command(SD_READ_SINGLE_BLOCK, start * BLOCK_SIZE, 0, NULL))
+        if (sd_command(SD_READ_SINGLE_BLOCK,
+                       (card->ocr & (1 << 30)) ? start : (start * BLOCK_SIZE),
+                       0, NULL))
         {
             rc = -6;
             goto error;
@@ -787,8 +789,9 @@ int sd_write_sectors(IF_MD(int drive,)
         write_cmd   = SD_WRITE_BLOCK;
         start_token = SD_SPI_START_BLOCK;
     }
-                 /* MMC4.2: make multiplication conditional */
-    if (sd_command(write_cmd, start * BLOCK_SIZE, SD_SPI_RESP_R1, NULL))
+    if (sd_command(write_cmd,
+                   (card->ocr & (1 << 30)) ? start : (start * BLOCK_SIZE),
+                   SD_SPI_RESP_R1, NULL))
     {
         rc = -2;
         goto error;
