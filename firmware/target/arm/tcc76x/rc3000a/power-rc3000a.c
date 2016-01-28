@@ -42,7 +42,7 @@ bool ide_powered(void)
 
 void power_off(void)
 {
-    GPIOA &= ~0x800;
+    GPIOA &= ~(0x800 | 0x400);
 }
 
 bool tuner_power(bool status) {
