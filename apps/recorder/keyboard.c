@@ -379,17 +379,13 @@ int kbd_input(char* text, int buflen)
 
             if (sc->getwidth() >= 160 && sc->getheight() >= 96)
             {
-                p = "ABCDEFG abcdefg !?\" @#$%+'\n"
-                    "HIJKLMN hijklmn 789 &_()-`\n"
-                    "OPQRSTU opqrstu 456 §|{}/<\n"
-                    "VWXYZ., vwxyz.,0123 ~=[]*>\n"
-                    "ÀÁÂÃÄÅÆ ÌÍÎÏ ÈÉÊË ¢£¤¥¦§©®\n"
-                    "àáâãäåæ ìíîï èéêë «»°ºª¹²³\n"
-                    "ÓÒÔÕÖØ ÇÐÞÝß ÙÚÛÜ ¯±×÷¡¿µ·\n"
-                    "òóôõöø çðþýÿ ùúûü ¼½¾¬¶¨:;";
-
-                pm->default_lines = 8;
-                pm->max_line_len = 26;
+                p = "qkcgvj?789[]\\~QKCGVJ\n"
+                    " sind ,456{}'^ SIND\n"
+                    "wtheam.123<>\"@WTHEAM\n"
+                    " uorl !0()/$#% UORL\n"
+                    "zbfypx;:*-+=_&ZBFYPX\n";
+                pm->default_lines = 0; // Uses better font than 5;
+                pm->max_line_len = 20;
             }
             else
 #endif /* LCD_WIDTH >= 160 && LCD_HEIGHT >= 96 */
