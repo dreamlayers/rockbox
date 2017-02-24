@@ -106,6 +106,9 @@
 
 #define HAVE_HEADPHONE_DETECTION
 
+/* Switch speaker power based on headphone detection and user option */
+#define HAVE_SPEAKER
+
 /* Define this for LCD backlight available */
 #define HAVE_BACKLIGHT
 

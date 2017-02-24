@@ -58,33 +58,6 @@ bool button_hold(void)
 #ifdef HAVE_HEADPHONE_DETECTION
 bool headphones_inserted(void)
 {
-    /* Starts off true because speaker amp is off */
-    static bool last_detect = true;
-    static bool updated = true;
-    static long debounce_timeout;
-    bool detect;
-
-    detect = (GPIOD & 0x80000) == 0;
-
-    /* Debouncing for speaker amp power switching.
-     * TODO: Implement this as Rockbox feature */
-    if (detect != last_detect) {
-        debounce_timeout = current_tick + HZ/2;
-        updated = false;
-        last_detect = detect;
-    } else if (!updated) {
-        if (TIME_AFTER(current_tick, debounce_timeout)) {
-            if (detect) {
-                /* Headphones inserted, shutdown speaker amp */
-                GPIOA &= ~0x400;
-            } else {
-                /* Headphones removed, power speaker amp */
-                GPIOA |= 0x400;
-            }
-            updated = true;
-        }
-    }
-
-    return detect;
+    return (GPIOD & 0x80000) == 0;
 }
 #endif /* HAVE_HEADPHONE_DETECTION */

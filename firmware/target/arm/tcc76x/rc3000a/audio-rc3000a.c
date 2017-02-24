@@ -77,3 +77,13 @@ void audio_input_mux(int source, unsigned flags)
     last_source = source;
 } /* audio_input_mux */
 #endif /* INPUT_SRC_CAPS != 0 */
+
+#ifdef HAVE_SPEAKER
+void audiohw_enable_speaker(bool on) {
+    if (on) {
+        GPIOA |= 0x400;
+    } else {
+        GPIOA &= ~0x400;
+    }
+}
+#endif
