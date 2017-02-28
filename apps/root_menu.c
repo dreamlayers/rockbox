@@ -778,7 +778,8 @@ void root_menu(void)
 
 #ifdef HAVE_HEADPHONE_DETECTION
     if (next_screen == GO_TO_WPS &&
-        (global_settings.unplug_autoresume && !headphones_inserted() ))
+        (global_settings.unplug_autoresume && !headphones_inserted() &&
+         !charger_inserted()))
             next_screen = GO_TO_ROOT;
 #endif
 
