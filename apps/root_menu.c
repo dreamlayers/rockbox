@@ -325,10 +325,6 @@ static int wpsscrn(void* param)
             ret_val = gui_wps_show();
         }
     }
-    else
-    {
-        splash(HZ*2, ID2P(LANG_NOTHING_TO_RESUME));
-    }
     pop_current_activity();
     return ret_val;
 }
